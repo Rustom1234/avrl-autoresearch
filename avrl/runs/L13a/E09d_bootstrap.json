@@ -1,0 +1,56 @@
+{
+ "id": "bootstrap_replay",
+ "feats": "avrl/runs/E09d/feats.parquet",
+ "n_groups": 4000,
+ "label": "proxy_error",
+ "group_col": "cell100",
+ "features": [
+  "rm_max",
+  "rm_mean",
+  "rm_std",
+  "rm_gap12",
+  "mean_tokens",
+  "std_tokens",
+  "trunc_frac",
+  "consistency",
+  "log_qlen"
+ ],
+ "use_pcs": false,
+ "budget_fracs": [
+  0.25
+ ],
+ "comparisons_spec": [
+  [
+   "greedy_online",
+   "ts_online"
+  ]
+ ],
+ "n_boot_requested": 300,
+ "n_boot_used": 300,
+ "seeds_per_resample": 8,
+ "comparisons": [
+  {
+   "group_col": "cell100",
+   "budget_frac": 0.25,
+   "policy_a": "greedy_online",
+   "policy_b": "ts_online",
+   "hits_a": 121.875,
+   "hits_b": 134.25,
+   "diff_point": -12.375,
+   "diff_ci95": [
+    -21.440625,
+    3.143749999999983
+   ],
+   "rel_improve_point": -0.09217877094972067,
+   "rel_improve_ci95": [
+    -0.14992662241194502,
+    0.026672724888601035
+   ],
+   "n_boot_used": 300,
+   "total_label1_in_sim": 225,
+   "n_sim": 2928
+  }
+ ],
+ "runtime_sec": 289.2883644104004,
+ "note": "static = free-label classifier fit once on a held-out quarter of group buckets, deterministic ranking (sd=0, no policy-seed loop). static_matched = budget-matched: spends half of THAT budget's labels on random draws, fits, ranks the rest, no labels beyond the audit budget (sim_generic.py verbatim). greedy_online / ts_online = self-trained, online-refit every R verified labels, greedy has no bucket layout, ts_online Thompson-samples buckets. All four policies share the same fit_b/sim split and the same budget_n = int(budget_frac * len(sim)) within a resample/budget, so budget accounting is identical across policies. static_matched/greedy_online/ts_online averaged over --seeds policy seeds per resample."
+}
