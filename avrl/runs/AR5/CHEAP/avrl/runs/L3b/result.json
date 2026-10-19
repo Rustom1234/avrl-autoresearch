@@ -1,0 +1,226 @@
+{
+ "id": "L3b",
+ "pool": "/homes/rdubash/avrl_live/CHEAP/avrl/runs/p0/feats.parquet",
+ "n_groups": 3000,
+ "n_proxy_errors": 436,
+ "step_size_groups": 16,
+ "budgets": [
+  0.25
+ ],
+ "seeds": 8,
+ "assumptions": [
+  "steps of 16 groups over a seed-permuted pool (last step 8 groups); n_verify(step_groups, budget, step=t) with cumulative rounding",
+  "feat_vec = same 22 dims as E03: [agreement, n_distinct, mean_tokens, std_tokens, any_truncated, log_qlen] + pc0..pc15",
+  "cell = cell100 (KMeans k=100 over question embeddings from p0_analyze.py)",
+  "learned: LogisticRegression(max_iter=1000) unscaled, as in avrl/allocators.py (control)",
+  "learned_scaled: Pipeline(StandardScaler, LogisticRegression(max_iter=1000)) refit on cumulative verified X and y at the same cadence (refit_every=20) as learned",
+  "LearnedScaled.update() copies LearnedAllocator.update() except the fit line; select(), Thompson step and threshold cold start are inherited",
+  "permutation rng default_rng(1000+seed); selection rng default_rng(2000+seed) shared across steps of one run",
+  "gold (proxy_error) used only for scoring and as the update label of verified groups",
+  "ConvergenceWarnings counted per arm with warnings.catch_warnings(record=True) around each run_arm call"
+ ],
+ "per_budget": {
+  "0.25": {
+   "verifier_calls_per_run": 750,
+   "verifier_calls_equal_across_arms": true,
+   "errors_per_seed": [
+    436,
+    436,
+    436,
+    436,
+    436,
+    436,
+    436,
+    436
+   ],
+   "arms": {
+    "threshold": {
+     "caught_per_seed": [
+      340,
+      341,
+      344,
+      332,
+      331,
+      328,
+      325,
+      333
+     ],
+     "caught_mean": 334.25,
+     "admitted_per_seed": [
+      0.220183,
+      0.21789,
+      0.211009,
+      0.238532,
+      0.240826,
+      0.247706,
+      0.254587,
+      0.236239
+     ],
+     "admitted_mean": 0.23337155963302753,
+     "calls_per_seed": [
+      750,
+      750,
+      750,
+      750,
+      750,
+      750,
+      750,
+      750
+     ]
+    },
+    "learned": {
+     "caught_per_seed": [
+      130,
+      140,
+      136,
+      137,
+      135,
+      128,
+      117,
+      126
+     ],
+     "caught_mean": 131.125,
+     "admitted_per_seed": [
+      0.701835,
+      0.678899,
+      0.688073,
+      0.68578,
+      0.690367,
+      0.706422,
+      0.731651,
+      0.711009
+     ],
+     "admitted_mean": 0.6992545871559632,
+     "calls_per_seed": [
+      750,
+      750,
+      750,
+      750,
+      750,
+      750,
+      750,
+      750
+     ]
+    },
+    "learned_scaled": {
+     "caught_per_seed": [
+      136,
+      122,
+      132,
+      144,
+      129,
+      143,
+      120,
+      124
+     ],
+     "caught_mean": 131.25,
+     "admitted_per_seed": [
+      0.688073,
+      0.720183,
+      0.697248,
+      0.669725,
+      0.704128,
+      0.672018,
+      0.724771,
+      0.715596
+     ],
+     "admitted_mean": 0.698967889908257,
+     "calls_per_seed": [
+      750,
+      750,
+      750,
+      750,
+      750,
+      750,
+      750,
+      750
+     ]
+    }
+   },
+   "learned_scaled_minus_threshold_admitted_mean": 0.4655963302752294,
+   "learned_minus_threshold_admitted_mean": 0.46588302752293576,
+   "learned_scaled_minus_threshold_caught_mean": -203.0,
+   "learned_minus_threshold_caught_mean": -203.125
+  }
+ },
+ "control_vs_e03": {
+  "e03_result": "/homes/rdubash/avrl_live/CHEAP/avrl/runs/E03/result.json",
+  "e03_learned_caught_per_seed": [
+   130,
+   140,
+   136,
+   137,
+   135,
+   128,
+   117,
+   126
+  ],
+  "e03_learned_caught_mean": 131.125,
+  "ours_learned_caught_per_seed": [
+   130,
+   140,
+   136,
+   137,
+   135,
+   128,
+   117,
+   126
+  ],
+  "ours_learned_caught_mean": 131.125,
+  "reproduced": true
+ },
+ "metric": {
+  "name": "admitted rate at 25% budget, learned_scaled minus threshold, paired per bootstrap resample, mean over seeds, percentile 95% CI over B resamples",
+  "budget": 0.25,
+  "point_estimate_seeds_0_to_7": {
+   "learned_scaled_minus_threshold_admitted": 0.4655963302752294,
+   "learned_minus_threshold_admitted": 0.46588302752293576
+  },
+  "point_estimate_seeds_0_to_3": {
+   "learned_scaled_minus_threshold_admitted": 0.4719036697247706,
+   "learned_minus_threshold_admitted": 0.46674311926605505
+  },
+  "bootstrap": {
+   "B": 100,
+   "seeds": 4,
+   "budget": 0.25,
+   "learned_scaled_minus_threshold_admitted": {
+    "mean": 0.4502164935746388,
+    "ci95": [
+     0.4172293595930612,
+     0.4881049947005829
+    ],
+    "frac_below_zero": 0.0,
+    "n_resamples": 100
+   },
+   "learned_minus_threshold_admitted": {
+    "mean": 0.45126365421544756,
+    "ci95": [
+     0.4120069444444444,
+     0.49053140930331346
+    ],
+    "frac_below_zero": 0.0,
+    "n_resamples": 100
+   }
+  }
+ },
+ "verdict": "KILL",
+ "verdict_rule": "PASS iff the 95% CI upper bound of (learned_scaled admitted - threshold admitted) at the boot budget is < 0 and the unscaled control reproduces E03; otherwise KILL (CI upper bound >= 0) or INVALID_CONTROL",
+ "kill_attribution": "not an artifact of the unscaled fit: scaled fits logged zero ConvergenceWarnings",
+ "convergence_warnings": {
+  "main": {
+   "threshold": 0,
+   "learned": 0,
+   "learned_scaled": 0
+  },
+  "bootstrap": {
+   "threshold": 0,
+   "learned": 2,
+   "learned_scaled": 0
+  },
+  "learned_scaled_total": 0,
+  "learned_total": 2
+ },
+ "convergence_note": "E03 logged 640 ConvergenceWarnings: 23 in its main run (learned and greedy arms, budgets 0.10, 0.25, 0.50) and 617 in its bootstrap (learned and greedy arms). Those counts are not directly comparable to the per-arm counts here, which cover only the learned variants at 25%.",
+ "wall_s": 493.3
+}

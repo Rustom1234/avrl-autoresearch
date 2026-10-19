@@ -1,0 +1,114 @@
+{
+ "id": "L3ab",
+ "pool": "/homes/rdubash/avrl_live/CHEAP/avrl/runs/p0/feats.parquet",
+ "n_groups": 3000,
+ "n_proxy_errors": 436,
+ "features": [
+  "agreement",
+  "n_distinct",
+  "mean_tokens",
+  "std_tokens",
+  "any_truncated",
+  "log_qlen"
+ ],
+ "score": {
+  "model": "Pipeline(StandardScaler, LogisticRegression(max_iter=1000))",
+  "cv": "KFold(n_splits=5, shuffle=True, random_state=0), out-of-fold",
+  "target": "proxy_error"
+ },
+ "assumptions": [
+  "score: KFold(5, shuffle=True, random_state=0) over all 3000 groups; Pipeline(StandardScaler, LogisticRegression(max_iter=1000)) fitted on the four training folds, predict_proba[:, 1] on the held-out fold; target proxy_error; six FEAT_COLS, no pc columns",
+  "blocks are exact (agreement, n_distinct) values; a kept block contains both labels (at least one error and one non-error)",
+  "within-block AUC is sklearn roc_auc_score per kept block; ties in the score get average rank",
+  "weighted mean weights = number of groups in the block (kept blocks only), so the full-pool value is sum(n_b * AUC_b) / sum(n_b)",
+  "block bootstrap: K kept blocks resampled with replacement per draw (rng default_rng(20000), B=2000), same weighted mean per draw; 95% CI is the 2.5th and 97.5th percentile of the draws",
+  "cut read: positions 4 and 5 counted from 1 are 0-based indices 3 and 4 of each step ordered by ThresholdAllocator._order (agreement ascending, n_distinct descending, stable on chunk position); all steps are included, including the last 8-group step",
+  "cut read blocks are rebuilt among the cut groups only; its bootstrap uses the same B and seed (default_rng(20000))",
+  "label set is {0, 1} and proxy_error is used only as the target and the AUC label, never as a feature",
+  "reference values: all-group AUC of the out-of-fold score, and the share of blocks (and of groups) that contain both labels"
+ ],
+ "reference": {
+  "all_group_auc": 0.9224235712547768,
+  "share_blocks_mixed_full_pool": 0.9,
+  "share_groups_in_mixed_blocks_full_pool": 0.9993333333333333
+ },
+ "metric": {
+  "name": "block-size-weighted within-block AUC of the out-of-fold score against proxy_error, full pool, block bootstrap 95% percentile CI (B=2000, default_rng(20000))",
+  "within_block_auc_weighted": 0.5280334976357903,
+  "ci95_percentile": [
+   0.4819100870726915,
+   0.5837896959109989
+  ],
+  "groups_used": 2998,
+  "errors_used": 435,
+  "mixed_blocks": 18,
+  "cut_within_block_auc_weighted": 0.5688871344488908,
+  "cut_ci95_percentile": [
+   0.43000515626278313,
+   0.6576246282578039
+  ],
+  "cut_groups_used": 363,
+  "cut_errors_used": 77,
+  "cut_mixed_blocks": 11,
+  "cut_groups_total": 376,
+  "cut_errors_total": 79
+ },
+ "full_pool": {
+  "name": "full_pool",
+  "groups_total": 3000,
+  "errors_total": 436,
+  "blocks_total": 20,
+  "mixed_blocks": 18,
+  "share_blocks_mixed": 0.9,
+  "groups_in_mixed_blocks": 2998,
+  "errors_in_mixed_blocks": 435,
+  "share_groups_in_mixed_blocks": 0.9993333333333333,
+  "within_block_auc_weighted": 0.5280334976357903,
+  "boot_mean": 0.5282438983302326,
+  "boot_sd": 0.02653287534107828,
+  "ci95_percentile": [
+   0.4819100870726915,
+   0.5837896959109989
+  ],
+  "B": 2000,
+  "boot_seed": 20000,
+  "includes_0_5": true,
+  "per_block_auc_min": 0.15789473684210525,
+  "per_block_auc_max": 0.6666666666666667
+ },
+ "cut_read": {
+  "name": "cut_positions_4_5",
+  "groups_total": 376,
+  "errors_total": 79,
+  "blocks_total": 15,
+  "mixed_blocks": 11,
+  "share_blocks_mixed": 0.7333333333333333,
+  "groups_in_mixed_blocks": 363,
+  "errors_in_mixed_blocks": 77,
+  "share_groups_in_mixed_blocks": 0.9654255319148937,
+  "within_block_auc_weighted": 0.5688871344488908,
+  "boot_mean": 0.5602287856332809,
+  "boot_sd": 0.057700306396533306,
+  "ci95_percentile": [
+   0.43000515626278313,
+   0.6576246282578039
+  ],
+  "B": 2000,
+  "boot_seed": 20000,
+  "includes_0_5": true,
+  "per_block_auc_min": 0.03571428571428571,
+  "per_block_auc_max": 1.0
+ },
+ "reading_threshold": 0.5,
+ "reading": "KILL",
+ "next_test": "L3ae",
+ "reading_rule": "Reading, fixed before the run (diagnostic, no claim credit). A = block-size-weighted within-block AUC of the out-of-fold score against proxy_error over all kept (mixed) blocks on the full pool, with its 95% block-bootstrap percentile CI (B=2000, rng default_rng(20000)). If the CI includes 0.5 (lower <= 0.5 <= upper), read KILL: the within-block ranker is not the lever on this pool, no within-block re-specification is built, and the next test is L3ae. If the CI lower bound is above 0.5, read SURVIVE: the regression ranks within blocks even with full labels, so the L3h null comes from the online loop, and the next test is L3n. If the CI lies entirely below 0.5, read ANTI_SIGNAL: report it as anti-signal and build nothing on that score. The cut read (positions 4 and 5) is reported with its own CI and does not set the reading. This entry cannot change claim 2 or claim 3.",
+ "checks": {
+  "proxy_error_binary": true,
+  "n_groups_is_3000": true,
+  "n_errors_is_436": true,
+  "oof_no_nan": true,
+  "cut_groups_are_2_per_step": true
+ },
+ "wall_s": 0.1
+}
