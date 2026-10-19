@@ -17,6 +17,7 @@ Left: in training, the label-free consistency threshold admits the fewest wrong 
 4. The cheap grader's error rate measured before training predicts the outcome; a short fully verified burn-in plus a regime diagnostic turns that into a budget. No cheap grader drifted over 100 to 4,000 steps.
 5. Reward-model overoptimization appeared only at 7B under high optimization pressure and is judge-dependent (two of three independent judge families agree); reported as mixed.
 6. On the loop itself: the planner does best with the full ledger in context (AR1); a cheap critic finds planted defects as well as a strong one but flags most clean entries, unanimously, so agreement-based escalation equals random escalation (AR3, killed, predicted by the burn-in diagnostic); and in five live copies of the loop the run-to-run variance of a single model exceeded the effect of swapping models between roles, with the planner's choice of experiment the decisive variable (AR5, unresolved by its pre-registered noise gate).
+7. Routing the planner (AR6): a cheap planner costs five to ten extra experiments; consistency among cheap samples is informative here (unlike for the critic) and beats random escalation at matched budget; escalating on stalled progress fails; and routing on the state of the pre-registered claims (strong model while any claim is open, cheap model once all are settled) needs no estimator and was faster than always using the strong model in both blocks, a hypothesis for replication since it was not pre-registered.
 
 ## Results
 
@@ -31,6 +32,7 @@ Left: in training, the label-free consistency threshold admits the fewest wrong 
 | AR2, cheap vs strong critic | descriptive | located defects 0.72 vs 0.81; false alarms 0.50 vs 0.21; cost 12x | `avrl/runs/AR2/`, ledger AR2 |
 | AR3, critic cascade | killed | cascade 0.46 vs random 0.47 vs Sonnet 0.73 quality at e = 0.25; agreement AUROC 0.58, verbalized confidence 0.86 | `avrl/runs/AR3/`, ledger AR3 |
 | AR5, live routed loop | unresolved (noise gate) | two all-Sonnet copies disagree; fastest settle 5 experiments and 2.6 USD; Haiku roles cost 0.32 (ROUTED) and 0.04 (CHEAP) of all-Sonnet | `avrl/runs/AR5/`, ledger AR5 |
+| AR6, planner routing policies | R1 and R4 pass, R2 and R3 fail | experiments to verdict: Sonnet 7.5, Haiku 12.9, consistency cascade 7.9 at 51 percent Sonnet picks, stall-triggered 13.8; strong-early (Sonnet while claims open) 6.9 and, with an open 7B cheap tier, 5.0 vs 7.6 in 5 of 5 seeds | `avrl/runs/AR6/`, ledger AR6 |
 
 A two-audience write-up of the whole project is in [`avrl/SUMMARY_PAPER.md`](avrl/SUMMARY_PAPER.md). The standing of every claim is in [`avrl/PROJECT.md`](avrl/PROJECT.md). Every result above traces to a dated, pre-registered entry in [`avrl/RESEARCH_LOG.md`](avrl/RESEARCH_LOG.md).
 
