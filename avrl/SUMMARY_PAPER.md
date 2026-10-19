@@ -1,6 +1,6 @@
 # Where to spend the expensive check: budgeted verification in RL training and in the research loop that studied it
 
-Rustom Dubash, Haverford College. Work from 24 September to 19 October 2026. Status: pre-registered results, one live follow-up pending human adjudication.
+Status: pre-registered results, one live follow-up pending human adjudication.
 
 ## 1. For a reader with no technical background
 
