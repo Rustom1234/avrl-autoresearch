@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "title": "Reduce Warmup Ratio",
+      "spec": "Change WARMUP_RATIO from 0.0 to 0.02. The current zero warmup can cause instability in the early steps of training, especially for the sensitive Muon parameters. A small linear warmup allows the optimizer to take smaller steps initially, potentially stabilizing convergence and lowering val_bpb.",
+      "family": "schedule"
+    },
+    {
+      "title": "Increase Weight Decay",
+      "spec": "Change WEIGHT_DECAY from 0.2 to 0.5. Higher weight decay acts as stronger regularization, which can help prevent overfitting on the validation set. This is a common technique to improve generalization metrics like bits per byte in language modeling.",
+      "family": "regularization"
+    },
+    {
+      "title": "Reduce Learning Rate for Embeddings",
+      "spec": "Change EMBEDDING_LR from 0.6 to 0.3. The token embeddings are often the most sensitive part of the model to over-training, leading to mode collapse or poor generalization. Lowering their learning rate while keeping other layers unchanged can improve stability and the final validation score.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Reduce Matrix Learning Rate",
+      "spec": "Change MATRIX_LR from 0.04 to 0.02. Since the model uses Muon optimization which updates matrix parameters more aggressively, reducing the base learning rate can prevent the model from overshooting the optimal manifold, especially given the short 300s training budget.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Softcap 12 -> 10",
+      "spec": "Modify the logit softcap value from 12 to 10. A lower softcap forces the model to be more confident and discriminative during training, which can translate to better calibration and lower bits-per-byte on the validation set without requiring architectural changes.",
+      "family": "schedule"
+    },
+    {
+      "title": "Switch to SwiGLU MLP",
+      "spec": "Replace the existing ReLU-squared or default MLP with a SwiGLU (Swish-Gated Linear Unit) activation in the feed-forward network. SwiGLU is a proven architectural improvement for small LLMs that often yields better expressivity and lower bits-per-byte for a given parameter count.",
+      "family": "architecture"
+    }
+  ]
+}

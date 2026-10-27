@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "title": "Increase Model Depth",
+      "spec": "Increase the DEPTH constant from 8 to 12. Since we are training for a fixed wall-clock time, a deeper model with fewer layers per step (or just a more expressive capacity) might capture more complex patterns in the data, potentially lowering the validation bits per byte. We keep the ASPECT_RATIO and other dimensions the same to maintain the model's width-to-depth balance.",
+      "family": "architecture"
+    },
+    {
+      "title": "Adjust Matrix Learning Rate",
+      "spec": "Modify the MATRIX_LR from 0.04 to 0.03. Given that Muon is being used for the matrix parameters, a slightly lower learning rate might provide more stability during the 300-second training window, preventing the weights from diverging or overshooting local minima in a short training run.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Increase Weight Decay",
+      "spec": "Increase the WEIGHT_DECAY from 0.2 to 0.3. Since the goal is to lower val_bpb (improving generalization), a stronger regularization penalty on the Muon-optimized matrix parameters might help the model generalize better to the validation set by preventing over-fitting to the training data.",
+      "family": "regularization"
+    },
+    {
+      "title": "Increase Device Batch Size",
+      "spec": "Increase DEVICE_BATCH_SIZE from 64 to 80. While 128 overflows the 40GB VRAM, 80 is a conservative increase that might improve the gradient estimate stability without triggering an Out-of-Memory error. We keep the TOTAL_BATCH_SIZE constant (or let it scale naturally) to maintain the effective learning rate per sample.",
+      "family": "batch"
+    }
+  ]
+}

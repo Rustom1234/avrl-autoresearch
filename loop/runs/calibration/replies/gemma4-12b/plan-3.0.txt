@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "title": "RMSNorm on all layers",
+      "spec": "Replace any existing LayerNorm or similar normalization with RMSNorm. RMSNorm is more computationally efficient and often provides similar or better stabilization for Transformer architectures, potentially allowing for slightly higher learning rates or better convergence in the same time budget.",
+      "family": "architecture"
+    },
+    {
+      "title": "Weight Decay for Embeddings",
+      "spec": "Apply weight decay to the token embeddings. Currently, the embeddings use a separate learning rate and may not be regularized as strictly as the matrix parameters. Adding weight decay to the embedding weights can help prevent overfitting to specific tokens in a small data regime.",
+      "family": "regularization"
+    },
+    {
+      "title": "Cosine Annealing with Linear Warmup",
+      "spec": "Change the learning rate schedule to a standard cosine annealing schedule with a linear warmup. The current configuration has 0.0 warmup and 0.5 warmdown; a 5% warmup period followed by a cosine decay to 0.01% of the max LR is a standard robust choice for small models.",
+      "family": "schedule"
+    },
+    {
+      "title": "Rotary Positional Embeddings (RoPE)",
+      "spec": "Replace absolute or learned positional embeddings with Rotary Positional Embeddings (RoPE). RoPE is the industry standard for capturing relative positions and often improves the model's ability to generalize to different sequence lengths, which can lower the val_bpb by improving structure understanding.",
+      "family": "architecture"
+    },
+    {
+      "title": "Stochastic Depth",
+      "spec": "Implement a simple Stochastic Depth (DropPath) mechanism on the transformer layers. By randomly dropping entire layers during training (with a higher probability for deeper layers), the model can develop more redundant and robust representations, which is effective for small models with limited data.",
+      "family": "regularization"
+    },
+    {
+      "title": "Mixed Precision Training",
+      "spec": "Wrap the training loop in `torch.cuda.amp.autocast()` and use `torch.cuda.amp.GradScaler`. While the A100 supports BF16 natively, using mixed precision can speed up the training loop significantly, allowing for more effective updates within the 300s wall-clock limit.",
+      "family": "other"
+    }
+  ]
+}

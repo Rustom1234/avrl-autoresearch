@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "title": "Reduce Weight Decay Further",
+      "spec": "Change WEIGHT_DECAY from 0.15 to 0.10. Lower weight decay often helps stabilize the effective learning rate in sparse gradient methods like Muon, potentially allowing the model to converge to a better minimum without the penalty of the current incumbent setting.",
+      "family": "regularization"
+    },
+    {
+      "title": "Increase Warmup Ratio",
+      "spec": "Change WARMUP_RATIO from 0.0 to 0.05. Introducing a short linear warmup period can prevent the initial instability of the optimizer (especially with Muon's sparse gradients) from causing early divergence or poor local minima, often yielding smoother convergence.",
+      "family": "schedule"
+    },
+    {
+      "title": "Switch to RMSProp Optimizer",
+      "spec": "Replace the current Adam-based optimizer logic with a standard RMSProp implementation for the matrix parameters. RMSProp is often more robust to learning rate scaling and can sometimes outperform Adam on autoregressive tasks by providing more stable second-moment estimates.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Increase Model Depth",
+      "spec": "Increase DEPTH from 8 to 12 while keeping ASPECT_RATIO constant (scaling model_dim). A slightly larger model with more layers can capture more complex patterns in the data, potentially lowering the bits-per-byte metric if the current size is a bottleneck.",
+      "family": "architecture"
+    },
+    {
+      "title": "Increase Per-Device Batch Size",
+      "spec": "Increase DEVICE_BATCH_SIZE from 64 to 80 (or 96 if memory permits). Increasing the stochastic gradient noise can act as a regularizer and help escape poor local minima, often improving the final validation performance compared to very small batch sizes.",
+      "family": "batch"
+    },
+    {
+      "title": "Disable Warmdown",
+      "spec": "Change WARMDOWN_RATIO from 0.5 to 0.0. Maintaining a constant learning rate throughout training prevents the effective learning rate from dropping too early, allowing the model more time to refine its predictions before the training loop terminates.",
+      "family": "schedule"
+    }
+  ]
+}

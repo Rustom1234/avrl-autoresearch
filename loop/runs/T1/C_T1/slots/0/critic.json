@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "The diff only changes TOTAL_BATCH_SIZE from 2**19 to 2**18. That is an allowed hyperparameter change, and it doesn't touch the seed lines, the prepare.py import, the data, the val_bpb computation, the evaluation call or the final summary printing.",
+  "No bug that would make the result meaningless: if the micro-batch is 64 x 2048 tokens (2048 is an assumed sequence length), 2**18 still divides evenly, giving 2 gradient-accumulation steps instead of 4. Learning rates are not rescaled for the smaller batch, which may change val_bpb but does not invalidate the result.",
+  "The harness rejected the run for integrity flags but gave neither a reason nor any numbers. This diff does not explain the rejection. It may be a false positive or come from something outside the diff (for example the 450 s limit or the evaluation-path check), so ask the harness for the specific flag before attributing it to this change.",
+  "No val_bpb values or spread were given, so z cannot be recomputed."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

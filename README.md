@@ -18,6 +18,7 @@ Left: in training, the label-free consistency threshold admits the fewest wrong 
 5. Reward-model overoptimization appeared only at 7B under high optimization pressure and is judge-dependent (two of three independent judge families agree); reported as mixed.
 6. On the loop itself: the planner does best with the full ledger in context (AR1); a cheap critic finds planted defects as well as a strong one but flags most clean entries, unanimously, so agreement-based escalation equals random escalation (AR3, killed, predicted by the burn-in diagnostic); and in five live copies of the loop the run-to-run variance of a single model exceeded the effect of swapping models between roles, with the planner's choice of experiment the decisive variable (AR5, unresolved by its pre-registered noise gate).
 7. Routing the planner (AR6): a cheap planner costs five to ten extra experiments; consistency among cheap samples is informative here (unlike for the critic) and beats random escalation at matched budget; escalating on stalled progress fails; and routing on the state of the pre-registered claims (strong model while any claim is open, cheap model once all are settled) needs no estimator and was faster than always using the strong model in both blocks, a hypothesis for replication since it was not pre-registered.
+8. Taken to Karpathy's nanochat substrate with a harness-owned metric (AR7): four loop designs reach the same held-out gain (0.060 to 0.063 bits per byte over the baseline), so the headline contrast is inconclusive at 8 versus 8; the control's keep-if-lower rule would have kept about seven changes per run of which five fail a fresh-seed re-run, while the verified arms reject those first; routing each role to the cheapest model that passed calibration costs 0.21 USD per run against 0.78 for the control and 1.44 for the same loop without routing, with no measurable loss.
 
 ## Results
 
@@ -33,6 +34,7 @@ Left: in training, the label-free consistency threshold admits the fewest wrong 
 | AR3, critic cascade | killed | cascade 0.46 vs random 0.47 vs Sonnet 0.73 quality at e = 0.25; agreement AUROC 0.58, verbalized confidence 0.86 | `avrl/runs/AR3/`, ledger AR3 |
 | AR5, live routed loop | unresolved (noise gate) | two all-Sonnet copies disagree; fastest settle 5 experiments and 2.6 USD; Haiku roles cost 0.32 (ROUTED) and 0.04 (CHEAP) of all-Sonnet | `avrl/runs/AR5/`, ledger AR5 |
 | AR6, planner routing policies | R1 and R4 pass, R2 and R3 fail | experiments to verdict: Sonnet 7.5, Haiku 12.9, consistency cascade 7.9 at 51 percent Sonnet picks, stall-triggered 13.8; strong-early (Sonnet while claims open) 6.9 and, with an open 7B cheap tier, 5.0 vs 7.6 in 5 of 5 seeds | `avrl/runs/AR6/`, ledger AR6 |
+| AR7, routed loop on nanochat | H1 inconclusive (pre-registered as likely) | sealed gain A 0.0633, B 0.0629, C 0.0607, D 0.0595 (D minus A -0.0038, 90 percent interval -0.0084 to +0.0009, p 0.18); model dollars per run A 0.78, B 1.06, C 1.44, D 0.21; control would-be keeps 7.1 per run, 5.0 fail audit; shard gap under 0.0003 | `loop/runs/R1/analysis/report.md`, ledger AR7 |
 
 A two-audience write-up of the whole project is in [`avrl/SUMMARY_PAPER.md`](avrl/SUMMARY_PAPER.md). The standing of every claim is in [`avrl/PROJECT.md`](avrl/PROJECT.md). Every result above traces to a dated, pre-registered entry in [`avrl/RESEARCH_LOG.md`](avrl/RESEARCH_LOG.md).
 
@@ -49,6 +51,23 @@ A two-audience write-up of the whole project is in [`avrl/SUMMARY_PAPER.md`](avr
 
 Guardrails: one GPU job at a time, writes only under one directory, no pushes, kill patterns that cannot hit the agent's own shell. [`avrl/autoresearch.live.js`](avrl/autoresearch.live.js) is the parametrized version used for AR5 (per-role models, per-run trees, optional screener cascade). [`avrl/autoresearch-routing-context.md`](avrl/autoresearch-routing-context.md) compares the loop's design with AlphaEvolve, OpenEvolve, ShinkaEvolve, AI Scientist v2 and AI co-scientist.
 
+## The loop on Karpathy's nanochat substrate (AR7)
+
+Karpathy's autoresearch repo lets an agent edit `train.py` and scores it by bits per byte on a pinned shard after 300 s of training. This experiment runs four loop designs on that substrate for one day on four A100s, 22 loop runs of 20 GPU slots each, and confirms every final program with four fresh seeds against a same-wave baseline on a sealed shard the loops never saw. The metric is recomputed by harness code from raw logits, with pinned fingerprints of the frozen evaluator and data, a known-answer check of the scoring arithmetic, seed binding and nonce receipts; an adversarial candidate that skipped training and printed a fake score was rejected in testing.
+
+![Sealed improvement by arm](loop/runs/R1/analysis/fig_improvement_by_arm.png)
+
+| arm | what it adds | runs | sealed gain | model USD per run | would-be keeps per run that fail a fresh-seed audit |
+|---|---|---|---|---|---|
+| A control | stateless Sonnet, keep if lower on one run | 8 | 0.0633 | 0.78 | 5.0 of 7.1 |
+| B verified | static linter, z-scored replicate-before-accept | 3 | 0.0629 | 1.06 | 0.0 of 2.0 |
+| C scheduled | self-generated backlog, Thompson sampling, Opus critic on escalation | 3 | 0.0607 | 1.44 | 0.3 of 2.0 |
+| D routed | roles sent to the cheapest calibrated model: Qwen3.5-4B constant edits and plans, Gemma 4 12B schedule edits and votes, Haiku structural edits and repairs, Sonnet analyst, Opus critic | 8 | 0.0595 | 0.21 | 0.1 of 2.4 |
+
+Layout of `loop/`: `design/` (DESIGN.md, PREREG.md with amendments and deviations, RUNBOOK.md), `substrate/` (GPU queue worker, harness evaluator appended to every run, queue client, Slurm script, 116 tests), `models/` (one call interface over Claude tiers and vLLM servers with fallbacks, rate-limit breaker and token budget, 111 tests), `core/` (linter, patch applier, acceptance rule, backlog scheduler, prompts, arm logic, resumable loop engine, controller and confirmation block, calibration, analysis, 621 tests), `runs/` (noise job, launch sentinels, calibration trials and the frozen routing table, integration and stress records, the full R1 run with per-slot candidates, ledgers, confirmations, report and figures), and `HISTORY.md` (what was done, in order).
+
+Pre-registered reading (loop/design/PREREG.md): the confirmatory A versus D contrast is inconclusive, as predicted; every arm finds the same two hardware-specific wins (batch size 2^19 to 2^17, depth 8 to 6) and then sits at the noise floor (16 identical baseline runs have sd 0.0041). What separates the arms is what they would have kept and what they cost: routing by measured role fitness is 3.7 times cheaper than the control and 9 times cheaper per accepted change than the same loop without routing, noninferior at the 0.01 margin. Deviations and caveats (anchor and sigma from live runs rather than the first noise job, per-GPU offsets that did not hold during the run, a 100 minute idle gap before confirmation, the control audited by a uniform tripwire once gains passed 0.03) are logged in PREREG.md and the ledger entry.
+
 ## Repository structure
 
 | path | contents |
@@ -64,6 +83,7 @@ Guardrails: one GPU job at a time, writes only under one directory, no pushes, k
 | `avrl/runs/` | result files per experiment (weights, rollout parquets and logs are not tracked) |
 | `avrl/*.sh`, `avrl/*.sbatch` | launch scripts for the lab machines and the A100 node |
 | `lit/avrl/` | literature sweeps (14 angles), synthesis, thesis proposal, experiment backlog, gap checks, figures |
+| `loop/` | the nanochat loop (AR7): `design/` (DESIGN.md, PREREG.md, RUNBOOK.md), `substrate/` (GPU queue worker and harness evaluator), `models/` (call layer, registry, fallbacks, budget), `core/` (linter, patch applier, acceptance, scheduler, arms, controller, calibration, analysis, 621 tests), `runs/` (noise job, calibration, integration tests, R1 results and figures) |
 | `SCOPE.md`, `LOOP.md`, `AGENTS.md`, `aa/`, `runs/` | an earlier project in the same repository (budgeted active audit of pretraining data), kept for provenance |
 
 ## Setup
@@ -117,6 +137,22 @@ python avrl/exp/ar3_features.py --split burn --pile && python avrl/exp/ar3_analy
 python avrl/exp/ar3_features.py --split all && python avrl/exp/ar3_analyze.py --step test
 # AR5: five live loop arms (seed build, run trees, launch, grading, audit, cost)
 cat avrl/exp/AR5_LAUNCH.md
+```
+
+The nanochat loop (AR7; design, pre-registration and runbook in `loop/design/`):
+
+```bash
+# unit tests for the three layers (about 850 tests, no GPU, no network)
+.venv/bin/python -m pytest loop/substrate/tests loop/models/tests loop/core/tests -q
+# stage the substrate on the GPU node, then start the four workers (see loop/substrate/deploy_hint.md)
+# serve the open models with vLLM (see loop/runs/servers/SERVERS.md), then calibrate the routing table
+.venv/bin/python -m loop.core.calibration --models sonnet haiku qwen35-9b gemma4-12b r1-qwen3-8b qwen35-4b --out loop/runs/calibration
+# plan, anchor, run, confirm, analyse (exact sequence and preconditions in loop/design/RUNBOOK.md)
+.venv/bin/python loop/core/controller.py plan --root loop/runs/R1 --seed 1 --base-config loop/runs/R1/base.json
+.venv/bin/python loop/core/controller.py launch-sentinels --root loop/runs/R1 --n 16
+nohup loop/core/restart_wrapper.sh loop/runs/R1/plan.json --max-inflight 6 --window-hours 24 > loop/runs/R1/wrapper.out 2>&1 &
+.venv/bin/python loop/core/controller.py confirm --plan loop/runs/R1/plan.json
+.venv/bin/python -m loop.core.analysis --run loop/runs/R1 --out loop/runs/R1/analysis
 ```
 
 Each experiment's command, seeds, sample sizes and thresholds are also recorded in its ledger entry.

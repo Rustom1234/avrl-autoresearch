@@ -1,0 +1,16 @@
+{
+ "ok": false,
+ "issues": [
+  "(1) Integrity: nothing in the diff changes how val_bpb is measured, the data, the seed lines or the evaluation call. The only change near evaluation is deleting the comment line '# Final eval' above model.eval(). It has no effect on behaviour, and the harness reported no integrity flags. Not a reason to veto.",
+  "(2) Dead code: ema_model_step is defined but never called anywhere in the diff. So the candidate trains exactly like the incumbent, and the gap in val_bpb can only come from run-to-run noise (GPU nondeterminism), not from the change.",
+  "The function is also broken and would crash if it were ever called. mo.state_dict() on an optimizer has no 'optimizers' key, so it would raise a KeyError. It calls .expand_as on the per-parameter state dict, which has no such method. The loops index mo.param_groups[i] by parameter index. And despite its name and docstring it does not average model weights: it blends the optimizer's own moment buffers with themselves. Since it is never called, it does not make the result meaningless, so no veto. But it is ugly dead code that the simplicity rule says to reject.",
+  "(3) Numbers: candidate mean = (1.0484 + 1.0480 + 1.0552) / 3 = 1.05053, versus the incumbent mean of 1.0558, a difference of about 0.0053. Sample SD of the candidate runs is about 0.0040. With only the incumbent mean given (its per-run values or SD are missing), the harness's z = 1.216 cannot be reproduced exactly. A z built from the candidate's variance alone would be about 2.25, but that ignores the incumbent's variance, so it is only an upper-end figure. The diff makes no claims about results to check. Rejecting is correct either way, since the code change does nothing."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0505,
+  "delta_vs_incumbent": 0.0053,
+  "candidate_sd": 0.004
+ }
+}

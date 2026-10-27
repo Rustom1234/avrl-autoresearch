@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "The diff doesn't touch val_bpb measurement, data, seed lines or the evaluation call. It only changes the training loop: the loss is read from the GPU (.item()) and checked for NaN/explosion every 20 steps instead of every step.",
+  "The NaN/explosion fail-fast now triggers up to 19 steps late. This is harmless and doesn't affect what the result means.",
+  "If train_loss_f is used later in the loop (smoothed-loss average or progress logging), it will be up to 19 steps stale on most steps. This only affects printed values. Step 0 satisfies step % 20 == 0, so the variable is always defined.",
+  "torch.cuda.synchronize() still runs every step, so skipping .item() saves very little time per step.",
+  "The harness says the run was rejected for integrity flags but gives no cause, and this diff doesn't explain it. Someone should check the harness log to see which check fired.",
+  "The harness gave no val_bpb or variance numbers, so z can't be recomputed and no improvement claim can be checked."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

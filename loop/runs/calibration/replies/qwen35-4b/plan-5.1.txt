@@ -1,0 +1,29 @@
+{
+"items": [
+{
+"title": "Multi-Gradient Accumulation",
+"spec": "Change DEVICE_BATCH_SIZE from 64 to 128 and set TOTAL_BATCH_SIZE to 2**20 (approx 1M tokens). Reduce WARMUP_RATIO to 0.03 and WARMDOWN_RATIO to 0.3 to accommodate the larger step size. This increases the effective batch size per step while keeping wall-clock time similar, potentially improving gradient stability and lowering val_bpb.",
+"family": "batch"
+},
+{
+"title": "Linear Warmup with Cosine Decay",
+"spec": "Change WARMUP_RATIO from 0.0 to 0.05 and WARMDOWN_RATIO from 0.5 to 0.2. Replace the current constant LR schedule with a linear warmup followed by cosine decay. This provides a more stable learning trajectory, which can help the model converge to better minima and reduce validation bits per byte.",
+"family": "schedule"
+},
+{
+"title": "Layer-wise Adaptive Weight Decay",
+"spec": "Keep WEIGHT_DECAY at 0.2 but introduce a dynamic weight decay schedule that starts at 0.1 and linearly increases to 0.2 over the first 10% of training, then holds. This reduces early loss spikes and stabilizes training dynamics, potentially leading to a lower val_bpb.",
+"family": "regularization"
+},
+{
+"title": "Extended Training Duration",
+"spec": "Extend the training loop to run for 400 seconds instead of 300. This allows the model more time to converge without requiring larger batch sizes. Increase WARMUP_RATIO to 0.04 and WARMDOWN_RATIO to 0.2 to fit the longer schedule within the extended time budget.",
+"family": "other"
+},
+{
+"title": "Residual Connection Scaling",
+"spec": "Modify the residual connections to use a scaling factor of 1.0 instead of the default 0.1 (or vice versa depending on implementation). This can alter the signal propagation through the network, potentially improving convergence and reducing val_bpb.",
+"family": "architecture"
+}
+]
+}

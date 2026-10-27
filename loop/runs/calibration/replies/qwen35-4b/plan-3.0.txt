@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "title": "Apply Warmup and Cosine Schedule",
+      "spec": "Replace WARMUP_RATIO=0.0 with 0.1 and WARMDOWN_RATIO=0.5 to use a cosine annealing schedule instead of constant learning rate. This allows the optimizer to settle into a better minimum, typically reducing perplexity (val_bpb).",
+      "family": "schedule"
+    },
+    {
+      "title": "Reduce Weight Decay",
+      "spec": "Change WEIGHT_DECAY from 0.2 to 0.01. Lower weight decay can reduce regularization bias, allowing the model to fit the data better without over-smoothing gradients, often leading to a lower val_bpb.",
+      "family": "regularization"
+    },
+    {
+      "title": "Increase Embedding Learning Rate",
+      "spec": "Increase EMBEDDING_LR from 0.6 to 0.8. Since embeddings capture semantic structure, a slightly higher learning rate for this subset can help the model learn more robust representations, reducing val_bpb.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Add Gradient Checkpointing",
+      "spec": "Wrap the forward pass in a checkpointing context manager (if supported by the library) or reduce intermediate activations by storing fewer gradients. This allows increasing DEVICE_BATCH_SIZE to 128, hitting the GPU more efficiently and potentially finding a better minimum.",
+      "family": "batch"
+    },
+    {
+      "title": "Reduce Depth",
+      "spec": "Change DEPTH from 8 to 6. A smaller depth model is less prone to overfitting on small datasets and often generalizes better, resulting in a lower val_bpb. This also reduces memory usage, allowing for a larger batch size.",
+      "family": "architecture"
+    },
+    {
+      "title": "Reduce Head Dimension",
+      "spec": "Change HEAD_DIM from 128 to 64. Smaller heads reduce the model capacity slightly, which can help with generalization and reduce val_bpb, especially for small datasets. This also lowers memory usage.",
+      "family": "architecture"
+    }
+  ]
+}

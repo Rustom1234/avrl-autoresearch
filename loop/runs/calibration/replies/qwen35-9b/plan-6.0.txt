@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "title": "Reduce Weight Decay on Matrices",
+      "spec": "Change `MATRIX_LR` application to exclude weight decay for matrix parameters. Set `WEIGHT_DECAY` to 0.0 and modify the training loop where the Muon update is applied to skip applying the weight decay factor to the matrix parameters, keeping it only for embeddings and scalars.",
+      "family": "regularization"
+    },
+    {
+      "title": "Increase Warmup Ratio",
+      "spec": "Increase the linear warmup period to stabilize the learning rate. Change `WARMDOWN_RATIO` to 0.4 and explicitly set `WARMUP_RATIO` to 0.1, ensuring the total training steps are split between warmup, linear decay, and hold steady phases to prevent early instability.",
+      "family": "schedule"
+    },
+    {
+      "title": "Gradient Clipping",
+      "spec": "Add a global gradient norm clipper in the training loop. Insert a check after the gradient accumulation step and before the optimizer step to clip the global norm to a value of 1.0, preventing large gradient explosions that can destabilize the Muon update.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Switch to SwiGLU Activation",
+      "spec": "Replace the current activation function (implied ReLU squared or similar) with SwiGLU (`Swish * Linear`) in the attention or MLP blocks if configurable, or modify the activation function call in `train.py` to use `torch.nn.functional.silu` combined with a linear projection, known to improve scaling efficiency.",
+      "family": "architecture"
+    },
+    {
+      "title": "Increase Batch Size via Gradient Accumulation",
+      "spec": "Increase `TOTAL_BATCH_SIZE` to 2**20 (1M tokens) by reducing the number of gradient accumulation steps (`ACCUM_STEPS`) in the loop, rather than increasing `DEVICE_BATCH_SIZE` which causes OOM. This increases sample efficiency and reduces variance.",
+      "family": "batch"
+    },
+    {
+      "title": "Dynamic Learning Rate Scaling",
+      "spec": "Implement a dynamic learning rate schedule that scales the base learning rate based on the current training step, specifically increasing it slightly in the middle of training if the loss plateau is detected, or simply using a cosine annealing schedule instead of the current linear warmup + hold + linear decay.",
+      "family": "schedule"
+    }
+  ]
+}

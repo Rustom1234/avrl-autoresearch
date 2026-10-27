@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "title": "Increase Depth, Decrease Aspect Ratio",
+      "spec": "The current model has a DEPTH of 8 and an ASPECT_RATIO of 64 (model_dim = 512). Try increasing DEPTH to 12 and decreasing ASPECT_RATIO to 42 (model_dim = 504). This keeps the total parameter count roughly similar but increases the non-linearity and depth of the network, which often improves perplexity in small models.",
+      "family": "architecture"
+    },
+    {
+      "title": "Increase Matrix Learning Rate",
+      "spec": "The MATRIX_LR is currently 0.04. Since Muon is used for these parameters, try increasing this to 0.06. Muon often benefits from slightly higher learning rates compared to Adam, and this might help the model converge faster within the 300s window.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Increase Warmdown Ratio",
+      "spec": "The current WARMDOWN_RATIO is 0.5. Increase it to 0.7. A longer, more gradual decay of the learning rate towards the end of the 300s window can help the model stabilize and settle into a better local minimum, potentially lowering the val_bpb.",
+      "family": "schedule"
+    },
+    {
+      "title": "Reduce Weight Decay",
+      "spec": "The current WEIGHT_DECAY is 0.15 (from the incumbent). Try reducing it further to 0.1. In very small models, high weight decay can sometimes over-regularize the model, preventing it from learning the underlying distribution of the data effectively.",
+      "family": "regularization"
+    },
+    {
+      "title": "Increase Embedding Learning Rate",
+      "spec": "The EMBEDDING_LR is currently 0.6. Try increasing it to 0.75. Since the model is small, the embeddings are a significant portion of the parameters; giving them a slightly higher learning rate might help them map to a better latent space more quickly.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Increase Device Batch Size",
+      "spec": "The current DEVICE_BATCH_SIZE is 64. Try increasing it to 80. While 128 overflows the 40GB VRAM, 80 might fit depending on the actual memory overhead of the current architecture. A larger batch size can provide more stable gradient estimates.",
+      "family": "batch"
+    }
+  ]
+}

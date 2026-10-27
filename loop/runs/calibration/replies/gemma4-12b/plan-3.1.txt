@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "title": "Rotary Positional Embeddings (RoPE)",
+      "spec": "Replace the current absolute positional encoding (if any) or standard positional embeddings with RoPE. This involves modifying the attention mechanism to apply rotation to the Query and Key tensors. RoPE typically improves long-range dependency modeling and generalization in small models. You will need to implement the rotation logic or a helper function to apply it during the forward pass of the attention layer.",
+      "family": "architecture"
+    },
+    {
+      "title": "RMSNorm instead of LayerNorm",
+      "spec": "Replace all instances of LayerNorm with RMSNorm. RMSNorm is computationally more efficient as it omits the mean centering step, and it is the standard in modern architectures like Llama. This can lead to faster convergence and slightly more stable training in small-scale models. Ensure the epsilon parameter is set appropriately (e.g., 1e-6).",
+      "family": "architecture"
+    },
+    {
+      "title": "Weight Decay for Adam parameters",
+      "spec": "Currently, weight decay is only applied to Muon (matrix parameters). Apply weight decay to the Adam-optimized parameters (embeddings and lm_head) as well. This ensures that the entire model is regularized, preventing the embeddings from drifting into regions that overfit the training data. Adjust the weight decay coefficient if necessary to maintain stability.",
+      "family": "regularization"
+    },
+    {
+      "title": "Linear Learning Rate Decay Schedule",
+      "spec": "The current warmdown_ratio is 0.5, but the final_lr_frac is 0.0. Implement a linear decay for the learning rates starting from the point where the warmdown begins until the end of the 300s budget. This provides a smoother convergence than an abrupt drop, helping the model settle into a local minimum more effectively.",
+      "family": "schedule"
+    },
+    {
+      "title": "Stochastic Depth",
+      "spec": "Implement Stochastic Depth (DropPath) for the transformer layers. During training, randomly skip some layers with a fixed probability (e.g., 0.1) to encourage the model to learn redundant representations and improve generalization. This is particularly effective for small models where over-reliance on specific layers can hinder performance.",
+      "family": "regularization"
+    },
+    {
+      "title": "Grouped Query Attention (GQA)",
+      "spec": "Modify the attention head structure to use Grouped Query Attention. Instead of having the same number of Key and Value heads as Query heads, share Key and Value heads across a group of Query heads. For a small model, a ratio of 2:1 or 4:1 (Queries to KV heads) can reduce memory overhead and improve the efficiency of the attention calculation without significant loss in expressive power.",
+      "family": "architecture"
+    }
+  ]
+}

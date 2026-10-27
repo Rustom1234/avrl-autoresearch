@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "title": "Switch to AdamW with L2 Regularization",
+      "spec": "Replace the current 'Muon' optimizer configuration (which uses weight decay) with a standard AdamW implementation. In the current setup, 'WEIGHT_DECAY' is applied to the Muon optimizer. Changing to AdamW decouples the weight decay mechanism from the optimizer's internal momentum/adaptive learning rate logic, often providing more stable training dynamics and better generalization for smaller models. This involves changing the optimizer initialization call to use `torch.optim.AdamW` and setting `weight_decay` to 0.0 or a small value (e.g., 0.1) if needed, while removing the specific 'WEIGHT_DECAY' hyperparameter if it was exclusively tied to Muon.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Reduce Warmup Ratio",
+      "spec": "Decrease the `WARMUP_RATIO` from 0.0 to a small positive value like 0.02 or 0.05. Although the current setting is 0.0, a tiny amount of linear warmup can stabilize the initial training phase by preventing large gradient updates at the very start of training, which can sometimes lead to better convergence and lower validation loss. This change modifies the learning rate scheduler logic to scale the learning rate up gradually before reaching the peak.",
+      "family": "schedule"
+    },
+    {
+      "title": "Enable Gradient Checkpointing",
+      "spec": "Add `enable_gradient_checkpointing=True` to the model initialization in `train.py`. This technique trades off some computation (recomputing activations) for reduced memory usage, effectively allowing for a larger effective `DEVICE_BATCH_SIZE` or enabling more efficient use of the 40GB VRAM. With more stable gradients and potentially higher effective batch size, the model may converge to a lower `val_bpb`. This requires adding the appropriate import for `gradient_checkpointing` and modifying the model construction block.",
+      "family": "architecture"
+    },
+    {
+      "title": "Lower Matrix Learning Rate",
+      "spec": "Reduce `MATRIX_LR` from 0.04 to 0.02. The current high learning rate for matrix parameters might be causing instability or overshooting the optimal manifold, especially given the small model size (8 layers). Lowering this specific learning rate can lead to smoother optimization dynamics and potentially better final performance without requiring architectural changes.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Increase Learning Rate Warmdown Aggressiveness",
+      "spec": "Increase `WARMDOWN_RATIO` from 0.5 to 0.6 or 0.7. Extending the warmdown phase means the learning rate stays high for longer before dropping, allowing the model to explore the loss landscape more thoroughly before fine-tuning. This can help escape local minima or achieve a deeper, more robust minimum, potentially lowering `val_bpb`. This modifies the scheduler configuration to extend the decay phase.",
+      "family": "schedule"
+    }
+  ]
+}

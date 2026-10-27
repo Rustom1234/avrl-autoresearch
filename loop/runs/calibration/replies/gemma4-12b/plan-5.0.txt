@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "title": "Increase Matrix Learning Rate for Muon",
+      "spec": "Increase MATRIX_LR from 0.04 to 0.06. Since Muon is a preconditioned optimizer, it can often handle higher learning rates than standard Adam, and the previous decrease to 0.03 showed a negative result, suggesting we should explore the upper bound of its stability.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Reduce Depth and Increase Aspect Ratio",
+      "spec": "Set DEPTH to 6 and ASPECT_RATIO to 128. This keeps the total number of parameters (roughly proportional to Depth * Aspect_Ratio) somewhat stable but shifts the model towards a 'wider' architecture, which often generalizes better for small models with limited training time.",
+      "family": "architecture"
+    },
+    {
+      "title": "Aggressive Warmdown",
+      "spec": "Increase WARMDOWN_RATIO from 0.5 to 0.75. Given the short 300s training window, a longer warmdown period can help the model settle into a local minimum more effectively, potentially improving the final validation score at the cost of less high-LR exploration.",
+      "family": "schedule"
+    },
+    {
+      "title": "Reduce Weight Decay",
+      "spec": "Set WEIGHT_DECAY to 0.05. The previous attempt at 0.1 was close to the incumbent; further reducing the weight decay might allow the model to fit the training data more closely, which is often beneficial when the training time is very restricted.",
+      "family": "regularization"
+    },
+    {
+      "title": "Increase Device Batch Size",
+      "spec": "Set DEVICE_BATCH_SIZE to 96. Since 128 overflows the 40GB A100, 96 is a safer middle ground between 64 and 128. This increases the effective batch size (Total_Batch_Size / Device_Batch_Size) for the same number of steps, potentially smoothing out gradient noise.",
+      "family": "batch"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+Helped: batch size reductions are the main lever. TOTAL_BATCH_SIZE 2**18 scored 1.0975 (-0.0212, accepted). 2**17 scored 1.0513/1.0525 (-0.0386, accepted), though it carried a tripwire flag, so audit that before trusting it. More optimizer steps in the fixed 300 s is the pattern.
+Did not help: schedule tweaks (warmup 0.03 at +0.0156, warmdown 0.3, warmdown 0.7, FINAL_LR_FRAC 0.05 at +0.0064). Architecture changes also hurt: depth 10 (+0.0245), HEAD_DIM 64 (+0.0136), depth 6 width 640 (+0.0054). Momentum warmup change was +0.0027.
+Near-misses at noise level: SCALAR_LR 0.25 (1.0879/1.0864) and EMBEDDING_LR 0.8 (1.0915/1.0864). Both were rejected after replicates.
+Next: investigate the tripwire. Try TOTAL_BATCH_SIZE 2**16 if memory and throughput allow. Retune SCALAR_LR, EMBEDDING_LR and UNEMBEDDING_LR for the smaller batch. Retry weight decay 0.1 with an exact SEARCH match, since slot 1 never ran. Skip schedule and architecture changes.

@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "title": "AdamW Weight Decay",
+      "spec": "Replace the existing Muon-specific weight decay implementation with the standard AdamW approach (decoupling weight decay from the gradient update step) by modifying the optimizer construction or parameter update logic to apply weight decay directly to the parameters before the gradient step, setting WEIGHT_DECAY to 0.0 to avoid redundancy.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Linear LR Warmup",
+      "spec": "Change the learning rate schedule from a step-based or fraction-based warmup to a linear warmup over the total number of training steps. Update the warmup logic to interpolate linearly from 0 to the initial learning rate over the warmup_steps calculated from the time budget and tokens-per-second, replacing the current WARMUP_RATIO logic.",
+      "family": "schedule"
+    },
+    {
+      "title": "Reduce Model Depth",
+      "spec": "Decrease the DEPTH hyperparameter from 8 to 6 layers to reduce computational complexity and variance in the optimization landscape, allowing the fixed time budget to train deeper per effective step or simply achieve a better fit with fewer parameters, which often improves VBP stability.",
+      "family": "architecture"
+    },
+    {
+      "title": "Gradient Clipping",
+      "spec": "Add a global gradient norm clipping mechanism (e.g., max_norm=1.0) inside the training loop before the optimizer step to prevent exploding gradients that can destabilize the Muon optimization and inflate the validation bits per byte metric.",
+      "family": "regularization"
+    }
+  ]
+}

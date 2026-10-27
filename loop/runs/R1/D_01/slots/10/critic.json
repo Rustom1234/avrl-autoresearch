@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problem found. The diff changes one hyperparameter (TOTAL_BATCH_SIZE from 2**19 to 2**18). It does not touch the evaluation call, the data, the seed lines or the prepare.py import.",
+  "No bug that would make the result meaningless. 2**18 is still a multiple of DEVICE_BATCH_SIZE*seq_len (64*2048 = 2**17), so grad accumulation drops from 4 to 2 and still works. That assumes a sequence length of 2048, which the diff does not show. Halving the batch doubles the optimizer steps within the fixed 300 s, which is a plausible reason for the gain.",
+  "The z value cannot be checked exactly. The candidate mean is 1.0641, which is 0.0188 below the incumbent mean of 1.0829. The candidate SD is about 0.0054 (n=2). We are not given the individual incumbent runs or the SD the harness used, so we cannot reproduce z=3.954. A plain one-sample z using only the candidate SD would be about 4.95, so the harness probably uses a pooled or floor SD. Either way the direction and size of the change are consistent with accept.",
+  "Caveat: both sides have only n=2 runs, so the variance estimate is weak. Even so, both candidate runs are clearly below the incumbent mean."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0641,
+  "delta": -0.0188
+ }
+}

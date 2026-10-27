@@ -1,0 +1,6 @@
+{
+"description": "Replace the linear warmdown in get_lr_multiplier with a cosine warmdown schedule to better stabilize training and potentially lower val_bpb.",
+"edits_text": "<<<<<<< SEARCH\ndef get_lr_multiplier(progress):\n    if progress < WARMUP_RATIO:\n        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0\n    elif progress < 1.0 - WARMDOWN_RATIO:\n        return 1.0\n    else:\n        cooldown = (1.0 - progress) / WARMDOWN_RATIO\n        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC\n=======\ndef get_lr_multiplier(progress):\n    if progress < WARMUP_RATIO:\n        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0\n    elif progress < 1.0 - WARMDOWN_RATIO:\n        return 1.0\n    else:\n        # Cosine warmdown\n        t = (progress - (1.0 - WARMDOWN_RATIO)) / WARMDOWN_RATIO\n        return FINAL_LR_FRAC + (1.0 - FINAL_LR_FRAC) * 0.5 * (1 + math.cos(math.pi * t))\n>>>>>>> REPLACE",
+"abort": false,
+"abort_reason": ""
+}

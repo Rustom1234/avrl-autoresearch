@@ -1,0 +1,1482 @@
+{
+ "version": 1,
+ "base": "substrate/base/train_ampere.py",
+ "coder": [
+  {
+   "id": "const-1",
+   "edit_class": "constant",
+   "spec": "Raise the Adam learning rate for the token embeddings: set EMBEDDING_LR to 0.8 (currently 0.6). Change nothing else.",
+   "target_symbols": [
+    "EMBEDDING_LR"
+   ],
+   "must_not_touch": [
+    "UNEMBEDDING_LR",
+    "MATRIX_LR",
+    "SCALAR_LR",
+    "GPT.setup_optimizer"
+   ],
+   "expect": [
+    "^EMBEDDING_LR\\s*=\\s*0\\.8\\b"
+   ],
+   "title": "Raise EMBEDDING_LR to 0.8",
+   "family": "optimizer"
+  },
+  {
+   "id": "const-2",
+   "edit_class": "constant",
+   "spec": "Try a slightly deeper and slightly narrower model: set DEPTH to 9 and ASPECT_RATIO to 57 (build_model_config rounds the width up to a multiple of HEAD_DIM, so 9 x 57 lands on a width of 640). Leave every other hyperparameter as it is.",
+   "target_symbols": [
+    "DEPTH",
+    "ASPECT_RATIO"
+   ],
+   "must_not_touch": [
+    "HEAD_DIM",
+    "DEVICE_BATCH_SIZE",
+    "TOTAL_BATCH_SIZE",
+    "build_model_config"
+   ],
+   "expect": [
+    "^DEPTH\\s*=\\s*9\\b",
+    "^ASPECT_RATIO\\s*=\\s*57\\b"
+   ],
+   "title": "Depth 9 with aspect ratio 57",
+   "family": "architecture"
+  },
+  {
+   "id": "const-3",
+   "edit_class": "constant",
+   "spec": "Give the attention window pattern one more short-window layer per cycle: change WINDOW_PATTERN from \"SSSL\" to \"SSSSL\". The last layer is forced to full context by the model code, so nothing else needs to change.",
+   "target_symbols": [
+    "WINDOW_PATTERN"
+   ],
+   "must_not_touch": [
+    "GPTConfig",
+    "GPT._compute_window_sizes"
+   ],
+   "expect": [
+    "^WINDOW_PATTERN\\s*=\\s*['\"]SSSSL['\"]"
+   ],
+   "title": "Window pattern SSSSL",
+   "family": "architecture"
+  },
+  {
+   "id": "const-4",
+   "edit_class": "constant",
+   "spec": "Halve the number of tokens per optimizer step: set TOTAL_BATCH_SIZE to 2**18 (currently 2**19). DEVICE_BATCH_SIZE stays as it is, so gradient accumulation drops from 4 to 2.",
+   "target_symbols": [
+    "TOTAL_BATCH_SIZE"
+   ],
+   "must_not_touch": [
+    "DEVICE_BATCH_SIZE"
+   ],
+   "expect": [
+    "^TOTAL_BATCH_SIZE\\s*=\\s*(2\\s*\\*\\*\\s*18|262144)\\b"
+   ],
+   "title": "Halve TOTAL_BATCH_SIZE",
+   "family": "batch"
+  },
+  {
+   "id": "const-5",
+   "edit_class": "constant",
+   "spec": "Reduce the cautious weight decay used by Muon: set WEIGHT_DECAY to 0.1 (currently 0.2). The schedule function get_weight_decay already scales it by (1 - progress) and needs no change.",
+   "target_symbols": [
+    "WEIGHT_DECAY"
+   ],
+   "must_not_touch": [
+    "get_weight_decay",
+    "MATRIX_LR"
+   ],
+   "expect": [
+    "^WEIGHT_DECAY\\s*=\\s*0\\.1\\b"
+   ],
+   "title": "WEIGHT_DECAY 0.1",
+   "family": "regularization"
+  },
+  {
+   "id": "const-6",
+   "edit_class": "constant",
+   "spec": "Raise the Muon learning rate for the transformer matrices: set MATRIX_LR to 0.05 (currently 0.04).",
+   "target_symbols": [
+    "MATRIX_LR"
+   ],
+   "must_not_touch": [
+    "EMBEDDING_LR",
+    "UNEMBEDDING_LR",
+    "SCALAR_LR"
+   ],
+   "expect": [
+    "^MATRIX_LR\\s*=\\s*0\\.05\\b"
+   ],
+   "title": "Raise MATRIX_LR to 0.05",
+   "family": "optimizer"
+  },
+  {
+   "id": "const-7",
+   "edit_class": "constant",
+   "spec": "Make Adam's first moment slower: set ADAM_BETAS to (0.9, 0.95) (currently (0.8, 0.95)). The second moment decay stays 0.95.",
+   "target_symbols": [
+    "ADAM_BETAS"
+   ],
+   "must_not_touch": [
+    "GPT.setup_optimizer",
+    "MuonAdamW"
+   ],
+   "expect": [
+    "^ADAM_BETAS\\s*=\\s*\\(\\s*0\\.9\\s*,\\s*0\\.95\\s*\\)"
+   ],
+   "title": "Adam beta1 0.9",
+   "family": "optimizer"
+  },
+  {
+   "id": "const-8",
+   "edit_class": "constant",
+   "spec": "Keep a little learning rate at the end of training: set FINAL_LR_FRAC to 0.05 (currently 0.0).",
+   "target_symbols": [
+    "FINAL_LR_FRAC"
+   ],
+   "must_not_touch": [
+    "get_lr_multiplier",
+    "WARMDOWN_RATIO",
+    "WARMUP_RATIO"
+   ],
+   "expect": [
+    "^FINAL_LR_FRAC\\s*=\\s*0\\.05\\b"
+   ],
+   "title": "FINAL_LR_FRAC 0.05",
+   "family": "schedule"
+  },
+  {
+   "id": "sched-1",
+   "edit_class": "schedule",
+   "spec": "Add a linear learning-rate warmup over the first 5 percent of the time budget: set WARMUP_RATIO to 0.05 (currently 0.0). get_lr_multiplier already implements the linear ramp, so only the constant changes.",
+   "target_symbols": [
+    "WARMUP_RATIO"
+   ],
+   "must_not_touch": [
+    "get_lr_multiplier",
+    "get_muon_momentum",
+    "WARMDOWN_RATIO"
+   ],
+   "expect": [
+    "^WARMUP_RATIO\\s*=\\s*0\\.05\\b"
+   ],
+   "title": "Warmup over 5 percent of the budget",
+   "family": "schedule"
+  },
+  {
+   "id": "sched-2",
+   "edit_class": "schedule",
+   "spec": "Replace the linear warmdown in get_lr_multiplier with a cosine warmdown. Over the last WARMDOWN_RATIO fraction of the budget, with t running from 0 to 1 across the warmdown, the multiplier should follow FINAL_LR_FRAC + (1 - FINAL_LR_FRAC) * 0.5 * (1 + cos(pi * t)), so it still falls from 1.0 to FINAL_LR_FRAC. Warmup and the constant phase stay as they are. The math module is already imported.",
+   "target_symbols": [
+    "cos\\("
+   ],
+   "must_not_touch": [
+    "get_muon_momentum",
+    "get_weight_decay",
+    "WARMUP_RATIO",
+    "WARMDOWN_RATIO",
+    "FINAL_LR_FRAC"
+   ],
+   "expect": [],
+   "title": "Cosine warmdown",
+   "family": "schedule"
+  },
+  {
+   "id": "sched-3",
+   "edit_class": "schedule",
+   "spec": "Drop the warmdown and hold the learning rate flat after a short warmup: set WARMUP_RATIO to 0.02 and WARMDOWN_RATIO to 0.0. Nothing else changes.",
+   "target_symbols": [
+    "WARMUP_RATIO",
+    "WARMDOWN_RATIO"
+   ],
+   "must_not_touch": [
+    "get_lr_multiplier",
+    "FINAL_LR_FRAC"
+   ],
+   "expect": [
+    "^WARMUP_RATIO\\s*=\\s*0\\.02\\b",
+    "^WARMDOWN_RATIO\\s*=\\s*0(\\.0+)?\\b"
+   ],
+   "title": "Flat LR after a 2 percent warmup",
+   "family": "schedule"
+  },
+  {
+   "id": "sched-4",
+   "edit_class": "schedule",
+   "spec": "Lengthen the Muon momentum warmup. get_muon_momentum ramps the momentum from 0.85 to 0.95 over the first 300 steps; make that ramp last 500 steps and keep the endpoints.",
+   "target_symbols": [
+    "500"
+   ],
+   "must_not_touch": [
+    "get_lr_multiplier",
+    "get_weight_decay"
+   ],
+   "expect": [
+    "step\\s*/\\s*500"
+   ],
+   "title": "Muon momentum ramp over 500 steps",
+   "family": "schedule"
+  },
+  {
+   "id": "sched-5",
+   "edit_class": "schedule",
+   "spec": "Use a two-stage warmdown in get_lr_multiplier. During the first half of the warmdown phase (the first half of the last WARMDOWN_RATIO fraction of the budget) fall linearly from 1.0 to 0.4; during the second half fall linearly from 0.4 to FINAL_LR_FRAC. Warmup and the constant phase are unchanged.",
+   "target_symbols": [
+    "0\\.4"
+   ],
+   "must_not_touch": [
+    "get_muon_momentum",
+    "get_weight_decay",
+    "WARMUP_RATIO"
+   ],
+   "expect": [],
+   "title": "Two-stage warmdown",
+   "family": "schedule"
+  },
+  {
+   "id": "sched-6",
+   "edit_class": "schedule",
+   "spec": "End training at 10 percent of the peak learning rate: set FINAL_LR_FRAC to 0.1 (currently 0.0).",
+   "target_symbols": [
+    "FINAL_LR_FRAC"
+   ],
+   "must_not_touch": [
+    "get_lr_multiplier",
+    "WARMDOWN_RATIO"
+   ],
+   "expect": [
+    "^FINAL_LR_FRAC\\s*=\\s*0\\.1\\b"
+   ],
+   "title": "FINAL_LR_FRAC 0.1",
+   "family": "schedule"
+  },
+  {
+   "id": "sched-7",
+   "edit_class": "schedule",
+   "spec": "Make the warmup a fixed number of optimizer steps instead of a fraction of the budget: the learning-rate multiplier should ramp linearly from 0 to 1 over the first 100 steps. The training loop keeps a global step counter named step, which get_lr_multiplier can read (or pass it in and update the call site). The constant and warmdown phases stay in progress units.",
+   "target_symbols": [
+    "100",
+    "\\bstep\\b"
+   ],
+   "must_not_touch": [
+    "get_muon_momentum",
+    "get_weight_decay",
+    "FINAL_LR_FRAC"
+   ],
+   "expect": [],
+   "title": "Warmup as 100 absolute steps",
+   "family": "schedule"
+  },
+  {
+   "id": "sched-8",
+   "edit_class": "schedule",
+   "spec": "Start the warmdown at 60 percent of the time budget: the learning rate should hold at its peak until progress 0.6 and then decay linearly to FINAL_LR_FRAC at the end of training. (WARMDOWN_RATIO is the fraction of the budget spent decaying, not the point where decay starts.)",
+   "target_symbols": [
+    "WARMDOWN_RATIO"
+   ],
+   "must_not_touch": [
+    "get_lr_multiplier",
+    "WARMUP_RATIO",
+    "FINAL_LR_FRAC"
+   ],
+   "expect": [
+    "^WARMDOWN_RATIO\\s*=\\s*0\\.4\\b"
+   ],
+   "title": "Warmdown starts at 60 percent",
+   "family": "schedule"
+  },
+  {
+   "id": "struct-1",
+   "edit_class": "structural",
+   "spec": "Replace the squared-ReLU MLP with a SwiGLU MLP: out = c_proj(silu(c_gate(x)) * c_fc(x)), where c_gate is a new bias-free Linear with the same shape as c_fc. Initialise c_gate.weight in GPT.init_weights exactly like c_fc.weight (uniform in [-s, s]); c_proj stays zero-initialised. The MLP lives inside a transformer block, so setup_optimizer already puts its matrices in the Muon groups and needs no change.",
+   "target_symbols": [
+    "(?i)silu",
+    "c_gate"
+   ],
+   "must_not_touch": [
+    "CausalSelfAttention",
+    "MuonAdamW",
+    "get_lr_multiplier"
+   ],
+   "expect": [
+    "init\\.\\w+\\(\\s*block\\.mlp\\.c_gate\\.weight"
+   ],
+   "title": "SwiGLU MLP",
+   "family": "architecture"
+  },
+  {
+   "id": "struct-2",
+   "edit_class": "structural",
+   "spec": "Remove QK normalisation in CausalSelfAttention.forward: delete the line that applies norm() to q and k after the rotary embedding, so queries and keys go to flash attention with rotary applied only. Leave the norm() function and its other uses (block inputs, final norm) alone.",
+   "target_symbols": [
+    "norm\\(q\\)"
+   ],
+   "must_not_touch": [
+    "MLP",
+    "GPT",
+    "get_lr_multiplier"
+   ],
+   "expect": [
+    "!norm\\(q\\)"
+   ],
+   "title": "Remove QK norm",
+   "family": "architecture"
+  },
+  {
+   "id": "struct-3",
+   "edit_class": "structural",
+   "spec": "After QK normalisation, scale the queries by a learnable per-head scalar. In CausalSelfAttention.__init__ add self.q_scale = nn.Parameter(torch.ones(self.n_head)); in forward, right after q and k are normalised, multiply q by self.q_scale.view(1, 1, -1, 1). The model is built on the meta device, so fill every q_scale with 1.0 in GPT.init_weights. q_scale is 1-D, so it must not go to Muon: setup_optimizer currently hands every parameter of transformer.h to Muon groups, which fails on 1-D tensors. Collect the q_scale parameters of all blocks into their own AdamW group (lr=scalar_lr, betas=adam_betas, eps=1e-10, weight_decay=0.0), exclude them from matrix_params, and keep the parameter-count assertion true.",
+   "target_symbols": [
+    "q_scale",
+    "nn\\.Parameter",
+    "kind=['\\\"]adamw['\\\"]"
+   ],
+   "must_not_touch": [
+    "MLP",
+    "get_lr_multiplier",
+    "MuonAdamW"
+   ],
+   "expect": [
+    "q_scale\\S*\\.fill_\\(\\s*1|ones_\\(\\s*\\S*q_scale"
+   ],
+   "title": "Learnable per-head q scale",
+   "family": "architecture"
+  },
+  {
+   "id": "struct-4",
+   "edit_class": "structural",
+   "spec": "Change the MLP activation from squared ReLU to GELU (the exact erf form F.gelu is fine). Nothing else changes.",
+   "target_symbols": [
+    "(?i)gelu"
+   ],
+   "must_not_touch": [
+    "CausalSelfAttention",
+    "GPT",
+    "MuonAdamW"
+   ],
+   "expect": [
+    "!relu\\(x\\)\\.square"
+   ],
+   "title": "GELU instead of squared ReLU",
+   "family": "architecture"
+  },
+  {
+   "id": "struct-5",
+   "edit_class": "structural",
+   "spec": "Apply AdamW weight decay of 0.01 to the value-embedding parameter group only: in setup_optimizer, the group built from value_embeds_params currently has weight_decay=0.0. Do not change the other groups or the WEIGHT_DECAY constant that drives Muon.",
+   "target_symbols": [
+    "value_embeds_params",
+    "weight_decay"
+   ],
+   "must_not_touch": [
+    "WEIGHT_DECAY",
+    "get_weight_decay",
+    "MuonAdamW"
+   ],
+   "expect": [
+    "params=value_embeds_params.*weight_decay=0\\.01\\b"
+   ],
+   "title": "Weight decay on value embeddings",
+   "family": "regularization"
+  },
+  {
+   "id": "struct-6",
+   "edit_class": "structural",
+   "spec": "Lower the logit softcap in GPT.forward from 15 to 12.",
+   "target_symbols": [
+    "softcap"
+   ],
+   "must_not_touch": [
+    "CausalSelfAttention",
+    "MLP",
+    "MuonAdamW"
+   ],
+   "expect": [
+    "^\\s*softcap\\s*=\\s*12\\b"
+   ],
+   "title": "Logit softcap 12",
+   "family": "architecture"
+  },
+  {
+   "id": "struct-7",
+   "edit_class": "structural",
+   "spec": "Add a Smear gate on the token embeddings (as in modded-nanogpt). In GPT.__init__ create self.smear_gate = nn.Linear(24, 1, bias=False) and zero-initialise its weight in init_weights. In GPT.forward, right after x = norm(x) on the token embeddings and before x0 = x, compute gate = torch.sigmoid(self.smear_gate(x[..., :24])) with shape (B, T, 1) and set x = x + gate * F.pad(x[:, :-1], (0, 0, 1, 0)), so each position mixes in the previous token (position 0 gets nothing). smear_gate lives outside transformer.h, so setup_optimizer's parameter-count assertion fails until you add smear_gate.parameters() to an AdamW group (lr=scalar_lr, betas=adam_betas, eps=1e-10, weight_decay=0.0) and to the count.",
+   "target_symbols": [
+    "smear_gate",
+    "kind=['\\\"]adamw['\\\"]",
+    "sigmoid"
+   ],
+   "must_not_touch": [
+    "CausalSelfAttention",
+    "MLP",
+    "MuonAdamW"
+   ],
+   "expect": [
+    "zeros_\\(\\s*self\\.smear_gate\\.weight|smear_gate\\.weight\\.(zero_\\(|fill_\\(\\s*0)"
+   ],
+   "title": "Smear gate on token embeddings",
+   "family": "architecture"
+  },
+  {
+   "id": "struct-8",
+   "edit_class": "structural",
+   "spec": "Drop value embeddings from the earliest layer that has one. has_ve alternates layers and always includes the last, so at depth 8 the value-embedding layers are 1, 3, 5, 7 and the earliest is layer 1. Implement it inside has_ve (keep the alternating rule, but return False for layer_idx < 2) so that the value_embeds ModuleDict, each layer's ve_gate and GPT.forward stay consistent without further edits.",
+   "target_symbols": [
+    "layer_idx"
+   ],
+   "must_not_touch": [
+    "GPT",
+    "CausalSelfAttention",
+    "MuonAdamW"
+   ],
+   "expect": [],
+   "title": "No value embedding on the earliest layer",
+   "family": "architecture"
+  }
+ ],
+ "repair": [
+  {
+   "id": "repair-1",
+   "edit_class": "repair",
+   "spec": "Intended change (keep it): set WEIGHT_DECAY to 0.1.",
+   "legit_edits": [
+    [
+     "WEIGHT_DECAY = 0.2      # cautious weight decay for Muon",
+     "WEIGHT_DECAY = 0.1      # cautious weight decay for Muon"
+    ]
+   ],
+   "violation_desc": "adds import subprocess",
+   "violation_edits": [
+    [
+     "import time\n",
+     "import time\nimport subprocess\n"
+    ]
+   ],
+   "expect_rule": "forbidden-import",
+   "target_symbols": [
+    "WEIGHT_DECAY"
+   ],
+   "must_not_touch": [
+    "MATRIX_LR"
+   ],
+   "expect": [
+    "^WEIGHT_DECAY\\s*=\\s*0\\.1\\b",
+    "!^import subprocess"
+   ]
+  },
+  {
+   "id": "repair-2",
+   "edit_class": "repair",
+   "spec": "Intended change (keep it): set MATRIX_LR to 0.05.",
+   "legit_edits": [
+    [
+     "MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)",
+     "MATRIX_LR = 0.05        # learning rate for matrix parameters (Muon)"
+    ]
+   ],
+   "violation_desc": "assigns prepare.EVAL_TOKENS",
+   "violation_edits": [
+    [
+     "from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb\n",
+     "from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb\nprepare.EVAL_TOKENS = 4 * 524288\n"
+    ]
+   ],
+   "expect_rule": "protected-attr",
+   "target_symbols": [
+    "MATRIX_LR"
+   ],
+   "must_not_touch": [
+    "EMBEDDING_LR"
+   ],
+   "expect": [
+    "^MATRIX_LR\\s*=\\s*0\\.05\\b",
+    "!prepare\\.EVAL_TOKENS",
+    "^from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb$"
+   ]
+  },
+  {
+   "id": "repair-3",
+   "edit_class": "repair",
+   "spec": "Intended change (keep it): set EMBEDDING_LR to 0.8.",
+   "legit_edits": [
+    [
+     "EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)",
+     "EMBEDDING_LR = 0.8      # learning rate for token embeddings (Adam)"
+    ]
+   ],
+   "violation_desc": "builds the training loader on the val split",
+   "violation_edits": [
+    [
+     "train_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, \"train\")",
+     "train_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, \"val\")"
+    ]
+   ],
+   "expect_rule": "val-split",
+   "target_symbols": [
+    "EMBEDDING_LR"
+   ],
+   "must_not_touch": [
+    "train_loader",
+    "UNEMBEDDING_LR"
+   ],
+   "expect": [
+    "^EMBEDDING_LR\\s*=\\s*0\\.8\\b"
+   ]
+  },
+  {
+   "id": "repair-4",
+   "edit_class": "repair",
+   "spec": "Intended change (keep it): set FINAL_LR_FRAC to 0.05.",
+   "legit_edits": [
+    [
+     "FINAL_LR_FRAC = 0.0     # final LR as fraction of initial",
+     "FINAL_LR_FRAC = 0.05    # final LR as fraction of initial"
+    ]
+   ],
+   "violation_desc": "changes the torch.manual_seed line to 137",
+   "violation_edits": [
+    [
+     "torch.manual_seed(42)\n",
+     "torch.manual_seed(137)\n"
+    ]
+   ],
+   "expect_rule": "seed-lines",
+   "target_symbols": [
+    "FINAL_LR_FRAC"
+   ],
+   "must_not_touch": [
+    "WARMDOWN_RATIO"
+   ],
+   "expect": [
+    "^FINAL_LR_FRAC\\s*=\\s*0\\.05\\b",
+    "^torch\\.manual_seed\\(42\\)$"
+   ]
+  },
+  {
+   "id": "repair-5",
+   "edit_class": "repair",
+   "spec": "Intended change (keep it): set WARMUP_RATIO to 0.05.",
+   "legit_edits": [
+    [
+     "WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup",
+     "WARMUP_RATIO = 0.05     # fraction of time budget for LR warmup"
+    ]
+   ],
+   "violation_desc": "dumps the config to a file with open()",
+   "violation_edits": [
+    [
+     "print(f\"Model config: {asdict(config)}\")\n",
+     "print(f\"Model config: {asdict(config)}\")\nwith open(\"config_dump.txt\", \"w\") as f:\n    f.write(str(asdict(config)))\n"
+    ]
+   ],
+   "expect_rule": "forbidden-call",
+   "target_symbols": [
+    "WARMUP_RATIO"
+   ],
+   "must_not_touch": [
+    "get_lr_multiplier"
+   ],
+   "expect": [
+    "^WARMUP_RATIO\\s*=\\s*0\\.05\\b",
+    "!\\bopen\\("
+   ]
+  },
+  {
+   "id": "repair-6",
+   "edit_class": "repair",
+   "spec": "Intended change (keep it): change WINDOW_PATTERN to \"SSSSL\".",
+   "legit_edits": [
+    [
+     "WINDOW_PATTERN = \"SSSL\" # sliding window pattern: L=full, S=half context",
+     "WINDOW_PATTERN = \"SSSSL\" # sliding window pattern: L=full, S=half context"
+    ]
+   ],
+   "violation_desc": "wraps the final evaluate_bpb call in try/except",
+   "violation_edits": [
+    [
+     "    val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)\n",
+     "    try:\n        val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)\n    except Exception:\n        val_bpb = 0.0\n"
+    ]
+   ],
+   "expect_rule": "hide-failure",
+   "target_symbols": [
+    "WINDOW_PATTERN"
+   ],
+   "must_not_touch": [
+    "GPTConfig"
+   ],
+   "expect": [
+    "^WINDOW_PATTERN\\s*=\\s*['\"]SSSSL['\"]",
+    "^\\s*val_bpb\\s*=\\s*evaluate_bpb\\("
+   ]
+  }
+ ],
+ "planner": [
+  {
+   "id": "plan-1",
+   "n_items": 5,
+   "incumbent": {
+    "mean_adjusted": 1.0689,
+    "n": 1
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "EMBEDDING_LR 0.6 -> 0.8",
+     "official": "1.0803",
+     "delta": "-0.0039",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 2,
+     "description": "MATRIX_LR 0.04 -> 0.05",
+     "official": "1.0771/1.0834",
+     "delta": "-0.0040",
+     "decision": "reject",
+     "runs": 2,
+     "flags": "none"
+    },
+    {
+     "slot": 3,
+     "description": "WEIGHT_DECAY 0.2 -> 0.1",
+     "official": "1.0689",
+     "delta": "-0.0153",
+     "decision": "accept",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 4,
+     "description": "TOTAL_BATCH_SIZE 2**19 -> 2**18",
+     "official": "1.0702",
+     "delta": "+0.0013",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 5,
+     "description": "DEPTH 8 -> 9, ASPECT_RATIO 64 -> 57",
+     "official": "1.0716",
+     "delta": "+0.0027",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 6,
+     "description": "WINDOW_PATTERN SSSL -> SSSSL",
+     "official": "1.0683",
+     "delta": "-0.0006",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    }
+   ],
+   "memo": "Slot 3 (WEIGHT_DECAY 0.2 -> 0.1) is the incumbent at 1.0689. The two learning-rate nudges looked promising on the first run and did not survive the replicate. Batch size and depth or width moves made things worse. No structural change has been tried yet."
+  },
+  {
+   "id": "plan-2",
+   "n_items": 4,
+   "incumbent": {
+    "mean_adjusted": 1.0761,
+    "n": 2
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "WARMUP_RATIO 0.0 -> 0.05",
+     "official": "1.0838",
+     "delta": "-0.0004",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 2,
+     "description": "cosine warmdown in get_lr_multiplier",
+     "official": "1.0821",
+     "delta": "-0.0021",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 3,
+     "description": "FINAL_LR_FRAC 0.0 -> 0.1",
+     "official": "1.0809",
+     "delta": "-0.0033",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 4,
+     "description": "WARMDOWN_RATIO 0.5 -> 0.7",
+     "official": "1.0771/1.0752",
+     "delta": "-0.0081",
+     "decision": "accept",
+     "runs": 2,
+     "flags": "none"
+    }
+   ],
+   "memo": "Slot 4 (WARMDOWN_RATIO 0.5 -> 0.7) is the incumbent at 1.0761. Only schedule edits have been tried. Warmup and the cosine shape did nothing measurable against the noise. Optimizer constants and model structure are untouched."
+  },
+  {
+   "id": "plan-3",
+   "n_items": 6,
+   "incumbent": {
+    "mean_adjusted": 1.0842,
+    "n": 24
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "SwiGLU MLP replacing relu squared",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "oom"
+    },
+    {
+     "slot": 2,
+     "description": "remove QK norm",
+     "official": "1.1203",
+     "delta": "+0.0361",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 3,
+     "description": "logit softcap 15 -> 12",
+     "official": "1.0850",
+     "delta": "+0.0008",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 4,
+     "description": "per-head q scale after QK norm",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "assertion in setup_optimizer"
+    },
+    {
+     "slot": 5,
+     "description": "DEVICE_BATCH_SIZE 64 -> 128",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "oom"
+    },
+    {
+     "slot": 6,
+     "description": "Smear gate on token embeddings",
+     "official": "1.0829",
+     "delta": "-0.0013",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    }
+   ],
+   "memo": "No accept yet; the incumbent is still the anchor at 1.0842. Structural ideas dominate and three of six runs crashed: two out of memory and one parameter-count assertion in setup_optimizer. The survivors were neutral or worse. The A100 has 40 GB, so anything that raises activation memory needs a smaller DEVICE_BATCH_SIZE."
+  },
+  {
+   "id": "plan-4",
+   "n_items": 4,
+   "incumbent": {
+    "mean_adjusted": 1.0842,
+    "n": 24
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "ADAM_BETAS (0.8, 0.95) -> (0.9, 0.95)",
+     "official": "1.0831",
+     "delta": "-0.0011",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 2,
+     "description": "SCALAR_LR 0.5 -> 0.3",
+     "official": "1.0866",
+     "delta": "+0.0024",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    }
+   ],
+   "memo": "No accept yet; the incumbent is still the anchor at 1.0842. Too little data to see a trend. Both edits are within the run-to-run noise of the anchor."
+  },
+  {
+   "id": "plan-5",
+   "n_items": 5,
+   "incumbent": {
+    "mean_adjusted": 1.0842,
+    "n": 24
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "WEIGHT_DECAY 0.2 -> 0.1",
+     "official": "1.0801",
+     "delta": "-0.0041",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 2,
+     "description": "MATRIX_LR 0.04 -> 0.03",
+     "official": "1.0877",
+     "delta": "+0.0035",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 3,
+     "description": "EMBEDDING_LR 0.6 -> 0.4",
+     "official": "1.0859",
+     "delta": "+0.0017",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 4,
+     "description": "WINDOW_PATTERN SSSL -> SSLL",
+     "official": "1.0869",
+     "delta": "+0.0027",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 5,
+     "description": "UNEMBEDDING_LR 0.004 -> 0.006",
+     "official": "1.0848",
+     "delta": "+0.0006",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 6,
+     "description": "ASPECT_RATIO 64 -> 72",
+     "official": "1.0893",
+     "delta": "+0.0051",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 7,
+     "description": "DEPTH 8 -> 7",
+     "official": "1.0954",
+     "delta": "+0.0112",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 8,
+     "description": "softcap 15 -> 20",
+     "official": "1.0846",
+     "delta": "+0.0004",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 9,
+     "description": "SCALAR_LR 0.5 -> 0.8",
+     "official": "1.0851",
+     "delta": "+0.0009",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 10,
+     "description": "WARMUP_RATIO 0.0 -> 0.02",
+     "official": "1.0840",
+     "delta": "-0.0002",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 11,
+     "description": "TOTAL_BATCH_SIZE 2**19 -> 2**20",
+     "official": "1.0912",
+     "delta": "+0.0070",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    }
+   ],
+   "memo": "No accept yet; the incumbent is still the anchor at 1.0842. Eleven consecutive non-accepts. The loop is stagnating on single-constant edits of the optimizer and model size."
+  },
+  {
+   "id": "plan-6",
+   "n_items": 6,
+   "incumbent": {
+    "mean_adjusted": 1.0751,
+    "n": 2
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "WARMDOWN_RATIO 0.5 -> 0.6",
+     "official": "1.0787/1.0801",
+     "delta": "-0.0048",
+     "decision": "reject",
+     "runs": 2,
+     "flags": "none"
+    },
+    {
+     "slot": 2,
+     "description": "ADAM_BETAS (0.8, 0.95) -> (0.9, 0.95)",
+     "official": "1.0668",
+     "delta": "-0.0174",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "mismatch_flag"
+    },
+    {
+     "slot": 3,
+     "description": "WEIGHT_DECAY 0.2 -> 0.15",
+     "official": "1.0760/1.0742",
+     "delta": "-0.0091",
+     "decision": "accept",
+     "runs": 2,
+     "flags": "none"
+    },
+    {
+     "slot": 4,
+     "description": "GELU instead of relu squared",
+     "official": "1.0791",
+     "delta": "+0.0040",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 5,
+     "description": "FINAL_LR_FRAC 0.0 -> 0.05",
+     "official": "1.0752",
+     "delta": "+0.0001",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 6,
+     "description": "value embeddings weight decay 0.01",
+     "official": "1.0735",
+     "delta": "-0.0016",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    }
+   ],
+   "memo": "Slot 3 (WEIGHT_DECAY 0.2 -> 0.15) is the incumbent at 1.0751. The ADAM_BETAS run looked like the best result so far but the harness raised mismatch_flag: the printed val_bpb and the recomputed official value disagree, so it was rejected and is not evidence. Structural edits have been small so far."
+  }
+ ],
+ "analyst": [
+  {
+   "id": "ana-1",
+   "incumbent": {
+    "mean_adjusted": 1.0689,
+    "n": 2
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "rotary base 10000 -> 20000",
+     "official": "1.0741/1.0812",
+     "delta": "-0.0066",
+     "decision": "reject",
+     "runs": 2,
+     "flags": "none"
+    },
+    {
+     "slot": 2,
+     "description": "Muon momentum ramp 300 -> 200 steps",
+     "official": "1.0716/1.0661",
+     "delta": "-0.0153",
+     "decision": "accept",
+     "runs": 2,
+     "flags": "none"
+    },
+    {
+     "slot": 3,
+     "description": "x0_lambdas init 0.1 -> 0.2",
+     "official": "1.0930",
+     "delta": "+0.0241",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 4,
+     "description": "EMBEDDING_LR 0.6 -> 0.7",
+     "official": "1.0817",
+     "delta": "+0.0129",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 5,
+     "description": "HEAD_DIM 128 -> 64",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "timeout"
+    },
+    {
+     "slot": 6,
+     "description": "resid_lambdas init 1.0 -> 0.9",
+     "official": "1.0912",
+     "delta": "+0.0223",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    }
+   ],
+   "memo": ""
+  },
+  {
+   "id": "ana-2",
+   "incumbent": {
+    "mean_adjusted": 1.0667,
+    "n": 1
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "WEIGHT_DECAY 0.2 -> 0.25",
+     "official": "1.0667",
+     "delta": "-0.0175",
+     "decision": "accept",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 2,
+     "description": "resid_lambdas init 1.0 -> 0.9",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "nan loss"
+    },
+    {
+     "slot": 3,
+     "description": "MATRIX_LR 0.04 -> 0.045",
+     "official": "1.0795",
+     "delta": "+0.0128",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 4,
+     "description": "EMBEDDING_LR 0.6 -> 0.5",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "timeout"
+    },
+    {
+     "slot": 5,
+     "description": "TOTAL_BATCH_SIZE 2**19 -> 2**18",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "oom"
+    },
+    {
+     "slot": 6,
+     "description": "x0_lambdas init 0.1 -> 0.2",
+     "official": "1.0842",
+     "delta": "+0.0175",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 7,
+     "description": "WARMDOWN_RATIO 0.5 -> 0.4",
+     "official": "1.0694",
+     "delta": "+0.0027",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 8,
+     "description": "MATRIX_LR 0.04 -> 0.035",
+     "official": "1.0683",
+     "delta": "+0.0016",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 9,
+     "description": "WEIGHT_DECAY 0.2 -> 0.05",
+     "official": "1.0774",
+     "delta": "+0.0107",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    }
+   ],
+   "memo": ""
+  },
+  {
+   "id": "ana-3",
+   "incumbent": {
+    "mean_adjusted": 1.0647,
+    "n": 1
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "rotary base 10000 -> 20000",
+     "official": "1.0715/1.0820",
+     "delta": "-0.0028",
+     "decision": "reject",
+     "runs": 2,
+     "flags": "none"
+    },
+    {
+     "slot": 2,
+     "description": "resid_lambdas init 1.0 -> 0.9",
+     "official": "1.0725/1.0750",
+     "delta": "-0.0058",
+     "decision": "reject",
+     "runs": 2,
+     "flags": "none"
+    },
+    {
+     "slot": 3,
+     "description": "WARMDOWN_RATIO 0.5 -> 0.4",
+     "official": "1.0647",
+     "delta": "-0.0149",
+     "decision": "accept",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 4,
+     "description": "HEAD_DIM 128 -> 64",
+     "official": "1.0752",
+     "delta": "+0.0105",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 5,
+     "description": "TOTAL_BATCH_SIZE 2**19 -> 2**18",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "timeout"
+    }
+   ],
+   "memo": ""
+  },
+  {
+   "id": "ana-4",
+   "incumbent": {
+    "mean_adjusted": 1.0641,
+    "n": 2
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "FINAL_LR_FRAC 0.0 -> 0.02",
+     "official": "1.0775/1.0818",
+     "delta": "-0.0046",
+     "decision": "reject",
+     "runs": 2,
+     "flags": "none"
+    },
+    {
+     "slot": 2,
+     "description": "MATRIX_LR 0.04 -> 0.035",
+     "official": "1.0774/1.0732",
+     "delta": "-0.0089",
+     "decision": "accept",
+     "runs": 2,
+     "flags": "none"
+    },
+    {
+     "slot": 3,
+     "description": "TOTAL_BATCH_SIZE 2**19 -> 2**18",
+     "official": "1.0644/1.0638",
+     "delta": "-0.0112",
+     "decision": "accept",
+     "runs": 2,
+     "flags": "none"
+    },
+    {
+     "slot": 4,
+     "description": "rotary base 10000 -> 20000",
+     "official": "1.0740",
+     "delta": "+0.0099",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 5,
+     "description": "SCALAR_LR 0.5 -> 0.4",
+     "official": "1.0892",
+     "delta": "+0.0251",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 6,
+     "description": "WARMDOWN_RATIO 0.5 -> 0.8",
+     "official": "1.0844",
+     "delta": "+0.0203",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 7,
+     "description": "DEPTH 8 -> 10",
+     "official": "1.0720",
+     "delta": "+0.0079",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 8,
+     "description": "MATRIX_LR 0.04 -> 0.045",
+     "official": "1.0774",
+     "delta": "+0.0133",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 9,
+     "description": "EMBEDDING_LR 0.6 -> 0.7",
+     "official": "1.0811",
+     "delta": "+0.0170",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 10,
+     "description": "softcap 15 -> 10",
+     "official": "1.0782",
+     "delta": "+0.0141",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 11,
+     "description": "WARMDOWN_RATIO 0.5 -> 0.4",
+     "official": "1.0871",
+     "delta": "+0.0230",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 12,
+     "description": "GELU instead of relu squared",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "timeout"
+    }
+   ],
+   "memo": ""
+  },
+  {
+   "id": "ana-5",
+   "incumbent": {
+    "mean_adjusted": 1.0593,
+    "n": 2
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "SCALAR_LR 0.5 -> 0.4",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "oom"
+    },
+    {
+     "slot": 2,
+     "description": "FINAL_LR_FRAC 0.0 -> 0.02",
+     "official": "1.0606/1.0579",
+     "delta": "-0.0138",
+     "decision": "accept",
+     "runs": 2,
+     "flags": "none"
+    },
+    {
+     "slot": 3,
+     "description": "WARMDOWN_RATIO 0.5 -> 0.4",
+     "official": "1.0699",
+     "delta": "+0.0107",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 4,
+     "description": "SwiGLU MLP",
+     "official": "1.0654",
+     "delta": "+0.0061",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 5,
+     "description": "EMBEDDING_LR 0.6 -> 0.7",
+     "official": "1.0564",
+     "delta": "-0.0029",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 6,
+     "description": "WEIGHT_DECAY 0.2 -> 0.25",
+     "official": "1.0607",
+     "delta": "+0.0014",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 7,
+     "description": "resid_lambdas init 1.0 -> 0.9",
+     "official": "1.0623",
+     "delta": "+0.0030",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    }
+   ],
+   "memo": ""
+  },
+  {
+   "id": "ana-6",
+   "incumbent": {
+    "mean_adjusted": 1.0606,
+    "n": 1
+   },
+   "rows": [
+    {
+     "slot": 1,
+     "description": "WARMDOWN_RATIO 0.5 -> 0.4",
+     "official": "1.0606",
+     "delta": "-0.0236",
+     "decision": "accept",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 2,
+     "description": "WARMUP_RATIO 0.0 -> 0.03",
+     "official": "1.0795",
+     "delta": "+0.0189",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 3,
+     "description": "HEAD_DIM 128 -> 64",
+     "official": "1.0920",
+     "delta": "+0.0314",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 4,
+     "description": "MATRIX_LR 0.04 -> 0.045",
+     "official": "1.0808",
+     "delta": "+0.0202",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 5,
+     "description": "EMBEDDING_LR 0.6 -> 0.5",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "oom"
+    },
+    {
+     "slot": 6,
+     "description": "resid_lambdas init 1.0 -> 0.9",
+     "official": "-",
+     "delta": "-",
+     "decision": "crash",
+     "runs": 1,
+     "flags": "oom"
+    },
+    {
+     "slot": 7,
+     "description": "rotary base 10000 -> 20000",
+     "official": "1.0833",
+     "delta": "+0.0227",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    },
+    {
+     "slot": 8,
+     "description": "SwiGLU MLP",
+     "official": "1.0772",
+     "delta": "+0.0166",
+     "decision": "reject",
+     "runs": 1,
+     "flags": "none"
+    }
+   ],
+   "memo": ""
+  }
+ ]
+}

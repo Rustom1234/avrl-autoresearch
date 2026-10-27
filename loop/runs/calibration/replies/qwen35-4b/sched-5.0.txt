@@ -1,0 +1,4 @@
+{
+  "description": "Implements a two-stage warmdown schedule in get_lr_multiplier by splitting the cooldown phase into two linear segments.",
+  "edits_text": "<<<<<<< SEARCH\n    cooldown = (1.0 - progress) / WARMDOWN_RATIO\n    return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC\n=======\n    progress_in_cooldown = (progress - (1.0 - WARMDOWN_RATIO)) / WARMDOWN_RATIO  # 0 to 1 within cooldown\n    \n    mid_cooldown = 0.5\n    if progress_in_cooldown < mid_cooldown:\n        # First half: linear from 1.0 to 0.4\n        frac = progress_in_cooldown / mid_cooldown\n        return (1.0 - 0.4) * frac + 0.4\n    else:\n        # Second half: linear from 0.4 to FINAL_LR_FRAC\n        frac = (progress_in_cooldown - mid_cooldown) / (1.0 - mid_cooldown)\n        return (0.4 - FINAL_LR_FRAC) * frac + FINAL_LR_FRAC\n>>>>>>> REPLACE"
+  }

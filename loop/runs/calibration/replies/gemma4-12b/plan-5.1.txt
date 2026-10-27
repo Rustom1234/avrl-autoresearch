@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "title": "Increase Depth, Decrease Aspect Ratio",
+      "spec": "Change DEPTH to 10 and ASPECT_RATIO to 51. This trades some width for depth, which often improves the representational capacity and 'intelligence' of small models for a similar parameter count, potentially lowering the bits per byte by improving the model's ability to capture complex patterns.",
+      "family": "architecture"
+    },
+    {
+      "title": "Aggressive Weight Decay",
+      "spec": "Change WEIGHT_DECAY to 0.4. Since the current weight decay is quite low (0.2) and the model is small, increasing the regularization might prevent overfitting to the training noise and improve generalization on the validation set, leading to a lower val_bpb.",
+      "family": "regularization"
+    },
+    {
+      "title": "Increase Total Batch Size with LR Scaling",
+      "spec": "Change TOTAL_BATCH_SIZE to 2**21 and MATRIX_LR to 0.06. Increasing the batch size significantly improves the stability of the gradient estimates. To maintain the effective learning rate, we scale the MATRIX_LR proportionally to the increase in batch size.",
+      "family": "batch"
+    },
+    {
+      "title": "Adjust Warmdown Ratio",
+      "spec": "Change WARMDOWN_RATIO to 0.75. A more gradual decay of the learning rate towards the end of the 300-second training window can help the model settle into a better local minimum, potentially refining the final weights more effectively than the current 0.5 ratio.",
+      "family": "schedule"
+    },
+    {
+      "title": "Synchronized LR Scaling for Embeddings",
+      "spec": "Change EMBEDDING_LR to 0.4 and UNEMBEDDING_LR to 0.002. Lowering the learning rates for the embedding layers (which are often high-variance) relative to the matrix parameters can prevent the 'catastrophic forgetting' of token representations during the fast training window.",
+      "family": "optimizer"
+    }
+  ]
+}

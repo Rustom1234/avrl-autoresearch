@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) Not found: the diff only changes the MLP (relu\u00b2 swapped for a SwiGLU with hidden size ceil(8/3\u00b7n_embd / 64)\u00b764, plus a new c_gate layer) and adds an init line for c_gate. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing.",
+  "(2) No bugs found. The gate is a projection from n_embd to hidden, multiplied with c_fc output before c_proj. The shapes line up, and c_gate gets the same uniform init as c_fc. c_proj stays zero-init as before. The parameter count is about the same as the 4x relu\u00b2 MLP, with slightly more from rounding up to 64. One thing to check is that the optimizer groups c_gate.weight with the other 2D block matrices (Muon). If params are grouped by ndim or by walking the blocks, this happens automatically. Even if it didn't, the result would still be valid, just a weaker test of SwiGLU.",
+  "(3) The numbers match the decision. The candidate's 1.0547 is 0.0033 worse than the incumbent mean of 1.0514. A negative z under the convention that positive means improvement is consistent with that, and so is the reject.",
+  "z cannot be recomputed exactly because the incumbent's standard deviation (or its individual runs) isn't given. The reported z = -0.554 implies a spread of about 0.0060. That is large next to the 0.0033 gap, and there is only one candidate run and two incumbent runs, so the evidence is weak either way. Rejecting is still reasonable: the candidate adds code and shows no improvement."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}
