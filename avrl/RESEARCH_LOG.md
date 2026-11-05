@@ -1780,3 +1780,11 @@ Convergence: 18 of 22 loops ended on batch 2^17 with or without depth 6 (sealed 
 Deviations: confirmation started 100 min after the loops finished (watcher self-match bug, logged in PREREG). Integrity flags: none in 440 slots. Infrastructure: no worker restarts, no server outages during the run.
 
 Reading: on this substrate every arm finds the same two large wins and then stalls at the noise floor, so the held-out metric cannot separate the arms at 8 vs 8; what separates them is what they would have kept (the control's keep rule accepts about five noise changes per run) and what they cost (routing by measured role fitness cuts model dollars 3.7x against the control and 9x per accepted change against the same loop without routing, at no measurable loss).
+
+## AR7 cost addendum: open-model calls priced (2026-11-05)
+
+The AR7 result entry gave model cost per loop run from Claude calls only, which counted the routed arm's open-model calls (146 per run) as free. Recomputed by loop/core/cost_report.py from every loop's calls.jsonl, with open-model tokens priced at OpenRouter's listed rates read 2026-10-30 (loop/models/open_prices.json: Qwen3.5 9B rate for the Qwen-based models, Gemma 3 12B rate for Gemma 4 12B). Output: loop/runs/R1/analysis/cost_report.md.
+
+Total model cost per run: A 0.78, B 1.06, C 1.44, D 0.24 USD (D: Claude 0.22 plus open models 0.03). Per accepted change, total cost over total accepts: A 0.37, B 0.53, C 0.87, D 0.11 USD. Routing is therefore about 6 times cheaper per run and about 8 times cheaper per accepted change than the same loop without routing (previously stated as 7 and 9 times from Claude-only cost and a mean of per-run ratios), and about 3 times cheaper per run than the control (previously 3.7). Whole run: Claude 15.48 USD for 5.75 M tokens; open models 2.04 M tokens, 0.21 USD at hosted prices; open-model GPUs busy 0.46 hours. Calibration tryouts: Claude 2.89 USD, open models 0.39 USD.
+
+Caveat: per-token pricing assumes owned, shared or busy hardware. Renting the four open-model GPUs for the whole 13.8-hour run window, idle time included, would cost 9.38 to 13.80 USD at 0.17 to 0.25 USD per A4000-hour, about the size of routing's saving over 8 runs (9.6 USD). No other AR7 number changes.
