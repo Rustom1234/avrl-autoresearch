@@ -1,0 +1,11 @@
+<<<<<<< SEARCH
+        x = F.relu(x).square()
+        x = self.c_proj(x)
+=======
+        x = F.relu(x).square()
+        # Local response normalization across 5 neighboring channels
+        s = F.avg_pool1d(x.square().reshape(-1, 1, x.size(-1)), kernel_size=5, stride=1, padding=2)
+        x = x * (1 + 0.1 * s.view_as(x)).rsqrt()
+        x = self.c_proj(x)
+>>>>>>> REPLACE
+-----

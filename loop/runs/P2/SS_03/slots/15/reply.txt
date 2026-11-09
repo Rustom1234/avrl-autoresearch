@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+        self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=False)
+        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=False)
+
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = F.relu(x).square()
+        x = self.c_proj(x)
+        return x
+=======
+        hidden = ((8 * config.n_embd // 3 + 63) // 64) * 64 if (8 * config.n_embd // 3) % 64 >= 32 else (8 * config.n_embd // 3 // 64) * 64
+        self.c_fc = nn.Linear(config.n_embd, 2 * hidden, bias=False)
+        self.c_proj = nn.Linear(hidden, config.n_embd, bias=False)
+
+    def forward(self, x):
+        gate, up = self.c_fc(x).chunk(2, dim=-1)
+        x = self.c_proj(F.silu(gate) * up)
+        return x
+>>>>>>> REPLACE
+-----

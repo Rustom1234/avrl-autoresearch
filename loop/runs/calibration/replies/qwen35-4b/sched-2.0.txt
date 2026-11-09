@@ -1,0 +1,4 @@
+{
+  "description": "Replaces the linear warmdown schedule with a cosine warmdown to smooth LR decay.",
+  "edits_text": "<<<<<<< SEARCH\ndef get_lr_multiplier(progress):\n    if progress < WARMUP_RATIO:\n        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0\n    elif progress < 1.0 - WARMDOWN_RATIO:\n        return 1.0\n    else:\n        cooldown = (1.0 - progress) / WARMDOWN_RATIO\n        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC\n=======\ndef get_lr_multiplier(progress):\n    if progress < WARMUP_RATIO:\n        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0\n    elif progress < 1.0 - WARMDOWN_RATIO:\n        return 1.0\n    else:\n        t = (progress - (1.0 - WARMDOWN_RATIO)) / WARMDOWN_RATIO  # t in [0, 1] during warmdown\n        return FINAL_LR_FRAC + (1.0 - FINAL_LR_FRAC) * 0.5 * (1.0 + math.cos(math.pi * t))\n>>>>>>> REPLACE"
+}

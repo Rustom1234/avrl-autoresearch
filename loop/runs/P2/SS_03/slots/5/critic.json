@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) Integrity: nothing to flag. The diff changes only ASPECT_RATIO (64 to 73) and DEPTH (8 to 7). It does not touch the seed lines, the prepare.py import, the data or the evaluation call, and the harness raised no integrity flags.",
+  "(2) No bug, but the ASPECT_RATIO change likely does nothing. 7*73 = 511. If train.py uses the stock autoresearch code, which rounds model_dim up to a multiple of HEAD_DIM (128), the width stays 512, the same as the incumbent's 8*64. The real change would then be dropping one layer at the same width. Dropping a layer is a sensible thing to try in a fixed 300 s budget, since a smaller model runs more steps. I'm assuming the rounding from the stock code because that section of train.py isn't in the diff. If the rounding isn't there, 511 is not divisible by 128 and the head-count math could break. If that were the case, though, the run would most likely have crashed rather than finished. For a simpler diff, keep ASPECT_RATIO = 64, unless the rounding is confirmed to give a different width.",
+  "(3) Numbers: the candidate mean is (1.072 + 1.0805)/2 = 1.07625, which is 0.02075 below the incumbent's 1.0970. A z of 3.207 means the harness used a noise SD of about 0.00647, probably a prior or pooled estimate, which I can't check from the numbers given. Using only the spread of the two candidate runs (SD about 0.0060) and treating the single incumbent run as having the same noise gives z of about 2.82. Treating the incumbent as exact gives z of about 4.88. Either way the improvement looks real and the accept decision is consistent. One caveat: the incumbent has only 1 run, so its value isn't well pinned down."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "note": "Can't reproduce 3.207 exactly because the harness's noise model isn't shown. Gap = 0.02075. Using the candidate runs' sample SD 0.0060: z \u2248 2.82 with incumbent noise of the same size (n=1), z \u2248 4.88 with the incumbent treated as exact. The harness's 3.207 falls between the two.",
+  "candidate_mean": 1.07625,
+  "delta": -0.02075
+ }
+}

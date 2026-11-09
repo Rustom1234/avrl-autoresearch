@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+
+train_loader
+=======
+ema_params = list(model.parameters())
+ema_shadow = [p.detach().clone() for p in ema_params]
+EMA_DECAY = 0.995
+model = torch.compile(model, dynamic=False)
+
+train_loader
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    with torch.no_grad():
+        torch._foreach_lerp_(ema_shadow, [p.detach() for p in ema_params], 1 - EMA_DECAY)
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Final eval (use EMA weights)
+with torch.no_grad():
+    torch._foreach_copy_(ema_params, ema_shadow)
+model.eval()
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+ema_params = list(model.parameters())
+ema_shadow = [p.detach().clone() for p in ema_params]
+EMA_DECAY = 0.995
+model = torch.compile(model, dynamic=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    with torch.no_grad():
+        torch._foreach_lerp_(ema_shadow, [p.detach() for p in ema_params], 1 - EMA_DECAY)
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Final eval (use EMA weights)
+with torch.no_grad():
+    torch._foreach_copy_(ema_params, ema_shadow)
+model.eval()
+>>>>>>> REPLACE
+-----

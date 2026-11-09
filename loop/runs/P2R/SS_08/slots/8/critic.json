@@ -1,0 +1,18 @@
+{
+ "ok": true,
+ "issues": [
+  "Only change: TOTAL_BATCH_SIZE drops from 2**19 to 2**18. It does not touch the val_bpb measurement, the data, the seed lines, the prepare.py import or the evaluation call. No integrity flags were raised.",
+  "No sign of a bug that would make the result meaningless. If the sequence length is 2048 (I assumed this; the length is not shown in the diff), then 2**18 / (64*2048) = 2 gradient-accumulation steps, which divides evenly. If the sequence length is different, check that the divisibility assert still passes. The learning rates were not changed for the smaller batch, but that is a tuning choice, not a bug.",
+  "Candidate mean is 1.0652, from runs of 1.0687 and 1.0617. The incumbent is 1.1024 from a single run, so the gain is 0.0372 bpb. The direction and size match the decision to accept.",
+  "z cannot be checked exactly. The incumbent has only one run, so its variance is unknown and the harness must be using an assumed or pooled noise estimate. Using only the spread of the two candidate runs (sd about 0.00495, standard error of the mean about 0.0035) gives z of about 10.6. Treating the candidate sd as the noise for both arms gives about 6.1. The harness's 5.764 implies a standard error of about 0.00645, which is more conservative. Under every one of these estimates z is well above any normal threshold, so the decision does not change.",
+  "The incumbent mean rests on one run. If the next slot is spent on a replicate, re-running the incumbent would tighten the comparison."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 10.63,
+  "z_note": "Uses the two candidate runs (sd 0.00495) as the only noise estimate, because the incumbent has one run. With the same noise assumed for both arms, z is about 6.14. The harness reports 5.764.",
+  "candidate_mean": 1.0652,
+  "incumbent_mean": 1.1024,
+  "delta": 0.0372
+ }
+}

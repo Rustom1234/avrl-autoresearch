@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: the diff changes GPT.forward, which the evaluation probably calls. For reduction='none' it returns the same flat per-token losses (B*T,) as before. For 'mean' it divides by the count of tokens where target != -1, which matches cross_entropy's ignore_index mean. 'sum' is also unchanged. The logits path (targets=None) is unchanged. The data, the seed lines and the eval call are not touched, and the harness raised no integrity flags. I found no attempt to change how val_bpb is measured.",
+  "Bugs: none that would make the result meaningless. Chunking B*T into 4 pieces and wrapping each in a non-reentrant checkpoint gives the same loss and the same gradients. The only effect is a recompute cost during backward.",
+  "Wasted change: activation checkpointing of the lm_head/CE only helps if the freed memory is used. DEVICE_BATCH_SIZE stays at 64; only its comment changed. So the change adds code and recompute overhead with nothing to gain, which fits the slightly worse 1.1193 compared with 1.1146. Under the 'simpler is better' rule it should be rejected even if it were tied. A useful follow-up would pair it with DEVICE_BATCH_SIZE 128.",
+  "Numbers: there is one candidate run, 1.1193, against an incumbent mean of 1.1146 (n=16). The difference is -0.0047, so the candidate is worse. The incumbent std is not given, so z cannot be recomputed exactly. The reported z=-0.861 implies a pooled std of about 0.0055, which is plausible, and the sign means worse. The provisional reject is consistent with the numbers."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+            # Per-layer gradient clipping based on activation statistics
+            grad = loss
+            for i, block in enumerate(self.transformer.h):
+                block_features = block.attn.c_proj.weight.t() * x.flatten(start_dim=1)
+                # Normalize by mean activation magnitude to avoid issues with inactive layers
+                act_stats = block_features.abs().mean() + 1e-6
+                if act_stats < 1e-4:
+                    act_stats = 1e-4
+
+                # Compute per-layer clip threshold based on activation statistics
+                clip_thresh = (act_stats + act_stats.sqrt()).log()
+                grad = grad.clamp_min_clip(clip_thresh)
+
+            return loss
+=======
+            return loss
+>>>>>>> REPLACE
+-----

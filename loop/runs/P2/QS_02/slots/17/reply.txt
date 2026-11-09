@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+=======
+        x0 = x
+        penalty = 0.0
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x_prev = x
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+            penalty = penalty + (norm(x) - norm(x_prev)).float().square().mean()
+        x = norm(x)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+=======
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            if reduction == 'mean':
+                loss = loss + 1e-3 * penalty / len(self.transformer.h)
+            return loss
+>>>>>>> REPLACE
+-----

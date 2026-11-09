@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "No veto issue. The diff changes one hyperparameter, TOTAL_BATCH_SIZE, from 2**19 to 2**17. It does not touch the evaluation call, the data, the seed lines or the prepare.py import line, and the harness raised no integrity flags.",
+  "No bug that makes the result meaningless. If DEVICE_BATCH_SIZE is 64 and the sequence length is 2048, then 64 \u00d7 2048 = 131072 = 2**17 tokens. That means one micro-batch per optimizer step with no gradient accumulation. Both runs finished, so the divisibility check in the script passed.",
+  "The gain is believable. A 4x smaller batch gives about 4x more optimizer steps in the fixed 300 s budget, and small models usually benefit from that. The learning rates were not rescaled for the smaller batch, so they may not be optimal, but that does not make the result invalid.",
+  "z cannot be checked exactly because the incumbent's standard deviation is not given. The candidate mean is 1.0522, which is 0.0624 below the incumbent mean of 1.1146. For z = 15.763 the implied standard error is about 0.0040, which looks plausible. The size of the gain (about 0.06 bpb, roughly 5.6%) is well above the spread between the two candidate runs (0.0006), so the accept decision holds."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0522,
+  "delta_vs_incumbent": -0.0624,
+  "implied_se": 0.00396
+ }
+}

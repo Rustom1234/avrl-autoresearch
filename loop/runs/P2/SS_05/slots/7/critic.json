@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) No integrity problem found. The diff only changes the per-step logging and fast-fail block. The seed lines, the prepare.py import, the data, the evaluation call and the final summary are untouched.",
+  "(2) No bug that would make the result meaningless. Calling train_loss.item() only every 20 steps removes a host-device sync from most steps, so the change can only affect throughput. The NaN/explosion check now runs only every 20 steps, so a diverging run can go up to 19 extra steps before it aborts. That does not affect val_bpb.",
+  "Minor: the logged 'loss' is now an EMA over every 20th step rather than every step, so printed loss values can't be compared directly with incumbent logs. The removed debiasing is handled by seeding the EMA at step 0, which assumes the step counter starts at 0. This affects console output only.",
+  "(3) The numbers are consistent. The candidate scored 1.0965 against the incumbent's 1.0981, a raw gain of 0.0016. With only 1 run on each side this is well within noise (reported z = 0.208, implying a noise scale of about 0.0077). The provisional reject matches the numbers. A speed-only change like this would need replicates or a tok/sec comparison to show a real gain.",
+  "z cannot be recomputed independently: the noise standard deviation is not given and there is only n=1 per arm. The reported z is consistent with the sign and size of the difference."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

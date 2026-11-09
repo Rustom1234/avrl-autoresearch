@@ -1,0 +1,13 @@
+{
+ "ok": false,
+ "issues": [
+  "(2) The cosine cooldown is backwards. With p = (1 - progress) / WARMDOWN_RATIO, p falls from 1 to 0 during warmdown. The new formula FINAL_LR_FRAC + (1 - FINAL_LR_FRAC) * 0.5 * (1 + cos(pi * p)) gives FINAL_LR_FRAC at p = 1, when warmdown starts, and 1.0 at p = 0, when training ends. So the LR multiplier drops from 1.0 to FINAL_LR_FRAC as soon as warmdown begins, then climbs back to full LR by the last step. That is the opposite of a cooldown. The likely intended form is FINAL_LR_FRAC + (1 - FINAL_LR_FRAC) * 0.5 * (1 - cos(pi * p)), or cos(pi * (1 - p)). This bug probably explains the large regression (1.1216 vs 1.0641). The run says nothing about whether a correct cosine warmdown is better or worse. Do not record it as evidence against cosine schedules.",
+  "(1) None found. The diff only touches the LR schedule function. Nothing changes the evaluation, the data, the seed lines or the summary printing.",
+  "Assumption: the code needs `math` to be imported in train.py, and I can't confirm that from the diff. The run finished with a result, so it probably is.",
+  "(3) The harness numbers fit together: the candidate is about 0.0575 bpb worse, and the reject decision stands. I can't recompute z on my own because the incumbent's run-to-run standard deviation isn't given. z = -8.888 implies a scale of about 0.0065, which is plausible."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

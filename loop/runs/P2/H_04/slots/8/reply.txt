@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        # Value embeddings
+        head_dim = config.n_embd // config.n_head
+=======
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        # Multi-token prediction aux (t+2): projection feeding shared lm_head
+        self.mtp_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
+        self.register_buffer("aux_w", torch.zeros((), dtype=torch.float32), persistent=False)
+        # Value embeddings
+        head_dim = config.n_embd // config.n_head
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.resid_lambdas.fill_(1.0)
+        self.x0_lambdas.fill_(0.1)
+=======
+        self.resid_lambdas.fill_(1.0)
+        self.x0_lambdas.fill_(0.1)
+        torch.nn.init.zeros_(self.mtp_proj.weight)
+        self.aux_w.fill_(0.3)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        assert len(list(self.parameters())) == (len(matrix_params) + len(embedding_params) +
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+        mtp_params = list(self.mtp_proj.parameters())
+        assert len(list(self.parameters())) == (len(matrix_params) + len(embedding_params) +
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params) + len(mtp_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=resid_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+=======
+            dict(kind='adamw', params=mtp_params, lr=unembedding_lr * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=resid_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+=======
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            if self.training and reduction == 'mean':
+                m = 512
+                h2 = norm(x[:, :m] + self.mtp_proj(x[:, :m]))
+                l2 = softcap * torch.tanh(self.lm_head(h2).float() / softcap)
+                aux = F.cross_entropy(l2.reshape(-1, l2.size(-1)), targets[:, 1:m + 1].reshape(-1),
+                                      ignore_index=-1)
+                loss = loss + self.aux_w * aux
+            return loss
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    muon_weight_decay = get_weight_decay(progress)
+=======
+    muon_weight_decay = get_weight_decay(progress)
+    model.aux_w.fill_(0.3 * lrm)
+>>>>>>> REPLACE
+-----

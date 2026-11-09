@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+        self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=False)
+        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=False)
+
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = F.relu(x).square()
+        x = self.c_proj(x)
+        return x
+=======
+        self.n_exp, self.top_k = 4, 2
+        self.router = nn.Linear(config.n_embd, self.n_exp, bias=False)
+        self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=False)
+        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=False)
+
+    def forward(self, x):
+        B, T, C = x.size()
+        probs = F.softmax(self.router(x).float(), dim=-1)
+        topv, topi = probs.topk(self.top_k, dim=-1)
+        topv = topv / topv.sum(dim=-1, keepdim=True)
+        w = torch.zeros_like(probs).scatter(-1, topi, topv) * (self.n_exp / self.top_k)
+        h = F.relu(self.c_fc(x)).square().view(B, T, self.n_exp, -1)
+        h = h * w.unsqueeze(-1).to(h.dtype)
+        return self.c_proj(h.view(B, T, -1))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            torch.nn.init.uniform_(block.mlp.c_fc.weight, -s, s)
+=======
+            torch.nn.init.uniform_(block.mlp.c_fc.weight, -s, s)
+            torch.nn.init.uniform_(block.mlp.router.weight, -s, s)
+>>>>>>> REPLACE
+-----

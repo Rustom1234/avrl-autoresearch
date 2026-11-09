@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    if targets is not None:
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction=reduction)
+        return loss
+    return logits
+=======
+    if targets is not None:
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction=reduction)
+
+        # Apply residual scaling to the MLP input path only to stabilize training
+        mlp_input_orig = self.mlp.c_fc(norm(self.attn(norm(x), ve, cos_sin, window_size - 1)))
+        mlp_input_scaled = (1 - 0.001) * mlp_input_orig + 0.001 * x
+        scaled_output = self.mlp.c_proj(mlp_input_scaled)
+
+        return loss
+    else:
+        return logits
+>>>>>>> REPLACE
+-----

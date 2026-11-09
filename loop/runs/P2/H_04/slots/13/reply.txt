@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+train_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, "train")
+=======
+EMA_DECAY = 0.995
+ema_params = [p.detach().float().clone() for p in model.parameters()]
+
+train_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, "train")
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+    with torch.no_grad():
+        for e, p in zip(ema_params, model.parameters()):
+            e.lerp_(p.float(), 1 - EMA_DECAY)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+total_tokens = step * TOTAL_BATCH_SIZE
+=======
+total_tokens = step * TOTAL_BATCH_SIZE
+
+with torch.no_grad():
+    for e, p in zip(ema_params, model.parameters()):
+        p.copy_(e)
+>>>>>>> REPLACE
+-----

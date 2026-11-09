@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: the diff only changes two hyperparameters, TOTAL_BATCH_SIZE (2**19 -> 2**15) and DEVICE_BATCH_SIZE (64 -> 16). It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the final summary printing. Nothing to veto.",
+  "Correctness: 16 x 2048 = 32768 = 2**15, so gradient accumulation is 1, as the comment says. That holds only if the sequence length is 2048. If train.py asserts that TOTAL_BATCH_SIZE divides evenly by DEVICE_BATCH_SIZE * seq_len, the check passes with these values. The two runs finished with plausible numbers, so there is no sign of a bug that would make the result meaningless.",
+  "Learning rates (EMBEDDING_LR, UNEMBEDDING_LR, Muon LR, etc.) were not rescaled for a batch 16 times smaller, so they may be poorly tuned. That is a tuning point, not an integrity problem, and the result still improved.",
+  "Numbers: the two candidate runs average 1.0777, against an incumbent mean of 1.1146 over 16 runs, a difference of about 0.0369. The diff makes no claims, so there is nothing to contradict the numbers.",
+  "I could not recompute z exactly: the incumbent's standard deviation, and how the harness pools the variance, are not given. Taken at face value, the reported z = 9.316 means a standard error of about 0.0040. That is plausible, but there are only 2 candidate runs."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

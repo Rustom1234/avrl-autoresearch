@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Measurement integrity: the diff only adds training-time input-token noise. With probability 0.005, each input token is swapped for a random token id, and the targets y stay the same. It does not touch the evaluation call, the data loading, the seed lines or the val_bpb computation, and the harness reported no integrity flags.",
+  "Possible bug, checked and ruled out: the code relies on `vocab_size` being defined in train.py's scope. The run finished and produced a value, so the name resolved. Random ids from randint_like(x, vocab_size) stay within the embedding range, so the result is valid.",
+  "Side effect: the extra torch.rand and randint calls use up RNG state, which changes the random stream later in the run. The seed lines themselves are unchanged, so this is allowed, but it makes comparisons against the incumbent's per-step randomness noisier.",
+  "Can't recompute z: the incumbent's standard deviation isn't given. The difference is 1.1146 - 1.1144 = 0.0002 lower for the candidate. For z = 0.026 to hold, the denominator has to be about 0.0077, which seems large for run-to-run noise at this scale and is worth checking. Even so, a gain of 0.0002 from a single run is far too small to count as a real improvement, so 'reject' is the right call however z is computed.",
+  "Only one candidate run was made, so the evidence is weak. There is no clear reason to spend a replicate slot on a change whose effect is near zero."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

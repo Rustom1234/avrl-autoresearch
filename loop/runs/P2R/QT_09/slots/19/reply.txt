@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+=======
+        self.lm_head = nn.Linear(2 * config.n_embd, config.vocab_size, bias=False)
+        # Latent class backbone: shared recurrent 2-layer MLP over the input embedding
+        self.latent_fc = nn.Linear(config.n_embd, config.n_embd, bias=False)
+        self.latent_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        torch.nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.001)
+=======
+        torch.nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.001)
+        # Latent class backbone (must be explicitly initialized: model is built on meta device)
+        torch.nn.init.normal_(self.latent_fc.weight, mean=0.0, std=self.config.n_embd**-0.5)
+        torch.nn.init.zeros_(self.latent_proj.weight)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        logits = self.lm_head(x)
+=======
+        latent = x0
+        for _ in range(2):  # recurrent: shared weights applied twice
+            latent = norm(latent + self.latent_proj(F.relu(self.latent_fc(latent)).square()))
+        logits = self.lm_head(torch.cat([x, latent], dim=-1))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        lm_head_params = list(self.lm_head.parameters())
+=======
+        lm_head_params = list(self.lm_head.parameters()) + list(self.latent_fc.parameters()) + list(self.latent_proj.parameters())
+>>>>>>> REPLACE
+-----

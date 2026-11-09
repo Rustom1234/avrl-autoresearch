@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "No tampering found. The diff only changes TOTAL_BATCH_SIZE (2**18 to 2**15) and DEVICE_BATCH_SIZE (64 to 16). It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing.",
+  "No bug that would make the result meaningless. 16 x 2048 = 2**15, so this assumes a sequence length of 2048 and gives exactly one micro-step per optimizer step with no gradient accumulation. If the file has an assert that TOTAL_BATCH_SIZE divides evenly, it still passes. LR_BATCH_SCALE recomputes on its own, so the LR now scales down by sqrt(1/16) = 0.25 relative to the 2**19 reference. Smaller batches mean many more optimizer steps in the fixed 300 s, which is a legitimate trade-off.",
+  "I could not reproduce z = 5.136 from the numbers given. The candidate mean is 1.06175, so the gain is 0.03315. The two candidate runs have a sample SD of about 0.00134, which would give z of about 24.7 using that SD, or about 34.9 using the standard error. The harness value implies a noise sigma of about 0.00645, presumably a stored noise floor. Either way the decision to accept holds.",
+  "Caveat: the incumbent mean comes from only 1 run, so the incumbent's run-to-run variance is not measured here. The gain of about 0.033 bpb is large compared with typical seed noise, so this is a minor concern.",
+  "Smaller batches could change peak VRAM and the time per step, but the 450 s wall-clock limit is checked by the harness and no integrity flags were raised."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.06175,
+  "delta": 0.03315,
+  "z_using_candidate_sd": 24.7
+ }
+}

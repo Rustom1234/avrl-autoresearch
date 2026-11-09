@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "title": "Increase Depth, Decrease Aspect Ratio",
+      "spec": "The current model has DEPTH=8 and ASPECT_RATIO=64 (model_dim=512). Increase DEPTH to 12 and decrease ASPECT_RATIO to 42 (model_dim=504). This maintains a similar total parameter count but provides more non-linear transformations per token, which often improves perplexity in small models.",
+      "family": "architecture"
+    },
+    {
+      "title": "Increase Warmdown Ratio",
+      "spec": "Increase WARMDOWN_RATIO from 0.5 to 0.75. Since the training time is fixed at 300s, a longer warmdown allows the model to settle into a local minimum more gracefully at the end of the run, which can stabilize the final weights.",
+      "family": "schedule"
+    },
+    {
+      "title": "Adjust Muon Weight Decay",
+      "spec": "Decrease WEIGHT_DECAY from 0.15 to 0.1. Given that the incumbent was achieved at 0.15, exploring a slightly lower weight decay might help the model retain more capacity for learning complex patterns in the data.",
+      "family": "regularization"
+    },
+    {
+      "title": "Increase Matrix Learning Rate",
+      "spec": "Increase MATRIX_LR from 0.04 to 0.05. Since Muon is used for the matrix parameters (the bulk of the model), a slightly higher learning rate can accelerate convergence within the limited 300-second window.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Decrease Head Dimension",
+      "spec": "Decrease HEAD_DIM from 128 to 96. Reducing the head dimension while keeping the model dimension constant allows for more heads (or more efficient use of the embedding dimension), which can improve the model's ability to attend to different features simultaneously.",
+      "family": "architecture"
+    },
+    {
+      "title": "Optimize Adam Betas",
+      "spec": "Change ADAM_BETAS from (0.8, 0.95) to (0.85, 0.95). The previous attempt with (0.9, 0.95) was rejected due to a mismatch flag; (0.85, 0.95) is a standard middle ground that may provide better stability for the Adam-optimized components.",
+      "family": "optimizer"
+    }
+  ]
+}

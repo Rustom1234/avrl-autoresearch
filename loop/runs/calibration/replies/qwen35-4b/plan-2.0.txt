@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "title": "Increase total batch size to utilize multi-GPU or longer context efficiency",
+      "spec": "Increase TOTAL_BATCH_SIZE from 2**19 to 2**20 (approx 1M tokens) to improve gradient stability and reduce variance in validation bits per byte, potentially lowering val_bpb despite the constraint that only one GPU is used per run (this change may fail if the harness enforces strict single-GPU limits, but is the most effective theoretical change); if that fails, reduce to 2**19 + 100000 to test boundary.",
+      "family": "batch"
+    },
+    {
+      "title": "Reduce weight decay to allow faster convergence with larger gradients",
+      "spec": "Decrease WEIGHT_DECAY from 0.2 to 0.05. Higher weight decay can restrict the model's ability to learn complex patterns needed for lower val_bpb, especially when the batch size is relatively large. Lowering it may allow the model to better fit the data within the fixed training time.",
+      "family": "regularization"
+    },
+    {
+      "title": "Adjust learning rate schedule to prioritize early learning",
+      "spec": "Set WARMUP_RATIO to 0.1 and WARMDOWN_RATIO to 0.9. By reducing the warmup period and extending the warmdown, we encourage faster initial learning which can be beneficial for early error reduction on large models, potentially lowering val_bpb within the fixed 300s budget.",
+      "family": "schedule"
+    },
+    {
+      "title": "Increase model depth to capture more complex patterns",
+      "spec": "Increase DEPTH from 8 to 10. A deeper model can potentially capture more complex features, reducing the val_bpb if the current depth is insufficient to model the task complexity within the fixed training time.",
+      "family": "architecture"
+    }
+  ]
+}

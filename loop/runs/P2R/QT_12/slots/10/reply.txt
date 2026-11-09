@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+    adam_betas=(0.8, 0.95),
+    scalar_lr=SCALAR_LR,
+    weight_decay=WEIGHT_DECAY,
+)
+=======
+    adam_betas=(0.8, 0.95),
+    scalar_lr=SCALAR_LR,
+    weight_decay=WEIGHT_DECAY,
+    cosine_decay_steps=(step + 1) if step > 0 else None,
+>>>>>>> REPLACE
+
+      if group['kind'] == 'muon':
+        group["momentum"] = muon_momentum
+        group["weight_decay"] = muon_weight_decay
+        if group["cosine_decay_steps"] is not None:
+            # Overlap warmup then cosine decay as in Muon architecture
+            base_lr = group['initial_lr'] * lrm
+            step_t = group['cosine_decay_steps']
+            step_t_in = (min(step_t, 300) + 1) * тока
+            current_t = min(step_t_in, step_t)
+            cosine_factor = 0.5 + 0.5 * math.cos(math.pi * (1.0 - step_t_in / step_t))
+            group["lr"] = group["initial_lr"] * lrm * base_lr * cosine_factor
+            if group['kind'] == 'muon':
+                group["momentum"] = muon_momentum
+                group["weight_decay"] = muon_weight_decay
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    # Permute accumulation order to break any patterns (effectively noise; gradients are aggregated then stepped)
+    perm = list(range(grad_accum_steps))
+    gap = random.randint(0, grad_accum_steps - 1) if 'random' in locals() else 0
+    perm.insert(gap, perm.pop(random.randint(0, len(perm) - 1)))
+    
+    for micro_idx, micro_step in enumerate(perm):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+-----

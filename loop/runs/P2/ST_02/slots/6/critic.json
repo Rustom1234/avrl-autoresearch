@@ -1,0 +1,19 @@
+{
+ "ok": true,
+ "issues": [
+  "The diff changes only TOTAL_BATCH_SIZE (2**19 to 2**18). It does not touch the evaluation call, the metric, the data, the seed lines or the summary printing, so there is no integrity concern.",
+  "No bug makes the result meaningless. Assuming the usual seq len of 2048, DEVICE_BATCH_SIZE 64 gives 131072 tokens per micro-step, so 2**18 still divides evenly (grad accumulation 2 instead of 4). If it didn't divide evenly, the run would have failed its assertion rather than given a silently wrong number.",
+  "Candidate mean is 1.06275 and the incumbent is 1.1026, a difference of 0.03985. The incumbent has only 1 run, so its variance can't be estimated from these numbers.",
+  "z = 6.166 can't be reproduced exactly. It implies a noise sd of 0.03985/6.166 \u2248 0.00646, which presumably comes from a harness-wide noise estimate. Using only the candidate spread (sd \u2248 0.00488) gives z \u2248 8.2 against a single-run sd, or \u2248 11.5 against the standard error of the mean. Every way of computing it gives at least 6.17, so 'accept' is consistent with the numbers.",
+  "Note: the incumbent's mean is based on 1 run. Smaller batches mean more optimizer steps within the fixed 300 s, so a gain is plausible. A replicate run of the incumbent would make the comparison firmer, but it isn't required."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.06275,
+  "delta": 0.03985,
+  "implied_sigma": 0.00646,
+  "z_candidate_sd_only": 8.17,
+  "z_candidate_se": 11.55
+ }
+}

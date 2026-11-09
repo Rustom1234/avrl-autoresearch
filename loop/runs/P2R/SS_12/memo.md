@@ -1,0 +1,4 @@
+Helped: shrinking depth at width 512 (depth 6: 1.1025, delta -0.0121; depth 4 with ASPECT_RATIO 128: mean_adjusted 1.0811, delta -0.0213) and halving the batch to 2**18 (1.0680/1.0683, delta -0.0130, 2 runs). Both carry tripwire flags, so audit them before trusting. The incumbent is now 1.0682.
+Did not help: SiLU (+0.0156), HEAD_DIM 64 (+0.0127), the t+2 auxiliary loss (+0.0161), depth 5 at dim 640 (+0.0255), momentum 0.97, 4 Polar Express iterations, WARMUP_RATIO 0.03, WARMDOWN_RATIO 0.3, lm_head init, SSL window pattern, EMBEDDING_LR 0.4 (all small, +0.0007 to +0.0041). Most were single runs, so the small ones may be noise.
+Close call: SCALAR_LR 0.25 gave 1.0648 (-0.0034). Replicate it.
+Next: audit the tripwires, replicate SCALAR_LR 0.25, try depth 3, DEVICE_BATCH_SIZE, a smaller total batch than 2**18, and WARMDOWN_RATIO above 0.5.

@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+model = torch.compile(model, dynamic=False)
+
+EMA_DECAY = 0.999
+model_params = list(model.parameters())
+ema_params = [p.detach().clone() for p in model_params]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+    torch._foreach_lerp_(ema_params, [p.detach() for p in model_params], 1 - EMA_DECAY)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Swap EMA weights in before final eval
+with torch.no_grad():
+    for p, e in zip(model_params, ema_params):
+        p.copy_(e)
+
+# Final eval
+model.eval()
+>>>>>>> REPLACE
+-----

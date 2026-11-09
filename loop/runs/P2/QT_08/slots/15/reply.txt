@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+        for group in optimizer.param_groups:
+            group["lr"] = group["initial_lr"] * lrm
+            if group['kind'] == 'muon':
+                group["momentum"] = muon_momentum
+                group["weight_decay"] = muon_weight_decay
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+
+    train_loss_f = train_loss.item()
+=======
+        for group in optimizer.param_groups:
+            group["lr"] = group["initial_lr"] * lrm
+            if group['kind'] == 'muon':
+                group["momentum"] = muon_momentum
+                group["weight_decay"] = muon_weight_decay
+        # QAT-style QAT: cast first layer grad updates to bf16 to reduce noise
+        if step == 0:
+            first_layer_params = [p for g in optimizer.param_groups for p in g['params'] if p.ndim == 0]
+            if not first_layer_params:
+                first_layer_params = [p for g in optimizer.param_groups if g['kind'] == 'muon']
+            if first_layer_params:
+                batched_grads = []
+                for p in first_layer_params:
+                    grad = p.grad
+                    z = grad.float().detach().to(p.device)
+                    z = z.to(torch.bfloat16)
+                    batched_grads.append(z)
+                if batched_grads:
+                    optimizer.step国家市场监督管理总局 = torch._foreach_sub_(first_layer_params, batched_grads)  # placeholder logic to reduce noise
+        optimizer.step()
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+-----

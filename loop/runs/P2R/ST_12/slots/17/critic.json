@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Measurement and integrity: the only change is TOTAL_BATCH_SIZE going from 2**18 to 2**17. It doesn't touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing. The harness reports no integrity flags.",
+  "Bugs: none visible. A smaller batch gives more optimizer steps in the fixed 300 s, which is a legitimate tuning change. If MAX_SEQ_LEN is 2048, then 2**17 = 64*2048 and gradient accumulation becomes 1 (the divisibility assert still passes). The learning rates were not rescaled for the smaller batch, but that is a tuning choice, not an error.",
+  "Numbers: the candidate mean is (1.0516+1.0488)/2 = 1.0502, which is 0.0472 better than the incumbent's 1.0974. Both replicates beat the incumbent by about 0.045 or more. The gap between the replicates is only 0.0028, while the improvement is about 17 times that, so the sign of the gain is not in doubt.",
+  "z could not be reproduced: the incumbent's mean comes from a single run, so the numbers give no incumbent variance. Using the candidate's sample SD (0.00198) gives z \u2248 23.8. Using the SE of the candidate mean (0.0014) gives z \u2248 33.7. The harness's z = 7.303 implies a noise sigma of about 0.0065, so it presumably uses a prior or pooled noise estimate that isn't shown here. Every estimate I tried supports accepting. I left recomputed z as null because the harness's formula is unknown.",
+  "Caveat: with only one incumbent run, some of the gap could be noise in the baseline. Even so, a gap of 0.047 is far larger than the spread seen between runs."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

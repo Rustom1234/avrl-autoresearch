@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing in the diff touches the seed lines, the prepare.py import line, the evaluation call or the summary printing. Training on 1024-token sequences with batch 128 is a train.py hyperparameter change, which the rules allow. The dataloader still reads the same 'train' split; only the batch and sequence shape change.",
+  "Tokens per step are the same: 128*1024 = 64*2048 = 131072. The TOTAL_BATCH_SIZE assert and grad_accum_steps therefore come out exactly as before.",
+  "Side effect to note, not a veto: GPTConfig.sequence_len is now 1024, while the harness evaluation probably still runs at MAX_SEQ_LEN = 2048. If the rotary cache is sized from sequence_len (in the usual train.py it is sequence_len*10 = 10240) it still covers 2048 tokens. But if WINDOW_PATTERN sizes its windows from config.sequence_len, the 'long' attention window at eval drops to 1024, and short windows get smaller too. That is a real architecture change and may cost val_bpb at eval. Check that nothing asserts T <= config.sequence_len in the forward pass, or eval at 2048 could crash.",
+  "torch.compile(dynamic=False) will recompile for the eval shape. That cost falls outside the timed training window, so it should be fine, but keep the 450 s startup+train limit in mind.",
+  "Memory at batch 128 x 1024 should be about the same as or less than 64 x 2048 (attention cost is lower, activations scale with tokens). Not a concern.",
+  "No run numbers yet, so z cannot be computed and no claims can be checked."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) Integrity: no problems found. The diff changes one hyperparameter, TOTAL_BATCH_SIZE, from 2**19 to 2**17. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the final summary printing. Changing batch size is explicitly allowed.",
+  "(2) Bugs: none found. Assuming MAX_SEQ_LEN is 2048, which the diff does not show, DEVICE_BATCH_SIZE 64 \u00d7 2048 = 131072 = 2**17. Gradient accumulation then becomes 1 step, the divisibility check still holds, and the run gets about 4\u00d7 more optimizer steps in the fixed 300 s. Learning rates were not rescaled for the smaller batch. That is a tuning choice, not a correctness bug.",
+  "(3) Numbers: the two candidate runs are 1.0533 and 1.0488, mean 1.05105 and sample SD about 0.00318. They beat the incumbent mean of 1.0991 by 0.04805 bpb, consistent with the provisional accept. I could not reproduce the reported z = 8.269 from these numbers alone: it implies a noise scale of about 0.00581, which is probably a historical or pooled sigma, because a single incumbent run gives no variance. Treating the incumbent as fixed and using only the candidate runs gives a larger z (about 15 to 21), so the accept holds either way. The incumbent was run only once, so a replicate would firm up the baseline."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.05105,
+  "delta": 0.04805,
+  "candidate_sd": 0.00318
+ }
+}

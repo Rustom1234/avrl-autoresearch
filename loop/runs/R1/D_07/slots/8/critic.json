@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "The comment is wrong: 2**17 = 131,072 tokens (~131K), not ~262K (that would be 2**18). This is a cosmetic mismatch and does not affect the result. Fix the comment to read ~131K.",
+  "The diff only changes TOTAL_BATCH_SIZE. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing. No integrity problem.",
+  "If MAX_SEQ_LEN is 2048 (not visible in this diff), 2**17 = 64 * 2048, so the run uses 1 accumulation step with no remainder. That would be valid. The smaller batch gives about 4x more optimizer steps in the fixed 300 s, which plausibly explains the gain.",
+  "z cannot be recomputed independently because only the incumbent mean (1.1084) is given, not its per-run values or spread. The candidate mean is 1.0486, so delta = -0.0598. The reported z = 12.602 implies a pooled SD of about 0.0047, which is plausible but not verifiable here. With 2 runs per arm the z-score is a rough guide only. The effect is large either way.",
+  "Optional: check that the LR schedule and other hyperparameters tuned for the 2**19 batch are still reasonable. This does not block acceptance."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0486,
+  "delta_vs_incumbent": -0.0598
+ }
+}

@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) Integrity: the diff does not touch the val_bpb measurement, the data, the seed lines, the prepare.py import line or the evaluation call. The harness raised no integrity flags.",
+  "(2) The change has no effect: MOMENTUM_RAMP is 0.85 and USE_WARMUP_BETA is True, so the new branch returns (1 - frac) * 0.85 + frac * 0.95. That is exactly what the old code returns. The candidate trains the same way as the incumbent, so this run is really just another run of the incumbent. The result is still valid, but it says nothing about the idea.",
+  "The comments are wrong: they call this ramping 'beta2', but get_muon_momentum sets Muon's momentum, not an Adam beta2. Also, if the ramp were meant to start lower, MOMENTUM_RAMP should be set to something other than 0.85.",
+  "(3) Claims vs numbers: the candidate scored 1.1161 against the incumbent mean of 1.1146, so it is 0.0015 worse. Since lower is better, a negative z fits. The stated z of -0.277 implies a spread of about 0.0054 per run, which is plausible run-to-run noise for a no-op change. I can't recompute z exactly because the incumbent's standard deviation isn't given.",
+  "Recommendation: keep the reject. The change adds two flags and a branch with no change in behavior, so on the simplicity rule alone it should not be merged. If someone wants to test a different starting momentum, they should set MOMENTUM_RAMP to a different value, such as 0.7 or 0.9, and drop the flag."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

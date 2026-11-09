@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+=======
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), reduction=reduction, ignore_index=-1)
+        # Label smoothing
+        smooth_eps = 0.05
+        loss = -(1 - smooth_eps) * loss + smooth_eps
+>>>>>>> REPLACE 
+-----
+
+<<<<<<< SEARCH
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+=======
+            smooth_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                         ignore_index=-1, reduction=reduction)
+            # Label smoothing to reduce overconfidence
+            labels = targets.view(-1)
+            smooth_labels = torch.full_like(labels, -1, dtype=logits.dtype)
+            for i in range(labels.size(0)):
+                smooth_labels[i, labels[i]:labels[i]+1] = smooth_labels[i, labels[i]:labels[i]+1] * (smooth_eps + 1)
+            smooth_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), smooth_labels.view(-1), ignore_index=-1, reduction=reduction)
+            return smooth_loss
+>>>>>>> REPLACE
+-----

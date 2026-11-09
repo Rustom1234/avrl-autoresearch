@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity check passed. The diff changes one hyperparameter, TOTAL_BATCH_SIZE, from 2**19 to 2**18. It does not touch the val_bpb metric, the data, the seed lines, the prepare.py import or the evaluation and summary code.",
+  "No bug that would make the result meaningless. If the script asserts that TOTAL_BATCH_SIZE divides evenly by DEVICE_BATCH_SIZE*seq_len, it still holds (for example 2**18/(64*2048)=2 gradient-accumulation steps). The candidate ran twice and both runs produced valid results, so it did not crash.",
+  "Halving the batch gives about twice as many optimizer steps in the fixed 300 s. In this regime that plausibly explains the gain (candidate mean 1.0635 vs 1.1019, delta about -0.0384).",
+  "z could not be reproduced exactly. The incumbent has only n=1, so its variance cannot be estimated, and the harness's noise model is not given. If only the candidate spread is used (sd=0.00764 from 2 runs), z is about 5.0 with sd as the denominator, about 7.1 with the standard error of the candidate mean, and about 4.1 with a two-sample standard error. The reported 5.947 implies a noise sd of about 0.00646, which probably comes from a pooled or prior estimate. The gain is large under every one of these assumptions, so it matches the 'accept' decision.",
+  "Caveat: the incumbent baseline is a single run. Replicating it would make the comparison firmer, but this is not grounds for a veto."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

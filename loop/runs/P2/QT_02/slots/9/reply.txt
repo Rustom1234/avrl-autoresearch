@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+=======
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    
+    # Cosine annealing over the remaining duration (1.0 - (1.0 - WARMDOWN_RATIO))
+    # But we want it to start decaying at 1.0 - WARMDOWN_RATIO
+    if progress > (1.0 - WARMDOWN_RATIO):
+        # Normalize progress within the warmdown phase [0, 1]
+        phase_progress = (progress - (1.0 - WARMDOWN_RATIO)) / WARMDOWN_RATIO
+        return FINAL_LR_FRAC + 0.5 * (1.0 - FINAL_LR_FRAC) * (1 - torch.cos(phase_progress * torch.pi))
+    
+    return 1.0
+>>>>>>> REPLACE
+-----

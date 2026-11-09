@@ -1,0 +1,13 @@
+{
+ "ok": false,
+ "issues": [
+  "Criterion (1), changes how val_bpb is measured. The diff adds label_smoothing=0.1 inside GPT.forward. The evaluation routine imported from prepare.py gets its per-token losses from this same forward(x, y, reduction='none') call. So the loss it receives is no longer the true negative log-likelihood. It is 0.9*CE plus 0.1 times the mean of -log p over the whole vocabulary. That means the edit changes the val_bpb measurement, not just training. The harness's integrity rejection (it found the evaluation path altered) matches this.",
+  "Criterion (2), the result would be meaningless. Any val_bpb computed through the changed forward is not bits per byte, so it cannot be compared with the incumbent's number.",
+  "Training on its own: label smoothing at 0.1 on a large-vocabulary language model usually makes true cross-entropy and bpb worse, so the claimed benefit of 'reducing overconfidence' is unlikely to help this objective. A legitimate version would apply smoothing only in the training loop, for example a separate loss call on the logits when self.training is true, and leave the default forward loss as plain cross-entropy.",
+  "Criterion (3), claims vs numbers: the harness reports no numbers because the run was rejected. There is no val_bpb or variance, so z cannot be recomputed."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

@@ -1,0 +1,4 @@
+Helped: changes giving more optimizer steps in the fixed 300 s. Halving TOTAL_BATCH_SIZE to 2**18 gave 1.0935 (-0.0211). DEPTH 6 gave 1.0653/1.0643 (-0.0287, two runs, tripwire flag; verify before building on it). Incumbent mean_adjusted is 1.0648.
+Did not help: Muon LR 0.05 (1.0885), HEAD_DIM 64 (+0.0023), squared GELU (+0.0036), WARMDOWN_RATIO 0.7 (+0.0006), WARMUP_RATIO 0.03 (-0.0003), WINDOW_PATTERN SSSS (-0.0007), cosine decay (+0.0037), ASPECT_RATIO 85 (+0.0037), batch 2**16 (+0.0050), Adam beta2 0.99 (+0.0014). DEPTH 4 was far worse (+0.0752).
+Near misses: batch 2**17 (1.0611, -0.0037) and MLP 6x (1.0613, -0.0035) were rejected but look promising; replicate them, maybe combine.
+Next: check the tripwire, try DEPTH 5 or 7, retune LR for the smaller model. Don't propose ideas already in the code.

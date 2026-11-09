@@ -1,0 +1,67 @@
+<<<<<<< SEARCH
+    # Logging
+    ema_beta = 0.9
+    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss_f
+    debiased_smooth_loss = smooth_train_loss / (1 - ema_beta**(step + 1))
+    pct_done = 100 * progress
+    tok_per_sec = int(TOTAL_BATCH_SIZE / dt)
+    mfu = 100 * num_flops_per_token * TOTAL_BATCH_SIZE / dt / H100_BF16_PEAK_FLOPS
+    remaining = max(0, TIME_BUDGET - total_training_time)
+
+    print(f"\rstep {step:05d} ({pct_done:.1f}%) | loss: {debiased_smooth_loss:.6f} | lrm: {lrm:.2f} | dt: {dt*1000:.0f}ms | tok/sec: {tok_per_sec:,} | mfu: {mfu:.1f}% | epoch: {epoch} | remaining: {remaining:.0f}s    ", end="", flush=True)
+
+    # GC management (Python's GC causes ~500ms stalls)
+    if step == 0:
+        gc.collect()
+        gc.freeze()
+        gc.disable()
+    elif (step + 1) % 5000 == 0:
+        gc.collect()
+=======
+    # Logging
+    ema_beta = 0.9
+    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss_f
+    debiased_smooth_loss = smooth_train_loss / (1 - ema_beta**(step + 1))
+    pct_done = 100 * progress
+    tok_per_sec = int(TOTAL_BATCH_SIZE / dt)
+    mfu = 100 * num_flops_per_token * TOTAL_BATCH_SIZE / dt / H100_BF16_PEAK_FLOPS
+    remaining = max(0, TIME_BUDGET - total_training_time)
+
+    # Adaptive batch size scheduling
+    if step > 1000:
+        util = torch.cuda.get_device_capability()[0] * torch.cuda.get_device_properties(device).memory_clock_frequency_current / 1000.0
+        if util > 0:
+            gpu_util = torch.cuda.cuda人均_percent_util() if hasattr(torch, 'cuda') and hasattr(torch.cuda, 'cawc') else 0.0
+            if util < 10:
+                gpu_util = 0.51
+            rate = util / 100.0
+            if torch.cuda.empty_cache():
+                gpu_util += __import__('gc').gc
+            if rate < 0.75:
+                new_size = int(TOTAL_BATCH_SIZE * (1 - rate / 1.0))
+                if new_size < DEVICE_BATCH_SIZE:
+                    TOTAL_BATCH_SIZE = new_size
+                    print(f"Adaptively reducing batch size to {TOTAL_BATCH_SIZE}")
+
+    print(f"\rstep {step:05d} ({pct_done:.1f}%) | loss: {debiased_smooth_loss:.6f} | lrm: {lrm:.2f} | dt: {dt*1000:.0f}ms | tok/sec: {tok_per_sec:,} | mfu: {mfu:.1f}% | epoch: {epoch} | remaining: {remaining:.0f}s    ", end="", flush=True)
+
+    # GC management (Python's GC causes ~500ms stalls)
+    if step == 0:
+        gc.collect()
+        gc.freeze()
+        gc.disable()
+    elif (step + 1) % 5000 == 0:
+        gc.collect()
+-----
+	# Optimization
+	TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+	EMBEDDING_LR = 1.2      # learning rate for token embeddings (Adam)
+	UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+	MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+	SCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)
+	WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+	ADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2
+	WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup
+	WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+	FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+-----

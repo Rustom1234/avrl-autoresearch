@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+=======
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            
+            # Grated Residual Reshaping Loss (GRRL)
+            # Reshape final logits into a grid and apply L1 gradient to mean pixel values
+            bz, d, s = logits.shape
+            if d > 1:
+                h = math.ceil(math.sqrt(d))
+                # Reshape to grid
+                logits_grid = logits.view(bz, -1, s, s, h)
+                # Compute mean pixel values
+                mean_pixels = logits_grid.mean(dim=0, keepdim=True)
+                # Apply L1 gradient to mean pixels (encouraging uniformity)
+                grad_pixels = torch.ones_like(mean_pixels)
+                loss += F.l1_loss(mean_pixels, grad_pixels)
+            
+            return loss
+        return logits
+>>>>>>> REPLACE
+"%s
+-----

@@ -1,0 +1,77 @@
+<<<<<<< SEARCH
+# Schedules (all based on progress = training_time / TIME_BUDGET)
+
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+=======
+# Schedules (all based on progress = training_time / TIME_BUDGET)
+
+# Plateau detection state
+loss_history = []
+PLATEAU_THRESHOLD = 1.001
+PLATEAU_PATIENCE = 10
+plateau_counter = 0
+plateau_decay = 0.95
+plateau_mult = 1.0
+
+def get_lr_multiplier(progress):
+    global plateau_counter, plateau_mult
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        # Check for plateau
+        if len(loss_history) > 0:
+            recent_avg = sum(loss_history[-5:]) / min(len(loss_history), 5)
+            if recent_avg > loss_history[-1] * PLATEAU_THRESHOLD:
+                plateau_counter = 0
+            else:
+                plateau_counter += 1
+                if plateau_counter > PLATEAU_PATIENCE:
+                    plateau_mult *= plateau_decay
+                    plateau_counter = 0
+        return 1.0 * plateau_mult
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Logging
+    ema_beta = 0.9
+    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss_f
+    debiased_smooth_loss = smooth_train_loss / (1 - ema_beta**(step + 1))
+    pct_done = 100 * progress
+    tok_per_sec = int(TOTAL_BATCH_SIZE / dt)
+    mfu = 100 * num_flops_per_token * TOTAL_BATCH_SIZE / dt / H100_BF16_PEAK_FLOPS
+    remaining = max(0, TIME_BUDGET - total_training_time)
+=======
+    # Logging and Plateau Tracking
+    ema_beta = 0.9
+    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss_f
+    debiased_smooth_loss = smooth_train_loss / (1 - ema_beta**(step + 1))
+    loss_history.append(debiased_smooth_loss)
+    pct_done = 100 * progress
+    tok_per_sec = int(TOTAL_BATCH_SIZE / dt)
+    mfu = 100 * num_flops_per_token * TOTAL_BATCH_SIZE / dt / H100_BF16_PEAK_FLOPS
+    remaining = max(0, TIME_BUDGET - total_training_time)
+>>>>>>> REPLACE
+-----

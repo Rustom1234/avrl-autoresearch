@@ -1,0 +1,139 @@
+<<<<<<< SEARCH
+class MuonAdamW(torch.optim.Optimizer):
+    """Combined optimizer: Muon for 2D matrix params, AdamW for others."""
+
+    def __init__(self, param_groups):
+        super().__init__(param_groups, defaults={})
+        # 0-D CPU tensors to avoid torch.compile recompilation when values change
+        self._adamw_step_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_lr_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_beta1_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_beta2_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_eps_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_wd_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_momentum_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_lr_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_wd_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_beta2_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+=======
+def simple_lookahead_step(model, optimizer, alpha=0.5):
+    """Apply one step of lookahead to smooth optimizer states.
+    
+    This computes the output as a weighted average of the raw parameters
+    and the committed parameters.
+    """
+    for param_group in optimizer.param_groups:
+        for param, state in zip(param_group["params"], optimizer.state[param]):
+            # Forward pass to generate provisional lines
+            current_params = []
+            committed_params = []
+            for p in param_group["params"]:
+                states = optimizer.state[p]
+                current_params.append(p)
+                committed_params.append(states.get("committed", p))
+            
+            # Move provisional to committed with alpha interim
+            for p, c in zip(current_params, committed_params):
+                current_conv = p.detach()
+                committed_conv = c.detach()
+                p.copy_(committed_conv)
+                p.copy_(current_conv)
+
+    # Commit to committed parameters
+    for param_group in optimizer.param_groups:
+        for p, state in zip(param_group["params"], optimizer.state[param]):
+            committed_p = state.get("committed", p)
+            state["committed"] = p.clone()
+
+=======
+class SimpleLookahead(torch.optim.Optimizer):
+    """Combined optimizer: Lookahead for Householder, Adam for others.
+    
+    This treats momentum states and the model parameters together.
+    The model parameters are sampled to form a proposal point.
+    """
+    
+    def __init__(self, params, base_optimizer, alpha=0.5, persistent=False):
+        """
+        params: list of base optimizer parameters
+        base_optimizer: base optimizer class
+        alpha: fraction of weight to commit to proposal point
+        persistent: whether to keep the proposal point in momentum state
+        """
+        if not isinstance(base_optimizer, torch.optim.Adam):
+            raiseситype("base_optimizer must be an instance of Adam or similar")
+        
+        groups = base_optimizer.param_groups
+        
+        if alpha >= 1.0:
+            raise ValueError("alpha must be between 0 and 1, got %s" % alpha)
+        elif alpha <= 0.0:
+            raise ValueError("alpha must be between 0 and 1, got %s" % alpha)
+        
+        self.base_optimizer = base_optimizer
+        self.param_groups = groups
+        self.alpha = alpha
+        self.persistent = persistent
+
+    def state(self):
+        return self._state()
+
+    def _state(self, group):
+        if not group: # no params, no state
+            return None
+        
+        state = self.base_optimizer.state[group]['params'][0]
+        if state is None:
+            return None
+
+        # Compute state for each parameter in the group or empty for scalars
+        result = []
+        for param in group['params']:
+            state_p = self.base_optimizer.state[p]
+            if not state_p:
+                continue
+            result.append(state_p)
+        return result
+
+    def step(self):
+        base_optimizer = self.base_optimizer
+        self._step_lookahead()
+        base_optimizer.step()
+        self.base_optimizer.step()
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+class MuonAdamW(torch.optim.Optimizer):
+    """Combined optimizer: Muon for 2D matrix params, AdamW for others."""
+
+    def __init__(self, param_groups):
+        super().__init__(param_groups, defaults={})
+        # 0-D CPU tensors to avoid torch.compile recompilation when values change
+        self._adamw_step_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_lr_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_beta1_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_beta2_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_eps_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_wd_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_momentum_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_lr_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_wd_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_beta2_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+=======
+class SimpleLookahead(torch.optim.Optimizer):
+    """Combined optimizer: Lookahead for Householder, Adam for others.
+    
+    This treats momentum states and the model parameters together.
+    The model parameters are sampled to form a proposal point.
+    """
+
+    def __init__(self, params, base_optimizer, alpha=0.5, persistent=False):
+        """
+        params: list of base optimizer parameters
+        base_optimizer: base optimizer class
+        alpha: fraction of weight to commit to proposal point
+        persistent: whether to keep the proposal point in momentum state
+        """
+        if not isinstance
+>>>>>>> REPLACE
+-----

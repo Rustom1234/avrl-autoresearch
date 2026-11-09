@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: no veto. The diff only changes the training update. It adds adaptive gradient clipping, which scales gradients down whenever the global gradient norm is above an EMA of recent norms. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing. The harness also reported no integrity flags.",
+  "Correctness: I found no bug that would make the result meaningless. The step==0 initialization of gnorm_ema depends on the loop starting at step 0, as the incumbent loop appears to. If it did not, the code would raise a NameError and the run would crash; it would not produce a quietly wrong result. The EMA is updated with the unclipped norm and the scale is capped at 1.0, so the code only damps gradient spikes, which is what it is meant to do. It never calls .item(), so it adds no host-device sync, only a small extra cost for the per-parameter norms.",
+  "Minor: the sum of squares is taken over float norms, so mixed-dtype gradients cause no precision problem. The cost is roughly one extra pass over the gradients each step, which uses a little of the fixed 300 s budget.",
+  "Numbers: the evidence is one candidate run at 1.1131 against an incumbent mean of 1.1146 over 16 runs, a gap of 0.0015. A z of 0.273 implies a noise scale of about 0.0055, so this gap is well within run-to-run noise. Rejecting provisionally is consistent with the numbers. No separate claim was made that disagrees with them.",
+  "I can't recompute z independently because the incumbent standard deviation (or the per-run values) isn't given. Working backwards, the reported z implies an effective SD of about 0.0055."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

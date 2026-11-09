@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+        x = norm(x)
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+
+        softcap = 15
+        logits = self.lm_head(x)
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+========
+        x = norm(x)
+        x0 = x
+        total_loss = 0.0
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+            
+            # U+L Loss: encourage unit preservation and length consistency
+            # We use a small weight to regularize the norm of the attention output
+            # relative to the input to keep the activations bounded.
+            u_l_loss = torch.mean(torch.norm((x - x0)**2, dim=-1))
+            total_loss += 0.01 * u_l_loss
+
+        x = norm(x)
+
+        softcap = 15
+        logits = self.lm_head(x)
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+
+        if targets is not None:
+            ce_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                      ignore_index=-1, reduction=reduction)
+            return ce_loss + total_loss
+        return logits
+>>>>>>> REPLACE
+-----

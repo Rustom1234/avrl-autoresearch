@@ -1,0 +1,49 @@
+<<<<<SEARCH
+            frac = min(step / 300, 1)
+            return (1 - frac) * 0.85 + frac * 0.95
+=======
+            # Ramp momentum to 0.97 over first 100 steps, then ramp down to 0.90
+            is_warmup = step < 100
+            if is_warmup:
+                frac_step = step / 100
+                momentum = 0.87 + frac_step * (0.97 - 0.87)  # 0.87 -> 0.97
+            else:
+                remaining = 300 - step - 100
+                frac_drop = max(0, remaining) / (300 - 100)  # 1.0 -> 0.0 over rest of schedule
+                momentum = 0.97 * (1 - frac_drop) + 0.90 * frac_drop
+            return max(0.90, momentum)
+>>>>>>> REPLACE
+-----
+<<<< SEARCH
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+=======
+    # Zhang et al. (2024) style: fast ramp up then warm down
+    # Fast ramp up to ~0.97 in first 100 steps, then warm down to 0.90
+    is_fast_phase = step < 100
+    if is_fast_phase:
+        step_in_phase = step
+        momentum = 0.87 + step_in_phase / 100.0 * (0.97 - 0.87)
+    else:
+        remaining = 300 - step - 100
+        frac_drop = min(1.0, remaining / (300 - 100))
+        momentum = 0.97 * (1.0 - frac_drop) + 0.90 * frac_drop
+    return max(0.87, momentum)
+>>>>>>> REPLACE
+-----
+<<<< SEARCH
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+=======
+    # Fast ramp to ~0.97 in first 100 steps, then warm down to 0.90
+    is_fast_phase = step < 100
+    if is_fast_phase:
+        step_in_phase = step
+        momentum = 0.87 + step_in_phase / 100.0 * (0.97 - 0.87)
+    else:
+        remaining = 300 - step - 100
+        frac_drop = min(1.0, remaining / (300 - 100))
+        momentum = 0.97 * (1.0 - frac_drop) + 0.90 * frac_drop
+    return max(0.87, momentum)
+>>>>>>> REPLACE
+-----

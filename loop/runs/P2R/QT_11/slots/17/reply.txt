@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+    # Clip gradients (check for scaling factor, but not infinite)
+    if model.clip_norm is not None:
+        check_clip_norm = sum(p.grad.detach().norm(p=2).sum() for p in model.parameters() if p.grad is not None)
+        if check_clip_norm > model.clip_norm:
+            x = sum(p.grad.detach().norm(p=2).sum() for p in model.parameters() if p.grad is not None)
+            p = x / model.clip_norm
+            for p in model.parameters():
+                if p.grad is not None:
+                    scale = model.clip_norm / x
+                    if scale > 0:
+                        p.grad.mul_(scale)
+            model.layer_norm.detach()
+=======
+    # Clip gradients (check for scaling factor, but not infinite)
+    clip_norm_sq = sum((p.grad.detach().norm(p=2).sum()) ** 2 for p in model.parameters() if p.grad is not None)
+    if clip_norm_sq > model.clip_norm_squared:
+        clip_norm = torch.sqrt(clip_norm_sq)
+        p = sum((p.grad.detach().norm(p=2).sum()) ** 2 for p in model.parameters() if p.grad is not None)
+        scale = torch.sqrt(model.clip_norm_squared) / p
+        for p in model.parameters():
+            if p.grad is not None:
+                p.grad.mul_(scale) 
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    # Clip gradients (check for scaling factor, but not infinite)
+    if model.clip_norm is not None:
+        check_clip_norm = sum(p.grad.detach().norm(p=2).sum() for p in model.parameters() if p.grad is not None)
+        if check_clip_norm > model.clip_norm:
+            x = sum(p.grad.detach().norm(p=2).sum() for p in model.parameters() if p.grad is not None)
+            p = x / model.clip_norm
+            for p in model.parameters():
+                if p.grad is not None:
+                    scale = model.clip_norm / x
+                    if scale > 0:
+                        p.grad.mul_(scale)
+            model.layer_norm.detach()
+-----
+34e3-69b3-4e58-b344-7a2a2c8a8d7e
+=======
+    # Clip gradients with squared norm (softens penalty)
+    if model.clip_norm is not None:
+        check_clip_norm = sum(p.grad.detach().norm(p=2).sum().square().sum() for p in model.parameters() if p.grad is not None)
+        if check_clip_norm > model.clip_norm:
+            norm = sum(p.grad.detach().norm(p=2).sum().square().sum() for p in model.parameters() if p.grad is not None)
+            scaled = norm / model.clip_norm
+            for p in model.parameters():
+                if p.grad is not None:
+                    scale = model.clip_norm / norm
+                    if scale > 0:
+                        p.grad.mul_(scale)
+            model.layer_norm.detach()
+>>>>>>> REPLACE
+-----

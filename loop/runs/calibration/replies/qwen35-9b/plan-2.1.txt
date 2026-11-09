@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "title": "Switch to AdamW Optimizer",
+      "spec": "Replace the existing Muon optimizer configuration with a standard `torch.optim.AdamW` for the matrix parameters. This changes the regularization term to `weight_decay / lr` (decoupled), which often stabilizes training and improves convergence in language modeling tasks compared to L2 decay applied directly to the update step.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Enable Gradient Clipping",
+      "spec": "Add a gradient clipping mechanism to the training loop by calling `torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)` after the backward pass and before the optimizer step. This prevents gradient explosion, which can be a common issue in transformer training and leads to more stable val_bpb.",
+      "family": "regularization"
+    },
+    {
+      "title": "Reduce Learning Rate for Embeddings",
+      "spec": "Decrease the `EMBEDDING_LR` hyperparameter from 0.6 to 0.3. Token embeddings often require lower learning rates to avoid destabilizing the token representations, which can improve the model's ability to generalize and reduce validation perplexity.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Switch to RMSProp Optimizer",
+      "spec": "Replace the Adam-based optimizer for `matrix_params` with `torch.optim.RMSprop`. RMSProp is often more sample-efficient for language modeling tasks and can reduce the variance in updates, potentially lowering val_bpb without requiring the complex scheduling logic of Adam.",
+      "family": "optimizer"
+    }
+  ]
+}

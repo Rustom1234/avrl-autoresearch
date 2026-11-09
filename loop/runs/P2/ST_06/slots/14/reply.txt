@@ -1,0 +1,73 @@
+<<<<<<< SEARCH
+TOTAL_BATCH_SIZE = 2**18 # ~262K tokens per optimizer step
+=======
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+=======
+DEVICE_BATCH_SIZE = 32  # per-device batch size; 64 is too large for better step density within 300s budget
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+=======
+def get_muon_momentum(step):
+    target_momentum = 0.88
+    frac = min(step / 250, 1)
+    return (1 - frac) * 0.85 + frac * target_momentum
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+=======
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (0.8 + 0.2 * progress)  # slightly raise decay as training progresses to stabilize noisier gradients with smaller batch
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+=======
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.1  # Slightly boost LR in stable region to counteract smaller batch noise
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+optimizer = model.setup_optimizer(
+    unembedding_lr=UNEMBEDDING_LR,
+    embedding_lr=EMBEDDING_LR,
+    scalar_lr=SCALAR_LR,
+    adam_betas=ADAM_BETAS,
+    matrix_lr=MATRIX_LR,
+    weight_decay=WEIGHT_DECAY,
+)
+=======
+# Adjust MATRIX_LR to compensate for noise from smaller batch size (0.85 scale)
+adjusted_matrix_lr = MATRIX_LR * 0.85
+optimizer = model.setup_optimizer(
+    unembedding_lr=UNEMBEDDING_LR,
+    embedding_lr=EMBEDDING_LR,
+    scalar_lr=SCALAR_LR,
+    adam_betas=ADAM_BETAS,
+    matrix_lr=adjusted_matrix_lr,
+    weight_decay=WEIGHT_DECAY,
+)
+>>>>>>> REPLACE
+-----

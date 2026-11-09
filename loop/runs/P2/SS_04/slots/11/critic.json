@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity check passed. The diff changes one hyperparameter, TOTAL_BATCH_SIZE, from 2**19 to 2**17. It does not touch the evaluation call, the metric, the data, the seed lines, the prepare.py import line or the final summary printing.",
+  "No bug found that would make the result meaningless. If the sequence length is 2048 and DEVICE_BATCH_SIZE is 64, then 2**17 = 64*2048 gives grad_accum_steps = 1. A smaller batch means more optimizer steps in the fixed 300 s, which plausibly explains a real gain. The learning rates were not rescaled for the smaller batch, but that is a tuning matter, not an integrity issue.",
+  "The numbers match the claim. The candidate mean is 1.0497 (runs 1.0506 and 1.0488) against the incumbent's 1.1033, an improvement of 0.0536 bpb.",
+  "I could not reproduce z = 8.295 from the reported numbers. With only one incumbent run, its variance is unknown. Using only the two candidate runs (sample sd \u2248 0.00127), z comes out about 42, or about 60 if you use the standard error of the mean. The harness's 8.295 implies a noise scale of about 0.0065, probably a prior or pooled estimate. All of these give the same answer: the gain is far beyond noise.",
+  "Caveat: the incumbent baseline is a single run (n=1). The effect is large enough that this does not change the accept decision."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0497,
+  "delta": 0.0536,
+  "z_candidate_sd_only": 42.1
+ }
+}

@@ -1,0 +1,80 @@
+<<<<<<< SEARCH
+# Schedules (all based on progress = training_time / TIME_BUDGET)
+
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+<<<<<<< REPLACE
+# Schedules (all based on progress = training_time / TIME_BUDGET)
+
+def get_lr_multipliers(progress):
+    if progress < WARMUP_RATIO:
+        base_m = progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+        return [base_m for _ in range(DEPTH)]
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return [1.0 for _ in range(DEPTH)]
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        # Deeper layers (higher index) have higher relative multipliers
+        # final_lr_frac = base_lr * (1.0 + 0.1 * (i - DEPTH/2))
+        return [cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC * (1.0 + 0.1 * (i - DEPTH/2)) 
+               for i in range(DEPTH)]
+
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+<<<<<<< REPLACE
+    lrm_list = get_lr_multipliers(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for i, group in enumerate(optimizer.param_groups):
+        if group['kind'] == 'adamw':
+            # Mapping for non-matrix params: lm_head, wte, value_embeds, resid, x0
+            # Based on setup_optimizer order: lm_head, wte, value_embeds, resid, x0
+            # This logic needs to be careful. Let's use a simpler approach for this task.
+            # Since we can't easily map, let's just apply it to the matrix groups.
+            pass
+        elif group['kind'] == 'muon':
+            # Muon groups are added at the end, corresponding to layers 0 to DEPTH-1
+            # The list has 5 AdamW groups + DEPTH Muon groups
+            layer_idx = i - 5
+            group["lr"] = group["initial_lr"] * lrm_list[layer_idx]
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+<<<<<<< REPLACE
+    lrm_list = get_lr_multipliers(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for i, group in enumerate(optimizer.param_groups):
+        if group['kind'] == 'muon':
+            layer_idx = i - 5
+            group["lr"] = group["initial_lr"] * lrm_list[layer_idx]
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+>>>>>>> REPLACE
+-----

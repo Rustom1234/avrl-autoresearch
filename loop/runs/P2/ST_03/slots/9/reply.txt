@@ -1,0 +1,105 @@
+<<<<<<< SEARCH
+    # Final eval
+    model.eval()
+    with autocast_ctx:
+        val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+=======
+    # Final eval
+    model.eval()
+    # Apply EMA weights to smooth evaluation over small batch noise
+    ema = torch.Tensor([0.999, 0.001])
+    with torch.no_grad():
+        for p, state in tqdm(ema.zip(model.state_dict().items())):
+            if p is None:
+                continue
+            ema_p = p.clone()
+            ema_q = torch.Tensor([state['ema'].clone(), state['ema']]).t()
+            torch._foreach_lerp_(state['ema'], ema_q, ema[1:], lambda x, y: x.lerp_(y))
+            model_state_dict[k] = ema_q[0].clone()
+    with autocast_ctx:
+        val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+<<<<<<< SEARCH
+# Final eval
+# Final eval
+=======
+
+# Final eval
+<<<<<<< SEARCH
+
+model.eval()
+with autocast_ctx:
+    val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+=======
+model.eval()
+# EMA tracking for evaluation smoothness
+with torch.no_grad():
+    for p, state in model.named_buffers():
+        if state is None or 'ema' not in state:
+            continue
+        if 'ema' in state and 'ema' in state['ema']:
+            old_ema = state['ema'][0].clone()
+            state['ema'][0].lerp_(state['params'] if hasattr(state, 'params') else p, 1.0 - 0.999)
+            state['ema'][2][0].copy_(1.0 - 0.999)
+    with autocast_ctx:
+        val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+    # Restore original params from EMA buffers if they were modified
+    with torch.no_grad():
+        for p, state in model.named_buffers():
+            if state is None or 'ema' not in state:
+                continue
+            if 'ema' in state and 'ema' in state['ema']:
+                # Revert to original params in case of corruption or intended modification
+                if hasattr(state, 'params'):
+                    state.clone()  # Restore original state
+                else:
+                    pass  # No active modification to perform
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+# Final eval
+<<<<<<< SEARCH
+
+model.eval()
+with autocast_ctx:
+    val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+=======
+# Final eval
+
+model.eval()
+
+# Prepare EMA buffers if needed (using state dict to avoid per-param state management)
+ema_buffers = {}
+with torch.no_grad():
+    model_state = model.state_dict()
+    for name, param in model_state.items():
+        try:
+            buffer_shape = param.shape[:2]  # (bias_dim,) for RMSNorm and Linear biases
+            if buffer_shape:
+                ema_buffers[name] = torch.empty(buffer_shape, dtype=param.dtype, device=param.device)
+        except:
+            ema_buffers.pop(name, None)
+
+with torch.no_grad():
+    for name, param in model_state.items():
+        if hasattr(ema_buffers, name):
+            ema_buffers[name].aten.as Contiguous()
+    
+    for name, param in model_state.items():
+        if name in ema_buffers and ema_buffers[name] is not None:
+            ema_buffer = ema_buffers[name]
+            ema_buffer.lerp_(param, 0.999)
+model.load_state_dict(model_state, strict=False)
+
+with autocast_ctx:
+    val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+
+# Restore original weights
+with torch.no_grad():
+    for name, param in model_state.items():
+        if name in ema_buffers and ema_buffers[name] is not None:
+            ema_buffers[name].lerp_(param, 1.0)
+>>>>>>> REPLACE
+-----

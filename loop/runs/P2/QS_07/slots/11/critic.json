@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problems. The diff only changes ASPECT_RATIO (64 to 56) and DEPTH (8 to 9). It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing.",
+  "No bug makes the result meaningless. 9*56=504; the comment says this rounds up to model_dim 512, which assumes the file's rounding code does that. 512/HEAD_DIM 128 = 4 heads, which is valid. The config should run normally.",
+  "Claim mismatch: the DEPTH comment says '8 real layers + 1 extra zero-init-output layer at the start', but the diff adds no special layer or zero-init change. It is just a uniform 9-layer model. The comment is misleading and should be removed or corrected if this change is ever kept.",
+  "On the numbers: the candidate scored 1.1148 against the incumbent's 1.0916, so it is 0.0232 bpb worse (higher is worse). A negative z and the reject decision are consistent with that.",
+  "z cannot be recomputed independently because no noise estimate is given and each side has only one run. The reported z = -3.104 implies sigma \u2248 0.0232/3.104 \u2248 0.0075, which seems plausible. With n=1 on each side, z is only a rough guide, but a gap this size would justify rejecting even with a larger noise estimate."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

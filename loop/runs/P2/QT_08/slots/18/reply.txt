@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+    long_window = config.sequence_len
+    short_window = long_window // 2
+    char_to_window = {"L": (long_window, 0), "S": (short_window, 0)}
+=======
+    long_window = config.sequence_len // 2
+    short_window = long_window // 2
+    char_to_window = {"L": (long_window, 0), "S": (short_window, 0)}
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+        long_window = config.sequence_len
+        short_window = long_window // 2
+        char_to_window = {"L": (long_window, 0), "S": (short_window, 0)}
+>>>>>>> REPLACE
+
+        long_window = config.sequence_len // 2
+        short_window = long_window // 2
+        char_to_window = {"L": (long_window, 0), "S": (short_window, 0)}
+        """
+        lvl = config.window_size[0]
+        pat = config.window_pattern
+        assert pat in "SL" and pat[1] in "L"
+        _, short = char_to_window[pat[0] if pat == 'SS' else pat[1]]
+        if short is None: short = 0
+        dp = short if pat[0] == 'S' else (lvl if pat[0] == 'L' else short)
+        """
+    """
+'
+-----
+<<<<< SEARCH
+        assert all(c in "SL" for c in pattern)
+        long_window = config.sequence_len
+        short_window = long_window // 2
+        char_to_window = {"L": (long_window, 0), "S": (short_window, 0)}
+        window_sizes = []
+        for layer_idx in range(config.n_layer):
+            char = pattern[layer_idx % len(pattern)]
+            window_sizes.append(char_to_window[char])
+        window_sizes[-1] = (long_window, 0)
+        return window_sizes
+=======
+        assert all(c in "SL" for c in pattern)
+        long_window = config.sequence_len
+        short_window = long_window // 2
+        char_to_window = {"L": (long_window, 0), "S": (short_window, 0)}
+        
+        # Reduce window sizes in the first two layers to improve head utilization
+        window_sizes = []
+        for layer_idx, char in enumerate(pattern):
+            base_window = char_to_window[char]
+            if layer_idx < 2:
+                if char == 'S':
+                    window_size = (short_window // 2, 0)  # Reduce to ~25% of full context
+                else:
+                    window_size = (long_window // 2, 0)  # Reduce to ~50% of full context
+            else:
+                window_size = base_window
+            window_sizes.append(window_size)
+        
+        # Ensure the last layer has full context
+        window_sizes[-1] = (long_window, 0)
+        return window_sizes
+>>>>>>> REPLACE
+-----

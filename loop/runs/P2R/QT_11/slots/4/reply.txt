@@ -1,0 +1,267 @@
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+        x1, x2 = x[..., :self.ve_gate_channels], x[..., self.ve_gate_channels:]
+        gate = self.ve_gate.forward(x1)
+        mixed = x2 + gate * self.ve_gate_weights
+        y = F.scaled_dot_product_attention(attention_layer, q_mat, k_mat, v_mat, window_size)
+        x = self.c_proj(y)
+        return x
+>>>>>>> REPLACE
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+        # Gradient checkpointing: recompute activations during backward
+        # (activation recomputation replaces the standard flow)
+        return self.forward_with_recomputation(x, ve, cos_sin, window_size) 
+    def forward_with_recomputation(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.n_embd // self.n_head)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.n_embd // self.n_kv_head)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.n_embd // self.n_kv_head)
+        # Save only inputs at this layer
+        q_s, k_s, v_s = x, k, v
+        y = self.flash_attn(q, k, v, window_size)
+        # Recompute activations during backward
+        return y
+-----
+<<⟨⟨⟨⟨⟨\n<<<<<<< SEARCH
+if step > 10:
+        total_training_time += dt
+=======
+with torch.cuda.amp.autocast(enabled=False):
+    with torch.enable_grad():
+        with torch.utils.checkpoint.checkpoint(
+                lambda x, ve, cos_sin, ws: (
+                    ForwardIdentityWrapper(
+                        F.rms_norm(t, (t.size(-1),))),
+                        x,
+                        y,  # targets
+                        self.lm_head
+                    )(x, targets=y),
+                    gradient_checkpointing=False
+                )(
+                    x,
+                    targets=y
+                )
+            )
+            total_training_time += dt
+>>>>>>> SEARCH\n=======
+def perform_grad_checkpoint_forward(model, lr, grad_acc):
+    """Run forward pass with gradient checkpointing enabled."""
+    model.train()
+    optimizer = model.optimizer
+    with torch.cuda.amp.autocast():
+        model.zero_grad()
+        loss = model(model.data.load_model(), data)
+        loss.backward()
+        optimizer.step()
+    return loss.item()
+
+# At start of training loop
+for step, (x, y) in enumerate(train_loader):
+    with torch.cuda.amp.autocast():
+        with torch.enable_grad():
+            with torch.utils.checkpoint.checkpoint(
+                model.forward,
+                
+            ):  # Enable gradient checkpointing for the forward pass
+                loss = model(x, y)
+            loss.backward()
+            optimizer.step()
+            model.zero_grad(
+                set_to_none=True
+            )
+
+
+
+class ForwardIdentityWrapper:
+    """Wrapper to enable gradient checkpointing."""
+    def __init__(self, module):
+        self.module = module
+        self.original_call_module = module
+        self.original_call__forward__call_getattr = module.__getattr__
+        self.original_call__call__instances = module.__instances
+
+    @contextlib.contextmanager
+    def check_in_forward(self):
+        # Save original state
+        saved_state = {
+            'call_method': self.module.__call__,
+            'call_module_instance': self.module,
+            'call_data': self.module.data,
+            'call_optimizer': self.module.optimizer,
+            'call_optimizer_step': self.module.optimizer.step,
+            'call_optimizer_state': self.module.optimizer.state,
+        }
+        yield
+        # Restore original state
+        self.module.__call__ = saved_state['call_method']
+        self.module.instance = saved_state['call_module_instance']
+        self.module.data = saved_state['call_data']
+        self.module.optimizer = saved_state['call_optimizer']
+        self.module.optimizer.step = saved_state['call_optimizer_step']
+        self.module.optimizer.state = saved_state['call_optimizer_state']
+
+class LoggableTensor:
+    """Tensor wrapper for gradient checkpointing."""
+    def __init__(self, tensor):
+        self.data = tensor
+        self.grad = None
+        self._is_computed = False
+
+    def detach(self):
+        return self.data.detach()
+
+    def item(self):
+        self._is_computed = True
+        return self.data.item()
+
+class GradientCheckpointingOptimizer:
+    """Optimizer for gradient checkpointing."""
+    def __init__(self, optimizer):
+        self.optimizer = optimizer
+        self.original_call_step = self.optimizer.step
+
+    def check_step(self, step):
+        # Save original state
+        saved_state = {
+            'step': self.optimizer.step,
+            'state': self.optimizer.state,
+            'param_groups': self.optimizer.param_groups,
+        }
+        yield
+        # Restore original state
+        self.optimizer.step = saved_state['step']
+        self.optimizer.state = saved_state['state']
+        self.optimizer.param_groups = saved_state['param_groups']
+
+    def step(self):
+        # Run original step
+        self.optimizer.step()
+        # Restore original state
+        saved_state = {
+            'step': self.optimizer.step,
+            'state': self.optimizer.state,
+            'param_groups': self.optimizer.param_groups,
+        }
+        yield
+        # Restore original state
+        self.optimizer.step = saved_state['step']
+        self.optimizer.state = saved_state['state']
+        self.optimizer.param_groups = saved_state['param_groups']
+
+# Original loop
+for step, (x, y) in enumerate(train_loader):
+    with torch.cuda.amp.autocast():
+        with torch.enable_grad():
+            with torch.utils.checkpoint.checkpoint(
+                model.forward,
+                
+            ):  # Enable gradient checkpointing for the forward pass
+                loss = model(x, y)
+            loss.backward()
+            optimizer.step()
+            model.zero_grad(
+                set_to_none=True
+            )
+
+
+
+class ForwardIdentityWrapper:
+    """Wrapper to enable gradient checkpointing."""
+    def __init__(self, module):
+        self.module = module
+        self.original_call_module = module
+        self.original_call__forward__call_getattr = module.__getattr__
+        self.original_call__call__instances = module.__instances
+
+    @contextlib.contextmanager
+    def check_in_forward(self):
+        # Save original state
+        saved_state = {
+            'call_method': self.module.__call__,
+            'call_module_instance': self.module,
+            'call_data': self.module.data,
+            'call_optimizer': self.module.optimizer,
+            'call_optimizer_step': self.module.optimizer.step,
+            'call_optimizer_state': self.module.optimizer.state,
+        }
+        yield
+        # Restore original state
+        self.module.__call__ = saved_state['call_method']
+        self.module.instance = saved_state['call_module_instance']
+        self.module.data = saved_state['call_data']
+        self.module.optimizer = saved_state['call_optimizer']
+        self.module.optimizer.step = saved_state['call_optimizer_step']
+        self.module.optimizer.state = saved_state['call_optimizer_state']
+
+
+class LoggableTensor:
+    """Tensor wrapper for gradient checkpointing."""
+    def __init__(self, tensor):
+        self.data = tensor
+        self.grad = None
+        self._is_computed = False
+
+    def detach(self):
+        return self.data.detach()
+
+    def item(self):\n        self._is_computed = True
+        return self.data.item()
+
+class GradientCheckpointingOptimizer:
+    """Optimizer for gradient checkpointing."""
+    def __init__(self, optimizer):
+        self.optimizer = optimizer
+        self.original_call_step = self.optimizer.step
+
+    def check_step(self, step):
+        # Save original state
+        saved_state = {
+            'step': self.optimizer.step,
+            'state': self.optimizer.state,
+            'param_groups': self.optimizer.param_groups,
+        }
+        yield
+        # Restore original state
+        self.optimizer.step = saved_state['step']
+        self.optimizer.state = saved_state['state']
+        self.optimizer.param_groups = saved_state['param_groups']
+
+    def step(self):
+        # Run original step
+        self.optimizer.step()
+        # Restore original state
+        saved_state = {
+            'step': self.optimizer.step,
+            'state': self.optimizer.state,
+            'param_groups': self.optimizer.param_groups,
+        }
+        yield
+        # Restore original state
+        self.optimizer.step = saved_state['step']
+        self.optimizer.state = saved_state['state']
+        self.optimizer.param_groups = saved_state['param_groups']
+-----
+
+<<<<<<< SEARCH
+    if step == 0:
+        gc.collect()
+        gc.freeze()
+        gc.disable()
+    elif (step + 1) % 5000 == 0:
+        gc.collect()
+=======
+    if step == 0:
+        gc.collect()
+        gc.freeze()
+        gc.disable()
+    elif (step + 1) % 5000 == 0:
+        gc.collect()
+    if step % 100 == 0 and step > 0:
+        gc.collect()
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) Integrity: the diff changes only two hyperparameters, ASPECT_RATIO (64 to 85) and DEPTH (8 to 6). It does not touch the val_bpb measurement, the data, the seed lines, the evaluation call or the import line from prepare.py. The harness reported no integrity flags.",
+  "(2) Bugs: none found. 6*85 = 510 is not a multiple of HEAD_DIM = 128. The stock autoresearch train.py rounds model_dim up to a multiple of HEAD_DIM, which would give 512, the same width as the incumbent (8*64). In that case the real change is 2 fewer layers at the same width. That fits a fixed 300 s budget, since a smaller model gets more optimizer steps. I could not see the rounding code. Both runs finished, though, so the config is at least valid.",
+  "(3) Claims vs. numbers: the candidate mean is 1.06415, from runs of 1.0681 and 1.0602. That is 0.0360 bpb better than the incumbent's single run of 1.1002. The incumbent has only n=1, so its variance cannot be estimated from these numbers. The harness z = 5.574 implies a noise sigma of about 0.00647, which probably comes from a pooled or prior noise estimate that I can't check. Using only the spread of the two candidate runs (sample sd about 0.00559), I get (1.1002 - 1.06415) / 0.00559 \u2248 6.45. That is the same order as the harness value and also clearly significant. I did not reproduce the harness z exactly, so recomputed.z is null.",
+  "Suggestion, not a blocker: the incumbent baseline is a single run. A replicate of it would make future comparisons more solid."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

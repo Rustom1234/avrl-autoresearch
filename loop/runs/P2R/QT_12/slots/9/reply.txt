@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+=======
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        base_lr = 1.0
+        # Asymmetric gradient accumulation: dampen updates in later stages
+        # Scale effective LR by (remaining_steps / total_steps)^0.5
+        remaining_fraction = (1.0 - progress) ** 0.5
+        dampened_lr = base_lr * (1 - 0.5 + 0.5 * remaining_fraction)
+        return dampened_lr
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+>>>>>>> REPLACE
+-----

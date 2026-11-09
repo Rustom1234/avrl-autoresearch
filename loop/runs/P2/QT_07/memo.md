@@ -1,0 +1,4 @@
+Incumbent is now slot 10, official 1.0960 (-0.0185), from cutting gradient accumulation from 8 steps to 4. That is the only accepted change. Batch and step-count changes helped most: more optimizer steps in the fixed 300 s. The other batch run, DEVICE_BATCH_SIZE 80, scored 1.1128 (-0.0018) and was rejected.
+Did not help: warmup 0.03 (+0.0002, noise), weight decay 0.01 (+0.0034), attention biases (+0.0025), and depth 10 (+0.0263, fewer steps in the budget). Lm_head bias (-0.0012) and cosine warmup (-0.0014) are within noise. The no-op removal scored +0.0076, so noise may be large.
+Avoid loss and target edits: slots 4 and 5 crashed or were invalid. Slots 8 and 12 aborted.
+Next: try accumulation 2, or 1 if memory allows. Retune the learning rate for the smaller batch. Try a smaller model for more steps, weight decay above 0.2, and a replicate of slot 10 to measure noise.

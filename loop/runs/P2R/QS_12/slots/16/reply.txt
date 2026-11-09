@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    for p in model.parameters():
+        if p.grad is None:
+            continue
+        n = p.grad.norm()
+        e = grad_ema.get(p, n)
+        scale = torch.clamp(2 * e / (n + 1e-12), max=1.0)
+        p.grad.mul_(scale)
+        grad_ema[p] = 0.99 * e + 0.01 * (n * scale)
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+smooth_train_loss = 0
+total_training_time = 0
+=======
+smooth_train_loss = 0
+grad_ema = {}  # per-parameter running grad-norm EMA for layerwise clipping
+total_training_time = 0
+>>>>>>> REPLACE
+-----

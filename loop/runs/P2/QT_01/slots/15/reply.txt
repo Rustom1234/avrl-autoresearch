@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+=======
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        self.final_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        torch.nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.001)
+=======
+        torch.nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.001)
+        torch.nn.init.zeros_(self.final_proj.weight)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        matrix_params = list(self.transformer.h.parameters())
+=======
+        matrix_params = list(self.transformer.h.parameters()) + [self.final_proj.weight]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+
+        softcap = 15
+=======
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = x + self.final_proj(norm(x))
+        x = norm(x)
+
+        softcap = 15
+>>>>>>> REPLACE
+-----

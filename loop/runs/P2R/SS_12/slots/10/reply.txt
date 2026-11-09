@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        self.resid_lambdas = nn.Parameter(torch.ones(config.n_layer))
+=======
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        self.aux_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
+        self.resid_lambdas = nn.Parameter(torch.ones(config.n_layer))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        torch.nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.001)
+=======
+        torch.nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.001)
+        torch.nn.init.zeros_(self.aux_proj.weight)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        matrix_params = list(self.transformer.h.parameters())
+=======
+        matrix_params = list(self.transformer.h.parameters()) + [self.aux_proj.weight]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+=======
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            if self.training and reduction == 'mean':
+                # auxiliary t+2 prediction on every 4th position (training only)
+                xs = x[:, :-1][:, ::4]
+                ts = targets[:, 1:][:, ::4]
+                xs = xs + self.aux_proj(xs)
+                al = self.lm_head(xs).float()
+                al = softcap * torch.tanh(al / softcap)
+                aux = F.cross_entropy(al.reshape(-1, al.size(-1)), ts.reshape(-1), ignore_index=-1)
+                loss = loss + 0.2 * aux
+            return loss
+>>>>>>> REPLACE
+-----

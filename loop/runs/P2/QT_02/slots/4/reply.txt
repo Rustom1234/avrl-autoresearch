@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+    optimizer.step()
+=======
+    for group in optimizer.param_groups:
+        base_lr = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            # Adaptive LR: scale by min(1.0, 1.0 / norm(grad)^0.5) to dampen large updates
+            grad_norm = gnorm_sum(group, "adamw").sqrt()
+            adaptive_lr = base_lr * torch.clamp_min(1.0, 1.0 / (grad_norm + 1e-8)).item()
+            if group["momentum"] is not None:
+                group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+        else:
+            # Standard LR for non-muon groups
+            group["lr"] = base_lr
+            group["momentum"] = 0.9
+            group["weight_decay"] = 0.0
+        optimizer.step()
+>>>>>>> REPLACE
+}
+-----

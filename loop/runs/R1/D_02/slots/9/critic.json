@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine. The diff changes only TOTAL_BATCH_SIZE and adds MATRIX_LR. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the final summary. The harness reports no integrity flags.",
+  "No bug found that would make the result meaningless. 2**17 = 131072 = DEVICE_BATCH_SIZE 64 \u00d7 2048 tokens (assuming the usual sequence length of 2048), so gradient accumulation becomes 1 and the divisibility check still passes. Smaller batches mean more optimizer steps in the fixed 300 s, which plausibly explains the gain.",
+  "Possible dead code. The new MATRIX_LR = 0.032 sits just above EMBEDDING_LR. In the standard train.py a line MATRIX_LR = 0.04 comes after UNEMBEDDING_LR. If that line is still in this file, it overrides the new value, so the claimed LR change has no effect and all of the gain comes from the batch size. Check for a duplicate definition. If there is one, delete one of the two lines (simpler code). This is not grounds for a veto.",
+  "I can't recompute z because the incumbent's standard deviation over its 16 runs was not given. The candidate mean is (1.0538 + 1.0577) / 2 = 1.05575, which is 0.05915 below the incumbent mean of 1.1149. A z of 16.615 implies a scale of about 0.00356 per run, which is plausible. Both candidate runs beat the incumbent mean by a wide margin, so the accept decision holds."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.05575,
+  "delta": -0.05915
+ }
+}

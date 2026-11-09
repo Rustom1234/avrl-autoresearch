@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing in the diff touches val_bpb measurement, the data, the seed lines or the evaluation call. It is a one-line hyperparameter change: TOTAL_BATCH_SIZE goes from 2**18 to 2**17.",
+  "LR_SCALE is computed from TOTAL_BATCH_SIZE, so this edit also halves every learning rate scaled by LR_SCALE. The effect being measured is smaller batch plus linearly scaled LR, not batch size alone.",
+  "If the sequence length is 2048, 2**17 = 64 x 2048, so gradient accumulation drops to 1 step. That is consistent, and I see no bug that would make the result meaningless. If the script checks that the batch divides evenly, the check still passes.",
+  "The incumbent mean comes from only 1 run, so there is no incumbent variance. The two candidate runs agree closely (sample SD about 0.0004). z = 4.625 implies a noise SD of about 0.0065 (0.0299 / 4.625), so the harness must use an assumed noise level rather than the observed spread. I can't reproduce it exactly without knowing that noise model. The gap itself is 1.0989 - 1.0690 = 0.0299, which is large and points the same way as the accept decision.",
+  "Suggestion: an extra incumbent replicate would make the comparison sturdier. This is not grounds for a veto."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "delta_mean": 0.0299,
+  "candidate_mean": 1.069,
+  "implied_sigma": 0.00646
+ }
+}

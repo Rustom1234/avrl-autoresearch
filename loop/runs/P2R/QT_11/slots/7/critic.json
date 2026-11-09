@@ -1,0 +1,14 @@
+{
+ "ok": false,
+ "issues": [
+  "Bug in the LR schedule (veto under criterion 2): the new warmdown formula is reversed. cooldown = (1 - progress)/WARMDOWN_RATIO goes from 1 at the start of warmdown to 0 at the end. The new return value, (1 - cooldown)*(1 - FINAL_LR_FRAC) + cooldown*FINAL_LR_FRAC, is just 1 - cooldown when FINAL_LR_FRAC = 0. So the LR multiplier drops from 1.0 to 0.0 at progress 0.8, then climbs back to 1.0 by the end of training. Training ends at peak LR with no annealing. The original formula was correct, so this run does not test a shorter warmdown and its result says nothing about WARMDOWN_RATIO = 0.2.",
+  "The comments don't match the code. 'Start warmdown earlier' is wrong: going from 0.5 to 0.2 starts warmdown later (at 80% of the budget instead of 50%) and makes it shorter. The 'Linear decay for the final 20%' comment is also wrong, because the code ramps the LR up during that window.",
+  "No changes to evaluation, data, seed lines or the prepare.py import were found (criterion 1 is clean).",
+  "The numbers are consistent with the bug: the candidate scored 1.1205 against the incumbent's 1.0935 (+0.0270 worse), so the provisional reject stands. Don't record this as evidence against WARMDOWN_RATIO = 0.2. If you want to test it, rerun with only the constant changed.",
+  "I can't check z independently. There is 1 incumbent run and 1 candidate run, so no variance can be estimated from these numbers. The reported z = -3.611 implies an assumed sigma of about 0.0075 from outside these numbers. Its sign (candidate worse) matches the difference."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

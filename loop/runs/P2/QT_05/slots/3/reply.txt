@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+class Block(nn.Module):
+    def __init__(self, config, layer_idx):
+        super().__init__()
+        self.attn = CausalSelfAttention(config, layer_idx)
+        self.mlp = MLP(config)
+
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(norm(x))
+        return x
+=======
+class Block(nn.Module):
+    def __init__(self, config, layer_idx):
+        super().__init__()
+        self.attn = CausalSelfAttention(config, layer_idx)
+        self.mlp = MLP(config)
+        # BatchNorm on attention output for sparse (sliding-window) layers only.
+        # affine=False and track_running_stats=False: no params or buffers, so
+        # to_empty/init_weights are unaffected; eval also uses batch statistics.
+        is_sparse = config.window_pattern[layer_idx % len(config.window_pattern)].upper() == "S"
+        is_sparse = is_sparse and layer_idx != config.n_layer - 1
+        self.attn_bn = nn.BatchNorm1d(config.n_embd, affine=False, track_running_stats=False) if is_sparse else None
+
+    def forward(self, x, ve, cos_sin, window_size):
+        a = self.attn(norm(x), ve, cos_sin, window_size)
+        if self.attn_bn is not None:
+            a = self.attn_bn(a.flatten(0, 1)).view_as(a)
+        x = x + a
+        x = x + self.mlp(norm(x))
+        return x
+>>>>>>> REPLACE
+-----

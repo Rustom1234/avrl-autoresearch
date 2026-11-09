@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) Integrity: no problem found. The diff adds one line, torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0), just before optimizer.step(). It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing. This is an allowed change to the optimizer.",
+  "(2) Bugs: none that would make the result meaningless. The clip is placed correctly, after backward and the per-group momentum/weight-decay updates and before step(). Two caveats. First, Muon orthogonalizes its updates, so the clip mostly matters for the AdamW groups (embeddings, scalars, head), which makes it a weak lever. Second, computing the global norm over all parameters adds compute and possibly a host sync each step. Under the fixed 300 s budget that can mean fewer steps, which may explain part of the regression.",
+  "(3) Numbers: the candidate scored 1.0526 against an incumbent mean of 1.0516, which is 0.0010 worse (lower is better). A negative z is therefore the right sign, and rejecting is consistent. I could not recompute the size of z exactly because the two individual incumbent values and the noise estimate the harness used were not provided. z = -0.167 implies a noise scale of about 0.006. With one candidate run the difference is within noise, but it points the wrong way. No claims were made that contradict the numbers."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "delta": 0.001,
+  "implied_sigma": 0.006
+ }
+}

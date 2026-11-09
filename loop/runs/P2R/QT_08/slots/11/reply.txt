@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+    state_shape = (num_params, shape[-2], 1) if shape[-2] >= shape[-1] else (num_params, 1, shape[-1])
+    state["second_momentum_buffer"] = torch.zeros(state_shape, dtype=dtype, device=device)
+=======
+    # Record the most recent 8 gradients as a small history (reuse strategy)
+    state["gradient_history"] = []
+    state_shape = (num_params, shape[-2], 1) if shape[-2] >= shape[-1] else (num_params, 1, shape[-1])
+    # Old buffer for accumulating historical gradients (regularization)
+    state["second_momentum_buffer"] = torch.zeros(state_shape, dtype=dtype, device=device)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    if "second_momentum_buffer" not in state:
+        state_shape = (num_params, shape[-2], 1) if shape[-2] >= shape[-1] else (num_params, 1, shape[-1])
+        state["second_momentum_buffer"] = torch.zeros(state_shape, dtype=dtype, device=device)
+=======
+    if "gradient_history" not in state:
+        state["gradient_history"] = []
+        state["history_size"] = 2
+    state["gradient_history"].append((p.grad if p.grad is not None else torch.zeros_like(p), stacked_grads.clone() if stacked_grads is not None else torch.zeros_like(p)))
+    if len(state["gradient_history"]) > state["history_size"]:
+        state["gradient_history"].pop(0)
+    if "second_momentum_buffer" not in state:
+        state_shape = (num_params, shape[-2], 1) if shape[-2] >= shape[-1] else (num_params, 1, shape[-1])
+        state["second_momentum_buffer"] = torch.zeros(state_shape, dtype=dtype, device=device)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    if "momentum_buffer" not in state:
+        state["momentum_buffer"] = torch.zeros(num_params, *shape, dtype=dtype, device=device)
+    if "second_momentum_buffer" not in state:
+        state_shape = (num_params, shape[-2], 1) if shape[-2] >= shape[-1] else (num_params, 1, shape[-1])
+        state["second_momentum_buffer"] = torch.zeros(state_shape, dtype=dtype, device=device)
+=======
+    if "momentum_buffer" not in state:
+        state["momentum_buffer"] = torch.zeros(num_params, *shape, dtype=dtype, device=device)
+    if "second_momentum_buffer" not in state:
+        state_shape = (num_params, shape[-2], 1) if shape[-2] >= shape[-1] else (num_params, 1, shape[-1])
+        state["second_momentum_buffer"] = torch.zeros(state_shape, dtype=dtype, device=device)
+    if "gradient_history" not in state:
+        state["gradient_history"] = []
+        state["history_size"] = 5
+    # Reuse old gradient as a small regularizer
+    if len(state["gradient_history"]) > 0:
+        old_grad = state["gradient_history"][0]
+        reg_term = old_grad / (old_grad.norm(dim=-1, keepdim=True).clamp(min=1e-6) * 1.01 + 1e-6)
+        reg_term = reg_term.mean(dim=-1, keepdim=True).sqrt()
+        reg_term = reg_term / (reg_term.norm().clamp(min=1e-6) + 1e-6)
+        for i, p in enumerate(params):
+            if i % len(params) == 0:
+                continue
+            p = p.squeeze(-1) if p.dim() == 2 else p
+            old_grad_p = old_grad[:len(p)]
+            p.add_(reg_term.sqrt() * old_grad_p)
+=======
+>>>>>>> REPLACE
+...
+-----

@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing in the diff touches how val_bpb is measured, the data, the seed lines, the evaluation call or the summary printing. It changes only two hyperparameters: ASPECT_RATIO goes from 64 to 90 and DEPTH from 6 to 5.",
+  "Model width is now 5*90=450, which is not a multiple of HEAD_DIM=128. In the standard train.py, model_dim is rounded up to a multiple of head_dim, so the real width becomes 512 with 4 heads, against 384 with 3 heads before. If this train.py does not round up, the run would have crashed instead of producing these numbers. Either way the result is not invalid. The comment 'model_dim = depth * ASPECT_RATIO' is no longer exactly true, which is a cosmetic issue only.",
+  "Candidate mean is (1.0584+1.0559+1.0597)/3 = 1.0580 with sample sd \u2248 0.0019. The improvement over the incumbent mean of 1.0659 is \u2248 0.0079.",
+  "I can't check z: the incumbent's two individual values and their spread were not provided. Using only the candidate's sd, z would be about 4.5. The harness gives 1.642, so it must use a larger or pooled variance. That is consistent with the data but I can't confirm it. Also, z=1.642 is a modest margin with only 2 incumbent runs, so the accept stays provisional.",
+  "Peak VRAM needs a check: the model is wider (512 vs 384), the batch size is still 64, and 128 already overflows 40 GB. This is a soft constraint and not a reason to veto."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.058,
+  "candidate_sd": 0.00193,
+  "delta": 0.0079
+ }
+}

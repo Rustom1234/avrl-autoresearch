@@ -1,0 +1,18 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine: the diff changes only one hyperparameter, TOTAL_BATCH_SIZE, from 2**19 to 2**18. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing.",
+  "No bug that would make the result meaningless: 2**18 divides evenly by DEVICE_BATCH_SIZE * seq_len (64*2048 = 2**17 with the usual seq_len), so grad accumulation drops from 4 to 2 and the divisibility assertion still holds. The learning rates were not rescaled for the smaller batch. That is a tuning choice, not a bug.",
+  "The code comment 'doubles step frequency' is about right: tokens per step halve within the same 300 s budget. Real throughput per step may differ slightly.",
+  "I cannot reproduce the reported z = 5.625 from the numbers given. The candidate mean is 1.0667 and the incumbent is 1.1031, a difference of 0.0364. The sample SD of the two candidate runs is 0.00226, which gives z \u2248 16.1 (diff/sd) or \u2248 22.7 (diff/(sd/\u221a2)). The reported z would need an assumed noise sigma of about 0.0065, perhaps a fixed noise floor in the harness. Either way the improvement is clearly significant and the accept decision stands.",
+  "Caveat: the incumbent has only 1 run, so there is no estimate of its variance. The candidate SD from n=2 is also very uncertain. The z value should be read as rough."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 16.09,
+  "candidate_mean": 1.0667,
+  "delta": 0.0364,
+  "candidate_sd": 0.00226,
+  "note": "z = delta / candidate sample SD; I could not reproduce the harness value 5.625 without an assumed sigma of about 0.0065"
+ }
+}

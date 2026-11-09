@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+=======
+DEVICE_BATCH_SIZE = 32  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+=======
+    t0 = time.time()
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    # Batch ramp: 2**16 -> 2**17 -> 2**18 tokens per step
+    grad_accum_steps = 1 if progress < 0.3 else (2 if progress < 0.7 else 4)
+    step_tokens = grad_accum_steps * tokens_per_fwdbwd
+    for micro_step in range(grad_accum_steps):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+=======
+    # Schedules
+    lrm = get_lr_multiplier(progress)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    tok_per_sec = int(TOTAL_BATCH_SIZE / dt)
+    mfu = 100 * num_flops_per_token * TOTAL_BATCH_SIZE / dt / H100_BF16_PEAK_FLOPS
+=======
+    tok_per_sec = int(step_tokens / dt)
+    mfu = 100 * num_flops_per_token * step_tokens / dt / H100_BF16_PEAK_FLOPS
+>>>>>>> REPLACE
+-----

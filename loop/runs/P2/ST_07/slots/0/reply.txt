@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+class MLP(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=False)
+        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=False)
+
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = F.relu(x).square()
+        x = self.c_proj(x)
+        return x
+=======
+class MLP(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        # SwiGLU-lite: hidden ~ 8/3 * dim (keeps params ~equal to 4x relu^2 MLP), rounded up to 128
+        hidden = (8 * config.n_embd // 3 + 127) // 128 * 128
+        self.c_gate = nn.Linear(config.n_embd, hidden, bias=False)
+        self.c_fc = nn.Linear(config.n_embd, hidden, bias=False)
+        self.c_proj = nn.Linear(hidden, config.n_embd, bias=False)
+
+    def forward(self, x):
+        x = F.silu(self.c_gate(x)) * self.c_fc(x)
+        x = self.c_proj(x)
+        return x
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            torch.nn.init.uniform_(block.mlp.c_fc.weight, -s, s)
+=======
+            torch.nn.init.uniform_(block.mlp.c_fc.weight, -s, s)
+            torch.nn.init.uniform_(block.mlp.c_gate.weight, -s, s)
+>>>>>>> REPLACE
+-----

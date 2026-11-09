@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+    def setup_optimizer(self, unembedding_lr=0.004, embedding_lr=0.2, matrix_lr=0.02,
+                        weight_decay=0.0, adam_betas=(0.8, 0.95), scalar_lr=0.5):
+=======
+    def setup_optimizer(self, unembedding_lr=0.004, embedding_lr=0.2, matrix_lr=0.02,
+                        weight_decay=0.0, adam_betas=(0.8, 0.95), scalar_lr=0.5, attn_fixed_lr=0.01):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for shape in sorted({p.shape for p in matrix_params}):
+            group_params = [p for p in matrix_params if p.shape == shape]
+            param_groups.append(dict(
+                kind='muon', params=group_params, lr=matrix_lr,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            ))
+=======
+        attn_ids = {id(p) for block in self.transformer.h for p in block.attn.parameters()}
+        for shape in sorted({p.shape for p in matrix_params}):
+            group_params = [p for p in matrix_params if p.shape == shape]
+            is_attn = all(id(p) in attn_ids for p in group_params)
+            param_groups.append(dict(
+                kind='muon', params=group_params, lr=attn_fixed_lr if is_attn else matrix_lr,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay, fixed_lr=is_attn,
+            ))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+=======
+    for group in optimizer.param_groups:
+        if not group.get("fixed_lr"):
+            group["lr"] = group["initial_lr"] * lrm
+>>>>>>> REPLACE
+-----

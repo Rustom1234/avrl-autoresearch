@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+=======
+    for group in optimizer.param_groups:
+        group_lrm = lrm
+        if group.get("embed_group"):
+            group_lrm = lrm * min(progress / 0.1, 1.0)
+        group["lr"] = group["initial_lr"] * group_lrm
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for group in optimizer.param_groups:
+            group["initial_lr"] = group["lr"]
+        return optimizer
+=======
+        for i, group in enumerate(optimizer.param_groups):
+            group["initial_lr"] = group["lr"]
+            group["embed_group"] = i < 3  # lm_head, wte, value embeds
+        return optimizer
+>>>>>>> REPLACE
+-----

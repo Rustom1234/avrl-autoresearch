@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "title": "Switch to Cosine LR Schedule",
+      "spec": "Replace the current linear warmup and linear warmdown schedule with a pure cosine annealing schedule. Set WARMUP_RATIO to 0.0 (keep as is), remove WARMDOWN_RATIO logic, and implement a cosine decay for the learning rate over the training steps. This often provides more stable convergence than piecewise linear schedules.",
+      "family": "schedule"
+    },
+    {
+      "title": "Reduce Weight Decay to 0.05",
+      "spec": "Lower WEIGHT_DECAY from 0.2 to 0.05. A high weight decay can overly penalize large weights, hurting the representation capacity needed for low val_bpb. Reducing it allows the model to utilize the full dynamic range of activations more effectively.",
+      "family": "regularization"
+    },
+    {
+      "title": "Increase Matrix Learning Rate to 0.08",
+      "spec": "Increase MATRIX_LR from 0.04 to 0.08. The previous experiment at 0.03 failed, but the default 0.04 might be too conservative. A slightly higher update rate for the main Muon parameters can accelerate convergence to a better local minimum.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Enable Softcap Grad Clipping",
+      "spec": "Add a gradient clipping mechanism specifically on the pre-softmax logits (Softmax temperature/temperature scaling style clipping or gradient norm clipping on the output head). Modify the forward pass or loss computation to apply `torch.clamp` on the logits before softmax, or clip the gradient norm of the lm_head layer to prevent instability in the final layer.",
+      "family": "regularization"
+    },
+    {
+      "title": "Increase Depth to 10",
+      "spec": "Increase DEPTH from 8 to 10. Given the fixed time budget and batch size, adding two more layers increases model capacity. Since the model is small and underfitting relative to the complexity of the task (implied by the stagnation), a slightly deeper architecture may improve the fit without significant compute penalty if implemented efficiently.",
+      "family": "architecture"
+    }
+  ]
+}

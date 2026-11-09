@@ -1,0 +1,5 @@
+Helped: only smaller total batch size (more optimizer steps in 300s). Slot 1 (2^18) scored 1.0988, delta -0.0157. Slot 2 (2**17) scored 1.0537/1.0519, delta -0.0461, accepted over 2 runs. It carries a tripwire flag, so check that before building on it. Incumbent mean_adjusted is 1.0528.
+
+Did not help: WARMUP_RATIO 0.02 (+0.0111), Adam beta1 0.9 (+0.0040), warmdown 0.7 (+0.0010), warmdown 0.3 (+0.0029), SwiGLU (+0.0020), weight-decay schedule (+0.0010), cosine warmdown (+0.0606), Muon momentum change (+0.0093), 2**16 batch (+0.0015). Gradient clipping (-0.0009) and the q gain (-0.0014) are within noise. Depth 6 / aspect 85 (1.0498, delta -0.0030) is the best raw score and worth a replicate. Slot 5 (z-loss) was invalid with a mismatch flag, and slot 9 (EMA) failed to patch. Neither is evidence against its idea.
+
+Next: investigate the slot 2 tripwire and the slot 5 mismatch. Replicate the depth 6 change. Re-test z-loss and EMA cleanly. Treat single-run deltas under 0.005 as possible noise. Schedule tweaks look exhausted.

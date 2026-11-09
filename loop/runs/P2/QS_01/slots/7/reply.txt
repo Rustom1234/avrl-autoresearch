@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+        self.attn = CausalSelfAttention(config, layer_idx)
+        self.mlp = MLP(config)
+
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+=======
+        self.attn = CausalSelfAttention(config, layer_idx)
+        self.mlp = MLP(config)
+        self.den_in = nn.Linear(config.n_embd, config.n_embd // 4, bias=False)
+        self.den_out = nn.Linear(config.n_embd // 4, config.n_embd, bias=False)
+
+    def forward(self, x, ve, cos_sin, window_size):
+        h = norm(x)
+        if self.training:
+            h = h + 0.1 * torch.randn_like(h)
+        h = h - self.den_out(F.relu(self.den_in(h)).square())
+        x = x + self.attn(h, ve, cos_sin, window_size)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            torch.nn.init.zeros_(block.mlp.c_proj.weight)
+=======
+            torch.nn.init.zeros_(block.mlp.c_proj.weight)
+            torch.nn.init.uniform_(block.den_in.weight, -s, s)
+            torch.nn.init.zeros_(block.den_out.weight)
+>>>>>>> REPLACE
+-----

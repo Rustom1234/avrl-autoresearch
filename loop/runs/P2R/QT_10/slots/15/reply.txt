@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+    for group in optimizer.param_groups:
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+    optimizer.step()
+=======
+    for group in optimizer.param_groups:
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+
+        # Layer-wise gradient scaling: scale gradients by 1/(layer_idx + 2) for matrix params
+        if group["kind"] == "muon":
+            for p, grad, state in zip(group["params"], p.grad if hasattr(p, 'grad') else [], state if hasattr(state, 'items') else state):
+                if p.grad is not None:
+                    layer_factor = 1.0 / (p.__class__.__name__.lower().find('block') + 2) if hasattr(p, '__class__') and 'block' in p.__class__.__name__.lower() else 1.0
+                    grad = grad * layer_factor if p.grad is not None and grad is not p.grad else grad
+            # Re-scale the actual gradient tensor for matrix params only
+            for p in group["params"]:
+                if p.grad is not None:
+                    # Only scale for matrix parameters by retrieving the current group's lr
+                    # This is a simplified approach using layer_index as a proxy for layer number
+                    group["lr"] *= layer_factor
+    optimizer.step()
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    for group in optimizer.param_groups:
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+=======
+    for group in optimizer.param_groups:
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+
+            if torch.cuda.get_device_capability()[0] >= 9 or cap == (9, 0):
+                continued
+            else:
+                continued
+    optimizer.step()
+>>>>>>> REPLACE
+-----

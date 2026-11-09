@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    model.zero_grad(set_to_none=True)
+
+    train_loss_f = train_loss.item()
+=======
+    model.zero_grad(set_to_none=True)
+
+    with torch.no_grad():
+        if step == 100:
+            ema_params = [p.detach().float().clone() for p in model.parameters()]
+        elif step > 100:
+            for e, p in zip(ema_params, model.parameters()):
+                e.lerp_(p.detach().float(), 1 - 0.999)
+
+    train_loss_f = train_loss.item()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Load EMA weights before final eval
+with torch.no_grad():
+    for e, p in zip(ema_params, model.parameters()):
+        p.copy_(e)
+
+# Final eval
+model.eval()
+>>>>>>> REPLACE
+-----

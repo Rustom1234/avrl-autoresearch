@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problem: the diff only changes the MLP block, swapping the ReLU\u00b2 4x MLP for SwiGLU. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing.",
+  "No bug that makes the result meaningless: chunk(2) splits the 2*hidden output into gate and up, and c_proj takes hidden inputs, so the shapes match. The hidden size is about 8/3\u00b7n_embd rounded to a multiple of 64, so the parameter count stays close to the 8\u00b7n_embd\u00b2 of the baseline and the comparison is fair. Unchecked: the init code is not in the diff. If it initialises c_fc or c_proj by assumed shape, for example zero-init of c_proj, the new layer is still covered. If anything keys on 4*n_embd, that should be confirmed.",
+  "Style: the conditional rounding expression for the hidden size is hard to read. A plain round-to-nearest-64 such as `64 * round(8 * n_embd / 3 / 64)` would do the same job. Under the simplicity rule, this adds a little complexity for no measured gain.",
+  "The numbers support the decision. The candidate's 1.0499 is 0.0015 worse than the incumbent mean of 1.0484 (lower is better), so a negative z and a reject are correct. I cannot recompute z exactly because the incumbent's individual runs and spread are not given. The reported z = -0.235 implies a noise scale of about 0.0064. With one candidate run and two incumbent runs, the evidence is weak either way, but nothing suggests an improvement.",
+  "No claims in the diff contradict the harness numbers."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "delta_vs_incumbent_mean": 0.0015,
+  "implied_sigma_from_reported_z": 0.0064
+ }
+}

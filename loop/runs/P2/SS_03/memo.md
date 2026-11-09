@@ -1,0 +1,4 @@
+Helped: more optimizer steps in the fixed 300 s budget. Smaller batches gave the clear gains: TOTAL_BATCH_SIZE 2**18 gave 1.0970 (-0.0176) and 2**17 gave 1.0495/1.0472 over 2 runs (-0.0279, accepted). DEPTH=7 with dim 512 gave 1.0720/1.0805 (-0.0207). Incumbent mean is now 1.0484.
+Did not help: wider or more-head models (HEAD_DIM 64 +0.0181, DEPTH=6 dim 640 +0.0129), narrower dim 384 at DEPTH=10 (+0.0070), SwiGLU (+0.0015), warmup 0.03 (+0.0024), the batch ramp (+0.0143). Grad clipping (-0.0005), SCALAR_LR, ADAM_BETAS, WINDOW_PATTERN and WARMDOWN_RATIO changes were within noise (at most 0.0036 either way).
+Caution: the two runs of one config differ by about 0.0085 and the tripwire fired twice, so replicate any gain smaller than that.
+Next: batch below 2**17 (e.g. 2**16, with DEVICE_BATCH_SIZE adjusted), and retune LR for the smaller batch. Avoid more small schedule tweaks.

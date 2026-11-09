@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing was changed that would warrant a veto. The diff only changes TOTAL_BATCH_SIZE from 2**19 to 2**18. It doesn't touch the metric, the data, the seed lines, the evaluation call or the prepare.py import.",
+  "The new code comment is wrong: 2**18 is about 262K tokens, not '~262M'. This is cosmetic, but the comment should be fixed.",
+  "This doesn't look like a bug. If DEVICE_BATCH_SIZE*seq_len is 64*2048 = 2**17, then 2**18 still divides evenly and gives 2 gradient-accumulation steps, so the training loop stays valid. Smaller batches give more optimizer steps in the fixed 300 s, which is a plausible reason for the gain.",
+  "I can't check z = 5.065 from these numbers. The incumbent has only 1 run, so it has no variance. The two candidate runs are identical (1.0699, 1.0699), which suggests fixed-seed determinism rather than independent noise, so their sample std is 0. The z must rest on an assumed noise sigma that wasn't provided. The raw gap is 1.0994 - 1.0699 = 0.0295, which is large, so accepting is probably right. Even so, the significance claim isn't backed by an observed variance."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

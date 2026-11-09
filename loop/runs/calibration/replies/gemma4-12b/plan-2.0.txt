@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "title": "Increase Depth and Decrease Aspect Ratio",
+      "spec": "Modify the model architecture by increasing the DEPTH to 12 and decreasing the ASPECT_RATIO to 48. This maintains a similar total parameter count (roughly) but increases the depth of the transformation, which often improves the model's ability to learn complex features compared to a shallower, wider model.",
+      "family": "architecture"
+    },
+    {
+      "title": "Weight Decay for Adam Parameters",
+      "spec": "Apply weight decay to the embedding and lm_head parameters by modifying the optimizer setup. Currently, only Muon (matrix parameters) likely benefits from weight decay. Adding weight decay to the Adam-optimized parameters (EMBEDDING_LR, UNEMBEDDING_LR, SCALAR_LR) can improve generalization by preventing the weights from growing too large.",
+      "family": "regularization"
+    },
+    {
+      "title": "Learning Rate Scaling",
+      "spec": "Adjust the learning rates to be more balanced across different components. Specifically, reduce the SCALAR_LR from 0.5 to 0.2 and slightly increase the MATRIX_LR from 0.04 to 0.05. This aims to prevent the scalar parameters from dominating the gradient updates too early in training.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Increase Device Batch Size",
+      "spec": "Increase DEVICE_BATCH_SIZE from 64 to 80. While 128 overflows the 40GB VRAM, 80 is a safe middle ground that provides a larger effective batch size per step, potentially leading to more stable gradient estimates within the 300s time limit.",
+      "family": "batch"
+    }
+  ]
+}

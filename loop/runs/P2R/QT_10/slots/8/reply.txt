@@ -1,0 +1,92 @@
+<<<<<<< SEARCH
+        dict(kind='muon', params=group_params, lr=matrix_lr,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            )
+        for shape in sorted({p.shape for p in matrix_params}):
+            group_params = [p for p in matrix_params if p.shape == shape]
+            param_groups.append(dict(
+                kind='muon', params=group_params, lr=matrix_lr,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            ))
+        optimizer = MuonAdamW(param_groups)
+        for group in optimizer.param_groups:
+            group["initial_lr"] = group["lr"]
+        return optimizer
+=======
+        for i, p in enumerate(matrix_params):
+            # Apply differential LR: deeper layers get slightly higher LR
+            # This is a common heuristic for deep transformers
+            depth_scale = 1.0 + (i / (config.n_layer - 1)) * 0.1
+            # Note: This logic is simplified as we group by shape; 
+            # we'll apply the scale to the group's base LR.
+        
+        for shape in sorted({p.shape for p in matrix_params}):
+            group_params = [p for p in matrix_params if p.shape == shape]
+            # Average depth of params in this shape group
+            avg_depth = sum(matrix_params.index(p) for p in group_params) / len(group_params)
+            depth_scale = 1.0 + (avg_depth / (config.n_layer - 1)) * 0.1
+            param_groups.append(dict(
+                kind='muon', params=group_params, lr=matrix_lr * depth_scale,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            ))
+        optimizer = MuonAdamW(param_groups)
+        for group in optimizer.param_groups:
+            group["initial_lr"] = group["lr"]
+        return optimizer
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+        for shape in sorted({p.shape for p in matrix_params}):
+            group_params = [p for p in matrix_params if p.shape == shape]
+            param_groups.append(dict(
+                kind='muon', params=group_params, lr=matrix_lr,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            ))
+        optimizer = MuonAdamW(param_groups)
+        for group in optimizer.param_groups:
+            group["initial_lr"] = group["lr"]
+        return optimizer
+ zab========
+        for shape in sorted({p.shape for p in matrix_params}):
+            group_params = [p for p in matrix_params if p.shape == shape]
+            # Average depth of params in this shape group
+            avg_depth = sum(matrix_params.index(p) for p in group_params) / len(group_params)
+            depth_scale = 1.0 + (avg_depth / (config.n_layer - 1)) * 0.1
+            param_groups.append(dict(
+                kind='muon', params=group_params, lr=matrix_lr * depth_scale,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            ))
+        optimizer = MuonAdamW(param_groups)
+        for group in optimizer.param_groups:
+            group["initial_lr"] = group["lr"]
+        return optimizer
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+        for shape in sorted({p.shape for p in matrix_params}):
+            group_params = [p for p in matrix_params if p.shape == shape]
+            param_groups.append(dict(
+                kind='muon', params=group_params, lr=matrix_lr,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            ))
+        optimizer = MuonAdamW(param_groups)
+        for group in optimizer.param_groups:
+            group["initial_lr"] = group["lr"]
+        return optimizer
+아========
+        for shape in sorted({p.shape for p in matrix_params}):
+            group_params = [p for p in matrix_params if p.shape == shape]
+            # Scale learning rate based on the average depth of the parameters in the group
+            avg_depth = sum(matrix_params.index(p) for p in group_params) / len(group_params)
+            # Apply a small differential: deeper layers get a slightly higher LR
+            depth_scale = 1.0 + (avg_depth / (config.n_layer - 1)) * 0.05
+            param_groups.append(dict(
+                kind='muon', params=group_params, lr=matrix_lr * depth_scale,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            ))
+        optimizer = MuonAdamW(param_groups)
+        for group in optimizer.param_groups:
+            group["initial_lr"] = group["lr"]
+        return optimizer
+>>>>>>> REPLACE
+-----

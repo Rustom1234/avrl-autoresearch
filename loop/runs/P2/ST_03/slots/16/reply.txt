@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+=======
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        self.qk_gains = nn.Parameter(torch.full((config.n_layer, config.n_head), 1.2))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+=======
+    def forward(self, x, ve, cos_sin, window_size, qk_gain):
+        B, T, C = x.size()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        q, k = norm(q), norm(k)
+=======
+        q, k = norm(q), norm(k)
+        q = q * qk_gain.to(q.dtype).view(1, 1, -1, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+=======
+    def forward(self, x, ve, cos_sin, window_size, qk_gain):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size, qk_gain)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.x0_lambdas.fill_(0.1)
+=======
+        self.x0_lambdas.fill_(0.1)
+        self.qk_gains.fill_(1.2)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0_params = [self.x0_lambdas]
+=======
+        x0_params = [self.x0_lambdas]
+        qk_params = [self.qk_gains]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params) + len(qk_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+=======
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=qk_params, lr=scalar_lr, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+            x = block(x, ve, cos_sin, self.window_sizes[i], self.qk_gains[i])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+=======
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        # Learned norm options: per-block gains on the normed output (attn, mlp)
+        self.norm_gains = nn.Parameter(torch.ones(config.n_layer, 2))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.x0_lambdas.fill_(0.1)
+=======
+        self.x0_lambdas.fill_(0.1)
+        self.norm_gains.fill_(1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(norm(x))
+=======
+    def forward(self, x, ve, cos_sin, window_size, gains):
+        x = x + self.attn(gains[0] * norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(gains[1] * norm(x))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        resid_params = [self.resid_lambdas]
+=======
+        resid_params = [self.resid_lambdas, self.norm_gains]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+            x = block(x, ve, cos_sin, self.window_sizes[i], self.norm_gains[i])
+>>>>>>> REPLACE
+-----

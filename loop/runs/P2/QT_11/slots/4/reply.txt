@@ -1,0 +1,89 @@
+<<<<<<< SEARCH
+original_losses = []
+while batch_id < num_batches:
+    x, y, batch_id_tensor = batch['x'], batch['y'], batch['batch_id']
+    # Forward pass
+    with torch.no_grad():
+        logits = model(x)
+    # Compute loss (acc_grad)
+    loss = compute_loss(logits, y, grads)
+    original_losses.append(loss)
+    grads.clear_grad()
+    loss.backward()
+    grads.backward(acc_grad)
+>>> ..... REPLACE
+original_losses = []
+while batch_id < num_batches:
+    x, y, batch_id_tensor = batch['x'], batch['y'], batch['batch_id']
+    # Apply gradient renormalization: scale gradients by number of tokens
+    num_tokens = x.size(0) * x.size(1)
+    grad_scale = 1.0 + (num_tokens - 1) / 64.0
+    
+    # Forward pass
+    with torch.no_grad():
+        logits = model(x)
+    
+    # Compute loss (acc_grad)
+    loss = compute_loss(logits, y, grads)
+    original_losses.append(loss)
+    grads.clear_grad()
+    loss.backward()
+    grads.backward(acc_grad)
+                    grads = grads * grad_scale</
+-----
+>>>>>>> SEARCH
+	for micro_step in range(grad_accum_steps):
+		with autocast_ctx:
+			loss = model(x, y)
+		train_loss = loss.detach()
+
+		# Gradient renormalization: scale gradient magnitude by T to stabilize loss
+		# This increases gradients for longer sequences, improving stability on large batches.
+		grad_scale = 1.0 + (y.size(1) - 1) / 64.0
+		train_loss.backward(grad_scale)
+		
+		with torch.no_grad():
+			x, y, epoch = next(train_loader)
+	<<<<<<< REPLACE
+			loss = model(x, y)
+		train_loss = loss.detach()
+		loss = loss / grad_accum_steps
+		loss.backward()
+		
+		# Apply gradient renormalization before backprop to stabilize training
+		# Scale up gradients for longer sequences to prevent vanishing updates.
+		grad_scale = 1.0 + (y.size(1) - 1) / 64.0
+		with torch.no_grad():
+			loss.narrow(0, 0, loss.size(0)).add_((grad_scale * loss).narrow(0, 0, 1))
+		loss.backward()
+		
+		with torch.no_grad():
+			x, y, epoch = next(train_loader)
+-----
+<<<<<<< SEARCH
+	with autocast_ctx:
+		loss = model(x, y)
+		train_loss = loss.detach()
+		loss = loss / grad_accum_steps
+		loss.backward()
+	
+		with torch.no_grad():
+			x, y, epoch = next(train_loader)
+=======
+	with autocast_ctx:
+		loss = model(x, y)
+		train_loss = loss.detach()
+		loss = loss / grad_accum_steps
+
+		# Gradient renormalization: scale gradients by (seq_len / base_seq) to stabilize updates on longer sequences
+		with torch.no_grad():
+			seq_ratio = y.size(1) / 2048.0
+			grad_scale = torch.tensor([seq_ratio], dtype=x.dtype, device=x.device)
+			loss.mul_(grad_scale)
+		
+		loss.backward()
+
+		with torch.no_grad():
+			x, y, epoch = next(train_loader)
+>>>>>>> REPLACE
+-----

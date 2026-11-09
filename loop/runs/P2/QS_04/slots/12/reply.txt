@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    grads = [p.grad for p in model.parameters() if p.grad is not None]
+    gnorm = torch.stack([g.float().norm() for g in grads]).square().sum().sqrt()
+    if step == 0:
+        gnorm_ema = gnorm.clone()
+    gweight = torch.clamp(gnorm_ema / (gnorm + 1e-6), max=1.0)
+    for g in grads:
+        g.mul_(gweight.to(g.dtype))
+    gnorm_ema = 0.95 * gnorm_ema + 0.05 * gnorm
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+-----

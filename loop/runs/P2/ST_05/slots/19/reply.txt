@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+=======
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+SEQ_CURRICULUM_FRAC = 0.25  # first fraction of time budget trains on half-length sequences
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+x, y, epoch = next(train_loader)  # prefetch first batch
+=======
+x, y, epoch = next(train_loader)  # prefetch first batch
+
+# Pre-compile the half-length shape used by the sequence curriculum (untimed, outside the training loop)
+HALF_SEQ = MAX_SEQ_LEN // 2
+with autocast_ctx:
+    model(x[:, :HALF_SEQ].contiguous(), y[:, :HALF_SEQ].contiguous()).backward()
+model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+smooth_train_loss = 0
+total_training_time = 0
+step = 0
+=======
+smooth_train_loss = 0
+total_training_time = 0
+progress = 0.0
+step = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+=======
+    for micro_step in range(grad_accum_steps):
+        if progress < SEQ_CURRICULUM_FRAC:
+            xin, yin = x[:, :HALF_SEQ].contiguous(), y[:, :HALF_SEQ].contiguous()
+        else:
+            xin, yin = x, y
+        with autocast_ctx:
+            loss = model(xin, yin)
+>>>>>>> REPLACE
+-----

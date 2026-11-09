@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+# Schedules (all based on progress = training_time / TIME_BUDGET)
+
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+=======
+# Schedules (based on wall-clock time)
+
+def get_lr_multiplier(elapsed_time):
+    # lr = lr_initial / (1 + (t / t_warmup)**0.7)
+    # We treat the first 10% of TIME_BUDGET as the implicit warmup period
+    t_warmup = TIME_BUDGET * 0.1
+    return 1.0 / (1.0 + (elapsed_time / t_warmup)**0.7)
+
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+
+def get_weight_decay(progress):
+    # Linear decay of weight decay over the total time budget
+    # We map current progress back to a 0-1 range for the old weight decay logic
+    return WEIGHT_DECAY * (1.0 - (elapsed_time / TIME_BUDGET))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+=======
+    # Progress and schedules
+    lrm = get_lr_multiplier(total_training_time)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(total_training_time / TIME_BUDGET)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+>>>>>>> REPLACE
+-----

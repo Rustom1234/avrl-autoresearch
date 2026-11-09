@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: nothing to flag. The diff only replaces the MLP (ReLU\u00b2 becomes SwiGLU with the hidden width rounded up to a multiple of 128). It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing.",
+  "No bug found. c_fc outputs 2*hidden, chunk splits that into two halves of size hidden, and c_proj takes hidden as input, so the shapes match. The parameter count stays about the same: 3*n*hidden \u2248 8n\u00b2 against the original 8n\u00b2. Weight initialisation and optimizer grouping (for example zero-init of c_proj and Muon's handling of 2D matrices) are not visible in this diff. I'm assuming they work by module name and so still apply to the new shapes.",
+  "On the numbers: the candidate (1.113) is 0.0016 below the incumbent mean (1.1146) from a single run. z = 0.287 is far below any usual significance threshold, so rejecting is consistent with the numbers. A replicate would be needed to show a real effect.",
+  "z cannot be recomputed: the incumbent's standard deviation over its 16 runs is not given. The reported z implies a spread of about 0.0056, which fits typical noise between runs."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

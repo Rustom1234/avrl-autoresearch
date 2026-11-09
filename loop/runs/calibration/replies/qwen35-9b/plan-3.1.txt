@@ -1,0 +1,34 @@
+{
+  "items": [
+    {
+      "title": "Gradient Clipping by Norm",
+      "spec": "Add a global gradient clipping mechanism to stabilize training and prevent large updates that might cause divergence or poor convergence on the A100. Import `torch.nn.utils.clip_grad_norm_` and call it at the end of the training step with a clipping threshold of 1.0.",
+      "family": "regularization"
+    },
+    {
+      "title": "Reduce Warmup Ratio",
+      "spec": "Lower the learning rate warmup ratio from 0.0 to 0.02 to introduce a smoother start to training, which often helps with convergence stability and final loss without requiring batch size changes.",
+      "family": "schedule"
+    },
+    {
+      "title": "Switch to SwiGLU Activation",
+      "spec": "Replace the current ReLU-squared (squared ReLU) MLP activation with SwiGLU (SiLU * Gate) which is a standard, more expressive activation function in modern LLMs (like Swin Transformer or LLaMA) that often improves density and convergence.",
+      "family": "architecture"
+    },
+    {
+      "title": "Increase Matrix Learning Rate",
+      "spec": "Increase the learning rate for matrix parameters (`MATRIX_LR`) from 0.04 to 0.08. Since the current setup uses Muon, a slightly higher LR for the main parameters can accelerate convergence without needing larger batches.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Enable Logit Softcap",
+      "spec": "Enable the logit softcap by setting `LOGIT_SOFTCAP = 20.0` and applying it during the forward pass in the LM head. This prevents extreme logit values that waste capacity and can destabilize the loss landscape.",
+      "family": "regularization"
+    },
+    {
+      "title": "Reduce Weight Decay",
+      "spec": "Decrease the weight decay (`WEIGHT_DECAY`) from 0.2 to 0.1. High weight decay can sometimes hinder convergence in smaller models or specific architectures by over-constraining the parameter space, leading to suboptimal minima.",
+      "family": "regularization"
+    }
+  ]
+}

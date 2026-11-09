@@ -1,0 +1,13 @@
+{
+ "ok": false,
+ "issues": [
+  "Category (1): the candidate changes GPT.forward to return ce_loss + total_loss whenever targets are given, in every mode, not just training. If the evaluation computes val_bpb from model(x, y, reduction=...), the reported number would include the activation penalty instead of measuring pure cross-entropy. With reduction='none', the scalar penalty is added to every token's loss. This changes the evaluation path in effect, which matches the harness integrity flag. Fix: add the penalty in the training loop, or only when self.training is true, and keep the plain cross-entropy return.",
+  "Category (2): the penalty does not match its comment. torch.norm((x - x0)**2, dim=-1) takes the norm of the squared values (the square root of the sum of 4th powers), not a squared norm or a ratio of output to input. It also pulls the residual stream back toward the embedding at every layer. With a weight of 0.01 summed over all layers, it could plausibly distort training enough to make any comparison meaningless.",
+  "Minor: total_loss is computed even when targets is None, which wastes compute during inference. There is also leftover trailing whitespace.",
+  "No claims to check: the harness rejected the run and reported no numbers, so z cannot be recomputed."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

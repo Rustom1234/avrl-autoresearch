@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+            dict(kind='muon', params=group_params, lr=matrix_lr,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            )
+=======
+            matrix_params = [p for p in matrix_params if p.shape == shape]
+            batch = len(matrix_params)
+            tw_step = warmup_n * batch
+            imag = (step * tw_step) % batch.real()
+            v = batch.imag ** 2 * batch.real()
+            s = batch.real * batch.imag
+            new_lr = matrix_lr
+            v_ = batch.real * batch.imag ** 2
+            s_ = batch.real * batch.imag
+
+            def matrix_step_func(x, grad, momentum, second_momentum_buffer, t, d1, l1, d2, s1, a2):
+                momentum.lerp_(grad, 1)
+                second_momentum_buffer.lerp_(grad.square(), 1)
+                g = momentum
+                v_ = g.float().square().mean(dim=d1, keepdim=True)
+                s_ = v_ * batch.imag
+                s = s_ * batch.real
+
+                a = a2 * batch.real
+                b = d1 * batch.imag
+
+                return g, momentum, second_momentum_buffer
+
+            matrix_params.append(dict(kind='muon2', params=group_params, lr=new_lr,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+                tw_step=tw_step,
+                d1=d1,
+                s=s,
+                v_=v_,
+                a2=a2,
+                b=b
+            ))
+>>>>>>> REPLACE
+-----

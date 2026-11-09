@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "title": "Rotary Positional Embeddings (RoPE)",
+      "spec": "Replace standard absolute positional embeddings with Rotary Positional Embeddings (RoPE). This often improves the model's ability to generalize to longer sequences and better capture relative positions, which can lead to lower val_bpb. You will need to modify the attention mechanism to apply the rotation to the Query and Key tensors.",
+      "family": "architecture"
+    },
+    {
+      "title": "RMSNorm instead of LayerNorm",
+      "spec": "Replace all LayerNorm instances with RMSNorm. RMSNorm is computationally more efficient and has been shown to improve training stability and performance in many transformer architectures, potentially leading to better convergence within the same time budget.",
+      "family": "architecture"
+    },
+    {
+      "title": "Cosine Annealing with Linear Warmup",
+      "spec": "Modify the learning rate schedule to use a cosine annealing schedule with a linear warmup phase. The current schedule might be too aggressive or lack a smooth decay; a cosine curve often provides a more stable path to a local minimum for the matrix parameters.",
+      "family": "schedule"
+    },
+    {
+      "title": "Stochastic Depth",
+      "spec": "Implement Stochastic Depth (DropPath) for the transformer layers. By randomly dropping entire layers during training (but keeping them during inference), the model can develop more robust features and avoid over-reliance on specific layers, which may improve generalization on the validation set.",
+      "family": "regularization"
+    },
+    {
+      "title": "Weight Decay Scaling",
+      "spec": "Adjust the weight decay to be specific to parameter types (e.g., apply weight decay to weights but not to biases or LayerNorm scales). This is a standard practice in models like GPT-3 and can prevent the regularization from suppressing important internal offsets.",
+      "family": "regularization"
+    }
+  ]
+}

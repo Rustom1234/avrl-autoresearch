@@ -1,0 +1,18 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing in the diff touches how val_bpb is measured, the data, the seed lines, the evaluation call or the prepare.py import. It changes only two hyperparameters: TOTAL_BATCH_SIZE goes from 2**19 to 2**18, and WARMUP_RATIO goes from 0.0 to 0.03.",
+  "No bug that would make the result meaningless. Halving TOTAL_BATCH_SIZE roughly doubles the optimizer steps in the fixed 300 s. It stays a power of two, so it should still divide evenly by DEVICE_BATCH_SIZE (64) times the sequence length (2048 if the default is unchanged), which gives grad accumulation of 2 instead of 4. The learning rates were not rescaled for the smaller batch. That is a tuning choice, not a bug. A 3% warmup is harmless.",
+  "The numbers support the claim. The candidate mean is 1.0710 over 2 runs, against 1.1035 for the incumbent, a gain of 0.0325 bpb. Both candidate runs beat the incumbent by about 0.03.",
+  "I can't reproduce z = 5.020 exactly. The incumbent has only 1 run, so there is no incumbent variance, and the harness must be using a noise sigma it does not report. z = 5.02 implies a pooled SE of about 0.00647. If the harness uses sigma*sqrt(1/1 + 1/2), that means sigma is about 0.0053. Using only the spread of the two candidate runs (sd about 0.0021) would give a much larger z, around 15 to 22. Either way the result clears an accept threshold.",
+  "Caveat: the incumbent is a single run. A replicate of the incumbent would make the baseline more solid, but this does not justify a veto."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.071,
+  "delta": 0.0325,
+  "implied_se_from_harness_z": 0.00647,
+  "candidate_sample_sd": 0.00212
+ }
+}

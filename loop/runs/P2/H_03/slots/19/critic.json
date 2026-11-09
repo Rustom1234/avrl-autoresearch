@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Doesn't touch the metric, data, seed lines or evaluation call. The only change adds label_smoothing=0.05 to the training loss in GPT.forward, and only when self.training is true. This is a legitimate training-objective change.",
+  "Needs checking: smoothing is turned off at eval only if the model is put in eval mode before evaluation. train.py appears to call model.eval() before evaluate_bpb, and the harness recomputes val_bpb from the trained model, so the official number should be clean. If eval mode were not set, the smoothed loss would raise val_bpb and hurt the candidate. It could not make the result look better than it is.",
+  "The training loss printed during the run now includes the smoothing term (an entropy penalty of about 0.05*log(V)), so it will read higher than the incumbent's and can't be compared directly. Judge the candidate on val_bpb only.",
+  "Under torch.compile, the self.training branch adds a guard and may trigger one recompile when the mode switches between train and eval. Startup and compile time are not counted, so this shouldn't matter.",
+  "Expectation: label smoothing trains toward a different target than the cross-entropy that val_bpb measures. In short, data-rich LM training it usually makes bpb slightly worse, so a gain is unlikely.",
+  "No GPU numbers are available yet, so z can't be recomputed and there are no claims to check against numbers."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

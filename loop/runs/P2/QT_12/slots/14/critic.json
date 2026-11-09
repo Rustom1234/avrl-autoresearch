@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: no problems found. The diff only changes WARMDOWN_RATIO and the body of the LR schedule function. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing, and the harness raised no integrity flags.",
+  "Schedule logic flaw (affects the design, not the validity of the run): with WARMDOWN_RATIO = 0.8 the new linear-decay branch only runs while progress < 0.2. The LR multiplier stays at 1.0 until 0.05, then falls to about 0.842 at progress 0.2. At 0.2 the warmdown branch takes over and starts at (1-0.2)/0.8 = 1.0, so the LR jumps back up from about 0.84 to 1.0 and then decays linearly to 0. The intended long linear decay from 1.0 at 0.05 down to FINAL_LR_FRAC at 1.0 never happens.",
+  "The code comments are misleading. They say the LR decays to FINAL_LR_FRAC at progress 1.0, but that branch can never reach progress >= 0.2. Most of the change is dead or odd code. The same result would come from just setting WARMDOWN_RATIO = 0.8, or 0.95 for the schedule the comments describe.",
+  "Numbers check out: the candidate's 1.1211 is worse than the incumbent mean of 1.1146 (a gap of 0.0065 val_bpb). This matches the negative z and the reject decision. The candidate is a single run with no replicate.",
+  "z cannot be recomputed independently because the incumbent's standard deviation is not given. The reported z = -1.197 implies an incumbent SD of about 0.0054 (0.0065 / 1.197), which is plausible over 16 runs. The reject decision is consistent with the numbers."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problem. The diff changes only one hyperparameter, TOTAL_BATCH_SIZE, from 2**18 to 2**17. It does not touch the val_bpb metric, the data, the seed lines, the evaluation call or the summary printing.",
+  "No bug that would make the result meaningless. If the sequence length is 2048, as in the standard setup, then DEVICE_BATCH_SIZE 64 \u00d7 2048 = 2**17. Gradient accumulation therefore drops from 2 steps to 1, and the divisibility assert still holds. The learning rates were not rescaled for the smaller batch. That is a tuning choice, not a bug.",
+  "Numbers check: the candidate mean is (1.0511 + 1.0521) / 2 = 1.0516. That is 0.0125 below the incumbent mean of 1.0641, so the claimed improvement is in the right direction.",
+  "I can't recompute z because the per-run incumbent values and the variance or noise-floor formula aren't given. The reported z = 2.376 implies a standard error of about 0.0053, which is plausible if the harness uses a noise floor. The spread between the two candidate runs alone is about 0.0007. Both samples are small (n=2 each), so the evidence is moderate."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0516,
+  "delta": -0.0125
+ }
+}

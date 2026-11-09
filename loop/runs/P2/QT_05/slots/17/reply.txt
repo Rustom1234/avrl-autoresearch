@@ -1,0 +1,41 @@
+
+<<<<<<< SEARCH
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            if group['kind'] == 'adamw':
+                self._step_adamw(group)
+            elif group['kind'] == 'muon':
+                self._step_muon(group)
+=======
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            if group['kind'] == 'adamw':
+                self._step_adamw(group)
+            elif group['kind'] == 'muon':
+                self._step_muon(group)
+
+    @torch.no_grad()
+    def step_with_grad_norm_norm(self, group):
+        params = group['params']
+        if not params:
+            return
+        
+        # Compute gradient norms
+        grad_norms = []
+        for p in params:
+            if p.grad is not None:
+                norm = (p.grad ** 2).sum().sqrt()
+                grad_norms.append(norm.item())
+            else:
+                grad_norms.append(0.0)
+        
+        # Compute global gradient norm (used for norm scaling)
+        global_grad_norm = torch.stack([p.grad.clone().square().sum().sqrt() for p in params if p.grad is not None])
+        if global_grad_norm.device.type != 'cpu':
+            global_grad_norm = torch.cat(list(global_grad_norm.cpu())).to(global_grad_norm.device)
+        
+        return grad_norms, global_grad_norm
+>>>>>>> REPLACE
+-----

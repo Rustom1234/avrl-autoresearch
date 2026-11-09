@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+        self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) else None
+=======
+        self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) else None
+        kv_ch = self.n_kv_head * self.head_dim
+        self.short_conv = nn.Conv1d(kv_ch, kv_ch, kernel_size=3, groups=kv_ch, bias=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+=======
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+        # Causal depthwise convolution over time (local mixing on values, residual)
+        vc = F.pad(v.reshape(B, T, -1).transpose(1, 2), (2, 0))
+        v = v + self.short_conv(vc).transpose(1, 2).reshape(B, T, self.n_kv_head, self.head_dim)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            torch.nn.init.zeros_(block.mlp.c_proj.weight)
+=======
+            torch.nn.init.zeros_(block.mlp.c_proj.weight)
+            torch.nn.init.zeros_(block.attn.short_conv.weight)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        matrix_params = list(self.transformer.h.parameters())
+=======
+        conv_params = [b.attn.short_conv.weight for b in self.transformer.h]
+        conv_ids = {id(p) for p in conv_params}
+        matrix_params = [p for p in self.transformer.h.parameters() if id(p) not in conv_ids]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params) + len(conv_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+=======
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=conv_params, lr=unembedding_lr * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,150 @@
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+======>
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+        # Double Q: process second pending batch immediately if available
+        if len(train_loader) > initial_train_loader_offset: # Check if second queue is ready
+            with autocast_ctx:
+                loss2 = model(x, y)
+            train_loss2 = loss2.detach() / grad_accum_steps
+            train_loss2.backward()
+            # Note: We defer x,y from inner loop to outer. 
+            # Double Q is a speculation optimizer. If y can't keep up, we stop
+            # and return the output.
+            # If we are at the end, we just pass y.
+            if y is not None:
+                x, y, epoch = next(train_loader)
+=======
+<<< SEARCH
+"""
+Autoresearch pretraining script. Single-GPU, single-file.
+Cherry-picked and simplified from nanochat.
+Usage: uv run train.py
+"""
+
+import os
+os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+
+import gc
+import math
+import time
+from dataclasses import dataclass, asdict
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from kernels import get_kernel
+cap = torch.cuda.get_device_capability()
+# Schedule Q: Double Q strategy. Use two queues: q1 (primary), q2 (secondary).
+# Both queues are filled with the same dataloader but processed separately to maximize throughput.
+# This is a novel schedule for batch size 64.
+=======
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+        if y is not None:
+            x, y, epoch = next(train_loader)
+        if x is None:
+            x = None
+=======
+"""
+Autoresearch pretraining script. Single-GPU, single-file.
+Cherry-picked and simplified from nanochat.
+Usage: uv run train.py
+"""
+
+import os
+os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+
+import gc
+import math
+import time
+from dataclasses import dataclass, asdict
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from kernels import get_kernel
+cap = torch.cuda.get_device_capability()
+# Schedule Q: Double Q strategy. Use two queues: q1 (primary), q2 (secondary).
+# Both queues are filled with the same dataloader but processed separately to maximize throughput.
+# This is a novel schedule for batch size 64.
+=======
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+        if y is not None:
+            x, y, epoch = next(train_loader)
+        if x is None:
+            x = None
+-----
+<<<<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    with torch.no_grad():
+        x2, y2 = next(train_loader), next(train_loader)
+    
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss1 = model(x, y)
+            loss2 = model(x2, y2)
+        train_loss = (loss1.detach() + loss2.detach()) / (2 * grad_accum_steps)
+        loss.backward()
+        x, y, epoch = next(train_loader)
+        if y is not None:
+            x, y, epoch = next(train_loader)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    with torch.no_grad():
+        x2, y2 = next(train_loader), next(train_loader)
+    
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss1 = model(x, y)
+            loss2 = model(x2, y2)
+        train_loss = (loss1.detach() + loss2.detach()) / (2 * grad_accum_steps)
+        loss.backward()
+        x, y, epoch = next(train_loader)
+        if y is not None:
+            x, y, epoch = next(train_loader)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine. The diff only changes the LR schedule and adds loss tracking. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the final summary printing.",
+  "I can't fully recompute z: the harness gives no incumbent standard deviation. The difference is 1.1122 - 1.1146 = -0.0024 (an improvement), and z = 0.436 implies a run-to-run spread of about 0.0055. That is consistent but I can't check it independently.",
+  "The evidence is weak. There is a single candidate run, and z = 0.436 is well within incumbent noise. The provisional reject is justified, and a replicate would be needed before accepting anything.",
+  "Design quirk, not a veto: plateau_mult only applies in the constant-LR phase. The warmdown branch ignores it, so the LR jumps back up when warmdown starts if plateau_mult has decayed.",
+  "Design quirk: the threshold compares an EMA-smoothed loss over a 5-step window against a 0.1% improvement. Later in training this is likely to trigger often, so plateau_mult would drop by 0.95 roughly every 11 steps and compound into an aggressive, loss-dependent decay rather than true plateau detection. The schedule may just be acting as an implicit extra LR decay, which a simple schedule change could reproduce.",
+  "Simplicity: the change adds global mutable state and an unbounded loss_history list for a gain within noise, which goes against the 'simpler is better' rule."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

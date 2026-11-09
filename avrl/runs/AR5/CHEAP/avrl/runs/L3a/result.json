@@ -1,0 +1,446 @@
+{
+ "id": "L3a",
+ "pool": "/homes/rdubash/avrl_live/CHEAP/avrl/runs/p0/feats.parquet",
+ "n_groups": 3000,
+ "n_proxy_errors": 436,
+ "step_size_groups": 16,
+ "budget": 0.25,
+ "verifier_calls_per_run": 750,
+ "seeds_main": 8,
+ "seeds_bootstrap": 4,
+ "B": 100,
+ "variants": {
+  "pergroup_beta": "(a) score_i ~ Beta(2 p_i, 2 (1 - p_i)) per group, no cell_beta",
+  "cell_mean_prior": "(b) unseen cell Beta from mean regression p of its candidates in the current step, LearnedAllocator label updates",
+  "logit_noise": "(c) score_i = logit(p_i) + N(0, 1), no cells"
+ },
+ "assumptions": [
+  "steps of 16 groups over a seed-permuted pool (last step 8 groups); n_verify(step_groups, 0.25, step=t) as in E03",
+  "feat_vec = the same 22 dims as E03",
+  "cell = cell100 (KMeans k=100 from p0_analyze.py); used only by cell_mean_prior",
+  "cold start before the first fit: ThresholdAllocator order (inherited, as in LearnedAllocator)",
+  "cell_mean_prior: a cell with no cell_beta entry gets Beta(2m, 2(1-m)), m = mean clipped regression p over that cell's candidates in this step; cells already in cell_beta keep their posterior, including cells that LearnedAllocator.update created with the default Beta(2,2) during cold start",
+  "pergroup_beta and logit_noise never read or write cell_beta",
+  "permutation rng default_rng(1000+seed); selection rng default_rng(2000+seed) shared across steps of one run; bootstrap resample default_rng(10000+b), as in E03",
+  "gold (proxy_error) used only for scoring and as the update label of verified groups",
+  "learned arm is the E03 reference read from runs/E03/result.json, not rerun; greedy is not run"
+ ],
+ "checks": {
+  "threshold_caught_per_seed_equals_spec": true,
+  "threshold_caught_per_seed_equals_e03": true,
+  "threshold_admitted_per_seed_equals_e03": true,
+  "errors_per_seed_equal_e03": true,
+  "verifier_calls_equal_750_all_arms": true,
+  "threshold_bootstrap_vs_e03": "not checkable: E03 result.json stores learned and greedy bootstrap CIs only, not per-resample threshold values"
+ },
+ "main_25": {
+  "threshold": {
+   "caught_per_seed": [
+    340,
+    341,
+    344,
+    332,
+    331,
+    328,
+    325,
+    333
+   ],
+   "caught_mean": 334.25,
+   "admitted_per_seed": [
+    0.220183,
+    0.21789,
+    0.211009,
+    0.238532,
+    0.240826,
+    0.247706,
+    0.254587,
+    0.236239
+   ],
+   "admitted_mean": 0.23337155963302753,
+   "calls_per_seed": [
+    750,
+    750,
+    750,
+    750,
+    750,
+    750,
+    750,
+    750
+   ]
+  },
+  "learned_e03_reference": {
+   "caught_per_seed": [
+    130,
+    140,
+    136,
+    137,
+    135,
+    128,
+    117,
+    126
+   ],
+   "caught_mean": 131.125,
+   "admitted_per_seed": [
+    0.701835,
+    0.678899,
+    0.688073,
+    0.68578,
+    0.690367,
+    0.706422,
+    0.731651,
+    0.711009
+   ],
+   "admitted_mean": 0.6992545,
+   "calls_per_seed": [
+    750,
+    750,
+    750,
+    750,
+    750,
+    750,
+    750,
+    750
+   ],
+   "source": "/homes/rdubash/avrl_live/CHEAP/avrl/runs/E03/result.json"
+  },
+  "pergroup_beta": {
+   "caught_per_seed": [
+    289,
+    297,
+    291,
+    279,
+    285,
+    296,
+    274,
+    286
+   ],
+   "caught_mean": 287.125,
+   "admitted_per_seed": [
+    0.337156,
+    0.318807,
+    0.332569,
+    0.360092,
+    0.34633,
+    0.321101,
+    0.37156,
+    0.344037
+   ],
+   "admitted_mean": 0.3414564220183486,
+   "calls_per_seed": [
+    750,
+    750,
+    750,
+    750,
+    750,
+    750,
+    750,
+    750
+   ]
+  },
+  "cell_mean_prior": {
+   "caught_per_seed": [
+    130,
+    142,
+    140,
+    152,
+    132,
+    128,
+    119,
+    122
+   ],
+   "caught_mean": 133.125,
+   "admitted_per_seed": [
+    0.701835,
+    0.674312,
+    0.678899,
+    0.651376,
+    0.697248,
+    0.706422,
+    0.727064,
+    0.720183
+   ],
+   "admitted_mean": 0.6946674311926606,
+   "calls_per_seed": [
+    750,
+    750,
+    750,
+    750,
+    750,
+    750,
+    750,
+    750
+   ]
+  },
+  "logit_noise": {
+   "caught_per_seed": [
+    311,
+    312,
+    307,
+    305,
+    302,
+    306,
+    275,
+    303
+   ],
+   "caught_mean": 302.625,
+   "admitted_per_seed": [
+    0.286697,
+    0.284404,
+    0.295872,
+    0.300459,
+    0.307339,
+    0.298165,
+    0.369266,
+    0.305046
+   ],
+   "admitted_mean": 0.3059059633027523,
+   "calls_per_seed": [
+    750,
+    750,
+    750,
+    750,
+    750,
+    750,
+    750,
+    750
+   ]
+  }
+ },
+ "main_paired_minus_threshold_admitted_per_seed": {
+  "pergroup_beta": [
+   0.116972,
+   0.100917,
+   0.12156,
+   0.12156,
+   0.105505,
+   0.073394,
+   0.116972,
+   0.107798
+  ],
+  "cell_mean_prior": [
+   0.481651,
+   0.456422,
+   0.46789,
+   0.412844,
+   0.456422,
+   0.458716,
+   0.472477,
+   0.483945
+  ],
+  "logit_noise": [
+   0.066514,
+   0.066514,
+   0.084862,
+   0.061927,
+   0.066514,
+   0.050459,
+   0.114679,
+   0.068807
+  ]
+ },
+ "e03_reference_learned_minus_threshold": {
+  "name": "admitted rate at 25% budget, learned minus threshold, paired per bootstrap resample, mean over seeds, percentile 95% CI over B resamples",
+  "budget": 0.25,
+  "point_estimate_seeds_0_to_boot_seeds_minus_1": {
+   "learned_minus_threshold_admitted": 0.46674311926605505,
+   "greedy_minus_threshold_admitted": 0.02981651376146787
+  },
+  "bootstrap": {
+   "B": 100,
+   "seeds": 4,
+   "budget": 0.25,
+   "learned_minus_threshold_admitted": {
+    "mean": 0.45126365421544756,
+    "ci95": [
+     0.4120069444444444,
+     0.49053140930331346
+    ],
+    "frac_below_zero": 0.0,
+    "n_resamples": 100
+   },
+   "greedy_minus_threshold_admitted": {
+    "mean": 0.023103280772206983,
+    "ci95": [
+     0.007781139907967368,
+     0.03823746664125048
+    ],
+    "frac_below_zero": 0.0,
+    "n_resamples": 100
+   }
+  }
+ },
+ "metric": {
+  "name": "paired bootstrap of (variant admitted - threshold admitted) at 25%, mean over seeds 0-3, percentile 95% CI over B resamples, with the count of resamples below 0; 98.3% Bonferroni bound over 3 variants reported alongside",
+  "budget": 0.25,
+  "point_estimate_seeds_0_to_3": {
+   "pergroup_beta": 0.11525229357798164,
+   "cell_mean_prior": 0.4547018348623853,
+   "logit_noise": 0.06995412844036697
+  },
+  "bootstrap": {
+   "B": 100,
+   "seeds": 4,
+   "budget": 0.25,
+   "pergroup_beta": {
+    "mean": 0.10090657042197122,
+    "ci95": [
+     0.08178124290256643,
+     0.12284741361034554
+    ],
+    "ci98_3_bonferroni": [
+     0.0799555994807647,
+     0.1261544484124335
+    ],
+    "upper_below_0": false,
+    "frac_below_zero": 0.0,
+    "n_below_zero": 0,
+    "n_resamples": 100
+   },
+   "cell_mean_prior": {
+    "mean": 0.45028102619558136,
+    "ci95": [
+     0.41068122756416403,
+     0.4888319353836595
+    ],
+    "ci98_3_bonferroni": [
+     0.40783536585365854,
+     0.4934587921009494
+    ],
+    "upper_below_0": false,
+    "frac_below_zero": 0.0,
+    "n_below_zero": 0,
+    "n_resamples": 100
+   },
+   "logit_noise": {
+    "mean": 0.06973462187359634,
+    "ci95": [
+     0.05465912337264825,
+     0.087933008219429
+    ],
+    "ci98_3_bonferroni": [
+     0.05023444630739314,
+     0.09019226404021612
+    ],
+    "upper_below_0": false,
+    "frac_below_zero": 0.0,
+    "n_below_zero": 0,
+    "n_resamples": 100
+   }
+  },
+  "threshold_admitted_per_resample_mean_seeds_0_to_3": [
+   0.2505482456140351,
+   0.24082568807339452,
+   0.2538377192982456,
+   0.21420704845814978,
+   0.23007246376811594,
+   0.2465277777777778,
+   0.24186550976138826,
+   0.26108647450110867,
+   0.22560975609756095,
+   0.2455947136563877,
+   0.21436781609195402,
+   0.2331002331002331,
+   0.2278409090909091,
+   0.24391592920353983,
+   0.24617903930131002,
+   0.2376470588235294,
+   0.22767857142857145,
+   0.22393364928909953,
+   0.2357630979498861,
+   0.22441860465116278,
+   0.23310810810810811,
+   0.22749391727493917,
+   0.24662921348314604,
+   0.253448275862069,
+   0.27711496746203906,
+   0.22790697674418603,
+   0.25,
+   0.21774193548387097,
+   0.23023504273504275,
+   0.2585812356979405,
+   0.21601382488479262,
+   0.2527901785714286,
+   0.24887640449438203,
+   0.23053527980535282,
+   0.25168161434977576,
+   0.23553240740740738,
+   0.22352216748768472,
+   0.22136038186157517,
+   0.24404761904761904,
+   0.2470657276995305,
+   0.23687089715536105,
+   0.24324324324324326,
+   0.24043062200956936,
+   0.24945887445887444,
+   0.2401098901098901,
+   0.22188995215311005,
+   0.21868008948545858,
+   0.2354988399071926,
+   0.22684085510688837,
+   0.22395833333333331,
+   0.25055432372505543,
+   0.22110849056603776,
+   0.22393364928909953,
+   0.2236842105263158,
+   0.2586405529953917,
+   0.23834498834498835,
+   0.2305491990846682,
+   0.2505592841163311,
+   0.2223529411764706,
+   0.2138157894736842,
+   0.24422632794457275,
+   0.236144578313253,
+   0.23117647058823526,
+   0.23068181818181818,
+   0.22482435597189696,
+   0.21489104116222757,
+   0.2404494382022472,
+   0.2416294642857143,
+   0.21790540540540543,
+   0.24881516587677724,
+   0.2505841121495327,
+   0.2255011135857461,
+   0.21565315315315314,
+   0.21362586605080833,
+   0.2320627802690583,
+   0.22428229665071772,
+   0.23963133640552997,
+   0.24712643678160917,
+   0.22605140186915887,
+   0.22045454545454546,
+   0.2517321016166282,
+   0.24188311688311687,
+   0.24305555555555555,
+   0.24233490566037735,
+   0.24396135265700483,
+   0.24833333333333335,
+   0.23741007194244604,
+   0.25894854586129756,
+   0.22972972972972974,
+   0.23822869955156953,
+   0.23385167464114834,
+   0.22216035634743875,
+   0.24148936170212765,
+   0.23696682464454977,
+   0.23371848739495796,
+   0.2279951100244499,
+   0.22547846889952153,
+   0.25663716814159293,
+   0.24892241379310345,
+   0.23693181818181816
+  ]
+ },
+ "per_variant_verdict": {
+  "pergroup_beta": "KILL",
+  "cell_mean_prior": "KILL",
+  "logit_noise": "KILL"
+ },
+ "verdict": "KILL",
+ "verdict_rule": "a variant PASSes iff the 95% percentile CI upper bound of (variant admitted - threshold admitted) at 0.25 is < 0; overall PASS iff any variant passes. A PASS is a candidate re-specification, not a confirmed claim.",
+ "convergence_warnings": {
+  "main": 11,
+  "bootstrap": 769,
+  "total": 780
+ },
+ "wall_s": 1979.2
+}

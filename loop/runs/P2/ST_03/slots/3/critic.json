@@ -1,0 +1,19 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) Integrity: no problems found. The diff changes only hyperparameters in train.py: TOTAL_BATCH_SIZE goes from 2**18 to 2**17, MATRIX_LR from 0.04 to 0.03, WARMUP_RATIO from 0.0 to 0.02, and one comment is edited. The seed lines, the prepare.py import, the data path, the evaluation call and the summary printing are untouched. The harness integrity flags are also clear.",
+  "(2) Bugs: none that would make the result meaningless. If the sequence length is 2048, 64 x 2048 = 131072 = 2**17, so gradient accumulation drops to 1 step and still divides evenly. A 2% warmup is harmless.",
+  "Wrong comment: the new DEVICE_BATCH_SIZE comment says the per-device batch is 'HALF of TOTAL_BATCH_SIZE'. With a 2048 sequence length, one device batch now equals the whole TOTAL_BATCH_SIZE (it was half before this change). The comment is misleading but does not affect the run. It should be fixed or removed, in keeping with the program card's preference for simple, clean code.",
+  "Numbers: the candidate mean is (1.0537 + 1.0519) / 2 = 1.0528. The incumbent is 1.0988, so the gain is 0.0460 bpb. That is large but plausible, because twice as many optimizer steps fit in the fixed 300 s.",
+  "z check: I could not reproduce the harness value z = 7.130 from these numbers alone. That value implies a noise scale of about 0.0460 / 7.13 = 0.00645. Using only the spread of the two candidate runs (sample sd 0.00127) gives a z of about 36 to 51, so the harness probably uses a pooled or floored noise estimate. Under any reasonable choice, z is well above an accept threshold, and the accept decision is consistent with the numbers.",
+  "Weak evidence: the incumbent has only 1 run, so its variance is unknown. A replicate of the incumbent would make the comparison stronger, but the gap is about 36 times the candidate's own sd."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0528,
+  "delta": 0.046,
+  "candidate_sample_sd": 0.00127,
+  "implied_sigma_from_harness_z": 0.00645
+ }
+}

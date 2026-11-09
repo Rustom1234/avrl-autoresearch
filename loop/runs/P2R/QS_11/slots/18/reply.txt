@@ -1,0 +1,13 @@
+<<<<<<< SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+=======
+        if targets is not None and reduction == 'mean':
+            l = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                ignore_index=-1, reduction='none').view(B, T)
+            w = (torch.arange(1, T + 1, device=idx.device).float() / 64).clamp(max=1)[None] * (targets != -1).float()
+            return (l * w).sum() / w.sum()
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+>>>>>>> REPLACE
+-----

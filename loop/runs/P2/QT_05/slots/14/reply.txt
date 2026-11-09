@@ -1,0 +1,131 @@
+<<<<<<< SEARCH
+        # Schedules (all based on progress = training_time / TIME_BUDGET)
+
+
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+=======
+        # Schedules (all based on progress = training_time / TIME_BUDGET)
+
+
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+
+def get_layer_lr_scale(layer_idx):
+    # Deeper layers receive a different final LR multiplier
+    return 1.0 + 0.1 * (layer_idx - DEPTH / 2)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+    optimizer.step()
+=======
+    muon_weight_decay = get_weight_decay(progress)
+    # Apply depth-dependent scaling to the LR for each group
+    # Groups are: lm_head, embedding_params, value_embeds_params, resid_params, x0_params, and then matrix groups
+    # The matrix groups correspond to the blocks in order.
+    for i, group in enumerate(optimizer.param_groups):
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+            # Scale deeper matrix groups specifically
+            if i >= 5: # The first 5 groups are AdamW types
+                layer_idx = i - 5
+                group["lr"] *= get_layer_lr_scale(layer_idx)
+    optimizer.step()
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+        # Schedules (all based on progress = training_time / TIME_BUDGET)
+
+
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+=======
+        # Schedules (all based on progress = training_time / TIME_BUDGET)
+
+
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+
+def get_layer_lr_scale(layer_idx):
+    return 1.0 + 0.1 * (layer_idx - DEPTH / 2)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+    optimizer.step()
+=======
+    muon_weight_decay = get_weight_decay(progress)
+    for i, group in enumerate(optimizer.param_groups):
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+            if i >= 5:
+                layer_idx = i - 5
+                group["lr"] *= get_layer_lr_scale(layer_idx)
+    optimizer.step()
+>>>>>>> REPLACE
+-----

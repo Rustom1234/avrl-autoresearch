@@ -1,0 +1,101 @@
+<<<<<<< SEARCH
+
+@torch.no_grad()
+def calculate_metrics(metrics):
+    for key in metrics:
+        if isinstance(metrics[key], dict):
+            for spec in metrics[key].spec:
+                if isinstance(spec, torch.Tensor):
+                    for i, value in enumerate(spec):
+                        metrics[key][spec['name']][i] = value.item()
+                elif isinstance(spec, list):
+                    for value in spec:
+                        if isinstance(value, torch.Tensor):
+                            metrics[key][spec['name']].add(value.sum().item())
+                        else:
+                            metrics[key][spec['name']].add(value)
+            for key in metrics[key].keys():
+                if key == 'val_loss':
+                    metrics[key]['val_loss'] = metrics[key]['val_loss']
+    metrics = metrics.copy()
+    return metrics
+
+@torch.no_grad()
+def compute_requirements(metrics, progress, batch_idx, 
+    batch_size, sequence_len, device, floating_point_rate, 
+    batch_norm_ema, sample_norm_weight, attention_mask, 
+    tokenizer, data_iterator, data_sampler, config, 
+    max_seq_len, max_input_length, max_position_embeddings, 
+    max_attention_dim, max_depth, max_layers, 
+    max_num_parameters, max_num_layers, max_num_positions):
+    metrics['eval_loss'] = batch_size * sequence_len * config.n_layer * cfn.num_parameters / (max_num_layers * max_num_parameters) / (max_layers * max_num_parameters)
+    metrics['eval_loss'] = metrics['eval_loss'] * floating_point_rate
+    metrics['eval_loss'] = metrics['eval_loss'] * batch_norm_ema
+    metrics['eval_loss'] = metrics['eval_loss'] * sample_norm_weight
+    metrics['eval_loss'] = metrics['eval_loss'] * (1 - batch_idx * floating_point_rate)
+    metrics['eval_loss'] = metrics['eval_loss'] * sequence_len
+    metrics['eval_loss'] = metrics['eval_loss'] * max_input_length
+    metrics['eval_loss'] = metrics['eval_loss'] * max_position_embeddings
+    metrics['eval_loss'] = metrics['eval_loss'] * max_attention_dim
+    metrics['eval_loss'] = metrics['eval_loss'] * max_depth
+    metrics['eval_loss'] = metrics['eval_loss'] * max_layers
+    metrics['eval_loss'] = metrics['eval_loss'] * max_num_parameters
+    metrics['eval_loss'] = metrics['eval_loss'] * max_num_layers
+    metrics['eval_loss'] = metrics['eval_loss'] * max_num_positions
+    return metrics
+
+def apply_adaptive_dropout(model, loss, progress, batch_size):
+    dropout_rate = 1.0 - torch.sigmoid(loss)
+    model.transformer.h[0].mlp.c_fc.weight = torch.nn.Parameter(model.transformer.h[0].mlp.c_fc.weight * dropout_rate)
+    model.transformer.h[0].mlp.c_fc.bias = torch.nn.Parameter(model.transformer.h[0].mlp.c_fc.bias * dropout_rate)
+    model.transformer.h[1].mlp.c_fc.weight = torch.nn.Parameter(model.transformer.h[1].mlp.c_fc.weight * dropout_rate)
+    model.transformer.h[1].mlp.c_fc.bias = torch.nn.Parameter(model.transformer.h[1].mlp.c_fc.bias * dropout_rate)
+    model.transformer.h[2].mlp.c_fc.weight = torch.nn.Parameter(model.transformer.h[2].mlp.c_fc.weight * dropout_rate)
+    model.transformer.h[2].mlp.c_fc.bias = torch.nn.Parameter(model.transformer.h[2].mlp.c_fc.bias * dropout_rate)
+    model.transformer.h[3].mlp.c_fc.weight = torch.nn.Parameter(model.transformer.h[3].mlp.c_fc.weight * dropout_rate)
+    model.transformer.h[3].mlp.c_fc.bias = torch.nn.Parameter(model.transformer.h[3].mlp.c_fc.bias * dropout_rate)
+    model.transformer.h[4].mlp.c_fc.weight = torch.nn.Parameter(model.transformer.h[4].mlp.c_fc.weight * dropout_rate)
+    model.transformer.h[4].mlp.c_fc.bias = torch.nn.Parameter(model.transformer.h[4].mlp.c_fc.bias * dropout_rate)
+    model.transformer.h[5].mlp.c_fc.weight = torch.nn.Parameter(model.transformer.h[5].mlp.c_fc.weight * dropout_rate)
+
+======= REPLACE
+
+def apply_adaptive_dropout(model, loss, progress, batch_size):
+    barrier = 0.5 / (1 + progress) * (1 - threshold)
+    scale = torch.sigmoid(loss)
+    dropout_rate = scale * (barrier + 1.0)
+    for i in range(len(model.transformer.h)):
+        block = model.transformer.h[i]
+        drop_weights = block.mlp.c_fc.weight.clamp_min(-9999) * dropout_rate
+        block.mlp.c_fc.weight = torch.nn.Parameter(block.mlp.c_fc.weight * drop_weights)
+        drop_bias = block.mlp.c_fc.bias.clamp_min(-9999) * dropout_rate
+        block.mlp.c_fc.bias = torch.nn.Parameter(block.mlp.c_fc.bias * drop_bias)
+    """Adaptive dropout applied to MLP layers based on loss and progress."""
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+
+    train_loss_f = train_loss.item()
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+
+    train_loss_f = train_loss.item()
+    
+    # Adaptive dropout: scale Mlp weights by loss-dependent factor and gradient norm factor
+    loss_base = torch.clamp(train_loss_f.max() - train_loss_f, 1e-4, None)
+    loss_norm = torch.clamp(loss_base, 0.0, 1.0)
+    grad_norm_factor = 1.0 + 0.1 * (loss_norm + train_loss_f)
+    
+    if grad_norm_factor.requires_grad:
+        grad_norm_factor = grad_norm_factor.detach().clip(0.1, 2.0)
+    
+    for i, block in enumerate(model.transformer.h):
+        if block.mlp.c_fc.weight.grad is not None:
+            block.mlp.c_fc.weight = block.mlp.c_fc.weight * grad_norm_factor
+            if block.mlp.c_fc.bias is not None:
+                block.mlp.c_fc.bias = block.mlp.c_fc.bias * grad_norm_factor
+>>>>>>> REPLACE
+-----

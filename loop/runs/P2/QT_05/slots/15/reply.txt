@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+        # Gate weights init to zero (sigmoid(0)=0.5, scaled by 2 -> 1.0 = neutral)
+        for block in self.transformer.h:
+            if block.attn.ve_gate is not None:
+                torch.nn.init.zeros_(block.attn.ve_gate.weight)
+=======
+        # Gate weights init to zero (sigmoid(0)=0.5, scaled by 2 -> 1.0 = neutral)
+        for block in self.transformer.h:
+            if block.attn.ve_gate is not None:
+                torch.nn.init.zeros_(block.attn.ve_gate.weight)
+        # Hessian-approx. adaptive weight decay coefficient per layer
+        for block in self.transformer.h:
+            mlp = block.mlp
+            c_fc = mlp.c_fc
+            c_proj = mlp.c_proj
+            # Approx curvature ~ (dim) * (scale factor from proposal)
+            n_params = c_fc.weight.numel() + c_proj.weight.numel()
+            curvature_factor = n_params / 1e6  # rough FLOP-like curvature proxy
+            gate_wd = 0.0
+            if block.attn.ve_gate is not None:
+                gate_wd = 0.05  # manual override for current proposal
+            # Store for post-init use (when ve is applied)
+            block.hessian_factor = curvature_factor
+            if gate_wd > 0:
+                block.hessian_factor = max(block.hessian_factor, gate_wd)
+>>>></仅限于
+-----
+<<<<<<< SEARCH
+        # Gate weights init to zero (sigmoid(0)=0.5, scaled by 2 -> 1.0 = neutral)
+        for block in self.transformer.h:
+            if block.attn.ve_gate is not None:
+                torch.nn.init.zeros_(block.attn.ve_gate.weight)
+=======
+        # Gate weights init to zero (sigmoid(0)=0.5, scaled by 2 -> 1.0 = neutral)
+        for block in self.transformer.h:
+            if block.attn.ve_gate is not None:
+                torch.nn.init.zeros_(block.attn.ve_gate.weight)
+
+        # Hessian-approx. adaptive weight decay coefficients
+        for block in self.transformer.h:
+            # Project implicit weight decay to specific layers and parameters
+            # by applying a higher factor to MUpc projection and full linear layers as a curvature proxy
+            c_fc = block.mlp.c_fc
+            c_proj = block.mlp.c_proj
+
+            effective_wd = WEIGHT_DECAY
+            if c_proj is not None:
+                n_params = c_proj.weight.numel()
+                # Apply higher weight decay to full linear layers as a curvature proxy
+                effective_wd = max(effective_wd, WEIGHT_DECAY * (n_params / 1e6) ** 0.2)
+
+            c_fc.weight.multiply_(effective_wd)
+            c_fc.bias.zero_() if c_fc.bias is not None else None
+            c_proj.weight.multiply_(effective_wd)
+            c_proj.bias.zero_() if c_proj.bias is not None else None
+-----
+<<<<<<< SEARCH
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+=======
+TOTAL_BATCH_SIZE = 2**18 # ~262K tokens per optimizer step (reduced to improve val_bpb)
+>>>>>>> REPLACE
+-----

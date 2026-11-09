@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "No veto. The diff doesn't touch the val_bpb measurement, the data, the seed lines or the evaluation call. It only adds an auxiliary training penalty, 1e-3 times the mean squared change of the normalized residual stream per block, and adds it to the loss only when reduction == 'mean'.",
+  "There are no bugs that would make the result meaningless. The harness recomputes the official val_bpb from the trained model, so adding the penalty to the 'mean' loss path can't affect the reported metric. The usual bpb evaluation path, reduction='none', returns the plain cross-entropy.",
+  "Minor cost: the penalty is also computed during evaluation and inference forward passes, which wastes a little compute. Its main cost is the extra norm() calls during training, which take time from the fixed 300 s budget.",
+  "The numbers match the decision. The candidate's 1.0517 is worse than the incumbent's 1.0510 mean (lower is better), and the negative z (-0.118) agrees with that. Rejection is consistent with the numbers.",
+  "z can't be recomputed independently: the incumbent's standard deviation and the two individual incumbent values aren't given. If z = (incumbent - candidate)/sd, the reported z implies sd \u2248 0.0059.",
+  "The candidate has only one run. The result is still well within noise and doesn't justify a replicate slot."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

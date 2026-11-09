@@ -1,0 +1,19 @@
+# Stress tests on the live system (Oct 21, before launch)
+
+1. Loop kill and resume (arm B integration loop, slot 1, candidate job in flight): process killed with SIGKILL, relaunched with --resume. Result: state.json unchanged, in-flight job id unchanged, queue pending count unchanged (5 before and after), no duplicate submission. PASS.
+2. Worker kill (GPU 3 worker on n7, running the arm D candidate): killed with SIGKILL via srun on the node. Result: heartbeat went stale; at 210 s the in-job supervisor restarted the worker under a new pid, killed the orphaned trainer (GPU 3 memory 4 MiB afterwards), and moved the job back to pending with retries 1; the new worker then claimed the next pending job. PASS.
+3. Provisional routing table with a non-model string field crashed arm D at start (KeyError on the field value). Rule: routing_table.json may contain only model names as top-level string values. Fixed in the test table; calibration's writer already obeys this.
+4. Harness-owned scoring validated on the smoke run: official equals printed equals pinned evaluator to 4e-9; canary ok; target-leak probe zero; data hashes pinned.
+Pending at time of writing: server-outage fallback test (after calibration finishes), diagnostic of the 0.03 shift between sbatch runs and worker runs.
+
+## Diagnostic of the sbatch versus worker shift (Oct 21, 02:30)
+Sixteen noise-job runs launched directly from an sbatch script scored 1.1317 to 1.1515 (mean 1.1436) and varied widely at seed 42 (step-10 loss 6.66 to 6.88). Nine runs under the production worker scored 1.1077 to 1.1205 (mean 1.1140) and two seed-42 worker runs reproduced each other to four digits (step-10 loss 6.6585 and 6.6590, val 1.1115 and 1.1114). The data are identical (sha256 of shards 00000 to 00002 and 06542, tokenizer.pkl and token_bytes.pt match between NFS and the node-local copy), train.py differs only by a comment, prepare.py is the pinned file, torch 2.9.1+cu128, triton 3.5.1, Python 3.10.21 in both. Environment differences: the worker pins each trainer to 8 cores, sets PYTORCH_ALLOC_CONF, uses HOME=/tmp/arcache_<uid> with node-local data, and does not pass TRITON_CACHE_DIR. The cause of the shift was not isolated. Consequence: the noise job is not comparable with production runs; the anchor and live sigma come from worker sentinels only, and the noise job is kept as a reference measurement.
+
+## Adversarial candidate through the live worker (Oct 21, 03:05)
+train_ampere.py with optimizer.step removed and the val_bpb print replaced by a constant 0.5 (issue 599 paths 1 and 4), seed 777, sealed. Worker result: status ok, printed val_bpb 0.5, harness official 3.2158 (pinned evaluator 3.2158 to 1e-9), sealed 3.2145, mismatch_flag true, seed_ok true; engine integrity_flags gives ["mismatch"], so the candidate is rejected and the slot charged. PASS.
+
+## Server-outage fallback (Oct 21, 02:42)
+walnut (qwen35-4b) server killed. healthy("qwen35-4b") returned False; call("qwen35-4b", ...) returned ok with served_model haiku after 3 refused attempts (4 attempts total, 2.2 s), error_class None. Server relaunched afterwards. PASS.
+
+## Integration run T2 (fixed engine, live anchor 1.1140 n=8, calibrated-style routing, 3 slots per arm; Oct 21, 02:40 to 03:05)
+Decisions observed live: A kept batch 2^18 (1.0960); B accepted it (z1 2.62); C rejected HEAD_DIM 64 (1.1315, z1 -2.45); A and B hit the tripwire on batch 2^17 (1.051, z1 4.7) and went to audit; D's depth-6 candidate (1.0839, z1 4.2) went to audit, the audit run with sealed evaluation scored 1.0858 official and 1.0852 sealed, z2 5.48, Opus critic no veto, accepted (incumbent 1.0848 over 2 runs). D's served models: gemma4-12b voters 84 calls, haiku 2, sonnet 1, opus 1. Replicate path (0.75 <= z1 < 2.0) not observed live, covered by unit tests. Loops stopped after their in-flight slots via STOP files. PASS.

@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+=======
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    # cosine annealing with warm restarts (SGDR): N_CYCLES equal cycles
+    N_CYCLES = 2
+    frac = min(progress * N_CYCLES, N_CYCLES - 1e-9) % 1.0
+    cos_mult = 0.5 * (1 + math.cos(math.pi * frac))
+    return cos_mult + (1 - cos_mult) * FINAL_LR_FRAC
+>>>>>>> REPLACE
+-----

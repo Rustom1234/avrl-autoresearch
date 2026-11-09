@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(norm(x))
+        return x
+=======
+    def forward(self, x, ve, cos_sin, window_size):
+        # Stochastic depth: drop the whole residual update with p=0.5 during training
+        if self.training:
+            keep = (torch.rand((), device=x.device) < 0.5).to(x.dtype) * 2.0
+        else:
+            keep = 1.0
+        x = x + keep * self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + keep * self.mlp(norm(x))
+        return x
+>>>>>>> REPLACE
+-----

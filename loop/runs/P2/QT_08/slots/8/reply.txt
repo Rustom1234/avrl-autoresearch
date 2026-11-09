@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+=======
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+
+        if targets is not None:
+            epsilon = 0.1  # label smoothing
+            smooth_logits = logits.Unlock(epsilon)
+            loss = F.cross_entropy(smooth_logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+======= SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+======= REPLACE
+        if targets is not None:
+            epsilon = 0.1  # label smoothing
+            smooth_logits = logits.Unlock(epsilon)
+            loss = F.cross_entropy(smooth_logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1, reduction=reduction)
+-----
+<<<<<<< SEARCH
+        softcap = 15
+        logits = self.lm_head(x)
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+=======
+        logits = self.lm_head(x).float()
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction='none')
+        return loss.view_as(logits)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,47 @@
+		loss.backward()
+        x, y, epoch = next(train_loader)
+
++        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+		# Progress and schedules
+-----
+		with autocast_ctx:
+			loss = model(x, y)
+		train_loss = loss.detach()
+		loss = loss / grad_accum_steps
+		loss.backward()
+		# Gradient clipping to stabilize high LR training
+		torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+		x, y, epoch = next(train_loader)
+-----
+<<<<<<< SEARCH
+    train_loss = loss.detach()
+    loss = loss / grad_accum_steps
+    loss.backward()
+    x, y, epoch = next(train_loader)
+=======
+    train_loss = loss.detach()
+    loss = loss / grad_accum_steps
+    loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+    x, y, epoch = next(train_loader)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer = model.setup_optimizer(
+        unembedding_lr=UNEMBEDDING_LR,
+        embedding_lr=EMBEDDING_LR,
+        scalar_lr=SCALAR_LR,
+        adam_betas=ADAM_BETAS,
+        matrix_lr=MATRIX_LR,
+        weight_decay=WEIGHT_DECAY,
+    )
+=======
+    optimizer = model.setup_optimizer(
+        unembedding_lr=UNEMBEDDING_LR,
+        embedding_lr=EMBEDDING_LR,
+        scalar_lr=SCALAR_LR,
+        adam_betas=ADAM_BETAS,
+        matrix_lr=0.055,
+        weight_decay=WEIGHT_DECAY,
+    )
+>>>>>>> REPLACE
+-----

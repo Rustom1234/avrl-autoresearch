@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+=======
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm_base = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    
+    # Layer-specific LR: reduce LR for deeper layers to stabilize output projection
+    if group['kind'] == 'muon' and len(group['params']) > 1:
+        # Check if this group corresponds to a deeper layer (scaled parameters)
+        is_deep_layer = any(p.shape[0] > 8 for p in group['params'])  # heuristic for deeper layers in GPT
+        
+        if is_deep_layer:
+            # Apply cosine decay for deeper layers based on depth relative to total depth
+            depth_factor = 1.0 - progress ** 0.5
+            lrm = lrm_base * max(0.5, 1.0 - (is_deep_layer * 0.5) - depth_factor) * 0.8
+        else:
+            lrm = lrm_base
+    
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+>>>>>>> REPLACE
+-----

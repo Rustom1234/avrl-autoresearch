@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problem found. The diff changes only one line, TOTAL_BATCH_SIZE, from 2**19 to 2**18. It does not touch the val_bpb measurement, the data, the seed lines or the evaluation call.",
+  "No bug found that would make the result meaningless. With DEVICE_BATCH_SIZE 64 and a sequence length of 2048, 2**18 tokens per step means 2 gradient-accumulation steps, so the batch still divides evenly. If the sequence length is different, the existing divisibility assert will catch a mismatch. Halving the batch doubles the number of optimizer steps in the fixed 300 s, so a real gain is plausible.",
+  "The learning rates are not rescaled for the smaller batch. The result is still valid, but the other hyperparameters may now be mistuned.",
+  "I can't reproduce z = 3.312 independently. The incumbent has only 1 run, so it gives no variance estimate. The two candidate runs differ by only 0.0003 (sample SD about 0.00021), which would give a far larger z. The reported z implies the harness used a fixed noise sigma of about 0.0065 (0.02145 / 3.312). Under that assumption the arithmetic is consistent: candidate mean 1.07455 against 1.0960 is a difference of 0.02145.",
+  "The incumbent mean comes from 1 run, so the baseline is weakly estimated. The 0.021 improvement is still large compared with typical run-to-run noise."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

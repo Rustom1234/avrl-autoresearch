@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+        # Embedding and unembedding
+        torch.nn.init.normal_(self.transformer.wte.weight, mean=0.0, std=1.0)
+        torch.nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.001)
+=======
+        # Embedding and unembedding (tied: lm_head shares the embedding weight)
+        torch.nn.init.normal_(self.transformer.wte.weight, mean=0.0, std=1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.transformer.wte.to(dtype=torch.bfloat16)
+        for ve in self.value_embeds.values():
+            ve.to(dtype=torch.bfloat16)
+=======
+        self.transformer.wte.to(dtype=torch.bfloat16)
+        for ve in self.value_embeds.values():
+            ve.to(dtype=torch.bfloat16)
+        # Weight tying: lm_head reuses the embedding parameter
+        self.lm_head.weight = self.transformer.wte.weight
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        lm_head_params = list(self.lm_head.parameters())
+        resid_params = [self.resid_lambdas]
+=======
+        resid_params = [self.resid_lambdas]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        assert len(list(self.parameters())) == (len(matrix_params) + len(embedding_params) +
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+        assert len(list(self.parameters())) == (len(matrix_params) + len(embedding_params) +
+            len(value_embeds_params) + len(resid_params) + len(x0_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=lm_head_params, lr=unembedding_lr * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=embedding_params, lr=embedding_lr * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+=======
+            # Tied embedding/unembedding: shared tensor uses 0.3x embedding LR
+            dict(kind='adamw', params=embedding_params, lr=embedding_lr * 0.3 * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+>>>>>>> REPLACE
+-----

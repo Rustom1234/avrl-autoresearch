@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) Integrity: no problems found. The diff changes one hyperparameter, TOTAL_BATCH_SIZE, from 2**19 to 2**17. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the final summary. The harness also raised no integrity flags.",
+  "(2) Bugs: none found. With DEVICE_BATCH_SIZE 64, 2**17 tokens equals 64 \u00d7 2048 tokens if the sequence length is 2048, so gradient accumulation becomes 1 step instead of 4. The run then makes about 4 times as many optimizer steps in the fixed 300 s, which plausibly explains the gain. The learning rates were not retuned for the smaller batch. That affects how good the result is, not whether it is valid.",
+  "(3) Claims: the diff makes no claims to check. Both candidate runs report exactly 1.0522. Identical results are plausible because the seeds are fixed, but they mean the two runs give almost no information about variance. The improvement over the incumbent mean is 1.1146 \u2212 1.0522 = 0.0624.",
+  "z cannot be recomputed: the incumbent's standard deviation (or standard error) is not given. The reported z = 15.764 would require a spread of about 0.00396. The size of the gain makes accepting the change reasonable either way."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

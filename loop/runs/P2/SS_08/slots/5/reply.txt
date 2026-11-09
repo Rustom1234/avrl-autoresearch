@@ -1,0 +1,100 @@
+<<<<<<< SEARCH
+        softcap = 15
+        logits = self.lm_head(x)
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+=======
+        if targets is not None:
+            xs = x.reshape(-1, x.size(-1)).chunk(4, dim=0)
+            ts = targets.reshape(-1).chunk(4, dim=0)
+            chunk_red = 'none' if reduction == 'none' else 'sum'
+            losses = [torch.utils.checkpoint.checkpoint(self._chunk_loss, xc, tc, chunk_red, use_reentrant=False)
+                      for xc, tc in zip(xs, ts)]
+            if reduction == 'none':
+                return torch.cat(losses)
+            total = sum(losses)
+            if reduction == 'sum':
+                return total
+            return total / (targets != -1).sum().clamp_min(1)
+
+        return self._chunk_loss(x, None, None)
+
+    def _chunk_loss(self, x, targets, reduction):
+        softcap = 15
+        logits = self.lm_head(x)
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+        if targets is None:
+            return logits
+        return F.cross_entropy(logits, targets, ignore_index=-1, reduction=reduction)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+import torch.nn.functional as F
+
+from kernels
+=======
+import torch.nn.functional as F
+import torch.utils.checkpoint
+
+from kernels
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+=======
+DEVICE_BATCH_SIZE = 128  # per-device batch size (chunked checkpointed loss cuts memory)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+        softcap = 15
+        logits = self.lm_head(x)
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+=======
+        if targets is not None:
+            xs = x.reshape(-1, x.size(-1)).chunk(4, dim=0)
+            ts = targets.reshape(-1).chunk(4, dim=0)
+            chunk_red = 'none' if reduction == 'none' else 'sum'
+            losses = [torch.utils.checkpoint.checkpoint(self._chunk_loss, xc, tc, chunk_red, use_reentrant=False)
+                      for xc, tc in zip(xs, ts)]
+            if reduction == 'none':
+                return torch.cat(losses)
+            total = sum(losses)
+            if reduction == 'sum':
+                return total
+            return total / (targets != -1).sum().clamp_min(1)
+
+        return self._chunk_loss(x, None, None)
+
+    def _chunk_loss(self, x, targets, reduction):
+        softcap = 15
+        logits = self.lm_head(x)
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+        if targets is None:
+            return logits
+        return F.cross_entropy(logits, targets, ignore_index=-1, reduction=reduction)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+import torch.nn.functional as F
+=======
+import torch.nn.functional as F
+import torch.utils.checkpoint
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+=======
+DEVICE_BATCH_SIZE = 128  # per-device batch size (chunked checkpointed loss cuts memory)
+>>>>>>> REPLACE
+-----

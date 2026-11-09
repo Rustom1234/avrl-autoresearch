@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+=======
+def get_muon_momentum(step):
+    # Shorten ramp-up to first 100 steps, then ramp to 0.97
+    short_frac = min(step / 100, 1.0)
+    long_frac = max(0.0, 1.0 - step / (300.0))  # 0 to remaining time
+    # Linear blend from 0.85->0.97 over first 100, then hold at 0.97 intermittently
+    if short_frac > 0 and long_frac > 0:  # overlap region (approx 100-300)  # end of ramp
+        return long_frac * 0.97
+    elif short_frac > 0:  # ramp-up region
+        return 0.85 + short_frac * 0.12  # 0.85 -> 0.97 over 0-100 steps  # 
+-----
+<<<<<<< SEARCH
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+=======
+def get_muon_momentum(step):
+    # Short ramp-up to first 100 steps, then hold at 0.97
+    short_frac = min(step / 100, 1.0)
+    if short_frac >= 1.0:
+        return 0.97
+    return 0.85 + short_frac * 0.12  # ramps from 0.85 to 0.97 by step 100
+>>>>>>> REPLACE
+-----

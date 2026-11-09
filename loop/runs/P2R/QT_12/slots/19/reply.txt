@@ -1,0 +1,60 @@
+<<<<<<< SEARCH
+    group["lr"] = group["initial_lr"] * lrm
+=======
+    layer_gn = (grad_fn_partitions + 1e-8).mean()
+    scale = lrm / (max(layer_gn, torch.as_tensor(group["initial_lr"])) + 1e-8)
+    group["lr"] = max(1e-6, group["initial_lr"] * lrm * scale)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    group["lr"] = group["initial_lr"] * lrm
+=======
+    # Harvest gradient norms for all parameter groups to decide a global scale factor
+    is_first_pass = True
+    total_layer_gn = 0
+    
+    # For the small GPT, matrix params are the only large batch contributor; others are negligible
+    for group in optimizer.param_groups:
+        if group["kind"] == "muon":
+            # Extract a representative param (all muon params have same shape)
+            if hasattr(group["params"], "__len__"):
+                stopped = False
+                for p in group["params"]:
+                    if p.grad is not None:
+                        # GPT: shapes are [num_params, head_dim, emb_dim] or similar
+                        g_norm = p.grad.norm().mean()
+                        total_layer_gn += g_norm
+                        if stopped:
+                            break
+                        # Stop immediately as all params share identical shape in our tiny model
+                        stopped = True
+            else:
+                # Fallback if parameters differ (unusual in this setup): sum across groups
+                # This block is never taken for the fixed config; kept for robustness
+                # total_layer_gn += torch.mean(torch.stack(p.grad for p in group["params"]).norm(dim=-1))
+                pass
+        elif group["kind"] == "adamw":
+            # Small 1D params; sum their gradient norms
+            if hasattr(group["params"], "__len__"):
+                stopped = False
+                for p in group["params"]:
+                    if p.grad is not None:
+                        gn = p.grad.norm()
+                        total_layer_gn += gn
+                        # Once we have both scalar directions in AdamW, stop
+                        stopped = True
+                if stopped:
+                    break
+    
+    # Derive a scale factor that dampens the effective LR for deeper layers
+    # Use a 1/sqrt(mean_gn) style normalization: larger grad -> smaller LR
+    norm_scale = ((total_layer_gn + 1e-6) ** -0.5).item()
+    
+    for g in optimizer.param_groups:
+        target_lr = g["initial_lr"] * lrm * norm_scale
+        if target_lr < 1e-6:
+            target_lr = 1e-6
+        g["lr"] = target_lr
+>>>>>>> REPLACE,<<<<<<< SEARCH
+..dev
+-----

@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: no changes to the val_bpb measurement, data, seed lines, evaluation call, final summary or the prepare.py import line. The diff only changes hyperparameters and schedules, and the harness reports no integrity flags.",
+  "Misleading rationale: the comments say the changes counteract noise from a 'smaller batch'. In fact TOTAL_BATCH_SIZE doubles from 2^18 to 2^19, so gradients per optimizer step get less noisy, not more. Only DEVICE_BATCH_SIZE drops from 64 to 32, and that only changes gradient accumulation from 2 to 8 micro-steps per optimizer step. The comment on DEVICE_BATCH_SIZE that 64 'is too large for better step density' does not hold up: smaller micro-batches usually lower GPU use, and the larger total batch means roughly 4x fewer optimizer steps in 300 s.",
+  "The 0.85 MATRIX_LR scale and the 1.1 stable-phase LR multiplier largely cancel (0.935 effective in the stable phase), while warmup and warmdown use only the 0.85 scale. The changes have no clear rationale and are hard to justify.",
+  "Other undocumented behaviour changes: the final Muon momentum drops from 0.95 to 0.88 (ramp over 250 steps instead of 300). Weight decay now rises from 0.8*WD to 1.0*WD instead of decaying to 0, which reverses the incumbent's schedule.",
+  "None of these are bugs that make the result meaningless; the run is a valid measurement. The candidate's 1.0951 is clearly worse than the incumbent mean of 1.0746, so the provisional reject is consistent with the numbers.",
+  "There is only one candidate run, and the incumbent's per-run values are not given. Without them I cannot independently recompute the spread behind z = -3.181 (it implies an SD of about 0.0064). The sign and size are plausible for a 0.0205 regression."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

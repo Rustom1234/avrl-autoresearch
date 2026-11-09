@@ -1,0 +1,4 @@
+Helped: smaller TOTAL_BATCH_SIZE, the only clear win. 2^18 gave 1.0986 (-0.0160). 2^17 gave 1.0549/1.0523 over 2 runs (-0.0450), so the incumbent mean_adjusted is 1.0536. More optimizer steps in the fixed 300 s look like the main lever. The tripwire flag on slot 5 still needs a check.
+Not helped (rejected): depth 10 (+0.0189), depth 6 (+0.0071), WARMUP_RATIO 0.02 (+0.0100), HEAD_DIM 64 (+0.0010), WARMDOWN_RATIO 0.7 (+0.0023), MATRIX_LR 0.04 (+0.0032), value embeddings on every layer (+0.0054). WINDOW_PATTERN SSSSSSSL (+0.0001), DEPTH 6 with ASPECT_RATIO 96 (+0.0000) and FINAL_LR_FRAC 0.05 (-0.0005) are within noise.
+Promising: UNEMBEDDING_LR 0.006 gave 1.0498 (-0.0038) but was rejected as a single run. Replicate it.
+Next: try 2^16 batch, retune LR with it, and retry Adam beta1 0.9 (patch failed). Check the file for no-ops first, since slots 0, 3, 9 and 14 aborted. Avoid size and depth changes.

@@ -1,0 +1,146 @@
+"""",
+"replace": "from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb",
+
+"insert": "from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb
+
+# Gradient-Tolerance Weight Decay
+import torch.nn.functional as F
+
+def get_layer_avg_grads(optimizer):
+    grads = []
+    for group in optimizer.param_groups:
+        for p in group['params']:
+            if p.grad is not None:
+                # For matrix params, compute mean |grad| across all except batch dims
+                g = p.grad.abs().chunk([None])
+                # Normalize over all elements except the last dimension to get "per-layer" estimate
+                g_mean = g.mean().mean().sqrt()
+                grads.append(g_mean)
+    return torch.tensor(grads)
+
+def apply_gradient_tolerance_weight_decay(optimizer, weight_decay, top_k_fraction=0.1):
+    """Apply 2x weight decay only to top k% of layers by gradient magnitude."""
+    lr_scales = []
+    for group in optimizer.param_groups:
+        for p in group['params']:
+            if p.grad is None:
+                continue
+            # Compute mean gradient magnitude
+            g = p.grad.abs()
+            # Reduce over all but last dimension to get per-batch mean
+            mean_g = g.mean(dim=1).mean(dim=0).mean() # B, T -> scalar
+            # Normalize by param count to get average magnitude per weight
+            avg_magn = mean_g / (p.numel())
+            lr_scales.append(avg_magn)
+
+    lr_scales = torch.tensor(lr_scales) if isinstance(lr_scales, list) else lr_scales
+    if not lr_scales.requires_grad:
+        lr_scales = lr_scales.to(torch.float32) if lr_scales.dtype != torch.float32 else lr_scales
+    
+    # Select top k% layers to increase weight decay for
+    k = int(np.ceil(len(lr_scales) * top_k_fraction))
+    top_layers = torch.topk(lr_scales, k)[1]
+    
+    # Create mask: True for top k layers, False otherwise
+    mask = torch.zeros_like(lr_scales)
+    for i, l in enumerate(top_layers):
+        mask[l] = 1.0
+
+    for group in optimizer.param_groups:
+        for p in group['params']:
+            if p.grad is not None:
+                # Apply weight decay twice to selected layers
+                param_lr = group['weight_decay']
+                if mask[p.numel()] > 0:
+                    param_lr *= 2.0
+                p.mul_(1 - group['lr'] * param_lr)
+                p.add_(p.grad, alpha=-group['lr'] * weight_decay * group['weight_decay_mask'] 
+                    if hasattr(p, 'weight_decay_mask') else 0)
+
+
+class GradientAwareMuonAdamW(torch.optim.Optimizer):
+    # ... existing class definition ...
+},
+"function": "apply_gradient_tolerance_weight_decay",
+"replacement": """"}"
+}
+-----
+import math
+import time
+from dataclasses import dataclass, asdict
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from kernels import get_kernel
+cap = torch.cuda.get_device_capability()
+# varunneal's FA3 is Hopper only, use kernels-community on non-Hopper GPUs
+repo = "varunneal/flash-attention-3" if cap == (9, 0) else "kernels-community/flash-attn3"
+fa3 = get_kernel(repo).flash_attn_interface
+
+from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb
+
+# Gradient-Tolerance Weight Decay
+import numpy as np
+from collections import Counter
+
+def get_layer_avg_grads(optimizer):
+    grads = {}
+    for group in optimizer.param_groups:
+        for p in group['params']:
+            if p.grad is not None:
+                g = p.grad.abs()
+                # Mean gradient magnitude per element (all dimensions)
+                avg_g = g.mean()
+                # Group by layer index
+                g_key = p.numel()  # unique per layer in our setup (n_layers * matrix count)
+                grads[g_key] = grads.get(g_key, 0.0) + avg_g.item()
+    if len(grads) == 0:
+        return []
+    return sorted(grads.values())
+
+def apply_gradient_tolerance_weight_decay(optimizer, base_weight_decay, top_n_fraction=0.1):
+    """
+    Apply weight decay only to the top N% of layers by average gradient magnitude.
+    Keys production weights by average gradient magnitude and applies 2x decay to top 10%.
+    """
+    wd_masks = []
+    for group in optimizer.param_groups:
+        if group['kind'] == 'muon':
+            params_in_group = group['params']
+            if len(params_in_group) == 0:
+                wd_masks.append(torch.tensor([False]*len(params_in_group), device='cpu'))
+                continue
+            total_params = len(params_in_group)
+            n_layers = total_params // len(params_in_group)
+            n_params_per_layer = total_params // n_layers
+            grads = get_layer_avg_grads(optimizer)
+            for i in range(n_params_per_layer):
+                if i + n_params_per_layer < len(grads):
+                    grads = grads[:]
+                if i < len(grads):
+                    grads_layer = grads[i]
+                    if new_token(f"layer_grad_mean[{i}]", grads_layer, default=0.0)
+            top_n = int(total_params * top_n_fraction)
+            if top_n == 0:
+                weights = torch.tensor([0.0]*total_params, dtype=torch.float32, device='cpu')
+            else:
+                top_vals = torch.sort(torch.tensor(list(grads)), descending=True)[:top_n]
+                weights = torch.zeros(total_params, dtype=torch.float32, device='cpu')
+                for i in range(top_n):
+                    weights[i] = weights.get()
+                top_n_values[np.arange(top_n)]
+            smask = ['top'] + weights[>'args'](weights=layer_grad)
+            wd_masks.append(weights)
+
+      
+-----
+<<<<<<< SEARCH
+        if step > 10 and total_training_time >= TIME_BUDGET:
+            break
+=======
+        if step > 10 and total_training_time >= TIME_BUDGER:
+            break
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,31 @@
+<<<<\u00a0\u00a0Summary\u00a0\u00a0>>> REPLACE SEARCH REPLACE SEARCH REPLACE>>>>>>> REPLACE
+-----
+在外面已经测试过矩阵学习率增加和梯度裁剪，现在尝试组合它们。将矩阵学习率设置为0.05，并在使用梯度裁剪之前插入值嵌入的学习率设置。
+-----
+# Search start
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+=======
+MATRIX_LR = 0.05        # learning rate for matrix parameters (Muon)
+# Search end
+# Search start
+    loss.backward()
+    x, y, epoch = next(train_loader)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+    train_loss_f = train_loss.item()
+    # Fast fail: abort if loss is exploding or NaN
+    if math.isnan(train_loss_f) or train_loss_f > 100:
+        print("FAIL")
+        exit(1)
+=======
+    loss.backward()
+    x, y, epoch = next(train_loader)
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+    train_loss_f = train_loss.item()
+    # Fast fail: abort if loss is exploding or NaN
+    if math.isnan(train_loss_f) or train_loss_f > 100:
+        print("FAIL")
+        exit(1)
+-----

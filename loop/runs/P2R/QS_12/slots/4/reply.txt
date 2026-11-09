@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        # Value embeddings
+        head_dim = config.n_embd // config.n_head
+=======
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        self.skip_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        # Value embeddings
+        head_dim = config.n_embd // config.n_head
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.x0_lambdas.fill_(0.1)
+        # Value embeddings
+=======
+        self.x0_lambdas.fill_(0.1)
+        self.skip_lambdas.fill_(0.0)
+        # Value embeddings
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0_params = [self.x0_lambdas]
+=======
+        x0_params = [self.x0_lambdas, self.skip_lambdas]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+        n_layer = len(self.transformer.h)
+        half = n_layer // 2
+        skips = []
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            if i >= n_layer - half:
+                x = x + self.skip_lambdas[i] * skips[n_layer - 1 - i]
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+            if i < half:
+                skips.append(x)
+>>>>>>> REPLACE
+-----

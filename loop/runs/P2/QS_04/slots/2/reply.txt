@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+import torch.nn.functional as F
+
+from kernels import get_kernel
+=======
+import torch.nn.functional as F
+from torch.utils.checkpoint import checkpoint
+
+from kernels import get_kernel
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+            if self.training:
+                x = checkpoint(block, x, ve, cos_sin, self.window_sizes[i], use_reentrant=False)
+            else:
+                x = block(x, ve, cos_sin, self.window_sizes[i])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+=======
+DEVICE_BATCH_SIZE = 128  # per-device batch size; checkpointing makes 128 fit on A100 40GB
+>>>>>>> REPLACE
+-----

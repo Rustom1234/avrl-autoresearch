@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+class MLP(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=False)
+        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=False)
+
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = F.relu(x).square()
+        x = self.c_proj(x)
+        return x
+=======
+class MLP(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        # SwiGLU: hidden = 8/3 * dim, rounded to nearest multiple of 64
+        hidden = ((8 * config.n_embd // 3 + 32) // 64) * 64
+        self.c_fc = nn.Linear(config.n_embd, 2 * hidden, bias=False)  # value and gate halves
+        self.c_proj = nn.Linear(hidden, config.n_embd, bias=False)
+
+    def forward(self, x):
+        x, gate = self.c_fc(x).chunk(2, dim=-1)
+        x = F.silu(gate) * x
+        x = self.c_proj(x)
+        return x
+>>>>>>> REPLACE
+-----

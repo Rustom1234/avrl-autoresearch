@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+        self.transformer.wte.to(dtype=torch.bfloat16)
+        for ve in self.value_embeds.values():
+            ve.to(dtype=torch.bfloat16)
+=======
+        self.transformer.wte.to(dtype=torch.bfloat16)
+        for ve in self.value_embeds.values():
+            ve.to(dtype=torch.bfloat16)
+        # Weight tying: share embedding and output projection
+        self.lm_head.weight = self.transformer.wte.weight
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        lm_head_params = list(self.lm_head.parameters())
+        resid_params = [self.resid_lambdas]
+=======
+        lm_head_params = []  # tied to wte, optimized via embedding group
+        resid_params = [self.resid_lambdas]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        logits = self.lm_head(x)
+        logits = logits.float()
+=======
+        logits = self.lm_head(x) * (self.config.n_embd ** -0.5)
+        logits = logits.float()
+>>>>>>> REPLACE
+-----

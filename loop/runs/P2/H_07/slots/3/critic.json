@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine. The diff changes only two hyperparameters: ASPECT_RATIO from 64 to 85 and DEPTH from 8 to 6. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the final summary print.",
+  "Possible bug, not confirmed: 6*85 = 510, which does not divide evenly by HEAD_DIM = 128. The stock train.py rounds model_dim up to a multiple of head_dim, which would give 512, the same width as the incumbent's 8*64. So the real change is likely a shallower model (6 layers instead of 8) at the same width. If this train.py does not round, the attention head split would break. The run finished and gave plausible numbers, so rounding probably happens. I did not check the code.",
+  "The z score can't be reproduced. The incumbent has only one run, so its variance is unknown. The candidate's own two runs (sample sd \u2248 0.0024) would give z \u2248 12 to 17, not 4.57, so the harness must use a noise estimate it does not show. The direction does match: candidate mean 1.0662 against incumbent 1.0957, a gain of about 0.0295.",
+  "Statistical weakness: the comparison rests on one incumbent run. The gain is large compared with the gap between the two candidate runs, so accepting is reasonable, but a replicate of the incumbent would make the comparison sounder."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0662,
+  "incumbent_mean": 1.0957,
+  "delta": 0.0295,
+  "candidate_sample_sd": 0.0024
+ }
+}

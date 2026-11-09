@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+    loss.backward()
+    x, y, epoch = next(train_loader)
+
+    # Progress and schedules
+=======
+    loss.backward()
+    x, y, epoch = next(train_loader)
+
+    # Progress and schedules
+
+    # Prevent Grad NaN/Inf while minimizing clipping penalty
+    all_grads = [p.grad for p in model.parameters() if p.grad is not None]
+    norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+    if norm.item() > 1.0:
+        print(f"Clipping loss: {norm.item():.4f}")
+        # Re-normalize gradients when clipping occurs to maintain signal stability
+        for p in model.parameters():
+            if p.grad is not None:
+                p.grad = p.grad / norm.item()
+            else:
+                p.grad = None
+>>> REPLACE SEARCH
+    loss.backward()
+    x, y, epoch = next(train_loader)
+
+    # Progress and schedules
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    loss.backward()
+    x, y, epoch = next(train_loader)
+
+    # Progress and schedules
+=======
+    loss.backward()
+    x, y, epoch = next(train_loader)
+
+    # Progress and schedules
+
+    # Clamp gradients to 1.0 to stabilize training at higher effective LR
+    torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+>>>>>>> REPLACE
+-----

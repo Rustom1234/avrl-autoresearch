@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+# Schedules (all based on progress = training_time / TIME_BUDGET)
+
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+=======
+# Schedules (all based on progress = training_time / TIME_BUDGET)
+
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    
+    # Cosine annealing with a fixed delta to keep final LR > 0
+    # progress goes from 0 to 1
+    # We want it to go from 1.0 to 0.0 (modified by FINAL_LR_FRAC)
+    # but we cap the decay so it doesn't hit 0 exactly if we want a delta.
+    # Here we implement: lr = 0.5 * (1 + cos(pi * (progress - start) / (1 - start)))
+    # With a delta_L = 0.0001 * initial_lr
+    
+    start = 1.0 - WARMDOWN_RATIO
+    if progress < start:
+        return 1.0
+    
+    # Normalize progress to [0, 1] within the warmdown phase
+    inter_progress = (progress - start) / (1.0 - start)
+    
+    # Cosine value from 1.0 down to 0.0
+    cosine_val = 0.5 * (1.0 + torch.cos(torch.tensor(math.pi * inter_progress)))
+    
+    # Apply FINAL_LR_FRAC and a small floor (delta)
+    # The logic: lr = (cosine_val * (1 - FINAL_LR_FRAC)) + (FINAL_LR_FRAC * (delta / (1-FINAL_LR_FRAC)))
+    # Simplified: ensure it doesn't go below a tiny epsilon
+    lr_mult = cosine_val * (1.0 - FINAL_LR_FRAC)
+    # Add a small delta (0.0001 * initial_lr) at the very end
+    # Since we are returning a multiplier, delta is 0.0001 * (1.0 - FINAL_LR_FRAC)
+    lr_mult += 0.0001 * (1.0 - FINAL_LR_FRAC)
+    
+    return min(1.0, lr_mult)
+>>>>>>> REPLACE
+-----

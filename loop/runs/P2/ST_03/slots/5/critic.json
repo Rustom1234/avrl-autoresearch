@@ -1,0 +1,13 @@
+{
+ "ok": false,
+ "issues": [
+  "The z-loss term is added inside the model's forward pass, in the branch that returns the loss whenever targets are given. The harness probably computes val_bpb through this same forward call (with reduction='none' or similar), so the extra 1e-4 * z_loss term also changes the value it measures. That alters the evaluation path, which is likely what tripped the integrity flag. A z-loss should be added only in the training loop, or behind a flag that is off during evaluation.",
+  "Bug: logsumexp(0) runs over dim 0 of the logits tensor, which is the batch dimension, not the vocabulary dimension. A z-loss needs logsumexp over the last dimension, so as written the term regularizes the wrong quantity and doesn't mean anything.",
+  "Minor: logits.float() makes a full float32 copy of the batch-by-sequence-by-vocab logits, adding memory and time cost on a fixed 300 s budget.",
+  "The harness rejected the run for integrity flags and reported no metric, so there are no numbers to check and z can't be recomputed."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

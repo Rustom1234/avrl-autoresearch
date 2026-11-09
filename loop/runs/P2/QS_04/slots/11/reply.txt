@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        # Value embeddings
+        head_dim = config.n_embd // config.n_head
+=======
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        self.register_buffer("layer_keep", torch.ones(config.n_layer), persistent=False)
+        # Value embeddings
+        head_dim = config.n_embd // config.n_head
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.resid_lambdas.fill_(1.0)
+        self.x0_lambdas.fill_(0.1)
+=======
+        self.resid_lambdas.fill_(1.0)
+        self.x0_lambdas.fill_(0.1)
+        self.layer_keep.fill_(1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+=======
+            x = x + self.layer_keep[i].to(x.dtype) * (block(x, ve, cos_sin, self.window_sizes[i]) - x)
+        x = norm(x)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+=======
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+MAX_LAYER_DROP = 0.2    # max stochastic layer-drop prob (last layer, end of training)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+=======
+    t0 = time.time()
+    # Curriculum stochastic depth: drop prob grows with progress and layer index
+    _p = min(total_training_time / TIME_BUDGET, 1.0)
+    _probs = torch.arange(config.n_layer, dtype=torch.float32) / (config.n_layer - 1) * (MAX_LAYER_DROP * _p)
+    model.layer_keep.copy_((torch.rand(config.n_layer) >= _probs).float())
+    for micro_step in range(grad_accum_steps):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+model.eval()
+with autocast_ctx:
+=======
+model.eval()
+model.layer_keep.fill_(1.0)
+with autocast_ctx:
+>>>>>>> REPLACE
+-----

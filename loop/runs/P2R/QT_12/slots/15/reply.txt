@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+=======
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+EMBED_DELAY_STEPS = 50  # skip token-embedding updates for the first N steps
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+wte_params = list(model.transformer.wte.parameters())
+model = torch.compile(model, dynamic=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    if step < EMBED_DELAY_STEPS:
+        for p in wte_params:
+            p.grad = None  # AdamW skips params with no grad
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+-----

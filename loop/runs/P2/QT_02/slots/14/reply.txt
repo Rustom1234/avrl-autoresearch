@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = F.relu(x).square()
+        x = self.c_proj(x)
+        return x
+=======
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = F.relu(x).square()
+        tau = 0.01  # scale parameter
+        for name, m in [('c_fc', self.c_fc), ('c_proj', self.c_proj)]:
+            x = x * torch.exp(-torch.abs(m.weight) / tau)
+        x = self.c_proj(x)
+        return x
+>>>>>>> REPLACE
+-----

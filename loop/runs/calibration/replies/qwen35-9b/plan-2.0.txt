@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "title": "Enable Gradient Clipping",
+      "spec": "Add a GRAD_CLIP_VALUE = 1.0 constant and modify the backward pass in the training loop to clip global norm of gradients before the optimizer step using torch.nn.utils.clip_grad_norm_, which stabilizes training in low-precision or unstable regimes.",
+      "family": "regularization"
+    },
+    {
+      "title": "Reduce Embedding Learning Rate",
+      "spec": "Change EMBEDDING_LR from 0.6 to 0.3 in the hyperparameters section to dampen updates to token embeddings, which often cause high-frequency noise in autoregressive tasks.",
+      "family": "optimizer"
+    },
+    {
+      "title": "Switch to RMSNorm",
+      "spec": "Modify the architecture import or layer definition to replace LayerNorm with RMSNorm (Root Mean Square Layer Normalization), which is more stable for LLMs and often yields slightly better convergence with less tuning.",
+      "family": "architecture"
+    },
+    {
+      "title": "Increase Batch Size via Gradient Accumulation",
+      "spec": "Decrease DEVICE_BATCH_SIZE from 64 to 32 and increase TOTAL_BATCH_SIZE proportionally (divide by 2 then multiply by 2) to simulate larger effective batch size if the training loop supports accumulation steps, or simply lower DEVICE_BATCH_SIZE if accumulation is not implemented, to improve optimization landscape coverage.",
+      "family": "batch"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "The diff changes only one line: torch.compile now uses mode=\"max-autotune-no-cudagraphs\". It does not touch the seed lines, the prepare.py import line, the data loader, the evaluation call or the final summary printing. Nothing in it changes how val_bpb is measured.",
+  "This is not a correctness bug. Autotuning only picks different kernels for the same computation, so results can differ slightly in floating point but the model is the same. Leaving out CUDA graphs avoids the usual problems with graph capture and replay.",
+  "The harness gives no reason for the integrity flag. Nothing in this diff explains it. It may be a false positive, or it may come from something outside the shown diff. Someone should check the harness log before treating this as misconduct.",
+  "Practical risk: max-autotune benchmarks many kernel variants, which can make compile take much longer. Compile time doesn't count toward the 300 s training budget, but startup plus training must stay under 450 s, so this change could cause a timeout rejection. That would be a time-limit failure, not an integrity one.",
+  "The run was rejected, so the harness gave no val_bpb numbers. z can't be recomputed and no claimed numbers can be checked."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

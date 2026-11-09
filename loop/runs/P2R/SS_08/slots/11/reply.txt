@@ -1,0 +1,84 @@
+<<<<<<< SEARCH
+        self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) else None
+=======
+        self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) else None
+        self.q_scale = nn.Parameter(torch.full((self.n_head,), 1.2))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        q, k = norm(q), norm(k)
+
+=======
+        q, k = norm(q), norm(k)
+        q = q * self.q_scale.view(1, 1, -1, 1).to(q.dtype)
+
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for block in self.transformer.h:
+            if block.attn.ve_gate is not None:
+                torch.nn.init.zeros_(block.attn.ve_gate.weight)
+=======
+        for block in self.transformer.h:
+            block.attn.q_scale.fill_(1.2)
+            if block.attn.ve_gate is not None:
+                torch.nn.init.zeros_(block.attn.ve_gate.weight)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        matrix_params = list(self.transformer.h.parameters())
+        value_embeds_params
+=======
+        matrix_params = [p for p in self.transformer.h.parameters() if p.ndim == 2]
+        qscale_params = [b.attn.q_scale for b in self.transformer.h]
+        value_embeds_params
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params) + len(qscale_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+        ]
+=======
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=qscale_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+        ]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+        self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) else None
+=======
+        self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) else None
+        self.q_scale = nn.Parameter(torch.full((self.n_head,), 1.2))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        q, k = norm(q), norm(k)
+=======
+        q, k = norm(q), norm(k)
+        q = q * self.q_scale.view(1, 1, -1, 1).to(q.dtype)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            if block.attn.ve_gate is not None:
+                torch.nn.init.zeros_(block.attn.ve_gate.weight)
+=======
+            block.attn.q_scale.fill_(1.2)
+            if block.attn.ve_gate is not None:
+                torch.nn.init.zeros_(block.attn.ve_gate.weight)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        matrix_params = list(self.transformer.h.parameters())
+=======
+        matrix_params = [p for p in self.transformer.h.parameters() if p.ndim == 2]
+        qscale_params = [b.attn.q_scale for b in self.transformer.h]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params) + len(qscale_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+=======
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=qscale_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+>>>>>>> REPLACE
+-----

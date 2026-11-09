@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+        if targets is not None:
+            smooth_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                         ignore_index=-1, reduction=reduction)
+            # Label smoothing to reduce overconfidence
+            labels = targets.view(-1)
+            smooth_labels = torch.full_like(labels, -1, dtype=logits.dtype)
+            for i in range(labels.size(0)):
+                smooth_labels[i, labels[i]:labels[i]+1] = smooth_labels[i, labels[i]:labels[i]+1] * (smooth_eps + 1)
+            smooth_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), smooth_labels.view(-1), ignore_index=-1, reduction=reduction)
+            return smooth_loss
+=======
+        if targets is not None:
+            # Label smoothing to reduce overconfidence (built-in; avoids per-token Python loop)
+            smooth_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                         ignore_index=-1, reduction=reduction, label_smoothing=0.1)
+            return smooth_loss
+>>>>>>> REPLACE
+-----

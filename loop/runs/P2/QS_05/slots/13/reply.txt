@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+            group_params = [p for p in matrix_params if p.shape == shape]
+            param_groups.append(dict(
+                kind='muon', params=group_params, lr=matrix_lr,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            ))
+=======
+            n_layer = len(self.transformer.h)
+            for bucket, scale in enumerate((1.2, 0.8)):
+                group_params = [p for i, blk in enumerate(self.transformer.h)
+                                for p in blk.parameters()
+                                if p.shape == shape and i * 2 // n_layer == bucket]
+                if not group_params:
+                    continue
+                param_groups.append(dict(
+                    kind='muon', params=group_params, lr=matrix_lr * scale,
+                    momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+                ))
+>>>>>>> REPLACE
+-----

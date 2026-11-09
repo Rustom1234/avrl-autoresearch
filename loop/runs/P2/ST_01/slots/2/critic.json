@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "Diff is a one-line hyperparameter change (TOTAL_BATCH_SIZE 2**19 -> 2**18). It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing. Integrity flags: none.",
+  "No bug that would make the result meaningless. 2**18 = 262144 is still divisible by DEVICE_BATCH_SIZE*seq_len (64*2048 = 131072, assuming the usual 2048 sequence length), so gradient accumulation drops from 4 to 2 steps and stays a whole number. Halving the batch gives about twice as many optimizer steps in the fixed 300 s, which is a plausible real gain. Learning rates were not retuned for the smaller batch, but that is a tuning choice, not a validity problem.",
+  "Numbers match the claim: candidate mean = (1.0667+1.0643)/2 = 1.0655, which is 0.0371 lower (better) than the incumbent's 1.1026. Both candidate runs beat the incumbent by a wide margin.",
+  "z could not be reproduced from the given numbers alone. The incumbent has only 1 run, so its variance is unknown. Using only the candidate's spread (sd ~0.0017) gives z of roughly 18-31, not 5.749, so the harness must use a prior or pooled noise estimate that isn't shown. Any reasonable noise level still supports accept.",
+  "Weak point: the incumbent was measured only once. A replicate of the incumbent would make the comparison stronger, but the 0.037 gap is far larger than the typical seed noise."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0655,
+  "delta": 0.0371
+ }
+}

@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+        self.ve_gate_channels = 32
+=======
+        self.qk_scale = nn.Parameter(torch.tensor(1.2))
+        self.ve_gate_channels = 32
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        q, k = norm(q), norm(k)
+
+=======
+        q, k = norm(q) * self.qk_scale, norm(k)
+
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        matrix_params = list(self.transformer.h.parameters())
+=======
+        matrix_params = [p for p in self.transformer.h.parameters() if p.ndim == 2]
+        qk_params = [p for p in self.transformer.h.parameters() if p.ndim < 2]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params) + len(qk_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+        ]
+=======
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=qk_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+        ]
+>>>>>>> REPLACE
+-----

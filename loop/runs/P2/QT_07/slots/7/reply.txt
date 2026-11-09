@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+        self.c_q = nn.Linear(self.n_embd, self.n_head * self.head_dim, bias=False)
+        self.c_k = nn.Linear(self.n_embd, self.n_kv_head * self.head_dim, bias=False)
+        self.c_v = nn.Linear(self.n_embd, self.n_kv_head * self.head_dim, bias=False)
+        self.c_proj = nn.Linear(self.n_embd, self.n_embd, bias=False)
+=======
+        self.c_q = nn.Linear(self.n_embd, self.n_head * self.head_dim, bias=True)
+        self.c_k = nn.Linear(self.n_embd, self.n_kv_head * self.head_dim, bias=True)
+        self.c_v = nn.Linear(self.n_embd, self.n_kv_head * self.head_dim, bias=True)
+        self.c_proj = nn.Linear(self.n_embd, self.n_embd, bias=True)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            torch.nn.init.zeros_(block.attn.c_proj.weight)
+=======
+            torch.nn.init.zeros_(block.attn.c_proj.weight)
+            torch.nn.init.zeros_(block.attn.c_q.bias)
+            torch.nn.init.zeros_(block.attn.c_k.bias)
+            torch.nn.init.zeros_(block.attn.c_v.bias)
+            torch.nn.init.zeros_(block.attn.c_proj.bias)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for shape in sorted({p.shape for p in matrix_params}):
+            group_params = [p for p in matrix_params if p.shape == shape]
+=======
+        bias_params = [p for p in matrix_params if p.ndim == 1]
+        param_groups.append(dict(kind='adamw', params=bias_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0))
+        for shape in sorted({p.shape for p in matrix_params if p.ndim == 2}):
+            group_params = [p for p in matrix_params if p.shape == shape]
+>>>>>>> REPLACE
+-----

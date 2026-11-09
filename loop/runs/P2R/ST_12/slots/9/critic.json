@@ -1,0 +1,13 @@
+{
+ "ok": false,
+ "issues": [
+  "Label smoothing (eps=0.01) is put inside the model's forward() loss path with no check on self.training. The evaluation (evaluate_bpb) gets its per-token losses by calling model(x, y, reduction='none'), so this edit also changes how val_bpb is measured, not just the training objective. The harness flags this as an altered evaluation path.",
+  "With label smoothing, the per-token loss is (1-eps)*CE + eps*mean_k(-log p_k). That is not the cross-entropy, so a bpb computed from it is no longer bits per byte and the result is meaningless. It is also biased, almost always upward, so it would not even be a fair test of the idea.",
+  "If label smoothing is wanted as a training-only regularizer, apply it only when self.training is true, or in the training loop, and keep evaluation on plain cross-entropy with the default label_smoothing=0.",
+  "The harness rejected the run for integrity flags and produced no val_bpb numbers, so z cannot be computed. The comment's claim that this improves generalization has no evidence behind it."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

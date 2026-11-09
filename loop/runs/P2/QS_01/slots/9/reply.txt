@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+        self.ve_gate_channels = 32
+=======
+        self.conv = nn.Conv1d(self.n_embd, self.n_embd, 4, groups=self.n_embd, bias=False)
+        self.ve_gate_channels = 32
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        y = y.contiguous().view(B, T, -1)
+        y = self.c_proj(y)
+=======
+        y = y.contiguous().view(B, T, -1)
+        c = self.conv(F.pad(x.transpose(1, 2), (3, 0))).transpose(1, 2)
+        y = self.c_proj(y + c)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            torch.nn.init.zeros_(block.attn.c_proj.weight)
+=======
+            torch.nn.init.zeros_(block.attn.c_proj.weight)
+            torch.nn.init.normal_(block.attn.conv.weight, std=0.1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        matrix_params = list(self.transformer.h.parameters())
+=======
+        matrix_params = [p for p in self.transformer.h.parameters() if p.ndim == 2]
+        conv_params = [p for p in self.transformer.h.parameters() if p.ndim == 3]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params) + len(conv_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=resid_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+=======
+            dict(kind='adamw', params=conv_params, lr=0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=resid_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def setup_optimizer_adamW(model, company, head_dim, d0):
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, betas=(0.8, 0.999), eps=1e-8)
+    return optimizer
+=======
+# Layer-wise fine-tuning: first block gets half LR
+group_configs = [
+    dict(params=model.blocks[:2].parameters(), lr=base_lr * 0.5, weight_decay=wd),
+    dict(params=model.blocks[2:].parameters(), lr=base_lr, weight_decay=wd),
+]
+optimizer = torch.optim.AdamW(optimizer_state_map(group_configs))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    optimizer = model.setup_optimizer(
+        unembedding_lr=UNEMBEDDING_LR,
+        embedding_lr=EMBEDDING_LR,
+        scalar_lr=SCALAR_LR,
+        adam_betas=ADAM_BETAS,
+        matrix_lr=MATRIX_LR,
+        weight_decay=WEIGHT_DECAY,
+    )
+=======
+    # Layer-wise FT: reduce LR for first block by 0.5
+    adj_lr = UNEMBEDDING_LR * 0.5
+    optimizer = model.setup_optimizer(
+        unembedding_lr=adj_lr,
+        embedding_lr=EMBEDDING_LR,
+        scalar_lr=SCALAR_LR,
+        adam_betas=ADAM_BETAS,
+        matrix_lr=MATRIX_LR,
+        weight_decay=WEIGHT_DECAY,
+    )
+>>>>>>> REPLACE
+-----

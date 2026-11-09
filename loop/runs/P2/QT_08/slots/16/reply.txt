@@ -1,0 +1,76 @@
+<<<<<<< SEARCH
+    with autocast_ctx:
+        val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+=======
+    eps = 0.1
+    mask = torch.ones_like(y)
+    mask[torch.arange(y.size(0)).expand(y.size(0)), y] = 0
+    y_hat = y + eps
+    mask = y_hat
+    
+    with autocast_ctx:
+        val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    torch.cuda.synchronize()
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    torch.cuda.synchronize()
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            y_hat = y + eps
+            mask = y_hat
+            loss = torch.nn.functional.cross_entropy(y, y_hat, reduction='none')
+            loss = loss.masked_fill(~mask.bool(), 0.0)
+            
+            raw_loss = (loss * grad_accum_steps).mean() / grad_accum_steps
+            loss.clip_(-10, 10)
+            
+            with torch.no_grad():
+                x = model(x).view(-1, -1)
+                y_hat = x[..., y.max_dim:​...]
+            
+            logits = model(x).view(-1, -1)
+            y_hat = x.view(-1, -1).view(-1, y.shape[-1])
+            loss = torch.nn.functional.cross_entropy(logits, y, reduction='mean', ignore_index=-1)
+            
+            raw_loss = (loss * grad_accum_steps).mean() / grad_accum_steps
+            loss.clip_(-10, 10)
+            
+            loss.backward()
+        
+        norm_grad = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        
+        x, y, epoch = next(train_loader)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+with autocast_ctx:
+    val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+=======
+# Final eval
+model.eval()
+eps = 0.1
+mask = torch.ones_like(y, requires_grad=False)
+mask[torch.arange(y.size(0)).expand(y.size(0)), y] = 0
+y_hat_category = y + eps
+mask = y_hat_category
+
+with torch.no_grad():
+    eval_output = model(x).float()
+    eval_output = eval_output.view(-1, eval_output.size(-1))
+    val_loss_smooth = F.cross_entropy(eval_output, y_hat_category, reduction='none')
+    val_loss_smooth = val_loss_smooth.masked_fill(~mask.bool(), 0.0).mean()
+val_bpb = val_loss_smooth.item()
+>>>>>>> REPLACE
+-----

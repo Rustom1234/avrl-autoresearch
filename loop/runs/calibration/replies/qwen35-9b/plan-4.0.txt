@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "title": "Switch to Cosine LR Schedule",
+      "spec": "Replace the linear warmup/linear warmdown logic with a standard cosine decay schedule. Change WARMUP_RATIO to 0.1 (to ensure initial stability) and set WARMDOWN_RATIO to 1.0 (since cosine handles the decay phase fully). Update the learning rate scheduler function to compute LR as: lr = initial_lr * 0.5 * (1 + cos(pi * progress)), where progress is normalized steps. This smooths the optimization trajectory compared to linear ramps.",
+      "family": "schedule"
+    },
+    {
+      "title": "Reduce Weight Decay",
+      "spec": "Lower WEIGHT_DECAY from 0.2 to 0.05. High weight decay can overly suppress small-magnitude gradients in the early training phase of small models, potentially hindering the discovery of efficient representations. Reducing it allows for more flexible parameter adaptation while keeping the Muon optimizer stable.",
+      "family": "regularization"
+    },
+    {
+      "title": "Switch to Block Diagonal Gradient",
+      "spec": "Change the gradient clipping or reduction strategy to use block-diagonal second-order information if available in the Muon implementation, or simply reduce the global effective batch size by halving DEVICE_BATCH_SIZE to 32 and compensating by doubling the number of steps if the time budget allows. However, given the strict 300s wall-clock limit, a safer specific edit is: switch the attention window pattern from 'SSSL' to 'S'. This reduces the context window used during attention, lowering memory pressure on the A100 and potentially allowing for a slightly larger effective batch size or more stable gradients due to reduced noise.",
+      "family": "batch"
+    },
+    {
+      "title": "Increase Embedding Learning Rate",
+      "spec": "Increase EMBEDDING_LR from 0.6 to 0.8. Token embeddings often require higher learning rates to overcome the initialization bias and quickly align with the distribution of the dataset, especially in small models. A higher learning rate here can accelerate the convergence of the embedding layer without destabilizing the rest of the network if the other rates are tuned correctly.",
+      "family": "optimizer"
+    }
+  ]
+}

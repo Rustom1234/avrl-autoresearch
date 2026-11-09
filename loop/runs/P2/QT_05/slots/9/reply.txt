@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            if group['kind'] == 'adamw':
+                self._step_adamw(group)
+            elif group['kind'] == 'muon':
+                self._step_muon(group)
+=======
+    def _adaptive_beta2_step(self, group):
+        params = group['params']
+        max_grad_norm = torch.inf
+        min_grad_norm = torch.inf
+        
+        for p in group['params']:
+            if p.grad is not None:
+                with torch.no_grad():
+                    # Use elementwise log to handle very small gradients robustly
+                    grad_log = torch.log1p(torch.abs(p.grad))
+                    max_grad_norm = torch.max(max_grad_norm, grad_log.mean().exp())
+                    min_grad_norm = torch.min(min_grad_norm, grad_log.mean().exp())
+        
+        # Calculate adaptive beta2 factor based on gradient magnitude
+        # Low gradients (< 1e-3) -> warm up variance (lower beta2, ~0.8) to dampen
+        # High gradients (> 1.0) -> keep momentum (high beta2, ~0.98) to stabilize
+        # Normal range uses current beta2
+        log_ratio = logratio_scaled(min_grad_norm, max_grad_norm)
+        if logratio_scaled(min_grad_norm, max_grad_norm) < -1:
+            # Very small gradients: reduce effective beta2 (warm up variance)
+            adj_beta2 = 0.8
+        elif logratio_scaled(min_grad_norm, max_grad_norm) > 1:
+            # Very large gradients: keep beta2 high for stability
+            adj_beta2 = 0.98
+        else:
+            # Normal gradients: interpolate between 0.8 and 0.98 based on log ratio
+            adj_beta2 = 0.8 + (0.98 - 0.8) * (logratio_scaled(min_grad_norm, max_grad_norm) + 1) / 2
+        
+        self._muon_momentum_t.fill_(group["momentum"])
+        self._muon_lr_t.fill_(group["lr"] * max(1.0, shape[-2] / shape[-1])**0.5)
+        self._muon_wd_t.fill_(group["weight_decay"])
+        
+        # Disable nesterov momentum when variances are warm (to avoid instability)
+        use_nesterov = min_grad_norm.item() > 1e-4
+        momentum_t = self._muon_momentum_t.float()
+        
+        muon_step_fused(stacked_grads, stacked_params,
+                        state["momentum_buffer"], state["second_momentum_buffer"],
+                        momentum_t, self._muon_lr_t, self._muon_wd_t,
+                        self._muon_beta2_t, group["ns_steps"], red_dim)
+        torch._foreach_copy_(params, list(stacked_params.unbind(0)))
+>>>>>>> REPLACE
+-----

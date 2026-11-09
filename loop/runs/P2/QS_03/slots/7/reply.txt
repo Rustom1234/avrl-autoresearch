@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    exp_avg.lerp_(grad, 1 - beta1_t)
+    exp_avg_sq.lerp_(grad.square(), 1 - beta2_t)
+    bias1 = 1 - beta1_t ** step_t
+    bias2 = 1 - beta2_t ** step_t
+    denom = (exp_avg_sq / bias2).sqrt() + eps_t
+    step_size = lr_t / bias1
+    p.add_(exp_avg / denom, alpha=-step_size)
+=======
+    g32 = grad.float()
+    m = exp_avg.float().lerp_(g32, 1 - beta1_t)
+    v = exp_avg_sq.float().lerp_(g32.square(), 1 - beta2_t)
+    exp_avg.copy_(m)
+    exp_avg_sq.copy_(v)
+    bias1 = 1 - beta1_t ** step_t
+    bias2 = 1 - beta2_t ** step_t
+    denom = (v / bias2).sqrt() + eps_t
+    step_size = lr_t / bias1
+    p.add_((m / denom).to(p.dtype), alpha=-step_size)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                state['exp_avg'] = torch.zeros_like(p)
+                state['exp_avg_sq'] = torch.zeros_like(p)
+=======
+                state['exp_avg'] = torch.zeros_like(p, dtype=torch.bfloat16)
+                state['exp_avg_sq'] = torch.zeros_like(p, dtype=torch.bfloat16)
+>>>>>>> REPLACE
+-----

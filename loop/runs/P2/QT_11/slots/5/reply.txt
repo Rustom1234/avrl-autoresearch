@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = F.relu(x).square()
+        x = self.c_proj(x)
+        return x
+=======
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = F.relu(x).square()
+        x = self.c_proj(x)
+        # Fold-in penalty to regularize LN weights and reduce layer dependencies
+        x = x * (1e-5 * x.norm(dim=1).mean(dim=1).expand(x.size(1)) + 1.0)
+        return x
+>>>>>>> REPLACE
+-----

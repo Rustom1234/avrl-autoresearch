@@ -1,0 +1,13 @@
+{
+ "ok": false,
+ "issues": [
+  "Bug that makes the result meaningless: the cosine warmdown runs backwards. `cooldown = (1 - progress) / WARMDOWN_RATIO` is 1 when warmdown starts and 0 when it ends. The new formula `0.5*(1+cos(pi*cooldown))*(1-FINAL_LR_FRAC)+FINAL_LR_FRAC` therefore gives FINAL_LR_FRAC at the start of warmdown and 1.0 at the end. The LR drops suddenly from 1.0 to FINAL_LR_FRAC when warmdown begins, then climbs back to the peak LR by the last step. The run ended at full LR, which explains the large loss (1.118 against 1.065). It says nothing about whether a cosine warmdown helps. Fix: use cos(pi*(1 - cooldown)), or the equivalent 0.5*(1 - cos(pi*cooldown)) as the multiplier.",
+  "No change to the eval call, data, seed lines or the val_bpb measurement. Only the LR schedule function changed.",
+  "The reported numbers agree with each other: the candidate (1.118) is worse than the incumbent mean (1.0650), so a negative z and the reject are correct. z = -9.130 implies a reference std of about 0.0058. That std was not provided, so z cannot be recomputed independently.",
+  "Recommendation: the reject stands, but cosine warmdown should not count as tested. After fixing the sign it is worth one slot."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

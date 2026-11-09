@@ -1,0 +1,126 @@
+<<<<<<< SEARCH
+    "momentum": muon_momentum,
+    "weight_decay": muon_weight_decay
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    "momentum": muon_momentum,
+    "weight_decay": muon_weight_decay,
+    "use_lookback": True,
+    "lookback_k": 5
+    optimizer.step(use_lookback=True)
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+  },
+  "abort": false,
+  "abort_reason": "". (Note: Actual SEARCH/REPLACE block below.)
+-----
+<<<<<<< SEARCH
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+    optimizer.step()
+=======
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+        if group['kind'] == 'adamw':
+            # Store previous gradients and momentum for lookback
+            for p in group['params']:
+                state = optimizer.state.get(p)
+                if state is None:
+                    state = optimizer.state[p] = type('State', (), {})()
+                    state.grad_buffer = []
+                    state.mom_buffer = []
+                    for _ in range(100):
+                        state.grad_buffer.append(torch.zeros_like(p))
+                        state.mom_buffer.append(torch.zeros_like(p))
+                old_grad = state.grad_buffer[0].clone()
+                state.grad_buffer.insert(0, old_grad)
+                state.grad_buffer.pop()
+                state.mom_buffer.insert(0, state.mom_buffer[0].clone())
+                state.mom_buffer.pop()
+    if 'is_lookback' not in optimizer:
+        optimizer.is_lookback = False
+    if optimizer.is_lookback:
+        for i, group in enumerate(optimizer.param_groups):
+            if group['kind'] == 'adamw':
+                optimizer.is_lookback_next = True
+                optimizer.lookback_k = i + 1
+                # Re-run the inner loop
+                for j in optimizer.param_groups:
+                    pass
+                optimizer.step(is_lookback_state=next_group)
+            else:
+                optimizer.step()
+=======
+    for group in optimizer.param_groups:
+        if group['kind'] == 'adamw':
+            # Store previous gradients and momentum for lookback
+            for p in group['params']:
+                state = optimizer.state.get(p)
+                if state is None:
+                    state = optimizer.state[p] = type('State', (), {})()
+                    state.grad_buffer = []
+                    state.mom_buffer = []
+                    for _ in range(100):
+                        state.grad_buffer.append(torch.zeros_like(p))
+                        state.mom_buffer.append(torch.zeros_like(p))
+                # Keep window of past gradients
+                for i in range(100):
+                    state.grad_buffer[i % 100].copy_(group.Options['past_grads'][i % group['params']]))
+            optimizer.step()
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+class MuonAdamW(torch.optim.Optimizer):
+    """Combined optimizer: Muon for 2D matrix params, AdamW for others."""
+
+    def __init__(self, param_groups):
+        super().__init__(param_groups, defaults={})
+        # 0-D CPU tensors to avoid torch.compile recompilation when values change
+        self._adamw_step_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_lr_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_beta1_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_beta2_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_eps_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._adamw_wd_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_momentum_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_lr_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_wd_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+        self._muon_beta2_t = torch.tensor(0.0, dtype=torch.float32, device="cpu")
+=======
+class LookbackAdamW(torch.optim.Optimizer):
+    """Simple lookback Adam: stores 100 most recent gradients and uses their mean as update direction."""
+
+    def __init__(self, param_groups):
+        super().__init__(param_groups, defaults={})
+        LOOKBACK_WINDOW = 100
+        for group in param_groups:
+            if not hasattr(group, '_lookback'): 
+                group._lookback = []
+                for p in group['params']:
+                    for _ in range(LOOKBACK_WINDOW):
+                        group._lookback.append(torch.zeros_like(p))
+...
+    def __setstate__(self, state):
+        return super().__setstate__(state)
+
+
+@torch.compile(dynamic=False, fullgraph=True)
+def lookback_adamw_step_fused(p, grad, exp_avg, exp_avg_sq, step_t, lr_t, beta1_t, beta2_t, eps_t,
+                               lookback_grads, lookback_lr_factor):
+    p.mul_(1 - lr_t * (grad + lookback_grads) * lookback_lr_factor - lr_t * 0.01 * grad)
+    exp_avg.lerp_(grad, 1 - beta1_t)
+    exp_avg_sq.lerp_(grad.square(), 1 - beta2_t)
+    bias1 = 1 - beta1_t ** step_t
+    bias2 = 1 - beta2_t ** step_t
+    denom = (exp_avg_sq / bias2).sqrt() + eps_t
+    step_size = lr_t / bias1
+    p.add_(exp_avg / denom, alpha=-step_size)osemite_grads = torch.stack([p.grad for p in params])
+>>>>>>> REPLACE
+-----

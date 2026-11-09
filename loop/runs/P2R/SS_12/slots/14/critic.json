@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing found that touches measurement or integrity. The diff changes only two hyperparameters: TOTAL_BATCH_SIZE goes from 2**19 to 2**18, and the Muon momentum warmup goes from 300 to 600 steps. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing.",
+  "No bug makes the result meaningless. 2**18 divides evenly by DEVICE_BATCH_SIZE*seq_len (e.g. 64*2048 gives grad_accum=2), so gradient accumulation still works. With a smaller batch the run takes about twice as many optimizer steps in the fixed 300 s, which is why the longer momentum warmup is a reasonable pairing.",
+  "I could not fully recompute z because the incumbent's per-run values and spread were not provided. The candidate mean is 1.06815 (sd about 0.0002) against an incumbent mean of 1.0811, a difference of 0.01295. The reported z of 2.459 implies a standard error of about 0.00527, which suggests the incumbent's runs vary much more than the candidate's or that the harness uses a pooled or prior noise estimate. I can't check that from the numbers given.",
+  "Each side has only n=2 runs, so the z value is fragile. The improvement of about 0.013 bpb looks plausible and consistent across both candidate runs, though, and nothing contradicts the provisional accept."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.06815,
+  "incumbent_mean": 1.0811,
+  "delta": -0.01295,
+  "implied_se_from_reported_z": 0.00527
+ }
+}

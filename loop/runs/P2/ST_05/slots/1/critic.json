@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: no problems found. The diff changes one hyperparameter, TOTAL_BATCH_SIZE, from 2**19 to 2**17. It does not touch the val_bpb measurement, the data, the seed lines, the prepare.py import line or the evaluation call.",
+  "Bugs: none found. A smaller total batch gives more optimizer steps in the fixed 300 s, so a large gain is plausible. The change keeps divisibility as long as DEVICE_BATCH_SIZE*MAX_SEQ_LEN divides 2**17 (64*2048 = 2**17, so 1 accumulation step). The script's existing assert would catch it if not. Learning rates were not rescaled for the 4x smaller batch, but that is a tuning choice, not a reason to veto.",
+  "Numbers: I cannot recompute z exactly because the incumbent standard deviation is not given. The candidate mean is (1.0517+1.0501)/2 = 1.0509, which is 0.0637 below the incumbent mean of 1.1146. The reported z = 16.094 implies a standard error of about 0.00396, which is consistent with typical run-to-run noise. The improvement is about 16x that noise, so accepting is justified.",
+  "Caveat: there are only 2 candidate runs, and 'adjusted values' is not defined. The decision still holds easily."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

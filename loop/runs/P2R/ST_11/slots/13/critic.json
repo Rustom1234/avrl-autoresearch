@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) Integrity: the diff changes only the TOTAL_BATCH_SIZE constant and its comment. The evaluation call, the seed lines, the prepare.py import line and the data handling are untouched, and the harness raised no integrity flags.",
+  "(2) Correctness: assuming the usual MAX_SEQ_LEN of 2048 (the diff doesn't show it), DEVICE_BATCH_SIZE 64 x 2048 = 131072 = 2**17. That makes grad_accum_steps exactly 1, so the divisibility assertion holds and both runs finished. Learning rates and schedules are unchanged, which is a valid hyperparameter choice, not a bug. I found no bug that would make the result meaningless.",
+  "(3) Claims: the comment 'maximizes step frequency' is accurate. With DEVICE_BATCH_SIZE capped at 64 (128 runs out of memory), 2**17 is the smallest batch with no gradient accumulation, so it gives the most optimizer steps.",
+  "Numbers: the candidate mean is 1.0502 (sd about 0.0021, n=2), an improvement of 0.0165 over the incumbent mean of 1.0667. The harness z of 3.129 implies a standard error of about 0.0053, which must include incumbent variance I wasn't given. Using the candidate spread alone would give z of about 11. I can't reproduce z exactly from the numbers provided, but both candidate runs beat the incumbent mean by at least 0.015, which supports the accept direction.",
+  "Minor caveat: with n=2 per arm the variance estimate is weak. The effect is large compared with the spread between the two candidate runs, so I don't see a concern serious enough to block the accept."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}
