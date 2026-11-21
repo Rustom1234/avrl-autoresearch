@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _hole_search(rng, starts=2, top=3):
+    """Solve 25 circles, insert a 26th into the largest holes, re-solve all 26."""
+    results = []
+    g = np.linspace(0.0, 1.0, 60)
+    gx, gy = np.meshgrid(g, g)
+    P = np.column_stack([gx.ravel(), gy.ravel()])
+    wall = np.minimum(np.minimum(P[:, 0], P[:, 1]), np.minimum(1 - P[:, 0], 1 - P[:, 1]))
+    for _ in range(starts):
+        try:
+            c0 = rng.uniform(0.05, 0.95, size=(25, 2))
+            r0 = np.full(25, 0.08)
+            c0, r0 = _relax(c0, r0, iters=60)
+            c25, r25 = _optimize(c0, r0)
+            r25 = _repair(c25, r25)
+            dist = np.sqrt(((P[:, None, :] - c25[None, :, :]) ** 2).sum(-1))
+            cap = np.minimum(wall, np.min(dist - r25[None, :], axis=1))
+            picks = []
+            for idx in np.argsort(-cap)[:400]:
+                if all(np.hypot(*(P[idx] - P[p])) > 0.15 for p in picks):
+                    picks.append(idx)
+                if len(picks) == top:
+                    break
+            for p in picks:
+                c26 = np.vstack([c25, P[p][None, :]])
+                r26 = np.append(r25, max(cap[p], 0.0) * 0.999)
+                c, r = _optimize(c26, r26)
+                r = _repair(c, r)
+                results.append((c, r))
+        except Exception:
+            continue
+    return results
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+=======
+    # Add-one-into-hole: solve 25 circles, insert a 26th into the largest holes, re-solve
+    for c, r in _hole_search(rng):
+        if time.time() - t0 > 170:
+            break
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+>>>>>>> REPLACE
+-----

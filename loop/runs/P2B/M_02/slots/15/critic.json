@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: no problems found. The change only touches the reduction='mean' branch of GPT.forward, which is the training loss. The evaluation path calls the model with reduction='none', and that path is unchanged, so val_bpb is measured the same way. The seed lines, the data, the prepare.py import line and the evaluation call are not touched.",
+  "Correctness: no bug that would make the result meaningless. Ignored targets (-1) give a per-token loss of 0, so they add nothing to the weighted sum. The positional weights are rescaled to average 1 across T and the sum is divided by the number of valid tokens, so the loss scale stays about the same as the incumbent's. One small point: when some targets are ignored, the weights over the remaining valid tokens don't average exactly 1. This makes no real difference.",
+  "Numbers: the candidate scored 1.1057 against the incumbent's 1.1021. Higher is worse, so the candidate is 0.0036 worse, which matches the negative z and the reject. I can't recompute z because the run-to-run noise (sigma) used by the harness isn't given, and each side has only one run. The reported z = -0.465 implies sigma \u2248 0.0077. With n=1 each, this can't be confirmed.",
+  "Recommendation: keep the provisional reject. The change adds code and gives no improvement."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

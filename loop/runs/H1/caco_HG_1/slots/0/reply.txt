@@ -1,0 +1,78 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+from sklearn.kernel_ridge import KernelRidge
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+LAMBDA = 0.5
+
+def get_tanimoto_kernel(fp1, fp2):
+    return np.dot(fp1, fp2) / (np.sum(fp1) + np.sum(fp2) - np.minimum(np.sum(fp1), np.sum(fp2)))
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+
+    # Compute Tanimoto Kernel
+    K = np.zeros((X_train.shape[0], X_train.shape[0]))
+    for i in range(X_train.shape[0]):
+        for j in range(i + 1, X_train.shape[0]):
+            score = get_tanimoto_kernel(X_train[i], X_train[j])
+            K[i, j] = K[j, i] = score
+    
+    # Regularize diagonal
+    K += np.eye(X_train.shape[0]) * 1e-6
+    
+    # Center target
+    y_mean = np.mean(y)
+    y_centered = y - y_mean
+    
+    model = KernelRidge(alpha=1/LAMBDA, kernel=' ') # ' ' uses the precomputed K
+    # In sklearn's KernelRidge, if we want to use our K, we can use the 'kernel' parameter as a function 
+    # but for simplicity and to stick to the logic of (K + lambda I)alpha = y, we use the built-in KRR 
+    # and let it handle the K matrix construction if we could, but since we want a specific Tanimoto K, 
+    # we use the formula: alpha = inv(K + lambda I) * y_centered
+    
+    # Linear system solver is more stable than explicit inverse
+    # We use the precomputed K but since sklearn's KRR doesn't easily take a raw matrix 
+    # we use it via the 'kernel' function or just do it manually since it's only 728 samples.
+    
+    # Manual solve for KRR to ensure exact Tanimoto behavior
+    from scipy.linalg import solve
+    alpha = solve((K + np.eye(X_train.shape[0]) * LAMBDA), y_centered)
+    
+    # Prediction: K_test @ alpha + y_mean
+    K_test = np.zeros((X_test.shape[0], X_train.shape[0]))
+    for i in range(X_test.shape[0]):
+        for j in range(X_train.shape[0]):
+            K_test[i, j] = get_tanimoto_kernel(X_test[i], X_train[j])
+    
+    return K_test @ alpha + y_mean
+>>>>>>> REPLACE
+-----

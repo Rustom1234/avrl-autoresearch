@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+N_BITS = 2048
+=======
+N_BITS = 1024
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        fp = gen.GetCountFingerprintAsNumPy(m).astype(np.float64)
+        desc = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        rows.append(np.concatenate([desc, fp]))
+    X = np.array(rows)
+    X[~np.isfinite(X)] = 0.0
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _polish(c, r, box=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n,
+=======
+                   bounds=(list(zip(box[0], box[1])) if box is not None else [(0, 1)] * (2 * n)) + [(0, 0.5)] * n,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 90:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    c, r = best
+    while time.time() - t0 < 150:
+        try:
+            ctr = rng.random(2)
+            inside = ((c - ctr) ** 2).sum(1) < 0.0625
+            k = int(inside.sum())
+            if k == 0:
+                continue
+            c1 = c.copy()
+            c1[inside] = np.clip(ctr + rng.uniform(-0.25, 0.25, (k, 2)), 0.02, 0.98)
+            r1 = r.copy()
+            r1[inside] *= 0.5
+            base = np.concatenate([c1[:, 0], c1[:, 1]])
+            lo = np.maximum(base - 0.02, 0)
+            hi = np.minimum(base + 0.02, 1)
+            f2 = np.concatenate([inside, inside])
+            lo[f2] = 0
+            hi[f2] = 1
+            c2 = np.clip(_polish(c1, r1, (lo, hi)), 0, 1)
+            r2 = _lp_radii(c2)
+            c3 = np.clip(_polish(c2, r2), 0, 1)
+            r3 = _lp_radii(c3)
+        except Exception:
+            continue
+        if r3.sum() > r.sum():
+            c, r = c3, r3
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

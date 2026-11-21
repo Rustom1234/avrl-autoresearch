@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        explore = time.process_time() - t0 < 0.3 * TIME_FRACTION * time_limit or best is None
+        c, r = _solve_once(n, rng, None if explore else best)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    # Arm 0: fresh random restart. Arm 1: perturb the best packing.
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    gain, count = np.zeros(2), np.zeros(2)
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None:
+            arm = 0
+        elif count.min() == 0:
+            arm = int(np.argmin(count))
+        elif rng.random() < 0.8:
+            arm = int(np.argmax(gain / count))
+        else:
+            arm = int(rng.integers(2))
+        c, r = _solve_once(n, rng, None if arm == 0 or best is None else best)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None:
+            best = (c, r)
+        else:
+            gain[arm] += max(0.0, r.sum() - best[1].sum())
+            count[arm] += 1
+            if r.sum() > best[1].sum():
+                best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

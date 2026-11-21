@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+N_TREES = 500
+=======
+N_TREES = 300
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+=======
+def _fit_once(train_smiles, train_y, test_smiles, seed):
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    y = y + np.random.RandomState(seed).normal(0, 0.02, len(y))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.mean([rankdata(p) / len(p) for p in preds], axis=0)
+=======
+    return np.mean([rankdata(p) / len(p) for p in preds], axis=0)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_smiles = list(train_smiles)
+    train_y = np.asarray(train_y, dtype=np.float64)
+    n = len(train_smiles)
+    out = []
+    for i in range(5):
+        rng = np.random.RandomState(seed + i)
+        idx = rng.choice(n, int(0.8 * n), replace=False)
+        p = _fit_once([train_smiles[j] for j in idx], train_y[idx], test_smiles, seed + i)
+        out.append(rankdata(p) / len(p))
+    return np.mean(out, axis=0)
+>>>>>>> REPLACE
+-----

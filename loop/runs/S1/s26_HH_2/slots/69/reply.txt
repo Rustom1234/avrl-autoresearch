@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+=======
+def _ratio_obj(z, r, beta):
+    """Negative softmin (sharpness beta) of pair and wall gap ratios for fixed radii r, with analytic gradient."""
+    n = r.shape[0]
+    c = z.reshape(n, 2)
+    iu, ju = np.triu_indices(n, 1)
+    diff = c[iu] - c[ju]
+    d = np.sqrt(np.sum(diff ** 2, axis=1) + 1e-18)
+    s = r[iu] + r[ju]
+    pr = d / s - 1.0
+    rr = np.maximum(r, 1e-6)
+    x, y = c[:, 0], c[:, 1]
+    wr = np.concatenate([x / rr, y / rr, (1.0 - x) / rr, (1.0 - y) / rr]) - 1.0
+    v = np.concatenate([pr, wr])
+    mn = v.min()
+    w = np.exp(-beta * (v - mn))
+    S = w.sum()
+    p = w / S
+    smin = mn - np.log(S) / beta
+    m = pr.shape[0]
+    pp = p[:m]
+    pw = p[m:].reshape(4, n)
+    u = diff / d[:, None]
+    gc = np.zeros((n, 2))
+    coef = (pp / s)[:, None] * u
+    np.add.at(gc, iu, coef)
+    np.add.at(gc, ju, -coef)
+    gc[:, 0] += (pw[0] - pw[2]) / rr
+    gc[:, 1] += (pw[1] - pw[3]) / rr
+    return -smin, -gc.ravel()
+
+
+def _ratio_stage(c0, r0):
+    """Max-min gap-ratio stage: fixed target radii, annealed softmin, radii rescaled by (1+t) each round."""
+    n = c0.shape[0]
+    t_begin = _time.time()
+    rt = np.maximum(np.asarray(r0, dtype=float), 1e-4)
+    z = np.clip(np.asarray(c0, dtype=float).ravel().copy(), 0.0, 1.0)
+    for rnd in range(8):
+        for beta in np.geomspace(10.0, 300.0, 5):
+            res = _minimize(_ratio_obj, z, args=(rt, beta), jac=True, method="L-BFGS-B",
+                            bounds=[(0.0, 1.0)] * (2 * n), options={"maxiter": 200})
+            z = np.clip(res.x, 0.0, 1.0)
+        t = -_ratio_obj(z, rt, 1e6)[0]
+        if t <= 1e-9 or _time.time() - t_begin > 40:
+            break
+        rt = rt * (1.0 + t)
+    c = z.reshape(n, 2)
+    c2, _r2 = _slsqp_refine(c, rt, 150)
+    best_c = np.asarray(c0, dtype=float).copy()
+    best_rv, best_s = _score(best_c)
+    for cc in (c, c2):
+        rv, s = _score(cc)
+        if rv is not None and s > best_s:
+            best_c, best_rv, best_s = cc.copy(), rv, s
+    if best_rv is None:
+        best_rv = _make_valid(best_c, r0)
+    return best_c, best_rv
+
+
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+    centers, radii = _ratio_stage(centers, radii)
+>>>>>>> REPLACE
+-----

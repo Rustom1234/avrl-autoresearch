@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+from scipy.spatial.distance import pdist
+from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def rff_ridge_predict(Z_tr, y, Z_te, seed, n_feat=1000):
+    sigma = max(np.median(pdist(Z_tr)), 1e-9)
+    rng = np.random.RandomState(seed)
+    W = rng.normal(0.0, 1.0 / sigma, size=(Z_tr.shape[1], n_feat))
+    b = rng.uniform(0.0, 2 * np.pi, size=n_feat)
+
+    def phi(Z):
+        return np.sqrt(2.0 / n_feat) * np.cos(Z @ W + b)
+
+    return Ridge(alpha=1.0).fit(phi(Z_tr), y).predict(phi(Z_te))
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lgbm.fit(desc_features(train_smiles), y)
+    p_desc = lgbm.predict(desc_features(test_smiles))
+=======
+    D_tr, D_te = desc_features(train_smiles), desc_features(test_smiles)
+    lgbm.fit(D_tr, y)
+    p_desc = lgbm.predict(D_te)
+
+    mu, sd = D_tr.mean(0), D_tr.std(0)
+    sd[sd == 0] = 1.0
+    Z_tr = np.clip((D_tr - mu) / sd, -5, 5)
+    Z_te = np.clip((D_te - mu) / sd, -5, 5)
+    p_rff = rff_ridge_predict(Z_tr, y, Z_te, seed)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    return (rankdata(p_desc) + rankdata(p_fp) + rankdata(p_rff)) / (3 * n)
+>>>>>>> REPLACE
+-----

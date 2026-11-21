@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+        CatBoostClassifier(iterations=500, learning_rate=0.05, depth=6, rsm=0.2, thread_count=8,
+                           random_seed=seed, verbose=0),
+    ]
+    preds = []
+    for m in models:
+        m.fit(X, y)
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+=======
+        [CatBoostClassifier(iterations=500, learning_rate=0.05, depth=6, rsm=0.2, thread_count=8,
+                            bootstrap_type="Bernoulli", subsample=0.7, random_seed=seed, verbose=0),
+         CatBoostClassifier(iterations=800, learning_rate=0.03, depth=5, rsm=0.2, random_strength=2,
+                            thread_count=8, bootstrap_type="Bernoulli", subsample=0.7,
+                            random_seed=seed + 1, verbose=0)],
+    ]
+    preds = []
+    for m in models:
+        group = m if isinstance(m, list) else [m]
+        rs = []
+        for g in group:
+            g.fit(X, y)
+            rs.append(rankdata(g.predict_proba(Xt)[:, 1]) / len(Xt))
+        preds.append(np.mean(rs, axis=0))
+>>>>>>> REPLACE
+-----

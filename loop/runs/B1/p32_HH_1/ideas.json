@@ -1,0 +1,951 @@
+[
+ {
+  "id": "b001",
+  "title": "Budget-aware stop instead of a fixed 80 percent",
+  "spec": "In solve, record the CPU time of each restart (SLSQP plus repair) and keep the maximum seen so far, t_max. Replace the loop condition with: elapsed + 1.3*t_max < 0.9*time_limit. Before the first restart, t_max is 0. Set the guided-phase threshold to half of 0.9*time_limit. This uses the time the 0.8 fraction now wastes, while staying well under the 45 s void limit. Remove TIME_FRACTION, or set it to 0.9 and use it in both places.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8221027255058289,
+  "sim_tried_bge": 0.7974944114685059,
+  "sim_hist_mini": 0.7135847806930542,
+  "sources": [
+   [
+    "opus",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Randomized heterogeneous initial radii",
+  "spec": "In _solve_once, unguided starts currently use a constant INIT_RADIUS=0.05. Instead draw the initial radii as rng.uniform(0.02, 0.12, n). Also start guided restarts from the incumbent's radii rather than 0.05 (multiply them by 0.95 so the start is near-feasible). Varied starting radii help SLSQP find mixed-size packings, which is where the optimum lies.",
+  "family": "data",
+  "sim_hist_bge": 0.8953441381454468,
+  "sim_tried_bge": 0.8441048860549927,
+  "sim_hist_mini": 0.7374970316886902,
+  "sources": [
+   [
+    "opus",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Radius-dependent jitter for guided restarts",
+  "spec": "Guided restarts currently jitter every centre by N(0, 0.03). Pass the incumbent radii to _solve_once with the incumbent centres. Set the jitter sd for circle i to 0.012 + 0.05*(1 - r_i/r_max), where r_max is the largest incumbent radius. Small circles, which are often rattlers or badly placed, then move a lot. The large circles that carry most of the sum barely move. Clip to [0, 1] as now. The starting radii stay at INIT_RADIUS.",
+  "family": "data",
+  "sim_hist_bge": 0.835298478603363,
+  "sim_tried_bge": 0.835298478603363,
+  "sim_hist_mini": 0.6551381349563599,
+  "sources": [
+   [
+    "opus",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Clustered Gaussian-mixture starts",
+  "spec": "For non-guided restarts, with probability 0.5 draw the initial centres from a Gaussian mixture instead of the uniform box: pick k = rng.integers(2, 5) cluster means uniformly in [0.2, 0.8]^2, assign each circle to a random cluster, and add rng.normal(0, 0.12) noise to its mean, then clip to [0, 1]. The other half keeps the uniform start. Everything else (SLSQP, repair, time loop) is unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.7803859710693359,
+  "sim_tried_bge": 0.7706677317619324,
+  "sim_hist_mini": 0.6706981062889099,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Keep the top-k packings and polish all of them",
+  "spec": "Maintain a small pool of the best k=5 distinct packings found so far (sorted by radius sum). Each restart either creates a fresh random packing or perturbs a randomly chosen pool member; after each SLSQP solve, insert the result into the pool if it beats the worst member and is not a duplicate in radius sum. Return the best member after repair.",
+  "family": "batch",
+  "sim_hist_bge": 0.8717087507247925,
+  "sim_tried_bge": 0.8717087507247925,
+  "sim_hist_mini": 0.7884585857391357,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Raise MAX_ITER and polish best",
+  "spec": "Use fewer cheap restarts (MAX_ITER=100) then spend the last 25 percent of time re-running SLSQP from the best solution with maxiter=500 and tiny jitter (sd 1e-3), accepting only if the repaired sum improves. This gets full convergence on the best basin.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8863116502761841,
+  "sim_tried_bge": 0.8428860902786255,
+  "sim_hist_mini": 0.7686862945556641,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Analytic Jacobians for SLSQP",
+  "spec": "In _solve_once, pass analytic gradients to SLSQP. Objective jac: zeros for the 2n centre entries and -1 for the n radius entries. Constraint jac: build a dense (m, 3n) matrix. For pair row k=(i,j), set dc_i = (c_i-c_j)/d_ij (guard d with max(d,1e-12)), dc_j = -dc_i, dr_i = dr_j = -1. Wall rows get \u00b11 on the matching coordinate and -1 on r. The r>=0 rows get +1. Compute the static parts once outside the closure and fill in only the pair rows on each call. Pass the matrix as constraints={'type':'ineq','fun':cons,'jac':cons_jac}. Results stay the same, but each restart runs much faster than with finite differences, so more restarts fit in the time.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8614891171455383,
+  "sim_tried_bge": 0.8614891171455383,
+  "sim_hist_mini": 0.6903897523880005,
+  "sources": [
+   [
+    "opus",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Tighter, exact repair",
+  "spec": "Replace the iterative repair with a vectorized one: clip radii to wall distances, then for all overlapping pairs scale down repeatedly until none remain, and use SHRINK=1e-12 plus a final check that the minimum slack >= -1e-12. Reduces the loss from shrinking, and the packing stays valid under the 1e-10 tolerance.",
+  "family": "other",
+  "sim_hist_bge": 0.8567272424697876,
+  "sim_tried_bge": 0.8567272424697876,
+  "sim_hist_mini": 0.7388870120048523,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Sorted-radius diversity init",
+  "spec": "Initialise radii heterogeneously: draw radii from uniform [0.03, 0.12] for each circle and centres by Poisson-disc-like rejection sampling, so that big and small circles mix. Optimal packings for this problem have mixed radii, so this starts nearer to those basins.",
+  "family": "data",
+  "sim_hist_bge": 0.823121964931488,
+  "sim_tried_bge": 0.7807101011276245,
+  "sim_hist_mini": 0.6229667663574219,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Basin hopping from best with local perturbations",
+  "spec": "After a first phase of random restarts (about 30 percent of time), switch to perturbation moves of the best: move 1-3 random circles to random positions (or swap two circles of different radii), plus jitter sd 0.01 on all, then re-optimize with SLSQP; accept if better. Replaces the current guided sd 0.03 global noise.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8912591934204102,
+  "sim_tried_bge": 0.8912591934204102,
+  "sim_hist_mini": 0.7896756529808044,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Increase the iteration cap and convergence tolerance",
+  "spec": "Raise MAX_ITER from 200 to 1000 and pass options ftol=1e-12 (and disp=False) to SLSQP so that each local solve converges more tightly before the repair step. Also lower INIT_RADIUS to 0.01 so the initial configuration is less overlapping and SLSQP starts from a more feasible point.",
+  "family": "schedule",
+  "sim_hist_bge": 0.9290720224380493,
+  "sim_tried_bge": 0.8423254489898682,
+  "sim_hist_mini": 0.6818583011627197,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Swap-move perturbation",
+  "spec": "Add a second guided move, used on half of the guided restarts. Take the best packing and pick two circles whose radii differ by more than 0.02. Swap their centres, keep their radii attached to their new positions, and scale both radii down by 0.9. Use the full centres+radii vector as x0 for SLSQP, with no other jitter. This explores how sizes are assigned to sites, which plain positional jitter rarely changes.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8262269496917725,
+  "sim_tried_bge": 0.8240398168563843,
+  "sim_hist_mini": 0.7031675577163696,
+  "sources": [
+   [
+    "opus",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Stack equal-radius pre-stage on the guided incumbent",
+  "spec": "Keep the current guided-restart logic unchanged. For non-guided restarts only (init is None), add a first SLSQP stage before the free-radius stage. Its variables are the 2n centres plus one shared radius R, with objective -R and constraints: pairwise distance >= 2R, and every centre within [R, 1-R] on each axis. Start from the uniform random centres with R=0.03 and use maxiter=100. Then start the existing free-radius SLSQP from the resulting centres, with every radius set to R. Guided restarts skip the pre-stage and behave exactly as now. This repeats slot 27, which scored -2.9396 without slot 1, on top of the current incumbent.",
+  "family": "architecture",
+  "sim_hist_bge": 0.891339123249054,
+  "sim_tried_bge": 0.891339123249054,
+  "sim_hist_mini": 0.7283847332000732,
+  "sources": [
+   [
+    "opus",
+    "c",
+    0
+   ],
+   [
+    "opus",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Multi-start with basin hopping from best packing",
+  "spec": "Replace pure random restarts with basin hopping: after the first SLSQP run, repeatedly perturb the best packing (jitter centres by N(0, 0.02-0.05), occasionally relocate the smallest circle to a random free spot), re-run SLSQP from the perturbed point, and accept the new packing if its radius sum improves. Keep the time-limit loop and the final _repair call unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.9123638868331909,
+  "sim_tried_bge": 0.9123638868331909,
+  "sim_hist_mini": 0.8606818914413452,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "LP-optimal radii instead of greedy repair",
+  "spec": "Replace _repair. After SLSQP, clip the centres to [0,1] and solve scipy.optimize.linprog for the radii with the centres held fixed: maximise sum r subject to r_i + r_j <= d_ij for all pairs, 0 <= r_i <= min(x_i, y_i, 1-x_i, 1-y_i), method='highs'. Subtract 1e-12 from every d_ij and wall bound so the result passes the 1e-10 check. Then run a final check: if any overlap remains, scale the offending radii down as the current loop does. The result is the best radii for the given centres, never worse than the greedy repair.",
+  "family": "other",
+  "sim_hist_bge": 0.8981256484985352,
+  "sim_tried_bge": 0.880544126033783,
+  "sim_hist_mini": 0.8099579215049744,
+  "sources": [
+   [
+    "opus",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Structured row-based initial layouts",
+  "spec": "Add an init generator used with probability 0.5 for unguided restarts. Pick a random row pattern summing to 32 from a small list, e.g. [6,5,6,5,6,4], [5,6,5,6,5,5], [6,6,5,5,5,5], [4,5,6,6,5,6], [7,6,6,7,6]. Place the rows evenly in y over [0.1,0.9] and space the circles evenly in x within each row. Add N(0,0.02) jitter and shuffle. Set the initial radii from the row spacing: 0.5*min(dx, dy)*0.9. Feed this to SLSQP instead of the uniform-random base. The rest of the pipeline is unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8111327886581421,
+  "sim_tried_bge": 0.8111327886581421,
+  "sim_hist_mini": 0.6819367408752441,
+  "sources": [
+   [
+    "opus",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Random initial radii in non-guided starts",
+  "spec": "For non-guided restarts, initialise radii as uniform(0.02, 0.08) per circle instead of the constant INIT_RADIUS. Guided restarts keep the constant. This gives SLSQP a size mixture to begin with.",
+  "family": "data",
+  "sim_hist_bge": 0.9175634384155273,
+  "sim_tried_bge": 0.8575064539909363,
+  "sim_hist_mini": 0.7776283025741577,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Biased random initialisation toward hexagonal-like layouts",
+  "spec": "Replace the uniform random initial centres with a jittered grid of points: choose a random rows/columns split for roughly n points, place centres on a staggered lattice with random spacing jitter, scale into [0.1, 0.9]^2, and randomly drop surplus points. This starts SLSQP from configurations closer to good dense packings than uniform random points do, while keeping the randomness seeded.",
+  "family": "data",
+  "sim_hist_bge": 0.8461159467697144,
+  "sim_tried_bge": 0.8414733409881592,
+  "sim_hist_mini": 0.7294368743896484,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Final high-precision polish of best",
+  "spec": "Use the main loop until 0.75*time_limit. Then run one more SLSQP on the best packing, starting exactly from its centres and radii with no jitter, with options maxiter=1000 and ftol=1e-15. Repair and keep it only if the sum is larger. Also set TIME_FRACTION so that the polish finishes within about 0.9*time_limit: check process_time before starting and skip the polish if more than 0.85*time_limit has been used. This removes the slack that SLSQP leaves at its default ftol 1e-6.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8532236814498901,
+  "sim_tried_bge": 0.8511987328529358,
+  "sim_hist_mini": 0.7251788377761841,
+  "sources": [
+   [
+    "opus",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Sparse neighbour constraints",
+  "spec": "In _solve_once, after a short first SLSQP (maxiter 30) with all pairs, find the pairs with d_ij - r_i - r_j < 0.1. Re-run SLSQP with maxiter 200, keeping only those pair constraints plus the walls and r>=0, starting from the first result. About 100 pairs remain instead of 496, so each iteration is much cheaper. The existing repair pass ensures that any violation from a dropped pair is fixed.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8860315084457397,
+  "sim_tried_bge": 0.8302451968193054,
+  "sim_hist_mini": 0.7815917134284973,
+  "sources": [
+   [
+    "opus",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b021",
+  "title": "Remove clip and use a tighter SHRINK",
+  "spec": "Set SHRINK to 2e-10 in the repair step. Check that the final packing is still valid by verifying the pairwise overlap and the wall constraint in double precision after the repair. If it is not, subtract 1e-9 from the radii again. The gain is about 3e-8 per circle, so this is a cheap test of the safety margin.",
+  "family": "other",
+  "sim_hist_bge": 0.8481926321983337,
+  "sim_tried_bge": 0.8384177684783936,
+  "sim_hist_mini": 0.6726471185684204,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b022",
+  "title": "Adaptive time allocation between exploration and refinement",
+  "spec": "Split the time budget into an exploration phase (first 40 percent of TIME_FRACTION * time_limit, uniform random restarts) and a refinement phase (remaining time, guided restarts from the current best with a decreasing jitter scale from 0.05 down to 0.005). Make the jitter scale a linear function of elapsed fraction of time so refinement becomes progressively more local.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7935632467269897,
+  "sim_tried_bge": 0.7935632467269897,
+  "sim_hist_mini": 0.5891852378845215,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b023",
+  "title": "Guided restarts start from pool of top 3 incumbents",
+  "spec": "Keep a list of the 3 best distinct repaired packings (distinct if the sums differ by more than 1e-6). A guided restart picks one of them uniformly at random as its init. Non-guided restarts and the final return of the best are unchanged.",
+  "family": "batch",
+  "sim_hist_bge": 0.7756640911102295,
+  "sim_tried_bge": 0.7756640911102295,
+  "sim_hist_mini": 0.6744263768196106,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b024",
+  "title": "Nearest-neighbour gap radius initialisation",
+  "spec": "In _solve_once, replace the constant starting radius INIT_RADIUS with per-circle starting radii taken from the initial centres: r_i = min(0.5 * min_{j != i} |c_i - c_j|, c_i_x, c_i_y, 1 - c_i_x, 1 - c_i_y), floored at 1e-3. Compute these from the random initial centres before building x0 and keep the rest unchanged. The starting point is then closer to feasible for the pairwise constraints, which may change which basins SLSQP reaches.",
+  "family": "data",
+  "sim_hist_bge": 0.8557308912277222,
+  "sim_tried_bge": 0.8557308912277222,
+  "sim_hist_mini": 0.7265744209289551,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b025",
+  "title": "Position-swap move in guided restarts",
+  "spec": "For a guided restart, with probability 0.5 (seed rng), before the usual jitter, swap the centres of two circles of the incumbent whose radii differ by more than 20 percent. Pick the pair uniformly among such pairs. Then start SLSQP with radii set to the incumbent radii permuted the same way, which keeps radius i with its new centre. Shrink those starting radii by a factor of 0.95 so the start is nearly feasible, and use jitter sd 0.01 instead of 0.03. This explores different size assignments within the same contact structure. The other half of guided restarts are unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.886001467704773,
+  "sim_tried_bge": 0.886001467704773,
+  "sim_hist_mini": 0.7877750396728516,
+  "sources": [
+   [
+    "opus",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b026",
+  "title": "Guided fraction 0.7 from 30% of budget",
+  "spec": "In solve(), change the guided-restart condition so guided restarts begin after 0.3*TIME_FRACTION*time_limit (instead of 0.5) and use probability 0.7 instead of 0.5. Keep everything else unchanged. This tunes the one change that helped (slot 1).",
+  "family": "schedule",
+  "sim_hist_bge": 0.7989611029624939,
+  "sim_tried_bge": 0.7762987613677979,
+  "sim_hist_mini": 0.5278257131576538,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b027",
+  "title": "Small-circle-targeted jitter for guided starts",
+  "spec": "For guided restarts, instead of jittering every centre by the same normal(0, 0.03), jitter only the circles whose incumbent radius is in the smallest half (by radius). Those centres get rng.normal(0, 0.05), the larger circles get rng.normal(0, 0.005). Implement this inside _solve_once's init branch by computing a per-circle sigma from the incumbent radii, which requires passing the incumbent radii alongside the centres. Everything else is unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.8178091049194336,
+  "sim_tried_bge": 0.802532434463501,
+  "sim_hist_mini": 0.6394082307815552,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b028",
+  "title": "1/5 success rule for the guided jitter scale",
+  "spec": "Keep a variable sigma in solve, starting at 0.03, and pass it to _solve_once as the jitter sd for guided restarts, in place of the hard-coded 0.03. After each guided restart: if the repaired result beats the best sum by more than 1e-7, multiply sigma by 1.5. Otherwise multiply it by 1.5**(-0.25). Clamp sigma to [0.004, 0.08]. Non-guided restarts do not change sigma.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7724335193634033,
+  "sim_tried_bge": 0.7724335193634033,
+  "sim_hist_mini": 0.5755094289779663,
+  "sources": [
+   [
+    "opus",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b029",
+  "title": "Radii-only kick from incumbent centres",
+  "spec": "For guided restarts in the second half of the budget, with probability 0.25, keep the incumbent centres exactly (no jitter) and instead redraw the starting radii as rng.uniform(0.02, 0.08, n), so SLSQP starts from the same packing with a fresh radius profile. Otherwise use the existing guided jitter. The radius-only start tests whether the radius assignment alone can move the incumbent to a better local optimum.",
+  "family": "other",
+  "sim_hist_bge": 0.911407470703125,
+  "sim_tried_bge": 0.911407470703125,
+  "sim_hist_mini": 0.7984449863433838,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b030",
+  "title": "Smaller radius init with growth stage",
+  "spec": "Start each restart with INIT_RADIUS drawn randomly in [0.03, 0.1], and first solve with a cheap penalty or equal-radius max-min problem is not needed; just randomize INIT_RADIUS per restart for diversity of local optima.",
+  "family": "data",
+  "sim_hist_bge": 0.8102543354034424,
+  "sim_tried_bge": 0.7718355059623718,
+  "sim_hist_mini": 0.6240252256393433,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b031",
+  "title": "Decaying guided jitter scale",
+  "spec": "In solve, make the guided-restart jitter scale depend on elapsed time instead of the fixed 0.03. Let frac be the fraction of the guided phase elapsed, from 0 at the start of the guided phase to 1 at the end, and set sigma = 0.05 * (0.1 ** frac). Pass sigma into _solve_once as an argument used in place of the literal 0.03 in rng.normal(0, 0.03, ...). Non-guided restarts keep sigma unused. The guided search is then broad early and fine-grained late.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7966574430465698,
+  "sim_tried_bge": 0.7966574430465698,
+  "sim_hist_mini": 0.568385124206543,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b032",
+  "title": "Adaptive jitter scale for guided restarts",
+  "spec": "The guided restart jitter is fixed at sigma 0.03. Make it adaptive: keep a variable sigma that starts at 0.05. After each guided restart, multiply sigma by 0.8 if it improved the best sum by more than 1e-6. Otherwise multiply it by 1.1. Clamp sigma to [0.005, 0.1]. Also pass the best radii times 0.9 as the starting radii instead of INIT_RADIUS.",
+  "family": "schedule",
+  "sim_hist_bge": 0.82264244556427,
+  "sim_tried_bge": 0.82264244556427,
+  "sim_hist_mini": 0.657188892364502,
+  "sources": [
+   [
+    "opus",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b033",
+  "title": "Log-uniform guided jitter scale",
+  "spec": "In _solve_once, when init is given, replace the fixed jitter sd of 0.03 with a scale drawn for each restart from the seed rng. Use sigma = exp(rng.uniform(log(0.005), log(0.06))) and apply it as rng.normal(0, sigma, (n, 2)) before the clip. Some guided restarts then make fine local refinements and others make larger basin hops. Nothing else changes.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8002598881721497,
+  "sim_tried_bge": 0.7710239291191101,
+  "sim_hist_mini": 0.5347756147384644,
+  "sources": [
+   [
+    "opus",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b034",
+  "title": "Elite pool restarts",
+  "spec": "Keep the top 5 distinct solutions. After 40% of time, each restart picks a random elite and perturbs it with sd drawn from {0.005, 0.015, 0.03}, or reflects/rotates it by a random symmetry of the square first. Replace the worst elite if better and different (sum differs by >1e-6).",
+  "family": "other",
+  "sim_hist_bge": 0.7352351546287537,
+  "sim_tried_bge": 0.7233369946479797,
+  "sim_hist_mini": 0.46594029664993286,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b035",
+  "title": "Two-stage optimisation with a penalty continuation",
+  "spec": "Replace the single SLSQP call by a two-stage solve: first optimise a smooth penalty objective (negative radius sum plus a quadratic penalty on overlaps and boundary violations, penalty weight increasing 10 to 1e6 across stages) using L-BFGS-B, then polish the result with SLSQP on the exact constraints. This gives a better-conditioned start for SLSQP and typically finds denser packings.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8861393928527832,
+  "sim_tried_bge": 0.8861393928527832,
+  "sim_hist_mini": 0.7625900506973267,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b036",
+  "title": "Smarter repair: greedy radius growth instead of shrinking",
+  "spec": "Replace the overlap-shrinking _repair with a greedy post-optimisation: after the boundary clamp, iterate over circles in random order and grow each radius to the maximum value allowed by the boundary and its current nearest neighbours (r_i = min(boundary slack, min over j of d_ij - r_j)), repeating a few passes. Only the shrink step at the end is still needed for numerical safety with a SHRINK of 1e-9. This recovers radius sum lost to the crude repair.",
+  "family": "other",
+  "sim_hist_bge": 0.882779598236084,
+  "sim_tried_bge": 0.882779598236084,
+  "sim_hist_mini": 0.8119152784347534,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b037",
+  "title": "Structured initial layouts (hex/grid rows)",
+  "spec": "Replace uniform random init with perturbed hexagonal-like layouts: choose random row counts (e.g. 5-6 rows with 5-7 circles per row totalling 32, randomly chosen), place centres on staggered rows, add gaussian jitter sd ~0.02, and set initial radii to ~0.08. Mix 50% structured starts with 50% random ones.",
+  "family": "data",
+  "sim_hist_bge": 0.8143348693847656,
+  "sim_tried_bge": 0.8143348693847656,
+  "sim_hist_mini": 0.6670808792114258,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b038",
+  "title": "Remove-and-reinsert basin hopping",
+  "spec": "Change the guided step in solve. Do not jitter every centre with N(0,0.03). Instead take the best packing and pick 1 to 3 circles, chosen with a bias toward small radii (probability proportional to 1/r). Move each to a uniform random point in the square with radius 0.01. Leave all other centres and radii at their best values and use the full vector (centres and radii) as x0. Then run SLSQP. Start guided restarts once a best exists after 30% of the time instead of 50%, and use them with probability 0.7.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8533415794372559,
+  "sim_tried_bge": 0.8533415794372559,
+  "sim_hist_mini": 0.8073700666427612,
+  "sources": [
+   [
+    "opus",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b039",
+  "title": "Higher SLSQP iteration cap for guided restarts",
+  "spec": "Pass a max-iteration argument to _solve_once: 200 for random starts, 400 for guided restarts, because guided starts are near a good optimum and can profit from fully converging. Use the argument in the minimize options.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8500180244445801,
+  "sim_tried_bge": 0.813200831413269,
+  "sim_hist_mini": 0.8177120685577393,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b040",
+  "title": "Stack jittered-grid starts on the guided incumbent",
+  "spec": "Keep the guided restarts unchanged. For non-guided restarts, replace the uniform random centres with a jittered grid: a 6x6 grid of cell centres over [INIT_LOW, 1-INIT_LOW]^2. Use the seed rng to choose n=32 of the 36 cells at random without replacement. Add uniform jitter of plus or minus 0.4 times the cell width to each centre, then clip to [0, 1]. Everything else stays as it is. This repeats slot 6 (-2.9386 without slot 1) on top of the current incumbent.",
+  "family": "data",
+  "sim_hist_bge": 0.8558017611503601,
+  "sim_tried_bge": 0.8558017611503601,
+  "sim_hist_mini": 0.7170310616493225,
+  "sources": [
+   [
+    "opus",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b041",
+  "title": "Random-order pair sweep in the repair step",
+  "spec": "Replace the argmax-driven loop in _repair with a sweep: for each of up to 50 passes, visit all pairs (i, j) with i < j in a random order drawn from the seed's rng (pass the rng into _repair), and for each violating pair scale both radii by d/(r_i+r_j). Stop when a full pass has no violation. Pass rng through from solve so all randomness still comes from the seed. The overlap-removal path is different, which may shrink the radii less on average.",
+  "family": "other",
+  "sim_hist_bge": 0.7982434034347534,
+  "sim_tried_bge": 0.7982434034347534,
+  "sim_hist_mini": 0.6670595407485962,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b042",
+  "title": "Wall-contact tie-break for restart selection",
+  "spec": "In solve, when comparing a new repaired packing with the incumbent, treat it as better if its radius sum exceeds the incumbent's by more than 1e-4, or if the sums are within 1e-4 and the new packing has more circles touching a wall (|c - edge| <= r + 1e-9 on any side) than the incumbent. Keep the sum-based rule otherwise. This changes only which of near-equal packings is kept as incumbent, and so affects the guided restarts that start from it.",
+  "family": "batch",
+  "sim_hist_bge": 0.8001713752746582,
+  "sim_tried_bge": 0.8001713752746582,
+  "sim_hist_mini": 0.7154541015625,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b043",
+  "title": "Smaller initial radius for non-guided starts",
+  "spec": "Set INIT_RADIUS to 0.03 for non-guided restarts (the guided ones keep 0.05). Smaller starting radii give SLSQP feasible starting points with fewer violated constraints, which may converge in fewer iterations and allow more restarts.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9171103239059448,
+  "sim_tried_bge": 0.8648066520690918,
+  "sim_hist_mini": 0.8570297360420227,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b044",
+  "title": "Use full time fraction",
+  "spec": "Raise TIME_FRACTION from 0.8 to 0.92, and make the loop skip starting a new restart if the average restart duration would exceed the remaining time. Limit is 30 s CPU, so the margin is safe.",
+  "family": "schedule",
+  "sim_hist_bge": 0.779353141784668,
+  "sim_tried_bge": 0.7307519912719727,
+  "sim_hist_mini": 0.5403797626495361,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b045",
+  "title": "Analytic Jacobians for SLSQP",
+  "spec": "Supply jac for the objective (gradient: zeros for centres, -1 for radii) and a vectorized analytic Jacobian for the constraint function (pairwise distance rows with sparse-like dense fill, boundary rows, radius rows). This speeds each SLSQP iteration a lot, so many more restarts fit in 30 s. Keep the constraint ordering identical to cons.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9118335843086243,
+  "sim_tried_bge": 0.9118335843086243,
+  "sim_hist_mini": 0.8299045562744141,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b046",
+  "title": "Shrink-the-smaller-circle repair rule",
+  "spec": "In _repair, when a pair (i, j) overlaps by over = r_i + r_j - d_ij > 0, reduce only the smaller of the two radii, by exactly over (the smaller radius becomes max(smaller - over, 0)), instead of scaling both by d/(r_i+r_j). Keep the argmax selection and the wall clipping unchanged. Because the larger circle keeps its radius, the total loss from repair may be smaller on packings where one circle is much bigger than its neighbour.",
+  "family": "other",
+  "sim_hist_bge": 0.9074257016181946,
+  "sim_tried_bge": 0.8327516317367554,
+  "sim_hist_mini": 0.7901239395141602,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b047",
+  "title": "Guided jitter sigma randomised log-uniformly",
+  "spec": "In _solve_once, when init is not None, draw the jitter sd per call as exp(uniform(log 0.005, log 0.08)) from rng instead of the fixed 0.03. This mixes fine and coarse perturbations of the incumbent. Leave the rest unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.7795155048370361,
+  "sim_tried_bge": 0.7766208648681641,
+  "sim_hist_mini": 0.5259526968002319,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b048",
+  "title": "Corner-anchored random starts",
+  "spec": "In _solve_once, when init is None, place the first four centres at (INIT_LOW, INIT_LOW), (1-INIT_LOW, INIT_LOW), (INIT_LOW, 1-INIT_LOW) and (1-INIT_LOW, 1-INIT_LOW) with a small rng.normal(0, 0.01) jitter, and draw the remaining n-4 centres uniformly in [INIT_LOW, 1-INIT_LOW]^2 as before. Keep the rest of the SLSQP solve and repair unchanged. This only changes the starting configuration, so it adds no new code paths beyond the initialisation line.",
+  "family": "data",
+  "sim_hist_bge": 0.8614944815635681,
+  "sim_tried_bge": 0.8614944815635681,
+  "sim_hist_mini": 0.7136518359184265,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b049",
+  "title": "Dynamic circle-count mixing of radius sizes",
+  "spec": "Initialise radii with a random mix: draw each initial radius from a uniform distribution on [0.02, 0.12] instead of a constant INIT_RADIUS, so the first SLSQP step starts with heterogeneous circle sizes that the optimiser can sort out. This encourages the varied-radius structures that maximise the radius sum for unequal circles.",
+  "family": "data",
+  "sim_hist_bge": 0.9063034057617188,
+  "sim_tried_bge": 0.8420498371124268,
+  "sim_hist_mini": 0.8390382528305054,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b050",
+  "title": "Analytic Jacobians for SLSQP",
+  "spec": "Pass a jac argument to minimize that returns the exact gradient of the constraint vector cons with respect to (centres, radii), built with numpy from the pair index arrays iu. Analytic Jacobians make each SLSQP iteration far cheaper for n=32, so more restarts and more iterations fit in the 24 s budget. Keep the constraint ordering and the objective unchanged.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8885753154754639,
+  "sim_tried_bge": 0.8885753154754639,
+  "sim_hist_mini": 0.7662408351898193,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b051",
+  "title": "Swap-two-circles kick in guided restarts",
+  "spec": "In guided restarts, in addition to the jitter, pick two circles with clearly different radii (ratio over 1.3) in the incumbent and swap their centres. Initial radii are the incumbent radii times 0.9, swapped likewise. This tests size-position permutations that SLSQP cannot reach by itself.",
+  "family": "other",
+  "sim_hist_bge": 0.8594895601272583,
+  "sim_tried_bge": 0.8594895601272583,
+  "sim_hist_mini": 0.7176545858383179,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b052",
+  "title": "Stack radius-continuation restarts on the guided incumbent",
+  "spec": "Keep the guided restarts unchanged. With probability 0.5, a non-guided restart becomes a radius-continuation restart. Bisect a common radius R in [0.05, 0.12] for 6 steps. At each step, run a short SLSQP (maxiter=60) with the radii fixed at R that minimises the sum of squared overlaps, both pair overlaps and wall overlaps, over the centres. Warm-start each step from the previous step's centres. Keep the largest R that reaches near-zero overlap (below 1e-8). Then run the existing free-radius SLSQP from those centres, with radii R. This repeats slot 17 (-2.9380 without slot 1) on top of the current incumbent.",
+  "family": "schedule",
+  "sim_hist_bge": 0.849861741065979,
+  "sim_tried_bge": 0.849861741065979,
+  "sim_hist_mini": 0.7663632035255432,
+  "sources": [
+   [
+    "opus",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b053",
+  "title": "Earlier and more frequent guided restarts",
+  "spec": "In solve, change the guided condition. Guided restarts become possible once elapsed time exceeds 0.3*TIME_FRACTION*time_limit, instead of 0.5. Once possible, a restart is guided with probability 0.65 instead of 0.5. Define these as two module constants, GUIDED_START=0.3 and GUIDED_PROB=0.65, and change nothing else.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7967988848686218,
+  "sim_tried_bge": 0.7967988848686218,
+  "sim_hist_mini": 0.6072406768798828,
+  "sources": [
+   [
+    "opus",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b054",
+  "title": "Remove smallest circle and reinsert",
+  "spec": "In the restart loop, after each SLSQP solve take the incumbent best, remove the circle with the smallest radius, and reinsert it at the point in a grid of candidate locations (e.g. 40x40 over [0,1]^2) that maximises the distance to the nearest centre minus its neighbours' radii. Re-run SLSQP from this configuration and keep it if the sum improves.",
+  "family": "other",
+  "sim_hist_bge": 0.8941287994384766,
+  "sim_tried_bge": 0.872460663318634,
+  "sim_hist_mini": 0.7876705527305603,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b055",
+  "title": "Penalty L-BFGS-B pre-solve then SLSQP",
+  "spec": "Before SLSQP in _solve_once, run scipy L-BFGS-B on the unconstrained penalty function f(v) = -sum r + mu*(sum relu(r_i+r_j-d_ij)^2 + sum relu(r-x)^2 + relu(r-y)^2 + relu(x+r-1)^2 + relu(y+r-1)^2), with an analytic numpy gradient. Use bounds centres in [0,1] and r in [0,0.5]. Run it for mu in [10, 100, 1000, 1e4], warm-starting each stage from the last, with maxiter 200 each. Then pass the result as x0 to SLSQP. The pre-solve is cheap, so SLSQP starts close to feasible and converges in few iterations, which allows more restarts.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8952494859695435,
+  "sim_tried_bge": 0.8952494859695435,
+  "sim_hist_mini": 0.7803359031677246,
+  "sources": [
+   [
+    "opus",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b056",
+  "title": "Native SLSQP bounds for the box constraints",
+  "spec": "In _solve_once, pass the box limits through minimize's bounds argument instead of as inequality constraints. Set bounds to (0, 1) for every centre coordinate and (0, 0.5) for every radius, and remove the r >= 0 entries from cons so that only the pairwise and wall-distance constraints remain. Wall constraints c - r >= 0 and 1 - c - r >= 0 stay as inequalities. The solver then receives the simple box limits natively, which can change convergence on the same starts.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8451810479164124,
+  "sim_tried_bge": 0.8089219331741333,
+  "sim_hist_mini": 0.7489244341850281,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b057",
+  "title": "Two-stage SLSQP with active pair constraints",
+  "spec": "Only include pair constraints for pairs whose centre distance is below 0.35 at the start of each SLSQP call (re-evaluated in a second call from the result). This cuts the constraint count from 496 to about 150, speeding SLSQP considerably. Finish with a full-constraint run to ensure validity.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8909616470336914,
+  "sim_tried_bge": 0.8909616470336914,
+  "sim_hist_mini": 0.83250492811203,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b058",
+  "title": "Square-symmetry transform for guided starts",
+  "spec": "For guided restarts, apply a random element of the dihedral group D4 of the unit square to the incumbent centres before jitter (random flip of x -> 1-x, y -> 1-y, and optional swap of x and y). The radii init stays constant. This diversifies the guided starts without changing the geometry of the packing.",
+  "family": "data",
+  "sim_hist_bge": 0.9152696132659912,
+  "sim_tried_bge": 0.8127455711364746,
+  "sim_hist_mini": 0.7269107103347778,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b059",
+  "title": "Guided restarts: perturb only a random disc region",
+  "spec": "In guided restarts, add jitter (sd 0.08) only to circles whose centres lie within a random radius (0.2 to 0.4) of a random point in the square. Other circles get a jitter of sd 0.005. Radii start at INIT_RADIUS. This is a local-neighbourhood kick instead of a global one.",
+  "family": "other",
+  "sim_hist_bge": 0.8410139083862305,
+  "sim_tried_bge": 0.8410139083862305,
+  "sim_hist_mini": 0.6389784216880798,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    4
+   ]
+  ]
+ }
+]

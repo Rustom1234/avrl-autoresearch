@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    
+    # Sort circles by radius descending to handle large circles first during repair
+    idx = np.argsort(r)[::-1]
+    c = c[idx]
+    r = r[idx]
+
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+    # Enforce boundary constraints strictly
+    r = np.minimum(r, np.minimum(c[:, 0], c[:, 1]))
+    r = np.minimum(r, np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    r = np.maximum(r, 0)
+    
+    idx = np.argsort(r)[::-1]
+    c = c[idx]
+    r = r[idx]
+
+    for _ in range(100):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+        # Re-enforce boundary after overlap repair
+        r = np.minimum(r, np.minimum(c[:, 0], c[:, 1]))
+        r = np.minimum(r, np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+        r = np.maximum(r, 0)
+    return np.maximum(r - 1e-8, 0)
+>>>>>>> REPLACE
+-----

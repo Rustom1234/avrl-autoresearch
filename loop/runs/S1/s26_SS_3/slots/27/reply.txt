@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def solve_packing(time_budget=200.0):
+    import time
+    from scipy.optimize import minimize
+
+    t0 = time.time()
+    n = 26
+=======
+def solve_packing(time_budget=200.0, n=26):
+    import time
+    from scipy.optimize import minimize
+
+    t0 = time.time()
+    sub27 = None
+    if n == 26:
+        sub27 = solve_packing(0.15 * time_budget, n=27)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    best = None
+    best_val = -1.0
+    it = 0
+    if sub27 is not None and len(sub27[1]) == 27:
+        c27, r27 = sub27
+        for k in range(27):
+            if time.time() - t0 > 0.3 * time_budget:
+                break
+            keep = np.arange(27) != k
+            z0 = np.concatenate([c27[keep, 0], c27[keep, 1], r27[keep] * 0.98])
+            try:
+                res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                               constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                               options={"maxiter": 300, "ftol": 1e-11})
+            except Exception:
+                continue
+            out = finalize(res.x)
+            if out is None:
+                continue
+            if out[1].sum() > best_val:
+                best_val = out[1].sum()
+                best = out
+>>>>>>> REPLACE
+-----

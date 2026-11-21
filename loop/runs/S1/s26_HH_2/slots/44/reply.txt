@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def _template():
+=======
+def _halton_1d(idx, base):
+    f = 1.0
+    r = 0.0
+    i = idx
+    while i > 0:
+        f /= base
+        r += f * (i % base)
+        i //= base
+    return r
+
+
+def _halton_start():
+    P = np.array([[_halton_1d(i, 2), _halton_1d(i, 3)] for i in range(1, 2001)])
+    wall = np.minimum(np.minimum(P[:, 0], P[:, 1]), np.minimum(1 - P[:, 0], 1 - P[:, 1]))
+    start = int(np.argmin(np.sum((P - 0.5) ** 2, axis=1)))
+    chosen = [start]
+    dmin = np.sqrt(np.sum((P - P[start]) ** 2, axis=1))
+    for _ in range(_N - 1):
+        key = np.minimum(dmin, 2.0 * wall)
+        key[chosen] = -1.0
+        nxt = int(np.argmax(key))
+        chosen.append(nxt)
+        dmin = np.minimum(dmin, np.sqrt(np.sum((P - P[nxt]) ** 2, axis=1)))
+    return P[chosen].copy()
+
+
+def _template():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pool = []
+    while len(pool) < 12 and _time.time() - t0 < 60:
+        c = rng.uniform(0.1, 0.9, size=(_N, 2))
+=======
+    pool = []
+    hs = _halton_start()
+    nmade = 0
+    while len(pool) < 12 and _time.time() - t0 < 60:
+        if nmade == 0:
+            c = hs.copy()
+        else:
+            c = np.clip(hs + rng.normal(0.0, 0.01, size=hs.shape), 0.0, 1.0)
+        nmade += 1
+>>>>>>> REPLACE
+-----

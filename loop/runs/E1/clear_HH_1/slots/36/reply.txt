@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+    inter = A @ B.T
+    na = A.sum(axis=1)[:, None]
+    nb = B.sum(axis=1)[None, :]
+    return inter / np.maximum(na + nb - inter, 1e-9)
+=======
+def tanimoto(A, B):
+    # A, B are already sqrt(idf)-scaled, so squared row sums give the weighted norms
+    inter = A @ B.T
+    na = (A ** 2).sum(axis=1)[:, None]
+    nb = (B ** 2).sum(axis=1)[None, :]
+    return inter / np.maximum(na + nb - inter, 1e-9)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+=======
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+    # transductive IDF over train + test fingerprints (no labels)
+    N = X.shape[0] + Xt.shape[0]
+    df = X.sum(axis=0) + Xt.sum(axis=0)
+    idf = np.log((N + 1.0) / (df + 1.0)) + 1.0
+    sw = np.sqrt(idf)
+    X, Xt = X * sw, Xt * sw
+>>>>>>> REPLACE
+-----

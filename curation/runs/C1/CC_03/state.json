@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/CC_03/cand/s07_0.py",
+ "inc_scores": {
+  "11": 1.9394705395500818,
+  "12": 1.933752782723356
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Filter the documents to only include those that share a high lexical similarity (using a simple word overlap or common substring check) with the target_sample, then return those indices in a shuffled order.",
+   "outcome": "dev 1.9518 against 1.9632 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Calculate a 'relevance score' for each document by counting how many words it shares with the target_sample, then use a probability distribution based on these scores to sample indices (favoring high-overlap docs) until the total token count significantly exceeds T.",
+   "outcome": "FAILED to run (runs/C1/CC_03/cand/s02_1.py\", line 14, in select encoder = tiktoken.encoding.Encoding(\"gpt2\") ^^^^^^^^^^^^^^^^^ AttributeError: module 'tiktoken' has no attribute 'encoding'. Did you mean: 'Encoding'?)"
+  },
+  {
+   "slot": 3,
+   "idea": "Use tiktoken to count the number of tokens in each document and the target_sample, then calculate a relevance score based on the Jaccard similarity of the token sets (using the 'gpt2' encoding). Select documents using a weighted random sampling where weights are the similarity scores, ensuring we prioritize high-quality, domain-relevant content while maintaining variety.",
+   "outcome": "dev 1.9771 against 1.9518 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Refine the relevance score by combining word overlap with a 'density' metric: instead of simple proportion (overlap/doc_length), use (overlap_count * doc_length) / (max(doc_length, target_length)) to favor documents that contain a high number of target-related words while still being substantial in length.",
+   "outcome": "dev 1.9504 against 1.9518 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Implement a k-Nearest Neighbors approach using the cosine similarity of TF-IDF vectors for both the documents and the target_sample, where the vectors are built using the 'gpt2' tiktoken encoding.",
+   "outcome": "dev 2.0811 against 1.9518 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Use tiktoken to count the exact number of tokens in each document and the target_sample, then calculate a Jaccard similarity score based on the sets of token IDs. Select the top 1000 highest-scoring documents (or more if fewer than 1000 exist) and return their indices in a shuffled order.",
+   "outcome": "dev 2.0626 against 1.9518 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Use tiktoken to compute a 'density score' for each document by calculating the ratio of tokens that appear in the union of target_sample tokens to the total token count of the document, then return the indices of the top 20% of documents sorted by this density.",
+   "outcome": "dev 1.9395 against 1.9518 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 8,
+   "idea": "Calculate the Jaccard similarity between the set of unique tokens in each document and the set of unique tokens in the entire target_sample, then select the top 5% of documents based on this similarity score.",
+   "outcome": "dev 2.1074 against 1.9395 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Refine the current density score (Experiment 7) by adding a length penalty or floor: prioritize documents that have a high density of target tokens AND are longer than a certain threshold (e.g., a minimum of 100 tokens) to filter out short, noisy fragments while maintaining high relevance.",
+   "outcome": "dev 1.9391 against 1.9395 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Modify the density score to use the intersection of token sets (Jaccard-like) but weighted by the target_sample's own internal token frequency (TF) to identify documents that share the core vocabulary of the target domain more accurately.",
+   "outcome": "dev 1.9805 against 1.9395 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Calculate the density score of each document using the intersection of its token set and the target_sample's token set, but instead of the raw density (intersection / doc_length), use a score that weights the intersection by the average length of the documents in target_sample to favor documents with substantial content that matches the target domain's average descriptive depth.",
+   "outcome": "dev 1.9371 against 1.9395 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Modify the density score calculation to use a weighted frequency: instead of a binary 'is in target_sample' check, weight each document's intersection score by the frequency of those tokens within the target_sample, normalized by the document length.",
+   "outcome": "dev 1.9818 against 1.9395 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.011376299999999999,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0006950999999999999,
+   "dev": 1.9517651753194236,
+   "inc": 1.9632314598828846,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5780738457832362,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.00175605,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 1,
+   "n_accept": 1,
+   "gain_sd": 1.5780738457832362,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0010492499999999998,
+   "dev": 1.977074996798256,
+   "inc": 1.9517651753194236,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5780738457832362,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0008530499999999993,
+   "dev": 1.9504013912490907,
+   "inc": 1.9517651753194236,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5780738457832362,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00098205,
+   "dev": 2.0810574741877916,
+   "inc": 1.9517651753194236,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5780738457832362,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0010391999999999997,
+   "dev": 2.062598477858315,
+   "inc": 1.9517651753194236,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5780738457832362,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0008197500000000002,
+   "dev": 1.9394705395500818,
+   "inc": 1.9517651753194236,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.2701514358385437,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0007610999999999998,
+   "dev": 2.1074199240412015,
+   "inc": 1.9394705395500818,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.2701514358385437,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0008257500000000001,
+   "dev": 1.9390842961733037,
+   "inc": 1.9394705395500818,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.2701514358385437,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0008526000000000002,
+   "dev": 1.980506125065504,
+   "inc": 1.9394705395500818,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.2701514358385437,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0009049499999999999,
+   "dev": 1.937076334387932,
+   "inc": 1.9394705395500818,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.2701514358385437,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00083745,
+   "dev": 1.9817834535039505,
+   "inc": 1.9394705395500818,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9632314598828846,
+ "inc_slot": 7
+}

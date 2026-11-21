@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, centers0, radii0=None):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS) if radii0 is None else radii0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+=======
+        c, r = best
+        pr = np.argwhere(np.triu(np.abs(r[:, None] - r[None]) > 0.02, 1))
+        if len(pr) and rng.random() < 0.2:   # swap centres of a differently sized pair, radii stay with indices
+            i, j = pr[rng.integers(len(pr))]
+            p = c.copy()
+            p[[i, j]] = c[[j, i]]
+            p, r0 = p.ravel(), r
+        else:
+            p, r0 = (c + rng.normal(0, HOP_SD, c.shape)).ravel(), None
+        c, r = _solve_once(n, p, r0)
+>>>>>>> REPLACE
+-----

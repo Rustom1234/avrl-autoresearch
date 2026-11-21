@@ -1,0 +1,12 @@
+<<<<<<< SEARCH
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    qy = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(y)), random_state=seed)
+    ys = qy.fit_transform(y.reshape(-1, 1)).ravel()
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, ys)
+    p_svr = qy.inverse_transform(svr.predict(Ste).reshape(-1, 1)).ravel()
+    p_svr = np.clip(p_svr, y.min(), y.max())
+    return 0.5 * p_lgb + 0.5 * p_svr
+>>>>>>> REPLACE
+-----

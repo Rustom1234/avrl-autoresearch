@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) Integrity: no problems found. The diff changes one hyperparameter, TOTAL_BATCH_SIZE, from 2**19 to 2**18. It does not touch the eval call, the val_bpb measurement, the data, the prepare.py import line, the seed lines or the final summary printing.",
+  "(2) Bugs: none visible. With DEVICE_BATCH_SIZE 64 and an assumed sequence length of 2048, 2**18 is 2 accumulation steps, so it divides evenly and any divisibility assert in the script still passes. Halving the batch doubles the number of optimizer steps in the fixed 300 s. That is a real training change, not a measurement artifact. The learning rates were not retuned for the smaller batch, which is a tuning point, not a bug.",
+  "(3) Claims vs. numbers: the candidate mean is (1.0652 + 1.0673)/2 = 1.06625, which is 0.01765 below the incumbent mean of 1.0839. The reported z of 3.234 implies a standard error of about 0.00546. I could not recompute z exactly because the two incumbent run values (and so their spread) are not given. Using only the candidate spread (sd \u2248 0.0015) would give z \u2248 11.9, so the harness's 3.234 is the more conservative figure. Either way the improvement is clear and the accept decision holds. Note that n=2 on each side is a small sample."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.06625,
+  "delta_vs_incumbent": -0.01765,
+  "implied_se_from_reported_z": 0.00546
+ }
+}

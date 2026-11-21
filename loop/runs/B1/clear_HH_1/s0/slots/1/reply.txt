@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import rdmolops
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def get_mol(s):
+    mol = Chem.MolFromSmiles(s)
+    frags = rdmolops.GetMolFrags(mol, asMols=True)
+    return max(frags, key=lambda m: m.GetNumHeavyAtoms())
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(get_mol(s)) for s in smiles], dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        m = Chem.MolFromSmiles(s)
+=======
+        m = get_mol(s)
+>>>>>>> REPLACE
+-----

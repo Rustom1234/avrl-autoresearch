@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _reinsert_moves(c, r, moves=6, tlimit=40.0):
+    """Remove-and-reinsert: move the smallest circle to the largest empty spot found on a
+    200x200 grid, re-optimize all variables with SLSQP, keep the move only if the sum improves."""
+    t0 = time.time()
+    n = len(r)
+    g = np.linspace(0.0, 1.0, 200)
+    GX, GY = np.meshgrid(g, g)
+    P = np.column_stack([GX.ravel(), GY.ravel()])
+    bd = np.minimum(np.minimum(P[:, 0], P[:, 1]), np.minimum(1 - P[:, 0], 1 - P[:, 1]))
+    c = np.array(c, dtype=float)
+    r = np.array(r, dtype=float)
+    cur = float(np.sum(r))
+    for _ in range(moves):
+        if time.time() - t0 > tlimit:
+            break
+        i = int(np.argmin(r))
+        keep = np.arange(n) != i
+        cc = c[keep]
+        rr = r[keep]
+        dist = np.sqrt(((P[:, None, :] - cc[None, :, :]) ** 2).sum(axis=2)) - rr[None, :]
+        field = np.minimum(dist.min(axis=1), bd)
+        k = int(np.argmax(field))
+        newc = np.vstack([cc, P[k:k + 1]])
+        newr = np.concatenate([rr, [max(float(field[k]), 0.0)]])
+        try:
+            c2, r2 = _optimize(newc, newr)
+            r2 = _repair(c2, r2)
+        except Exception:
+            continue
+        s2 = float(np.sum(r2))
+        if s2 > cur + 1e-9:
+            c, r, cur = c2, r2, s2
+    return c, r
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.clip(best_c, 0.0, 1.0), best_r
+=======
+    best_c, best_r = _reinsert_moves(best_c, best_r)
+    return np.clip(best_c, 0.0, 1.0), best_r
+>>>>>>> REPLACE
+-----

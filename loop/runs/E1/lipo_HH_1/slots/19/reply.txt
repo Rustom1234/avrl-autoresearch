@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import rdDistGeom, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+N_CONFIGS = 1
+=======
+_SHAPE_CACHE = {}
+
+
+def shape_vector(smiles):
+    # One ETKDGv3 conformer per SMILES (cached); zeros if embedding fails.
+    if smiles not in _SHAPE_CACHE:
+        mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
+        params = rdDistGeom.ETKDGv3()
+        params.randomSeed = 42
+        params.maxIterations = 50
+        vec = np.zeros(6)
+        if rdDistGeom.EmbedMolecule(mol, params) >= 0:
+            vec = np.array([rdMolDescriptors.CalcPBF(mol), rdMolDescriptors.CalcNPR1(mol),
+                            rdMolDescriptors.CalcNPR2(mol), rdMolDescriptors.CalcRadiusOfGyration(mol),
+                            rdMolDescriptors.CalcInertialShapeFactor(mol), rdMolDescriptors.CalcEccentricity(mol)],
+                           dtype=np.float64)
+        _SHAPE_CACHE[smiles] = vec
+    return _SHAPE_CACHE[smiles]
+
+
+def shape_matrix(smiles):
+    return np.nan_to_num(np.array([shape_vector(s) for s in smiles]), nan=0.0, posinf=0.0, neginf=0.0)
+
+
+N_CONFIGS = 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32)])
+=======
+    Str, Ste = shape_matrix(train_smiles), shape_matrix(test_smiles)
+    slo, shi = np.percentile(Str, 1, axis=0), np.percentile(Str, 99, axis=0)
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32), np.clip(Str, slo, shi).astype(np.float32)])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32), np.clip(Ste, slo, shi).astype(np.float32)])
+>>>>>>> REPLACE
+-----

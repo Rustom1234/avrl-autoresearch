@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+POP_SIZE = 5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit:
+            c, r = _jump(best[0], best[1], rng)   # basin-hopping jump from the best packing
+        else:
+            c, r = _solve_once(n, rng)            # random restart
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, pop, it = np.random.default_rng(seed), time.process_time(), [], 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        it += 1
+        if pop and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and it % 4:
+            m = pop[rng.integers(len(pop))]
+            c, r = _jump(m[0], m[1], rng)         # basin-hopping jump from a random population member
+        else:
+            c, r = _solve_once(n, rng)            # random restart (replaces the worst member if better)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pop.append((c, r))
+        pop.sort(key=lambda p: -p[1].sum())
+        del pop[POP_SIZE:]
+    return pop[0]
+>>>>>>> REPLACE
+-----

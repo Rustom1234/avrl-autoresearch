@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def descriptors(mol):
+=======
+BASIC_AMINE = Chem.MolFromSmarts('[NX3;!$(N-C=[O,S,N]);!$(N-S(=O)=O);!$(N-a);!$(N-[#7,#8]);!$(N#*);!$(N=*)]')
+ACID = Chem.MolFromSmarts('[$([CX3](=O)[OX2H1,OX1-]),$(c1nn[nH]n1),$(S(=O)(=O)[OX2H1,OX1-])]')
+
+
+def composite(mol):
+    # CNS MPO uses 5 desirability terms here (ClogP, MW, TPSA, HBD, ionization proxy), so the sum is 0-5.
+    logp = Crippen.MolLogP(mol)
+    mw = Descriptors.MolWt(mol)
+    tpsa = rdMolDescriptors.CalcTPSA(mol)
+    hbd = rdMolDescriptors.CalcNumHBD(mol)
+    hba = rdMolDescriptors.CalcNumHBA(mol)
+    rotb = rdMolDescriptors.CalcNumRotatableBonds(mol)
+    n_base = len(mol.GetSubstructMatches(BASIC_AMINE))
+    n_acid = len(mol.GetSubstructMatches(ACID))
+    mpo = (np.interp(logp, [3, 5], [1, 0]) + np.interp(mw, [360, 500], [1, 0])
+           + np.interp(tpsa, [90, 120], [1, 0]) + np.interp(hbd, [0.5, 3.5], [1, 0])
+           + (1.0 - 0.5 * (n_base > 0) - 0.5 * (n_acid > 0)))
+    lip = int(mw > 500) + int(logp > 5) + int(hbd > 5) + int(hba > 10)
+    veber = int(rotb > 10 or tpsa > 140)
+    return [mpo, lip, veber, n_base + n_acid]
+
+
+def descriptors(mol):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            rdMolDescriptors.CalcFractionCSP3(mol), charge]
+=======
+            rdMolDescriptors.CalcFractionCSP3(mol), charge] + composite(mol)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, maxiter=MAX_ITER, perturb=True):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if rng.random() < 0.5:
+            k = rng.integers(2, 4)
+=======
+        if not perturb:
+            pass
+        elif rng.random() < 0.5:
+            k = rng.integers(2, 4)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+                   options={"maxiter": maxiter})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _warm(n, rng):
+    """Solve n+1 or n-1 circles briefly, then convert to n circles."""
+    m = n + 1 if rng.random() < 0.5 else n - 1
+    c, r = _solve_once(m, rng, maxiter=150)
+    c = np.clip(c, 0, 1)
+    r = np.maximum(r, 0)
+    if m > n:
+        k = np.argmin(r)
+        keep = np.arange(m) != k
+        return c[keep], r[keep]
+    p = rng.uniform(0, 1, (500, 2))
+    d = np.sqrt(((p[:, None] - c[None]) ** 2).sum(-1)) - r[None]
+    clear = np.minimum(d.min(1), np.minimum(p, 1 - p).min(1))
+    j = np.argmax(clear)
+    return np.vstack([c, p[j]]), np.append(r, max(clear[j], 0.0) * 0.5)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        else:
+            c, r = _solve_once(n, rng)
+=======
+        elif rng.random() < 0.5:
+            c, r = _solve_once(n, rng, _warm(n, rng), perturb=False)
+        else:
+            c, r = _solve_once(n, rng)
+>>>>>>> REPLACE
+-----

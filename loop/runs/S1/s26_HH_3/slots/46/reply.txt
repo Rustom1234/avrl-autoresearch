@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+        c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+        r0 = np.full(n, 0.07)
+        r0[:k] = 0.12
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+=======
+        if start % 3 == 0:
+            c0, r0 = _rsa_start(rng, n)
+        else:
+            c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+            r0 = np.full(n, 0.07)
+            r0[:k] = 0.12
+            r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _rsa_start(rng, n):
+    """Random sequential adsorption: accept uniform candidates in order, each with the
+    largest radius that keeps it inside the square and clear of accepted circles."""
+    cs = []
+    rs = []
+    tries = 0
+    while len(cs) < n and tries < 20000:
+        tries += 1
+        p = rng.uniform(0.0, 1.0, size=2)
+        r = min(p[0], p[1], 1.0 - p[0], 1.0 - p[1])
+        for q, rq in zip(cs, rs):
+            r = min(r, float(np.hypot(p[0] - q[0], p[1] - q[1])) - rq)
+        if r >= 0.03:
+            cs.append(p)
+            rs.append(r)
+    c0 = np.full((n, 2), 0.5)
+    r0 = np.full(n, 0.03)
+    m = len(cs)
+    if m:
+        c0[:m] = np.array(cs)
+        r0[:m] = np.array(rs)
+    rest = n - m
+    c0[m:] = rng.uniform(0.05, 0.95, size=(rest, 2))
+    return c0, r0
+
+
+def _best_packing():
+>>>>>>> REPLACE
+-----

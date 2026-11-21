@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def run_packing():
+    """Run the circle packing search under a ~200 s wall-time budget, keeping the best valid packing"""
+=======
+def _shear_move(c, rng):
+    # Anisotropic affine basin-escape: shear x by a*y, scale y by s, refit to [0.02, 0.98]^2.
+    a = rng.uniform(-0.3, 0.3)
+    s = rng.uniform(0.85, 1.15)
+    x = c[:, 0] + a * c[:, 1]
+    y = c[:, 1] * s
+    w = max(x.max() - x.min(), y.max() - y.min(), 1e-9)
+    x = 0.02 + 0.96 * (x - x.min()) / w
+    y = 0.02 + 0.96 * (y - y.min()) / w
+    return np.clip(np.stack([x, y], axis=1), 0.0, 1.0)
+
+
+def run_packing():
+    """Run the circle packing search under a ~200 s wall-time budget, keeping the best valid packing"""
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if k > 0:
+            amp = 0.01 + 0.09 * ((k - 1) % 4) / 3.0
+            start = _lattice_start(np.random.default_rng(999 + k), amp)
+=======
+        if k > 0:
+            amp = 0.01 + 0.09 * ((k - 1) % 4) / 3.0
+            start = _lattice_start(np.random.default_rng(999 + k), amp)
+            if best_c is not None and k % 3 == 0:
+                start = _shear_move(best_c, np.random.default_rng(4242 + k))
+>>>>>>> REPLACE
+-----

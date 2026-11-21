@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+from rdkit.Chem.Pharm2D import Gobbi_Pharm2D, Generate
+=======
+from rdkit.Chem.Pharm2D import Gobbi_Pharm2D, Generate
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles, kind):
+=======
+def scaffold_feats(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024)
+    out = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        scaf = MurckoScaffold.GetScaffoldForMol(m)
+        core = list(m.GetSubstructMatch(scaf)) if scaf.GetNumAtoms() else []
+        core_set = set(core)
+        side = [a.GetIdx() for a in m.GetAtoms() if a.GetIdx() not in core_set]
+        f_core = gen.GetCountFingerprintAsNumPy(m, fromAtoms=core) if core else np.zeros(1024)
+        f_side = gen.GetCountFingerprintAsNumPy(m, fromAtoms=side) if side else np.zeros(1024)
+        out.append(np.concatenate([f_core, f_side]))
+    return np.array(out, dtype=np.float32)
+
+
+def featurize(smiles, kind):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if kind == "morgan":
+=======
+    if kind == "scaffold":
+        return scaffold_feats(smiles)
+    if kind == "morgan":
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for kind in ("morgan", "atompair", "maccs", "gobbi"):
+=======
+    for kind in ("morgan", "atompair", "maccs", "gobbi", "scaffold"):
+>>>>>>> REPLACE
+-----

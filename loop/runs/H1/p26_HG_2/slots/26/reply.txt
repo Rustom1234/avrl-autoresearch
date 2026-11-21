@@ -1,0 +1,123 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([centers.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    radii = np.zeros(n)
+    # Greedy largest-hole construction
+    first_pos = rng.uniform(0, 1, 2)
+    centers[0] = first_pos
+    # Clearance to boundary
+    c0 = np.minimum(first_pos, 1 - first_pos)
+    radii[0] = np.min(c0)
+
+    for i in range(1, n):
+        candidates = rng.uniform(0, 1, (2000, 2))
+        # Distances to centers
+        d_centers = np.linalg.norm(candidates - centers[:i], axis=1)
+        min_d_centers = np.min(d_centers, axis=1)
+        # Distance to boundaries
+        dist_to_bound = np.minimum(np.minimum(candidates, 1 - candidates), axis=1)
+        min_dist_to_bound = np.min(dist_to_bound, axis=1)
+        
+        # Clearances
+        clearances = np.minimum(min_d_centers - radii[:i], min_dist_to_bound)
+        
+        # Add small noise to keep diversity
+        scores = clearances + rng.uniform(0, 0.005, size=2000)
+        best_idx = np.argmax(scores)
+        
+        centers[i] = candidates[best_idx]
+        radii[i] = np.max([0, scores[best_idx]])
+
+    x0 = np.concatenate([centers.flatten(), radii])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+    centers = np.zeros((n, 2))
+    for i in range(n):
+        success = False
+        for _ in range(200):
+            cand = rng.uniform(0, 1, 2)
+            if i == 0:
+                centers[i] = cand
+                success = True
+                break
+            dist = np.linalg.norm(centers[:i] - cand, axis=1)
+            if np.all(dist > 0.12):
+                centers[i] = cand
+                success = True
+                break
+        if not success:
+            centers[i] = rng.uniform(0, 1, 2)
+
+    x0 = np.concatenate([centers.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    centers = np.zeros((n, 2))
+    radii = np.zeros(n)
+    # Greedy largest-hole construction
+    first_pos = rng.uniform(0, 1, 2)
+    centers[0] = first_pos
+    # Clearance to boundary
+    c0 = np.minimum(first_pos, 1 - first_pos)
+    radii[0] = np.min(c0)
+
+    for i in range(1, n):
+        candidates = rng.uniform(0, 1, (2000, 2))
+        # Distances to existing centers
+        d_centers = np.linalg.norm(candidates - centers[:i], axis=1)
+        min_d_centers = np.min(d_centers, axis=1)
+        # Distance to boundaries
+        dist_to_bound = np.minimum(np.minimum(candidates, 1 - candidates), axis=1)
+        min_dist_to_bound = np.min(dist_to_bound, axis=1)
+        
+        # Clearances available at candidates
+        clearances = np.minimum(min_d_centers - radii[:i], min_dist_to_bound)
+        
+        # Add small noise to keep diversity
+        scores = clearances + rng.uniform(0, 0.005, size=2000)
+        best_idx = np.argmax(scores)
+        
+        centers[i] = candidates[best_idx]
+        radii[i] = max(0, scores[best_idx])
+
+    x0 = np.concatenate([centers.flatten(), radii])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

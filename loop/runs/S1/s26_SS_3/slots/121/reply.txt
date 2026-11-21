@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        mi = 300
+        if it % 4 == 0:
+            def pen(z, mu):
+                x = z[:n]
+                y = z[n:2 * n]
+                r = z[2 * n:]
+                dx = x[iu] - x[ju]
+                dy = y[iu] - y[ju]
+                d = np.sqrt(dx * dx + dy * dy + 1e-18)
+                ov = np.maximum(r[iu] + r[ju] - d, 0.0)
+                f = -r.sum() + mu * np.sum(ov * ov)
+                cf = 2 * mu * ov
+                gr = -np.ones(n) + np.bincount(iu, cf, n) + np.bincount(ju, cf, n)
+                gx = np.bincount(iu, -cf * dx / d, n) + np.bincount(ju, cf * dx / d, n)
+                gy = np.bincount(iu, -cf * dy / d, n) + np.bincount(ju, cf * dy / d, n)
+                for v, dr, gg, sg in ((r - x, 1, gx, -1), (x + r - 1, 1, gx, 1),
+                                      (r - y, 1, gy, -1), (y + r - 1, 1, gy, 1)):
+                    vv = np.maximum(v, 0.0)
+                    f += mu * np.sum(vv * vv)
+                    gr = gr + 2 * mu * vv
+                    gg += sg * 2 * mu * vv
+                return f, np.concatenate([gx, gy, gr])
+            zz = np.concatenate([c0[:, 0], c0[:, 1], 0.02 + 0.1 * rng.random(n)])
+            try:
+                for mu in np.geomspace(30, 3e4, 5):
+                    rp = minimize(pen, zz, args=(mu,), jac=True, method="L-BFGS-B",
+                                  bounds=bounds, options={"maxiter": 300})
+                    zz = rp.x
+                z0 = zz
+                mi = 200
+            except Exception:
+                pass
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": mi, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+>>>>>>> REPLACE
+-----

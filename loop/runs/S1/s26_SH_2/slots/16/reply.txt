@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+    try:
+        zp = z0.copy()
+=======
+    # Symmetric-constrained stage: circle j (j>=13) is the mirror of circle j-13 across y=x.
+    # Reduced variables w = [u(13), v(13), s(13)] with centers (u_i, v_i), mirror (v_i, u_i).
+    try:
+        h = 13
+        A = np.zeros((3 * n, 3 * h))
+        idx = np.arange(h)
+        A[idx, idx] = 1.0
+        A[h + idx, h + idx] = 1.0
+        A[n + idx, h + idx] = 1.0
+        A[n + h + idx, idx] = 1.0
+        A[2 * n + idx, 2 * h + idx] = 1.0
+        A[2 * n + h + idx, 2 * h + idx] = 1.0
+
+        def pen_w(w, mu):
+            f, g = pen(A @ w, mu)
+            return f, A.T @ g
+
+        wb = [(0.0, 1.0)] * (2 * h) + [(0.0, 0.5)] * h
+        ws = np.concatenate([pts[:h, 0], pts[:h, 1], np.full(h, 0.05)])
+        for mu in (10.0, 1e2, 1e3, 1e4):
+            rw = minimize(pen_w, ws, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=wb, options={"maxiter": 300})
+            ws = rw.x
+        z0 = A @ ws
+    except Exception:
+        pass
+
+    try:
+        zp = z0.copy()
+>>>>>>> REPLACE
+-----

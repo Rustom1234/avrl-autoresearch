@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _lp_polish(c, r, delta=0.05):
+    """Sequential LP with a box trust region: maximise sum(r) under linearised pair and wall constraints."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+    m, w, p = len(iu[0]), np.arange(n), np.arange(len(iu[0]))
+    for _ in range(30):
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1))
+        g = diff / (d[:, None] + 1e-12)
+        A = np.zeros((m + 5 * n, 3 * n))
+        b = np.zeros(m + 5 * n)
+        A[p, 2 * iu[0]] = -g[:, 0]
+        A[p, 2 * iu[0] + 1] = -g[:, 1]
+        A[p, 2 * iu[1]] = g[:, 0]
+        A[p, 2 * iu[1] + 1] = g[:, 1]
+        A[p, 2 * n + iu[0]] = 1
+        A[p, 2 * n + iu[1]] = 1
+        b[:m] = d - r[iu[0]] - r[iu[1]]
+        for ax in (0, 1):
+            lo, hi = m + ax * n + w, m + (2 + ax) * n + w
+            A[lo, 2 * w + ax] = -1
+            A[hi, 2 * w + ax] = 1
+            A[np.r_[lo, hi], 2 * n + np.r_[w, w]] = 1
+            b[lo] = c[:, ax] - r
+            b[hi] = 1 - c[:, ax] - r
+        A[m + 4 * n + w, 2 * n + w] = -1
+        b[m + 4 * n:] = r
+        obj = np.zeros(3 * n)
+        obj[2 * n:] = -1
+        res = linprog(obj, A_ub=A, b_ub=b, bounds=[(-delta, delta)] * (3 * n), method="highs")
+        if res.status != 0:
+            break
+        gain = res.x[2 * n:].sum()
+        c = c + res.x[:2 * n].reshape(n, 2)
+        r = np.maximum(r + res.x[2 * n:], 0)
+        delta = min(1.5 * delta, 0.1) if gain > 1e-9 else 0.5 * delta
+    return c, r
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        late = best is not None and time.process_time() - t0 > 0.4 * time_limit
+        c, r = _solve_once(n, rng, best if late else None)
+=======
+        late = best is not None and time.process_time() - t0 > 0.4 * time_limit
+        if late:
+            c0 = np.clip(best[0] + rng.normal(0, 0.02, best[0].shape), 0.01, 0.99)
+            c, r = _lp_polish(c0, _repair(c0, best[1]))
+        else:
+            c, r = _solve_once(n, rng)
+>>>>>>> REPLACE
+-----

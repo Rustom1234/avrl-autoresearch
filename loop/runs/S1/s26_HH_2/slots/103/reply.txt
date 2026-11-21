@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def _score(c):
+=======
+_JRNG = np.random.RandomState(99)
+_JIT = [_JRNG.normal(0.0, 0.004, size=(_N, 2)) for _ in range(8)]
+
+
+def _robust_score(c):
+    """Worst-case exact LP sum over fixed-seed jittered copies of the centres."""
+    vals = []
+    for E in _JIT:
+        cj = np.clip(c + E, 0.0, 1.0)
+        r = _lp_radii(cj)
+        if r is None:
+            return -1.0
+        vals.append(float(_make_valid(cj, r).sum()))
+    return min(vals)
+
+
+def _score(c):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    cur_s = float(cur_r.sum())
+=======
+    cur_s = _robust_score(cur_c)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > cur_s or rng.rand() < np.exp((s - cur_s) / T):
+=======
+        s = _robust_score(c)
+        if s > cur_s or rng.rand() < np.exp((s - cur_s) / T):
+>>>>>>> REPLACE
+-----

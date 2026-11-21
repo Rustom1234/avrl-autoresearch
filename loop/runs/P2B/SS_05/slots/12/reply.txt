@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+t_start_training = time.time()
+=======
+EMA_DECAY = 0.995
+ema_src = list(model.parameters())
+ema_params = [p.detach().float().clone() for p in ema_src]
+t_start_training = time.time()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+    with torch.no_grad():
+        torch._foreach_lerp_(ema_params, [p.detach().float() for p in ema_src], 1 - EMA_DECAY)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+model.eval()
+with autocast_ctx:
+=======
+with torch.no_grad():
+    torch._foreach_copy_(ema_src, ema_params)
+model.eval()
+with autocast_ctx:
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+野菜
+<<<<<<< SEARCH
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        # Cosine decay from 1.0 to FINAL_LR_FRAC, floored at 0.1
+        # Note: if FINAL_LR_FRAC is 0, we treat it as 0.1 for the floor
+        target_frac = max(0.1, FINAL_LR_FRAC)
+        cos_val = (1.0 - 0.5 * (1.0 - target_frac) * (1 - math.cos(math.pi * (1.0 - progress) / WARMDOWN_RATIO))) # wait, simpler cosine: 
+        # Let's use the standard cosine decay formula from peak to target: 
+        # multiplier = 0.5 * (1 + cos(pi * (1 - progress) / WARMDOWN_RATIO)) 
+        # but we need it to map from 1.0 to target_frac. 
+        # formula: target_frac + (1.0 - target_frac) * 0.5 * (1 + cos(pi * (1 - progress) / WARMDOWN_RATIO)) 
+        # wait, even simpler: 
+        # cos_val = 0.5 * (1 + math.cos(math.pi * (1.0 - progress) / WARMDOWN_RATIO))
+        # return target_frac + (1.0 - target_frac) * cos_val
+        
+        # Correct implementation for the request: 
+        # Cosine decay from 1.0 to 0.1*peak (if FINAL_LR_FRAC is small)
+        # The request says 
+-----
+<<<<<<< SEARCH
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+=======
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        # Cosine decay from 1.0 to min(FINAL_LR_FRAC, 0.1)*1.0
+        # Wait, the spec says 'to 0.1x peak', but also keep FINAL_LR_FRAC as is. 
+        # Interpreting as: decay to FINAL_LR_FRAC, but floor the end result at 0.1
+        target = max(0.1, FINAL_LR_FRAC)
+        cos_val = 0.5 * (1 + math.cos(math.pi * cooldown))
+        return target + (1.0 - target) * cos_val
+>>>>>>> REPLACE
+-----

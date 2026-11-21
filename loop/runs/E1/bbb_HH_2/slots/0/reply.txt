@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+=======
+from rdkit.Chem import Descriptors, rdFingerprintGenerator, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+ACID = Chem.MolFromSmarts('[CX3](=O)[OX2H1,OX1-]')
+BASIC_AMINE = Chem.MolFromSmarts('[NX3;!$(N-C=[O,S,N]);!$(N-a);!$(N-S(=O)=O)]')
+
+
+def featurize(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([
+            rdMolDescriptors.CalcTPSA(m),
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            rdMolDescriptors.CalcNumHBD(m),
+            rdMolDescriptors.CalcNumHBA(m),
+            rdMolDescriptors.CalcNumRotatableBonds(m),
+            rdMolDescriptors.CalcFractionCSP3(m),
+            Chem.GetFormalCharge(m),
+            len(m.GetSubstructMatches(ACID)),
+            len(m.GetSubstructMatches(BASIC_AMINE)),
+        ])
+    return np.array(rows, dtype=np.float32)
+>>>>>>> REPLACE
+-----

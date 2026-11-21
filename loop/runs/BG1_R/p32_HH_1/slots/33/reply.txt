@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _polish(c, r, rng):
+    """Remove rattlers, re-optimise the rest, then reinsert each rattler in the largest hole."""
+    slack = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1)) - r[:, None] - r[None]
+    np.fill_diagonal(slack, np.inf)
+    wall = np.min(np.stack([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r]), axis=0)
+    keep = (slack.min(1) <= 1e-6) | (wall <= 1e-6)
+    if keep.all() or keep.sum() < 2:
+        return None
+    cn, rn = _solve_once(int(keep.sum()), rng, c[keep])
+    cn, rn = np.clip(cn, 0, 1), _repair(np.clip(cn, 0, 1), rn)
+    for _ in range(int((~keep).sum())):
+        P = rng.uniform(0, 1, (4000, 2))
+        clear = (np.sqrt(((P[:, None] - cn[None]) ** 2).sum(-1)) - rn[None]).min(1)
+        clear = np.maximum(np.minimum(clear, np.min(np.minimum(P, 1 - P), 1)), 0)
+        k = np.argmax(clear)
+        cn, rn = np.vstack([cn, P[k]]), np.append(rn, clear[k])
+    return cn, _repair(cn, rn)
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            best = (c, r)
+    return best
+=======
+            best = (c, r)
+    cand = _polish(*best, rng)
+    if cand is not None and cand[1].sum() > best[1].sum():
+        best = cand
+    return best
+>>>>>>> REPLACE
+-----

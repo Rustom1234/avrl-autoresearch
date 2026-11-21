@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+=======
+    n = len(r)
+    w = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    try:
+        i, j = np.triu_indices(n, 1)
+        d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+        A = np.zeros((len(i), n))
+        A[np.arange(len(i)), i] = 1
+        A[np.arange(len(i)), j] = 1
+        lp = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=[(0, max(float(x), 0)) for x in w], method="highs")
+        if lp.status == 0:
+            rl = np.maximum(lp.x - 2e-7, 0)
+            if np.all(rl[i] + rl[j] <= d - 1e-10) and np.all(rl <= w):
+                return rl
+    except Exception:
+        pass
+    r = np.minimum(r, w)
+>>>>>>> REPLACE
+-----

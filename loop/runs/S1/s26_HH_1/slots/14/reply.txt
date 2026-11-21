@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def jitter_anneal_search(seed=12345, budget=150.0):
+=======
+def _mirror_opt(c):
+    # Mirror-symmetric start: 26 is even, so no axis circle is needed. Take 13 centres,
+    # fold them into the left half, reflect them across x = 0.5, relax with the penalty
+    # solver, then unfold to a symmetric layout and run the free-radii polish.
+    m = 13
+    half = c[:m].copy()
+    half[:, 0] = np.minimum(half[:, 0], 1.0 - half[:, 0])
+    full = np.vstack([half, np.column_stack([1.0 - half[:, 0], half[:, 1]])])
+    relaxed = _adam_soft(full, iters=800)
+    half = relaxed[:m].copy()
+    half[:, 0] = np.minimum(half[:, 0], 1.0 - half[:, 0])
+    sym = np.vstack([half, np.column_stack([1.0 - half[:, 0], half[:, 1]])])
+    return _local_opt(sym)
+
+
+def jitter_anneal_search(seed=12345, budget=150.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c = _ls_growth(rng)
+    best_c, best_r = _local_opt(c)
+    best_s = float(np.sum(best_r))
+=======
+    c = _ls_growth(rng)
+    best_c, best_r = _local_opt(c)
+    best_s = float(np.sum(best_r))
+    mc, mr = _mirror_opt(c)
+    if float(np.sum(mr)) > best_s and _valid_packing(mc, mr):
+        best_c, best_r = mc, mr
+        best_s = float(np.sum(mr))
+>>>>>>> REPLACE
+-----

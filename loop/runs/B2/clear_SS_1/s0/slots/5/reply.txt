@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+def svr_fit_predict(K_tr, y_tr, K_te):
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(K_tr, (y_tr - y_tr.mean()) / (y_tr.std() + 1e-9))
+    return svr.predict(K_te)
+
+
+def xgb_model(n_trees, seed):
+    return XGBRegressor(max_depth=4, n_estimators=n_trees, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                        min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    Gtr, Gte = xgb_features(train_smiles), xgb_features(test_smiles)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    Ktr = tanimoto(Xtr, Xtr)
+    Kte = tanimoto(Xte, Xtr)
+    # inner 5-fold out-of-fold predictions for both members, used to choose the blend weight
+    oof_x = np.zeros(len(y))
+    oof_s = np.zeros(len(y))
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(y):
+        oof_x[b] = xgb_model(300, seed).fit(Gtr[a], y[a]).predict(Gtr[b])
+        oof_s[b] = svr_fit_predict(Ktr[np.ix_(a, a)], y[a], Ktr[np.ix_(b, a)])
+    rx = rankdata(oof_x) / len(y)
+    rs = rankdata(oof_s) / len(y)
+    best_w, best_r = 0.5, -np.inf
+    for w in np.arange(0, 1.01, 0.1):
+        r = np.corrcoef(rankdata(w * rs + (1 - w) * rx), y)[0, 1]
+        if r > best_r:
+            best_w, best_r = w, r
+    # final members on the full training set
+    p_rf = xgb_model(600, seed).fit(Gtr, y).predict(Gte)
+    p_svr = svr_fit_predict(Ktr, y, Kte)
+    return best_w * rankdata(p_svr) / len(p_svr) + (1 - best_w) * rankdata(p_rf) / len(p_rf)
+>>>>>>> REPLACE
+-----

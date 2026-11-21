@@ -1,0 +1,2 @@
+def equation(t, x, v, params):
+    return params[0]+params[1]*np.log(v)*np.sqrt(x)+params[2]/(v**2*x)+params[3]*x**2/np.sqrt(v)+params[4]*v**3*x**3+params[5]*np.sqrt(v)/x**2+params[6]*x**3/np.sqrt(v)+params[7]*np.log(x)/np.sqrt(v)+params[8]*np.sin(3.3*t)

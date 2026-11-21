@@ -1,0 +1,72 @@
+<<<<<<< SEARCH
+HOP_SD = 0.04
+=======
+HOP_SD = 0.04
+DISP_BETAS = (5.0, 20.0, 80.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS)])
+=======
+def _disperse(p, n):
+    """Max-min-like dispersion: minimise a log-sum-exp of -(pair distances and wall distances) in stages of rising beta."""
+    iu = np.triu_indices(n, 1)
+    m_pairs = len(iu[0])
+
+    def energy(p, beta):
+        c = p.reshape(n, 2)
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1) + 1e-12)
+        t = np.concatenate([d, c[:, 0], 1 - c[:, 0], c[:, 1], 1 - c[:, 1]])
+        z = -beta * t
+        m = z.max()
+        e = np.exp(z - m)
+        s = e.sum()
+        w = e / s
+        g = np.zeros((n, 2))
+        u = (-w[:m_pairs] / d)[:, None] * diff
+        np.add.at(g, iu[0], u)
+        np.add.at(g, iu[1], -u)
+        gw = -w[m_pairs:]
+        g[:, 0] += gw[:n] - gw[n:2 * n]
+        g[:, 1] += gw[2 * n:3 * n] - gw[3 * n:]
+        return (m + np.log(s)) / beta, g.ravel()
+
+    for beta in DISP_BETAS:
+        p = minimize(energy, p, args=(beta,), jac=True, method="L-BFGS-B", options={"maxiter": 300}).x
+    return p
+
+
+def _start_radii(p, n):
+    """Initial SLSQP radii: half the nearest-neighbour distance, clipped to the walls."""
+    c = p.reshape(n, 2)
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    np.fill_diagonal(d, np.inf)
+    walls = np.minimum(c, 1 - c).min(1)
+    return np.maximum(np.minimum(d.min(1) / 2, walls), 0)
+
+
+def _solve_once(n, centers0, r0=None):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS) if r0 is None else r0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+        for _, p in pool[:KEEP]:
+            c, r = _solve_once(n, p)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+=======
+        n_disp = POOL // 3
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL - n_disp)), key=lambda t: t[0])
+        starts = [(p, None) for _, p in pool[:KEEP]]
+        starts += [(q, _start_radii(q, n)) for q in (_disperse(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(n_disp))]
+        for p, r0 in starts:
+            c, r = _solve_once(n, p, r0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+>>>>>>> REPLACE
+-----

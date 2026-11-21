@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+from sklearn.model_selection import KFold
+=======
+from sklearn.model_selection import KFold
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.float64) - ctr
+    oof = np.zeros((len(y), 3))
+=======
+    r = np.asarray(train_y, dtype=np.float64) - ctr
+    sd = r.std()
+    qt = QuantileTransformer(n_quantiles=min(1000, len(r)), output_distribution="normal",
+                             random_state=seed).fit(r.reshape(-1, 1))
+    y = qt.transform(r.reshape(-1, 1)).ravel() * sd
+    oof = np.zeros((len(y), 3))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES)) + cte
+=======
+    p = meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES))
+    return qt.inverse_transform((p / sd).reshape(-1, 1)).ravel() + cte
+>>>>>>> REPLACE
+-----

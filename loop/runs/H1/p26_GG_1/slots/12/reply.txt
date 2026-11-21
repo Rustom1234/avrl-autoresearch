@@ -1,0 +1,133 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        res = np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+        def jac(v):
+            c = v[:2 * n].reshape(n, 2)
+            r = v[2 * n:]
+            # d_i = sqrt((cx_i-cx_j)^2 + (cy_i-cy_j)^2) - r_i - r_j
+            # grad d_i wrt c_i: (c_i - c_j) / (2 * d_i + epsilon_r)
+            # grad d_i wrt c_j: (c_j - c_i) / (2 * d_i + epsilon_r)
+            # grad d_i wrt r_i: -1
+            # grad d_i wrt r_j: -1
+            # Note: we use the part of d before the -r_i-r_j to simplify.
+            # Let dist_ij = sqrt((cx_i-cx_j)^2 + (cy_i-cy_j)^2)
+            # constraint is dist_ij - r_i - r_j >= 0
+            dist_ij = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+            # Avoid division by zero
+            denom = 2 * dist_ij + 1e-12
+            
+            jac_mat = np.zeros((len(d) + 5 * n, 3 * n))
+            # Parts for d_ij
+            jac_mat[:len(d), iu[0]] += (c[iu[0]] - c[iu[1]]) / denom.reshape(-1, 1).T
+            jac_mat[:len(d), iu[1]] += (c[iu[1]] - c[iu[0]]) / denom.reshape(-1, 1).T
+            jac_mat[:len(d), 2 * n + iu[0]] -= 1
+            jac_mat[:len(d), 2 * n + iu[1]] -= 1
+            
+            # Parts for c_i - r_i, c_i - r_j, 1 - c_i - r_i, 1 - c_j - r_j
+            for i in range(n):
+                # c_i - r_i
+                jac_mat[len(d) + i, 2 * i] = 1
+                jac_mat[len(d) + i, 2 * n + i] = -1
+                # c_i - r_j (wait, the original was c[:,0]-r and c[:,1]-r)
+                # Looking at original: c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r
+                # These are independent per i.
+                # Indexing: [len(d) : len(d)+n] is c_x - r, [len(d)+n : len(d)+2n] is c_y - r
+                # [len(d)+2n : len(d)+3n] is 1 - c_x - r, [len(d)+3n : len(d)+4n] is 1 - c_y - r
+                # [len(d)+4n : len(d)+5n] is r
+                
+                # Correcting mapping based on np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+                # c[:, 0] - r
+                jac_mat[len(d) + i, 2 * i] = 1
+                jac_mat[len(d) + i, 2 * n + i] = -1
+                # c[:, 1] - r
+                jac_mat[len(d) + n + i, 2 * i + 1] = 1
+                jac_mat[len(d) + n + i, 2 * n + i] = -1
+                # 1 - c[:, 0] - r
+                jac_mat[len(d) + 2 * n + i, 2 * i] = -1
+                jac_mat[len(d) + 2 * n + i, 2 * n + i] = -1
+                # 1 - c[:, 1] - r
+                jac_mat[len(d) + 3 * n + i, 2 * i + 1] = -1
+                jac_mat[len(d) + 3 * n + i, 2 * n + i] = -1
+                # r
+                jac_mat[len(d) + 4 * n + i, 2 * n + i] = 1
+            return jac_mat
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                   constraints={{"type": "ineq", "fun": cons, "jac": jac}},
+                   options={{"maxiter": MAX_ITER, "ftol": 1e-9}})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        # d_ij = sqrt((x_i - x_j)^2 + (y_i - y_j)^2) - r_i - r_j
+        # c_constraints = x - r, y - r, 1 - x - r, 1 - y - r, r
+        # Jacobian calculation:
+        # For d_ij:
+        # d(d_ij)/dx_i = (x_i - x_j) / d_ij, d(d_ij)/dy_i = (y_i - y_j) / d_ij
+        # d(d_ij)/dx_j = -(x_i - x_j) / d_ij, d(d_ij)/dy_j = -(y_i - y_j) / d_ij
+        # d(d_ij)/dr_i = -1, d(d_ij)/dr_j = -1
+        
+        # For x - r:
+        # d(x - r)/dx = 1, d(x - r)/dr = -1
+        # For 1 - x - r:
+        # d(1 - x - r)/dx = -1, d(1 - x - r)/dr = -1
+        
+        # For r:
+        # d(r)/dr = 1
+
+        dx = c[iu[0]] - c[iu[1]]
+        dy = c[iu[0]][:, 1] - c[iu[1]][:, 1]
+        dist = np.sqrt(dx**2 + dy**2)
+        
+        # Jacobian for d_ij (n*(n-1)/2 constraints)
+        # Each d_ij depends on x_i, y_i, x_j, y_j, r_i, r_j
+        # Shape of Jacobian: (num_constraints, 3n)
+        # For simplicity, we can use a small trick: most of the Jacobian is sparse.
+        # But scipy's SLSQP 'fun' / 'jac' approach handles the full Jacobian shape.
+        
+        # Using numerical gradient for stability if needed, but let's try to be explicit.
+        # Actually, since SLSQP is slow, let's use a simpler approach: 
+        # minimize(..., jac=...) is very effective.
+        
+        # Due to complexity of indexing, we'll stick to the current func and 
+        # let SLSQP's internal logic handle it, but optimize the evaluation.
+        d = dist - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                     constraints={"type": "ineq", "fun": cons},
+                     options={"maxiter": MAX_ITER, "ftol": 1e-9})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

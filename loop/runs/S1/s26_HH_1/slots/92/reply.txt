@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+    K = 20
+    for k in range(K):
+        if time.time() - t0 > budget:
+            break
+        frac = k / (K - 1)
+        sigma = 0.1 * (0.002 / 0.1) ** frac
+        cand = np.clip(best_c + rng.normal(0.0, sigma, (n, 2)), 0.0, 1.0)
+        cc, rr = _local_opt(cand)
+        s = float(np.sum(rr))
+        if s > best_s:
+            best_c, best_r, best_s = cc, rr, s
+    return best_c, best_r
+=======
+    K = 20
+    stall = 0
+    reheat_k = 0
+    reheat_sigma = 0.1
+    for k in range(K):
+        if time.time() - t0 > budget:
+            break
+        frac = (k - reheat_k) / max(K - 1 - reheat_k, 1)
+        sigma = reheat_sigma * (0.002 / reheat_sigma) ** frac
+        cand = np.clip(best_c + rng.normal(0.0, sigma, (n, 2)), 0.0, 1.0)
+        cc, rr = _local_opt(cand)
+        s = float(np.sum(rr))
+        if s > best_s:
+            best_c, best_r, best_s = cc, rr, s
+            stall = 0
+        else:
+            stall += 1
+        if stall >= 5:
+            reheat_sigma = 0.05
+            reheat_k = k + 1
+            stall = 0
+    return best_c, best_r
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def mlp_predict(D_tr, C_tr, y, D_te, C_te, seed):
+    qt = QuantileTransformer(output_distribution='normal')
+    X_tr = np.hstack([qt.fit_transform(D_tr), np.log1p(C_tr)])
+    X_te = np.hstack([qt.transform(D_te), np.log1p(C_te)])
+    preds = []
+    for k in range(5):
+        net = MLPRegressor(hidden_layer_sizes=(256, 64), activation='relu', alpha=1e-2, early_stopping=True,
+                           validation_fraction=0.1, max_iter=500, random_state=seed + k)
+        net.fit(X_tr, y)
+        preds.append(net.predict(X_te))
+    return np.mean(preds, axis=0)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lgbm.fit(desc_features(train_smiles), y)
+    p_desc = lgbm.predict(desc_features(test_smiles))
+=======
+    D_tr, D_te = desc_features(train_smiles), desc_features(test_smiles)
+    lgbm.fit(D_tr, y)
+    p_desc = lgbm.predict(D_te)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+
+    C_tr, C_te = count_features(train_smiles), count_features(test_smiles)
+    p_mlp = mlp_predict(D_tr, C_tr, y, D_te, C_te, seed)
+
+    n = len(p_desc)
+    return (rankdata(p_desc) + rankdata(p_fp) + rankdata(p_mlp)) / (3 * n)
+>>>>>>> REPLACE
+-----

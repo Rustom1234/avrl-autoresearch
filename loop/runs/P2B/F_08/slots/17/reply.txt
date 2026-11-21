@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+    # Check for gradient overflow (NaN or Inf)
+    if torch.any(torch.isinf(grad)) or torch.any(torch.isnan(grad)):
+        print(f"Gradient overflow detected in group {group_index}")
+        return 0, None
+    
+    # Gradient clipping: Clip gradient to maximum of 1.0
+    mask = grad.abs().max(dim=-1, keepdim=True).values > 1.0
+    grad.clamp_(max=1.0)
+>>>>>>> REPLACE
+
+    # Per-token gradient clipping to maximum magnitude 1.0
+    # This is more robust to outliers than global norm clipping
+    mask = grad.abs().max(dim=-1, keepdim=True).values > 1.0
+    grad = torch.where(mask, torch.clamp(grad, max=1.0), grad)
+-----
+<<<<<<<<< SEARCH
+    # Check for gradient overflow (NaN or Inf)
+    if torch.any(torch.isinf(grad)) or torch.any(torch.isnan(grad)):
+        print(f"Gradient overflow detected in group {group_index}")
+        return 0, None
+    
+    # Gradient clipping: Clip gradient to maximum of 1.0
+    mask = grad.abs().max(dim=-1, keepdim=True).values > 1.0
+    grad.clamp_(max=1.0)
+>>>>>>> REPLACE
+    
+    # Check for gradient overflow (NaN or Inf)
+    if torch.any(torch.isinf(grad)) or torch.any(torch.isnan(grad)):
+        print(f"Gradient overflow detected in group {group_index}")
+        return 0, None
+    
+    # Per-token gradient clipping: threshold per element to 1.0
+    mask = grad.abs().max(dim=-1, keepdim=True).values > 1.0
+    grad = torch.where(mask, torch.clamp(grad, max=1.0), grad)
+-----
+<<<<<<< SEARCH
+    # Check for gradient overflow (NaN or Inf)
+    if torch.any(torch.isinf(grad)) or torch.any(torch.isnan(grad)):
+        print(f"Gradient overflow detected in group {group_index}")
+        return 0, None
+    
+    # Gradient clipping: Clip gradient to maximum of 1.0
+    mask = grad.abs().max(dim=-1, keepdim=True).values > 1.0
+    grad.clamp_(max=1.0)
+=======
+    # Check for gradient overflow (NaN or Inf)
+    if torch.any(torch.isinf(grad)) or torch.any(torch.isnan(grad)):
+        print(f"Gradient overflow detected in group {group_index}")
+        return 0, None
+    
+    # Per-token gradient clipping: threshold per element to 1.0
+    mask = grad.abs().max(dim=-1, keepdim=True).values > 1.0
+    grad = torch.where(mask, torch.clamp(grad, max=1.0), grad)
+>>>>>>> REPLACE
+-----

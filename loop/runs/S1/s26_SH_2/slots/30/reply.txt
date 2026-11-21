@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+    try:
+        zp = z0.copy()
+        for mu in (10.0, 1e2, 1e3, 1e4, 1e5):
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 300})
+            zp = rp.x
+        z0 = zp
+    except Exception:
+        pass
+=======
+    def barrier(z, t):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        d = np.sqrt(dx * dx + dy * dy + 1e-18)
+        sp = d - r[iu] - r[ju]
+        sb = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        if np.any(sp <= 0) or np.any(sb <= 0):
+            return 1e12, np.zeros_like(z)
+        f = -np.sum(r) - t * (np.sum(np.log(sp)) + np.sum(np.log(sb)))
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        w = -t / sp
+        ux = dx / d
+        uy = dy / d
+        np.add.at(g[:n], iu, w * ux)
+        np.add.at(g[:n], ju, -w * ux)
+        np.add.at(g[n:2 * n], iu, w * uy)
+        np.add.at(g[n:2 * n], ju, -w * uy)
+        np.add.at(g[2 * n:], iu, -w)
+        np.add.at(g[2 * n:], ju, -w)
+        wb = -t / sb
+        wl = wb[:n]
+        wr = wb[n:2 * n]
+        wbt = wb[2 * n:3 * n]
+        wtp = wb[3 * n:]
+        g[:n] += wl - wr
+        g[n:2 * n] += wbt - wtp
+        g[2 * n:] -= (wl + wr + wbt + wtp)
+        return f, g
+
+    try:
+        xc = z0[:n]
+        yc = z0[n:2 * n]
+        wall = np.minimum.reduce([xc, 1 - xc, yc, 1 - yc])
+        dd = np.sqrt((xc[iu] - xc[ju]) ** 2 + (yc[iu] - yc[ju]) ** 2)
+        pr = np.full(n, np.inf)
+        np.minimum.at(pr, iu, dd / 2)
+        np.minimum.at(pr, ju, dd / 2)
+        r0 = 0.5 * np.minimum(wall, pr)
+        zb = np.concatenate([xc, yc, r0])
+        for t in (1e-2, 1e-3, 1e-4, 1e-5):
+            rb = minimize(barrier, zb, args=(t,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 300})
+            if np.isfinite(rb.fun) and rb.fun < 1e11:
+                zb = rb.x
+        z0 = zb
+    except Exception:
+        pass
+>>>>>>> REPLACE
+-----

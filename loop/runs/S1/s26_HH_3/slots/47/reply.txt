@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _greedy_start(seeds):
+    """Greedy hole placement: each circle goes at the random candidate maximising its feasible radius
+    (min of wall distance and gap to placed circles). Best of seeds by greedy sum."""
+    n = 26
+    best_sum, best_c, best_r = -1.0, None, None
+    for seed in seeds:
+        rng = np.random.default_rng(seed)
+        cand = rng.uniform(0.0, 1.0, size=(4000, 2))
+        wall = np.minimum(np.minimum(cand[:, 0], cand[:, 1]), np.minimum(1 - cand[:, 0], 1 - cand[:, 1]))
+        cs = np.zeros((n, 2))
+        rs = np.zeros(n)
+        for i in range(n):
+            feas = wall.copy()
+            if i > 0:
+                pc = cs[:i]
+                pr = rs[:i]
+                d = np.hypot(cand[:, None, 0] - pc[None, :, 0], cand[:, None, 1] - pc[None, :, 1])
+                feas = np.minimum(feas, (d - pr[None, :]).min(axis=1))
+            k = int(np.argmax(feas))
+            cs[i] = cand[k]
+            rs[i] = max(float(feas[k]), 0.0)
+        total = float(np.sum(rs))
+        if total > best_sum:
+            best_sum, best_c, best_r = total, cs.copy(), rs.copy()
+    return best_c, best_r
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+=======
+    # Greedy largest-first hole placement start (seeded, optimizer-free), then joint SLSQP + repair.
+    try:
+        c0, r0 = _greedy_start([9000, 9001, 9002])
+        c, r = _optimize(c0, r0)
+        r = _repair(c, r)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    except Exception:
+        pass
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    p_xgb = model.predict(Xte)
+=======
+    p_xgb = model.predict(Xte)
+    nd = len(Descriptors.descList)
+    oof = np.zeros(len(y))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        oof[va] = clone(model).fit(Xtr[tr], y[tr]).predict(Xtr[va])
+    res = y - oof
+    Btr = (Xtr[:, nd:] > 0).astype(np.float32)
+    Bte = (Xte[:, nd:] > 0).astype(np.float32)
+    inter = Bte @ Btr.T
+    sim = inter / (Bte.sum(1)[:, None] + Btr.sum(1)[None, :] - inter + 1e-9)
+    idx = np.argsort(-sim, axis=1)[:, :5]
+    s = np.take_along_axis(sim, idx, 1)
+    s = np.where(s > 0.4, s, 0.0)
+    corr = (s * res[idx]).sum(1) / np.maximum(s.sum(1), 1e-9)
+    p_xgb = p_xgb + 0.5 * corr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+from sklearn.base import clone
+>>>>>>> REPLACE
+-----

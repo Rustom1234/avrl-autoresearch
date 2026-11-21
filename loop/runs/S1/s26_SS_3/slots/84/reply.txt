@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+    while time.time() - t0 < 0.7 * time_budget:
+=======
+    best = None
+    best_val = -1.0
+    it = 0
+    pool = []
+    while time.time() - t0 < 0.5 * time_budget:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+=======
+                           options={"maxiter": 60, "ftol": 1e-6})
+        except Exception:
+            continue
+        z = res.x
+        pool.append((-res.fun, z.copy()))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while best is not None and time.time() - t0 < time_budget:
+=======
+    pool.sort(key=lambda t: -t[0])
+    for _, zp in pool[:12]:
+        try:
+            res = minimize(obj, zp, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 400, "ftol": 1e-12})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is None:
+            continue
+        if out[1].sum() > best_val:
+            best_val = out[1].sum()
+            best = out
+    while best is not None and time.time() - t0 < time_budget:
+>>>>>>> REPLACE
+-----

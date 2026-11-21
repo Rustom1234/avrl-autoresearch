@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _pattern_refine(x, y, r, deadline):
+    """Gradient-free pattern search on centers; radii always re-solved by LP (feasible)."""
+    cur = float(np.sum(r))
+    delta = 0.01
+    s2 = 0.7071067811865476
+    dirs = [(1.0, 0.0), (-1.0, 0.0), (0.0, 1.0), (0.0, -1.0),
+            (s2, s2), (-s2, s2), (s2, -s2), (-s2, -s2)]
+    while delta > 1e-8 and time.time() < deadline:
+        improved = False
+        for k in range(_N):
+            for ux, uy in dirs:
+                if time.time() > deadline:
+                    break
+                nx = x.copy()
+                ny = y.copy()
+                nx[k] = np.clip(nx[k] + delta * ux, 0.0, 1.0)
+                ny[k] = np.clip(ny[k] + delta * uy, 0.0, 1.0)
+                rr = _lp_radii(nx, ny)
+                if rr is not None and float(np.sum(rr)) > cur + 1e-12:
+                    cur = float(np.sum(rr))
+                    x, y, r = nx, ny, rr
+                    improved = True
+        if not improved:
+            delta *= 0.5
+    return x, y, r
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if time.time() - t0 > 200.0 and best is not None:
+=======
+        if time.time() - t0 > 170.0 and best is not None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best[1], best[2]
+=======
+    x, y, r = _pattern_refine(best[1][:, 0].copy(), best[1][:, 1].copy(),
+                              best[2], time.time() + 30.0)
+    centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+    return centers, r
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+=======
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+            if i == len(self.transformer.h) - 2:
+                x_mid = x
+        x = norm(x)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+=======
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            if self.training and reduction == 'mean':
+                # deep supervision: intermediate (second-to-last block) output through shared head, subsampled positions
+                mid = self.lm_head(norm(x_mid[:, ::4])).float()
+                mid = softcap * torch.tanh(mid / softcap)
+                aux = F.cross_entropy(mid.reshape(-1, mid.size(-1)), targets[:, ::4].reshape(-1), ignore_index=-1)
+                loss = loss + 0.1 * aux
+            return loss
+>>>>>>> REPLACE
+-----

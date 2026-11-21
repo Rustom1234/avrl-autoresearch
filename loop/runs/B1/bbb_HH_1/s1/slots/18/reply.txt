@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    lo, hi = np.percentile(D_train, [1, 99], axis=0)
+    X_train = np.hstack([X_train, np.clip(D_train, lo, hi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+=======
+    lo, hi = np.percentile(D_train, [1, 99], axis=0)
+    Dc_train = np.clip(D_train, lo, hi)
+    Dc_test = np.clip(D_test, lo, hi)
+    # Prune zero-variance and near-duplicate (|r| > 0.95) descriptor columns, fitted on the training fold only.
+    nz = np.where(Dc_train.std(axis=0) > 0)[0]
+    C = np.nan_to_num(np.abs(np.corrcoef(Dc_train[:, nz], rowvar=False)), nan=0.0)
+    kept = []
+    for i in range(len(nz)):
+        if all(C[i, j] <= 0.95 for j in kept):
+            kept.append(i)
+    keep = nz[np.array(kept, dtype=int)]
+    X_train = np.hstack([X_train, Dc_train[:, keep].astype(np.float32)])
+    X_test = np.hstack([X_test, Dc_test[:, keep].astype(np.float32)])
+>>>>>>> REPLACE
+-----

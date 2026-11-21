@@ -1,0 +1,60 @@
+<<<<<<< SEARCH
+from xgboost import XGBClassifier
+=======
+from sklearn.decomposition import PCA
+from sklearn.tree import DecisionTreeClassifier
+
+N_ROT_TREES = 200
+N_TOP_BITS = 300
+SUBSET_SIZE = 10
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+=======
+def rotation_forest(x_tr, y, x_te, seed):
+    rng = np.random.RandomState(seed)
+    mu = x_tr.mean(axis=0)
+    sd = x_tr.std(axis=0)
+    sd[sd < 1e-6] = 1.0
+    z_tr = (x_tr - mu) / sd
+    z_te = (x_te - mu) / sd
+    n, n_feat = z_tr.shape
+    total = np.zeros(z_te.shape[0])
+    for t in range(N_ROT_TREES):
+        perm = rng.permutation(n_feat)
+        rot_tr, rot_te = [], []
+        for start in range(0, n_feat, SUBSET_SIZE):
+            cols = perm[start:start + SUBSET_SIZE]
+            rows = rng.choice(n, size=int(0.75 * n), replace=False)
+            pca = PCA().fit(z_tr[rows][:, cols])
+            rot_tr.append(pca.transform(z_tr[:, cols]))
+            rot_te.append(pca.transform(z_te[:, cols]))
+        tree = DecisionTreeClassifier(max_depth=None, min_samples_leaf=2, random_state=seed + t)
+        tree.fit(np.hstack(rot_tr), y)
+        total += tree.predict_proba(np.hstack(rot_te))[:, 1]
+    return total / N_ROT_TREES
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    desc_tr = featurize(train_smiles)
+    desc_te = featurize(test_smiles)
+    morgan_tr = fingerprints(train_smiles)[0]
+    morgan_te = fingerprints(test_smiles)[0]
+    top = np.argsort(-morgan_tr.sum(axis=0))[:N_TOP_BITS]
+    x_tr = np.hstack([desc_tr, morgan_tr[:, top]])
+    x_te = np.hstack([desc_te, morgan_te[:, top]])
+    return rotation_forest(x_tr, y, x_te, seed)
+>>>>>>> REPLACE
+-----

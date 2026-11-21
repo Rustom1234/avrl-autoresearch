@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+import numpy as np
+from scipy.optimize import minimize
+
+# Settings
+=======
+import numpy as np
+from scipy.optimize import minimize, linprog
+
+# Settings
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+import numpy as np
+from scipy.optimize import minimize
+
+# Settings
+=======
+import numpy as np
+from scipy.optimize import minimize, linprog
+
+# Settings
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})\n    c, r = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]\n    \n    # Sequential LP Polish\n    for _ in range(3):\n        A_ub = []\n        b_ub = []\n        \n        # Pairwise constraints: r_i + r_j <= d_ij\n        iu = np.triu_indices(n, 1)\n        for i, j in zip(iu[0], iu[1]):\n            dist = np.linalg.norm(c[i] - c[j])\n            row = np.zeros(n)\n            row[i] = 1\n            row[j] = 1\n            A_ub.append(row)\n            b_ub.append(dist)\n\n        # Boundary constraints: r_i <= min(x, 1-x, y, 1-y)\n        for i in range(n):\n            row = np.zeros(n)\n            row[i] = 1\n            A_ub.append(row)\n            b_ub.append(min(c[i, 0], 1 - c[i, 0], c[i, 1], 1 - c[i, 1]))\n\n        # Solve LP\n        obj = -np.ones(n)\n        bounds = [(max(0, r[i] - 0.01), min(r[i] + 0.01, 1.0)) for i in range(n)]\n        res_lp = linprog(obj, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method='highs')\n        if res_lp.success:\n            r = res_lp.x\n        else:\n            break\n\n    return c, r
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import numpy as np
+from scipy.optimize import minimize
+
+# Settings
+=======
+import numpy as np
+from scipy.optimize import minimize, linprog
+
+# Settings
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----

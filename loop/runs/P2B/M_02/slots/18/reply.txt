@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+=======
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    if progress < 0.55:
+        # First cycle: full LR to 0.3x peak via cosine
+        # progress 0.0 -> 1.0, 0.55 -> 0.3
+        # cos_val goes from cos(0) to cos(acos(0.3) * (0.55/0.55))? No, let's simplify.
+        # We want it to start at 1.0 and end at 0.3 at progress 0.55
+        # Standard cosine decay formula: 0.5 * (1 + cos(pi * (progress - start) / (end - start)))
+        # To map 1.0 to 0.3, we use a scaled version.
+        # Actually, a simple linear interpolation to 0.3 is easier, but we need cosine.
+        # Let's just use a standard cosine decay mapping progress 0->0.55 to 1.0->0.3
+        # angle = pi * (progress / 0.55)
+        # mult = 0.3 + 0.7 * (1 + math.cos(math.pi * progress / 0.55)) / 2
+        # Wait, that starts at 1.0 at progress 0 and goes to 0.3 at 0.55.
+        angle = math.pi * (progress / 0.55)
+        return 0.3 + 0.7 * (1 + math.cos(angle)) / 2
+    else:
+        # Second cycle: jump to 1.0 at 0.55 and decay to 0.0 at 1.0
+        # progress 0.55 -> 1.0
+        angle = math.pi * ((progress - 0.55) / (1.0 - 0.55))
+        return (1 + math.cos(angle)) / 2
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles)[:, :nd], y)
+    et = model.predict(featurize(test_smiles)[:, :nd])
+    knn = knn_predict(train_smiles, y, test_smiles)
+    return 0.75 * et + 0.25 * knn
+=======
+    Xtr = featurize(train_smiles)[:, :nd]
+    Xte = featurize(test_smiles)[:, :nd]
+    model.fit(Xtr, y)
+    et = model.predict(Xte)
+    knn = knn_predict(train_smiles, y, test_smiles)
+    from sklearn.svm import SVR
+    big = np.abs(Xtr).max(0) > 100
+    def tf(X):
+        X = X.copy()
+        X[:, big] = np.sign(X[:, big]) * np.log1p(np.abs(X[:, big]))
+        return X
+    A, B = tf(Xtr), tf(Xte)
+    mu, sd = A.mean(0), A.std(0)
+    sd[sd < 1e-9] = 1.0
+    A = np.clip((A - mu) / sd, -5, 5)
+    B = np.clip((B - mu) / sd, -5, 5)
+    svr = SVR(kernel='rbf', C=3.0, gamma='scale').fit(A, y)
+    sv = svr.predict(B)
+    return 0.55 * et + 0.2 * knn + 0.25 * sv
+>>>>>>> REPLACE
+-----

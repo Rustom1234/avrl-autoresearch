@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _ls_grow(n, rng, steps=400):
+    """Lubachevsky-Stillinger-style growth: lognormal rates, overlaps pushed apart, blocked disks stop."""
+    p = rng.uniform(0.0, 1.0, size=(n, 2))
+    rate = rng.lognormal(0.0, 0.3, size=n)
+    r = np.zeros(n)
+    blocked = np.zeros(n, dtype=bool)
+    iu2, ju2 = np.triu_indices(n, 1)
+    dr = 0.2 / steps
+    for s in range(steps):
+        r = r + np.where(blocked, 0.0, rate * dr)
+        for _ in range(4):
+            dx = p[iu2, 0] - p[ju2, 0]
+            dy = p[iu2, 1] - p[ju2, 1]
+            d = np.sqrt(dx * dx + dy * dy) + 1e-12
+            ov = np.maximum(r[iu2] + r[ju2] - d, 0.0)
+            fx = 0.5 * ov * dx / d
+            fy = 0.5 * ov * dy / d
+            disp = np.zeros_like(p)
+            np.add.at(disp[:, 0], iu2, fx)
+            np.add.at(disp[:, 0], ju2, -fx)
+            np.add.at(disp[:, 1], iu2, fy)
+            np.add.at(disp[:, 1], ju2, -fy)
+            p = np.clip(p + disp, r[:, None], 1.0 - r[:, None])
+        dx = p[iu2, 0] - p[ju2, 0]
+        dy = p[iu2, 1] - p[ju2, 1]
+        d = np.sqrt(dx * dx + dy * dy) + 1e-12
+        ov = r[iu2] + r[ju2] - d
+        hit = np.zeros(n, dtype=bool)
+        hit[iu2[ov > 1e-6]] = True
+        hit[ju2[ov > 1e-6]] = True
+        wall = np.minimum.reduce([p[:, 0], 1 - p[:, 0], p[:, 1], 1 - p[:, 1]]) - r
+        hit |= wall < 1e-6
+        blocked |= hit
+    return p, _repair(p, r)
+
+
+def _pack_once(seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pts = _relax(pts, rng)
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.05)])
+=======
+    pts = _relax(pts, rng)
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.05)])
+    if seed % 3 == 1:
+        pts, rad = _ls_grow(n, rng)
+        z0 = np.concatenate([pts[:, 0], pts[:, 1], rad])
+>>>>>>> REPLACE
+-----

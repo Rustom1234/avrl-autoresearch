@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import ExtraTreesRegressor
+=======
+from sklearn.svm import SVR
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    et = ExtraTreesRegressor(n_estimators=500, max_features=0.3, min_samples_leaf=1, n_jobs=-1, random_state=seed)
+    et.fit(count_features(train_smiles), y)
+    p_fp = et.predict(count_features(test_smiles))
+=======
+    Xtr = (count_features(train_smiles) > 0).astype(np.float64)
+    Xte = (count_features(test_smiles) > 0).astype(np.float64)
+
+    def tanimoto(A, B):
+        dot = A @ B.T
+        return dot / (A.sum(1)[:, None] + B.sum(1)[None, :] - dot + 1e-9)
+
+    svr = SVR(kernel="precomputed", C=1.0, epsilon=0.05)
+    svr.fit(tanimoto(Xtr, Xtr), y)
+    p_fp = svr.predict(tanimoto(Xte, Xtr))
+>>>>>>> REPLACE
+-----

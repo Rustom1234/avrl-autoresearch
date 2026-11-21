@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+from xgboost import XGBClassifier
+=======
+from scipy.stats import rankdata
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import SplineTransformer, StandardScaler
+from xgboost import XGBClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+=======
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    spline = make_pipeline(SplineTransformer(n_knots=5, degree=3, extrapolation='constant'), StandardScaler(),
+                           LogisticRegression(C=0.5, max_iter=2000, random_state=seed))
+    spline.fit(featurize(train_smiles), y)
+    total += rankdata(spline.predict_proba(featurize(test_smiles))[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+>>>>>>> REPLACE
+-----

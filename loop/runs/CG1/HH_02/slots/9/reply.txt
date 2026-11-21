@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+        if step >= total_train_steps:
+            break
+
+
+def predict(model, images):
+=======
+        if step >= total_train_steps:
+            break
+    # Recalibrate BatchNorm running statistics on clean, un-augmented training images
+    bns = [m for m in model.modules() if isinstance(m, nn.BatchNorm2d)]
+    for m in bns:
+        m.momentum = None
+        m.reset_running_stats()
+    model.train()
+    with torch.no_grad():
+        clean = train_loader.normalize(train_loader.images[:10000])
+        for chunk in clean.split(2000):
+            model(chunk)
+    for m in bns:
+        m.momentum = 1 - 0.5566
+    model.eval()
+
+
+def predict(model, images):
+>>>>>>> REPLACE
+-----

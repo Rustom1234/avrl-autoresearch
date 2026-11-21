@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _soft_kick(c, r, rng, n_modes=5):
+    """Displace the packing along soft (floppy) modes of the contact stiffness matrix J^T J."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+
+    def g(v):
+        cc, rr = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((cc[iu[0]] - cc[iu[1]]) ** 2).sum(1)) - rr[iu[0]] - rr[iu[1]]
+        return np.concatenate([d, cc[:, 0] - rr, cc[:, 1] - rr, 1 - cc[:, 0] - rr, 1 - cc[:, 1] - rr])
+
+    v = np.concatenate([c.ravel(), r])
+    g0 = g(v)
+    h = 1e-7
+    J = np.empty((len(g0), 3 * n))
+    for k in range(3 * n):
+        e = np.zeros(3 * n)
+        e[k] = h
+        J[:, k] = (g(v + e) - g0) / h
+    act = J[g0 < 1e-4]
+    w, V = np.linalg.eigh(act.T @ act)
+    keep = np.where(w > 1e-8)[0][:n_modes]
+    if len(keep) == 0:
+        return c, r
+    d = V[:, keep] @ rng.normal(size=len(keep))
+    d *= rng.uniform(0.01, 0.05) / (np.linalg.norm(d) + 1e-12)
+    v2 = v + d
+    return np.clip(v2[:2 * n].reshape(n, 2), 0, 1), np.maximum(v2[2 * n:], 0)
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+=======
+        if rng.random() < 0.5:
+            c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+            r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        else:
+            c0, r0 = _soft_kick(bc, br, rng)
+        c0, r0 = _relocate(c0, r0, rng)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x1 = np.concatenate([x0[:2 * n], [INIT_RADIUS]])
+    res1 = minimize(lambda v: -v[2 * n], x1, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                    options={"maxiter": MAX_ITER})
+    x2 = np.concatenate([res1.x[:2 * n], np.full(n, max(res1.x[2 * n], 0.0))])
+=======
+    if start is None:
+        x1 = np.concatenate([x0[:2 * n], [INIT_RADIUS]])
+        res1 = minimize(lambda v: -v[2 * n], x1, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                        options={"maxiter": MAX_ITER})
+        start = np.concatenate([res1.x[:2 * n], np.full(n, max(res1.x[2 * n], 0.0))])
+    x2 = start
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None:   # first start: a random restart
+            c, r = _solve_once(n, rng)
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

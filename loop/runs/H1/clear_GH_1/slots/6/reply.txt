@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    y = np.asarray(train_y, dtype=np.float64)
+    use_log = bool(np.all(y > 0))
+    model.fit(featurize(train_smiles), np.log1p(y) if use_log else y)
+    pred = model.predict(featurize(test_smiles))
+    return np.expm1(pred) if use_log else pred
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    use_log = bool(np.all(y > 0))
+    yt = np.log1p(y) if use_log else y
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    rf = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                               n_jobs=-1, random_state=seed)
+    rf.fit(X_train, yt)
+    xgb = XGBRegressor(n_estimators=500, max_depth=6, learning_rate=0.05, subsample=0.8, colsample_bytree=0.5,
+                       n_jobs=8, random_state=seed)
+    xgb.fit(X_train, yt)
+    pred = 0.7 * rf.predict(X_test) + 0.3 * xgb.predict(X_test)
+    return np.expm1(pred) if use_log else pred
+>>>>>>> REPLACE
+-----

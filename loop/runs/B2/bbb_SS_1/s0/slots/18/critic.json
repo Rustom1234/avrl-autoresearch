@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "No measurement circumvention found: no file or network access, no pasted predictions, and test labels are never touched. The kNN uses only train labels, QuantileTransformer is fit on train X only, and augmentation is applied only to training rows.",
+  "No validity-breaking bug. standardize() falls back to the raw molecule on failure, so parse behaviour matches the incumbent. argpartition with k=15 is safe since each training fold has far more than 15 molecules.",
+  "Minor: MLPClassifier early_stopping takes its validation split from the augmented matrix Xa, so near-duplicate noisy copies of the same molecule can appear on both sides of that split. Early stopping is therefore optimistic and the MLP likely trains longer than ideal. This affects only the internal stopping rule, not the reported harness score.",
+  "Verify feature layout: augment() treats columns [:N_DESC] as descriptors while tanimoto_knn treats [N_DESC:] as fingerprint bits. Both are consistent with a [descriptors, fingerprint] concatenation; if featurize concatenates fingerprint first, both components would be silently wrong (noise on counts, binarized descriptors for Tanimoto). The diff does not show the concatenation line, so this should be confirmed in the file.",
+  "Runtime risk worth noting: augmentation triples the training rows for the RF/LGBM/CatBoost ensemble and adds an MLP, against a 10-minute cap for 15 fits. The two completed runs imply it fits, but headroom is reduced.",
+  "Recomputed z = 1.94 from the stated numbers, matching the harness. Candidate mean 0.08255 vs incumbent 0.0942, difference 0.01165, SE = sqrt((0.0049/sqrt(2))^2 + 0.0049^2) = 0.0060. With only 2 candidate runs and 1 incumbent run this sits just under a 2-sigma threshold, so the accept is genuinely borderline rather than well-established."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 1.94
+ }
+}

@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer, StandardScaler
+from sklearn.decomposition import TruncatedSVD
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+=======
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+
+    # MLP on descriptors + SVD of Morgan bits
+    svd = TruncatedSVD(n_components=64, random_state=seed)
+    S = svd.fit_transform(A)
+    St = svd.transform(B)
+    sc = StandardScaler().fit(S)
+    mlp2 = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True, max_iter=300,
+                         random_state=seed)
+    mlp2.fit(np.hstack([Dq, sc.transform(S)]), y)
+    preds.append(rankdata(mlp2.predict_proba(np.hstack([Dtq, sc.transform(St)]))[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

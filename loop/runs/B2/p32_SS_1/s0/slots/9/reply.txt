@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _relax(c, r):
+    """Relax centres only (radii fixed) on the smooth overlap/wall penalty with L-BFGS-B."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+
+    def energy(x):
+        c = x.reshape(n, 2)
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        p = np.maximum(r[iu[0]] + r[iu[1]] - d, 0)
+        lo = np.maximum(r[:, None] - c, 0)
+        hi = np.maximum(c + r[:, None] - 1, 0)
+        g = np.zeros((n, 2))
+        gi = (-2 * p / d)[:, None] * diff
+        np.add.at(g, iu[0], gi)
+        np.add.at(g, iu[1], -gi)
+        g += -2 * lo + 2 * hi
+        return (p ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum(), g.ravel()
+
+    res = minimize(energy, c.ravel(), jac=True, method="L-BFGS-B", bounds=[(0, 1)] * (2 * n),
+                   options={"maxiter": 150})
+    return res.x.reshape(n, 2)
+
+
+def _profile(pool, rng):
+    """Start from the best packing's radius profile (scaled 0.97, permuted) on random centres."""
+    n = len(pool[0][1])
+    r = rng.permutation(np.sort(pool[0][1])[::-1] * 0.97)
+    c = _relax(rng.uniform(0.1, 0.9, (n, 2)), r)
+    return np.concatenate([c.ravel(), r])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        x0 = None
+        if len(pool) >= 2 and rng.random() < 0.7:
+            x0 = _cross(pool, n, rng)
+        elif pool and rng.random() < 0.4:
+            x0 = _profile(pool, rng)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _repair(c, r, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+=======
+    iu = np.triu_indices(n, 1)
+    pi, pj = iu[0].tolist(), iu[1].tolist()
+    D = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    dl = D[iu].tolist()
+    rl = r.tolist()
+    for _ in range(50):
+        changed = False
+        for k in rng.permutation(len(pi)).tolist():
+            i, j = pi[k], pj[k]
+            s = rl[i] + rl[j]
+            if s > dl[k]:
+                f = dl[k] / s
+                rl[i] *= f
+                rl[j] *= f
+                changed = True
+        if not changed:
+            break
+    r = np.array(rl)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+=======
+        r = _repair(c, r, rng)
+>>>>>>> REPLACE
+-----

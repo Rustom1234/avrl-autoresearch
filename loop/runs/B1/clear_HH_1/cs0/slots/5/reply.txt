@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import rdPartialCharges
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def descriptors(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([f(m) for _, f in Descriptors.descList])
+=======
+def charge_feats(m):
+    try:
+        rdPartialCharges.ComputeGasteigerCharges(m)
+        q = np.array([a.GetDoubleProp("_GasteigerCharge") for a in m.GetAtoms() if a.GetAtomicNum() > 1])
+    except Exception:
+        q = np.zeros(1)
+    q = np.nan_to_num(q, nan=0.0, posinf=0.0, neginf=0.0)
+    if q.size == 0:
+        q = np.zeros(1)
+    return [(q < -0.25).sum(), ((q >= -0.25) & (q < -0.05)).sum(), ((q >= -0.05) & (q <= 0.05)).sum(),
+            ((q > 0.05) & (q <= 0.25)).sum(), (q > 0.25).sum(), np.abs(q).max()]
+
+
+def descriptors(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([f(m) for _, f in Descriptors.descList] + charge_feats(m))
+>>>>>>> REPLACE
+-----

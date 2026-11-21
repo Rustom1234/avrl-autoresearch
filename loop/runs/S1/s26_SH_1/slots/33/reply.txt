@@ -1,0 +1,42 @@
+<<<<<<<< SEARCH
+    if time.time() - t0 > 200.0 and best is not None:
+=======
+    if time.time() - t0 > 150.0 and best is not None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    s0, c0, r0 = best
+    x2, y2 = _polish(c0[:, 0].copy(), c0[:, 1].copy(), r0)
+=======
+    s0, c0, r0 = best
+    # centers-only Powell refinement, objective = -LP max sum of radii, 60s guard
+    tstart = time.time()
+    rec = {"s": s0, "x": c0[:, 0].copy(), "y": c0[:, 1].copy(), "r": r0.copy()}
+
+    def _pf(z):
+        if time.time() - tstart > 60.0:
+            raise TimeoutError("powell guard")
+        xx = z[:_N]
+        yy = z[_N:]
+        rr = _lp_radii(xx, yy)
+        if rr is None:
+            return 0.0
+        ss = float(np.sum(rr))
+        if ss > rec["s"]:
+            rec["s"] = ss
+            rec["x"] = np.clip(xx, 0.0, 1.0).copy()
+            rec["y"] = np.clip(yy, 0.0, 1.0).copy()
+            rec["r"] = rr.copy()
+        return -ss
+
+    try:
+        minimize(_pf, np.concatenate([c0[:, 0], c0[:, 1]]), method="Powell",
+                 options={"xtol": 1e-9, "maxfev": 20000})
+    except Exception:
+        pass
+    if rec["s"] > s0:
+        s0 = rec["s"]
+        c0 = np.column_stack([rec["x"], rec["y"]])
+        r0 = rec["r"]
+    x2, y2 = _polish(c0[:, 0].copy(), c0[:, 1].copy(), r0)
+>>>>>>> REPLACE
+-----

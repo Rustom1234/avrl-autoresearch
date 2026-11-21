@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+@torch.compile(dynamic=False, fullgraph=True)
+def muon_step_fused(stacked_grads, stacked_params, momentum_buffer, second_momentum_buffer,
+                    momentum_t, lr_t, wd_t, beta2_t, ns_steps, red_dim):
+    # Nesterov momentum
+    momentum = momentum_t.to(stacked_grads.dtype)
+    momentum_buffer.lerp_(stacked_grads, 1 - momentum)
+    g = stacked_grads.lerp_(momentum_buffer, momentum)
+=======
+@torch.compile(dynamic=False, fullgraph=True)
+def muon_step_fused(stacked_grads, stacked_params, momentum_buffer, second_momentum_buffer,
+                    momentum_t, lr_t, wd_t, beta2_t, ns_steps, red_dim):
+    # Nesterov momentum
+    momentum = momentum_t.to(stacked_grads.dtype)
+    momentum_buffer.lerp_(stacked_grads, 1 - momentum)
+    g = stacked_grads.lerp_(momentum_buffer, momentum)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    torch.cuda.synchronize()
+    t1 = time.time()
+    dt = t1 - t0
+=======
+    torch.cuda.synchronize()
+    t1 = time.time()
+    dt = t1 - t0
+
+    # Burst LR: if at epoch start (t0 > 2 lines ago), boost LR slightly
+    if step > 0 and (t0 - eval(last_checkpoint_time)).item() >= 60:
+        for group in optimizer.param_groups:
+            group['lr'] *= 1.05
+    last_checkpoint_time = time.time()
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    if step > 0 and (t0 - eval(last_checkpoint_time)).item() >= 60:
+=======
+    if step > 0 and (t0 - last_checkpoint_time) >= 60:
+>>>>>>> REPLACE
+-----

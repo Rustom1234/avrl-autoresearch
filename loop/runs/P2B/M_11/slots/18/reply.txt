@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+        self.resid_lambdas = nn.Parameter(torch.ones(config.n_layer))
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+=======
+        self.resid_lambdas = nn.Parameter(torch.ones(config.n_layer))
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        # Per-pass gate on the residual branch of the looped block application
+        self.loop_gate = nn.Parameter(torch.ones(2))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            "h": nn.ModuleList([Block(config, i) for i in range(config.n_layer)]),
+=======
+            "h": nn.ModuleList([Block(config, i) for i in range(config.n_layer // 2)]),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.x0_lambdas.fill_(0.1)
+=======
+        self.x0_lambdas.fill_(0.1)
+        self.loop_gate.fill_(1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        resid_params = [self.resid_lambdas]
+=======
+        resid_params = [self.resid_lambdas, self.loop_gate]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+        n_shared = len(self.transformer.h)
+        for i in range(self.config.n_layer):
+            block = self.transformer.h[i % n_shared]
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x_in = x
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+            x = x_in + self.loop_gate[i // n_shared] * (x - x_in)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+ASPECT_RATIO = 64       # model_dim = depth * ASPECT_RATIO
+=======
+ASPECT_RATIO = 80       # model_dim = depth * ASPECT_RATIO
+>>>>>>> REPLACE
+-----

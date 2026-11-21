@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+=======
+    if start is not None:
+        x0 = start
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+=======
+    T = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < T:   # random restarts, then remove-k and regrow
+        if best is not None and time.process_time() - t0 > 0.7 * T:
+            c0, r0 = best
+            k = int(rng.integers(2, 5))
+            idx = np.unique(np.concatenate([rng.choice(np.argsort(r0)[:8], 1), rng.choice(n, k - 1, replace=False)]))
+            c0 = c0.copy()
+            c0[idx] = rng.uniform(0.05, 0.95, (len(idx), 2))
+            r1 = 0.8 * r0
+            r1[idx] = INIT_RADIUS
+            c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r1]))
+        else:
+            c, r = _solve_once(n, rng)
+>>>>>>> REPLACE
+-----

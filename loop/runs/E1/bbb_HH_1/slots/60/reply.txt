@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import BernoulliNB
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+N_BINS = 8
+
+
+def binarise(D, edges):
+    n = D.shape[0]
+    cols = []
+    for j in range(D.shape[1]):
+        idx = np.searchsorted(edges[j], D[:, j], side='right')
+        onehot = np.zeros((n, N_BINS), dtype=np.float32)
+        onehot[np.arange(n), idx] = 1
+        cols.append(onehot)
+    return np.hstack(cols)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    edges = np.percentile(D_train, np.linspace(0, 100, N_BINS + 1)[1:-1], axis=0).T
+    nb = BernoulliNB(alpha=1.0)
+    nb.fit(np.hstack([X_train[:, :N_BITS], binarise(D_train, edges)]), y)
+    p_nb = nb.predict_proba(np.hstack([X_test[:, :N_BITS], binarise(D_test, edges)]))[:, 1]
+    return (0.4 * scaled_rank(rf.predict_proba(X_test)[:, 1]) + 0.4 * scaled_rank(gb.predict_proba(X_test)[:, 1])
+            + 0.2 * scaled_rank(p_nb))
+>>>>>>> REPLACE
+-----

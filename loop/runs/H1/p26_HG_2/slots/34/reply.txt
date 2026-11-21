@@ -1,0 +1,86 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Use squared distance to avoid sqrt(0) gradient singularity
+        # dist^2 >= (r_i + r_j)^2  =>  (x_i-x_j)^2 + (y_i-y_j)^2 - (r_i+r_j)^2 >= 0
+        d2 = ((c[iu[0]] - c[iu[1]]) ** 2).sum(1)
+        r_sum = r[iu[0]] + r[iu[1]]
+        pair_cons = d2 - r_sum**2
+        
+        boundary_cons = np.concatenate([c[:, 0] - r, c[:, 1] - r, 
+                                         1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        return np.concatenate([pair_cons, boundary_cons, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER, "ftol": 1e-7})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints是一位{"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+ dwarves
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Use squared distance to avoid sqrt(0) gradient singularity
+        # (x_i-x_j)^2 + (y_i-y_j)^2 - (r_i+r_j)^2 >= 0
+        d2 = ((c[iu[0]] - c[iu[1]]) ** 2).sum(1)
+        r_sum = r[iu[0]] + r[iu[1]]
+        pair_cons = d2 - r_sum**2
+        
+        boundary_cons = np.concatenate([c[:, 0] - r, c[:, 1] - r, 
+                                         1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        return np.concatenate([pair_cons, boundary_cons, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER, "ftol": 1e-7})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Use squared distance: (x_i-x_j)^2 + (y_i-y_j)^2 - (r_i+r_j)^2 >= 0
+        d2 = ((c[iu[0]] - c[iu[1]]) ** 2).sum(1)
+        pair_cons = d2 - (r[iu[0]] + r[iu[1]])**2
+        boundary_cons = np.concatenate([c[:, 0] - r, c[:, 1] - r, 
+                                         1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        return np.concatenate([pair_cons, boundary_cons, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER, "ftol": 1e-7})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, inc=None, cap0=0.05):
+    if inc is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    else:
+        c0 = inc[0].copy()
+        idx = rng.choice(n, 8, replace=False)
+        c0[idx] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (8, 2))
+        x0 = np.concatenate([c0.ravel(), inc[1]])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+=======
+    for cap in list(np.arange(cap0, 0.4 + 1e-9, 0.02)) + [1.0]:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+=======
+    rng, t0, best, k = np.random.default_rng(seed), time.process_time(), None, 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and k % 5 == 4:   # every fifth restart: partial reset of the incumbent
+            c, r = _solve_once(n, rng, best, 0.12)
+        else:
+            c, r = _solve_once(n, rng)
+        k += 1
+        c = np.clip(c, 0, 1)
+>>>>>>> REPLACE
+-----

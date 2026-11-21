@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def clean_smiles(smiles):
+    # Keep the largest fragment, neutralise charges, canonicalise; fall back to the input on failure.
+    chooser = rdMolStandardize.LargestFragmentChooser()
+    uncharger = rdMolStandardize.Uncharger()
+    out = []
+    for s in smiles:
+        try:
+            mol = uncharger.uncharge(chooser.choose(Chem.MolFromSmiles(s)))
+            out.append(Chem.MolToSmiles(mol))
+        except Exception:
+            out.append(s)
+    return out
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_smiles, test_smiles = clean_smiles(train_smiles), clean_smiles(test_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+-----

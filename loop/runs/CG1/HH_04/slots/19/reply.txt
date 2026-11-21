@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+        if step >= total_train_steps:
+            break
+
+
+def predict(model, images):
+=======
+        if step >= total_train_steps:
+            break
+    # BN recalibration on clean (un-augmented) training images, so running stats match the test distribution
+    with torch.no_grad():
+        bns = [m for m in model.modules() if isinstance(m, nn.BatchNorm2d)]
+        saved_momentum = [m.momentum for m in bns]
+        for m in bns:
+            m.reset_running_stats()
+            m.momentum = None
+        model.train()
+        clean = train_loader.normalize(train_loader.images[:10000])
+        for chunk in clean.split(2000):
+            model(chunk)
+        for m, mo in zip(bns, saved_momentum):
+            m.momentum = mo
+        model.eval()
+
+
+def predict(model, images):
+>>>>>>> REPLACE
+-----

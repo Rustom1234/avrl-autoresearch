@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of gaming the measurement. The diff adds no file or network access, no pasted coordinates and no use of labels. It only adds a warm start: before the main SLSQP restart, a short SLSQP run (60 iterations) makes all circles one size and maximises that radius, and its centres become the starting point. Randomness still comes from the seeded rng.",
+  "No bug makes the result meaningless. The helper is named cons_eq but is passed as an inequality constraint ('ineq'), which is correct for non-overlap and staying inside the box. max(s[-1], 0) guards against a negative radius. Validity is still enforced later by the unchanged repair step and by the harness check.",
+  "Cost: each restart now runs an extra SLSQP with about 624 constraints, so fewer restarts fit in the 80% time budget. That is a speed trade-off, not a correctness problem.",
+  "Implausible numbers: the candidate's 2.9396 and the incumbent's 2.9375 are both above the best published value of about 2.9370 stated on the card. Noise in finding a packing cannot push a valid packing past the true optimum. A 1e-10 tolerance cannot explain a gap of 0.002 either. Possible causes: the 'adjusted values' include some correction, or the published value on the card is out of date. Packomania lists about 2.93795 for n=32, which is still below 2.9396. This is worth checking in the harness, but the diff gives no reason to veto.",
+  "Recomputed z: the difference is 2.9396 - 2.9375 = 0.0021. Dividing by 0.0034*sqrt(2) = 0.0048 (one job on each side) gives z \u2248 0.44. That matches the harness's 0.417 within the rounding of the displayed values. The evidence is far too weak to adopt the change. Reject is correct; a replicate run could be considered."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.44
+ }
+}

@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+def hex_jitter(rng):
+    """Hex-like row lattice for 26 points, with Gaussian jitter (sigma 0.02)."""
+    rows = [5, 5, 5, 5, 6] if rng.random() < 0.5 else [6, 5, 6, 5, 4]
+    pts = []
+    R = len(rows)
+    for k, cnt in enumerate(rows):
+        y = (k + 0.5) / R
+        shift = 0.5 if k % 2 else 0.0
+        for j in range(cnt):
+            x = (j + 0.5 + shift) / (cnt + 0.5)
+            pts.append([x, y])
+    pts = np.array(pts)
+    pts = pts + rng.normal(0.0, 0.02, pts.shape)
+    return np.clip(pts, 0.05, 0.95)
+=======
+def hex_jitter(rng):
+    """Hex-like row lattice for 26 points from a random row pattern, with random jitter and random transpose/flip."""
+    patterns = [
+        [5, 5, 5, 5, 6],
+        [6, 5, 6, 5, 4],
+        [5, 6, 5, 6, 4],
+        [4, 5, 4, 5, 4, 4],
+        [6, 5, 5, 5, 5],
+        [3, 4, 3, 4, 3, 3, 3, 3],
+    ]
+    rows = patterns[int(rng.integers(len(patterns)))]
+    sigma = float(rng.uniform(0.01, 0.04))
+    pts = []
+    R = len(rows)
+    for k, cnt in enumerate(rows):
+        y = (k + 0.5) / R
+        shift = 0.5 if k % 2 else 0.0
+        for j in range(cnt):
+            x = (j + 0.5 + shift) / (cnt + 0.5)
+            pts.append([x, y])
+    pts = np.array(pts)
+    if rng.random() < 0.5:
+        pts = np.array(pts[:, ::-1])
+    if rng.random() < 0.5:
+        pts = pts.copy()
+        pts[:, 0] = 1.0 - pts[:, 0]
+    pts = pts + rng.normal(0.0, sigma, pts.shape)
+    return np.clip(pts, 0.05, 0.95)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for start in range(4):
+=======
+    for start in range(6):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = sa_centers(c0, rng, t0)
+=======
+        c0 = sa_centers(c0, rng, t0, steps=800)
+>>>>>>> REPLACE
+-----

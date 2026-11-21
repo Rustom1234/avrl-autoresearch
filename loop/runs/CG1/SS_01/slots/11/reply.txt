@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+            # Pre-pad images to save time when doing random translation
+            pad = self.aug.get("translate", 0)
+            if pad > 0:
+                self.proc_images["pad"] = F.pad(images, (pad,)*4, "reflect")
+
+        if self.aug.get("translate", 0) > 0:
+            images = batch_crop(self.proc_images["pad"], self.images.shape[-2])
+        elif self.aug.get("flip", False):
+            images = self.proc_images["flip"]
+        else:
+            images = self.proc_images["norm"]
+=======
+
+        if self.aug.get("flip", False):
+            images = self.proc_images["flip"]
+        else:
+            images = self.proc_images["norm"]
+        t = self.aug.get("translate", 0)
+        if t > 0:
+            # Random translation per chunk of images via roll (wraps instead of reflecting)
+            chunks = []
+            for c in images.chunk(5):
+                dy, dx = torch.randint(-t, t + 1, (2,)).tolist()
+                chunks.append(torch.roll(c, (dy, dx), (2, 3)))
+            images = torch.cat(chunks)
+>>>>>>> REPLACE
+-----

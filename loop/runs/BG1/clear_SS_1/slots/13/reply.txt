@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    preds = [rf.predict(mixed_features(test_smiles)), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr))]
+=======
+    Mtr, Mte = mixed_features(train_smiles), mixed_features(test_smiles)
+    nd = len(Descriptors.descList)
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(y)),
+                             random_state=seed).fit(Mtr[:, :nd])
+    Dtr, Dte = qt.transform(Mtr[:, :nd]), qt.transform(Mte[:, :nd])
+    mlp_p = np.mean([MLPRegressor(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True, max_iter=300,
+                                  random_state=seed * 10 + i).fit(Dtr, y).predict(Dte) for i in range(5)], axis=0)
+    preds = [rf.predict(Mte), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr)), mlp_p]
+>>>>>>> REPLACE
+-----

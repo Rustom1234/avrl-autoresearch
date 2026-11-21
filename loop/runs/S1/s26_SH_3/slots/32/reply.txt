@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    centers = np.clip(best_c, 0.0, 1.0)
+    radii = safe_radii(centers, np.maximum(best_r, 0.0))
+=======
+    # iterated local search from the best state, until 200 s total
+    best_z = np.concatenate([best_c[:, 0], best_c[:, 1], best_r])
+    best_sum = float(np.sum(best_r))
+    cur_z, cur_sum = best_z.copy(), best_sum
+    while time.time() - t0 < 200:
+        zs = cur_z.copy()
+        k = int(rng.integers(2, 5))
+        idx = rng.choice(n, size=k, replace=False)
+        for i in idx:
+            zs[i] = rng.uniform(0.05, 0.95)
+            zs[n + i] = rng.uniform(0.05, 0.95)
+        zs[2 * n:] *= 0.8
+        zn = optimize(zs)
+        v = float(np.sum(zn[2 * n:]))
+        if v > cur_sum or (v > cur_sum - 0.002 and rng.random() < 0.1):
+            cur_z, cur_sum = zn, v
+        if v > best_sum:
+            best_z, best_sum = zn.copy(), v
+    best_c = np.stack([best_z[:n], best_z[n:2 * n]], axis=1)
+    best_r = best_z[2 * n:].copy()
+
+    centers = np.clip(best_c, 0.0, 1.0)
+    radii = safe_radii(centers, np.maximum(best_r, 0.0))
+>>>>>>> REPLACE
+-----

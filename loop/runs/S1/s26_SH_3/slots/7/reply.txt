@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best_val = -1.0
+    best_c = None
+    best_r = None
+    for start in range(4):
+        if start > 0 and time.time() - t0 > 150:
+            break
+        c0 = hex_jitter(rng)
+        c0 = sa_centers(c0, rng, t0)
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+        # shrink-and-grow cycles
+        for cyc in range(8):
+            if time.time() - t0 > 180:
+                break
+            zs = cur.copy()
+            zs[2 * n:] *= 0.9
+            zs[:2 * n] = np.clip(zs[:2 * n] + rng.normal(0, 0.02, 2 * n), 0.0, 1.0)
+            zn = optimize(zs)
+            v = np.sum(zn[2 * n:])
+            if v > cur_val:
+                cur, cur_val = zn, v
+        if cur_val > best_val:
+            best_val = cur_val
+            best_c = np.stack([cur[:n], cur[n:2 * n]], axis=1)
+            best_r = cur[2 * n:].copy()
+=======
+    rng = np.random.default_rng(12345)
+    budget = 220.0
+    best_val = -1.0
+    best_c = None
+    best_r = None
+    best_z = None
+    t_loop = time.time()
+    last_dur = 0.0
+    while True:
+        remaining = budget - (time.time() - t_loop)
+        if remaining < 1.5 * last_dur + 5.0:
+            break
+        t_run = time.time()
+        if best_z is None or rng.random() < 0.6:
+            # global random start
+            c0 = hex_jitter(rng)
+            c0 = sa_centers(c0, rng, time.time(), steps=400)
+            z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+            cur = optimize(z)
+        else:
+            # perturbation of the best packing so far
+            zs = best_z.copy()
+            zs[2 * n:] *= 0.9
+            zs[:2 * n] = np.clip(zs[:2 * n] + rng.normal(0, 0.02, 2 * n), 0.0, 1.0)
+            cur = optimize(zs)
+        cur_val = np.sum(cur[2 * n:])
+        if cur_val > best_val:
+            best_val = cur_val
+            best_z = cur.copy()
+            best_c = np.stack([cur[:n], cur[n:2 * n]], axis=1)
+            best_r = cur[2 * n:].copy()
+        last_dur = time.time() - t_run
+>>>>>>> REPLACE
+-----

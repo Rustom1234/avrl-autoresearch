@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+=======
+    Xf_tr, Xf_te = xgb_features(train_smiles), xgb_features(test_smiles)
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(Xf_tr, y)
+    model_ph = XGBRegressor(objective="reg:pseudohubererror", max_depth=4, n_estimators=600, learning_rate=0.03,
+                            subsample=0.7, colsample_bytree=0.3, min_child_weight=3, reg_lambda=5, n_jobs=8,
+                            random_state=seed)
+    model_ph.fit(Xf_tr, y)
+    p_rf = rankdata(model.predict(Xf_te)) + rankdata(model_ph.predict(Xf_te))
+>>>>>>> REPLACE
+-----

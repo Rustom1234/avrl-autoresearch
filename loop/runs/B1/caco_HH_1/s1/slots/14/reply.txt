@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def knn_feature(Btr, ytr, Bq, exclude_self):
+    inter = Bq @ Btr.T
+    sim = inter / np.maximum(Bq.sum(1)[:, None] + Btr.sum(1)[None, :] - inter, 1e-9)
+    if exclude_self:
+        np.fill_diagonal(sim, -1.0)
+    idx = np.argsort(-sim, axis=1)[:, :5]
+    return ytr[idx].mean(1)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    Btr = (Xtr[:, :N_BITS] > 0).astype(np.float32)
+    Bte = (Xte[:, :N_BITS] > 0).astype(np.float32)
+    Xtr = np.hstack([Xtr, knn_feature(Btr, y, Btr, True)[:, None].astype(np.float32)])
+    Xte = np.hstack([Xte, knn_feature(Btr, y, Bte, False)[:, None].astype(np.float32)])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _relax(n, rng, R=0.09):
+    """Fresh start: relax random centres on a quadratic overlap/wall penalty with L-BFGS-B."""
+    iu = np.triu_indices(n, 1)
+
+    def f(x):
+        c = x.reshape(n, 2)
+        dv = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((dv ** 2).sum(1)) + 1e-12
+        o = np.maximum(2 * R - d, 0)
+        lo, hi = np.maximum(R - c, 0), np.maximum(c - (1 - R), 0)
+        e = (o ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum()
+        g = -2 * lo + 2 * hi
+        w = (-2 * o / d)[:, None] * dv
+        np.add.at(g, iu[0], w)
+        np.add.at(g, iu[1], -w)
+        return e, g.ravel()
+
+    res = minimize(f, rng.uniform(0.1, 0.9, 2 * n), jac=True, method="L-BFGS-B",
+                   bounds=[(0, 1)] * (2 * n), options={"maxiter": 100})
+    return np.concatenate([res.x, np.full(n, INIT_RADIUS)])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pool = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+    pool = []
+    last_imp, fresh_until = 0.0, 0.0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        now = time.process_time() - t0
+        if now - last_imp > 6 and now >= fresh_until:   # stagnation: keep best only, fresh starts for 4 s
+            pool = pool[:1]
+            fresh_until = last_imp = now + 4
+        if now < fresh_until:
+            x0 = _relax(n, rng)
+        else:
+            x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            last_imp = max(last_imp, time.process_time() - t0)
+>>>>>>> REPLACE
+-----

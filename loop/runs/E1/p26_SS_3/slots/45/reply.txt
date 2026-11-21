@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, hist=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    def run(x, it):
+        return minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                        constraints={"type": "ineq", "fun": cons}, options={"maxiter": it})
+
+    if hist is None:
+        res = run(x0, MAX_ITER)
+    else:
+        res = run(x0, 40)
+        s = -res.fun
+        go = len(hist) < 20 or s > np.median(hist[-20:])
+        hist.append(s)
+        if go:
+            res = run(res.x, MAX_ITER)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    hist = []
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, None if explore else best)
+=======
+        c, r = _solve_once(n, rng, None if explore else best, hist if explore else None)
+>>>>>>> REPLACE
+-----

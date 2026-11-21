@@ -1,0 +1,130 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    hops_since_improvement = 0
+    
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None or hops_since_improvement > 15:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            hops_since_improvement = 0
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+-----
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    hops_since_improvement = 0
+    
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None or hops_since_improvement > 15:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            hops_since_improvement = 0
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    curr_packing = None
+    hops_since_improvement = 0
+    
+    # Temperature schedule
+    total_time = time_limit * TIME_FRACTION
+    
+    while time.process_time() - t0 < total_time:
+        if best is None or hops_since_improvement > 15:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            curr_packing = (c, r)
+            hops_since_improvement = 0
+        else:
+            # Perturb the current packing
+            c_curr, r_curr = curr_packing
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            curr_packing = (c, r)
+            r_new_sum = r.sum()
+            
+            if curr_packing is None or r_new_sum > curr_packing[1].sum():
+                best = curr_packing
+                hops_since_improvement = 0
+            elif rng.random() < np.exp((r_new_sum - curr_packing[1].sum()) / 0.01):
+                # Acceptance probability decreases as T decays
+                hops_since_improvement += 1
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or (curr_packing and curr_packing[1].sum() > best[1].sum()):
+            best = curr_packing
+            
+    return best
+>>>>>>> REPLACE
+-----

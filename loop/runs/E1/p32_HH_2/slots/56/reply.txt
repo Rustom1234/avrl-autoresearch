@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+HOP_SD = 0.04
+=======
+HOP_SD = 0.04
+CHAINS = 4
+HOP_LOW = 0.01
+HOP_HIGH = 0.08
+EXPLOIT_EVERY = 10
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+    rng, t0, best, starts = np.random.default_rng(seed), time.process_time(), None, []
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+            starts.append((r.sum(), c, r))
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+    budget = TIME_FRACTION * time_limit
+    starts.sort(key=lambda t: -t[0])
+    while len(starts) < CHAINS:
+        starts.append(starts[0])
+    chains = [[c, r, rng.uniform(HOP_LOW, HOP_HIGH)] for _, c, r in starts[:CHAINS]]
+    hops = 0
+    while time.process_time() - t0 < budget:   # population of hop chains: exploit and explore
+        ch = chains[hops % CHAINS]
+        c, r, sd = ch
+        p = (c + rng.normal(0, sd, c.shape)).ravel()
+        c2, r2 = _solve_once(n, p)
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            ch[0], ch[1] = c2, r2
+        hops += 1
+        if hops % EXPLOIT_EVERY == 0:
+            worst = min(range(CHAINS), key=lambda k: chains[k][1].sum())
+            top_k = max(range(CHAINS), key=lambda k: chains[k][1].sum())
+            chains[worst] = [chains[top_k][0].copy(), chains[top_k][1].copy(),
+                             chains[top_k][2] * np.exp(rng.normal(0, 0.2))]
+    top = max(chains, key=lambda ch: ch[1].sum())
+    return top[0], top[1]
+>>>>>>> REPLACE
+-----

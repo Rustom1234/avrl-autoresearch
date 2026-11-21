@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _swap(pool, n, rng):
+    c, r = pool[0]
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    gap = d - r[:, None] - r[None]
+    i, j = np.triu_indices(n, 1)
+    big = np.maximum(r[i], r[j])
+    ok = (gap[i, j] < 1e-4) & (np.abs(r[i] - r[j]) >= 0.2 * big)
+    if not ok.any():
+        return None
+    k = rng.choice(np.flatnonzero(ok))
+    a, b = i[k], j[k]
+    r = r.copy()
+    r[a], r[b] = 0.9 * r[b], 0.9 * r[a]
+    return np.concatenate([c.ravel(), r])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        x0 = _swap(pool, n, rng) if pool and rng.random() < 0.25 else None
+        if x0 is None and len(pool) >= 2 and rng.random() < 0.7:
+            x0 = _cross(pool, n, rng)
+>>>>>>> REPLACE
+-----

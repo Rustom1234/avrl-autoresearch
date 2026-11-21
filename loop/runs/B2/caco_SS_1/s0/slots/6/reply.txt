@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    import lightgbm as lgb
+    nd = len(Descriptors.descList) + 2
+    model = lgb.LGBMRegressor(objective='huber', n_estimators=500, learning_rate=0.03, num_leaves=15,
+                              subsample=0.8, subsample_freq=1, colsample_bytree=0.5,
+                              min_child_samples=10, random_state=seed, n_jobs=8, verbose=-1)
+    model.fit(featurize(train_smiles)[:, :nd], y)
+    et = model.predict(featurize(test_smiles)[:, :nd])
+    knn = knn_predict(train_smiles, y, test_smiles)
+    return 0.75 * et + 0.25 * knn
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    model = ExtraTreesRegressor(n_estimators=300, max_features=0.3, min_samples_leaf=3,
+                                random_state=seed, n_jobs=8)
+    model.fit(Xtr, y)
+    per_tree = np.stack([t.predict(Xte) for t in model.estimators_])
+    tree_pred = np.median(per_tree, axis=0)
+    knn = knn_predict(train_smiles, y, test_smiles)
+    return 0.75 * tree_pred + 0.25 * knn
+>>>>>>> REPLACE
+-----

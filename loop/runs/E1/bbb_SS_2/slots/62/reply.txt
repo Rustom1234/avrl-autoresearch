@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def tanimoto(A, B):
+    inter = A @ B.T
+    union = A.sum(1)[:, None] + B.sum(1)[None, :] - inter
+    return inter / np.maximum(union, 1)
+
+
+def krr_predict(train_smiles, y, test_smiles):
+    A = morgan_bits(test_smiles)
+    B = morgan_bits(train_smiles)
+    model = KernelRidge(alpha=1.0, kernel="precomputed")
+    model.fit(tanimoto(B, B), 2.0 * y - 1.0)
+    return model.predict(tanimoto(A, B))
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.neural_network import MLPClassifier
+=======
+from sklearn.neural_network import MLPClassifier
+from sklearn.kernel_ridge import KernelRidge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = len(p_rf)
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn)) / (3 * n)
+=======
+    p_krr = krr_predict(train_smiles, y, test_smiles)
+    n = len(p_rf)
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn) + rankdata(p_krr)) / (4 * n)
+>>>>>>> REPLACE
+-----

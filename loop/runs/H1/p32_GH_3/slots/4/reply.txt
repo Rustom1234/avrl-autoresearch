@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _penalty(v, mu, n, iu):
+    """Objective -sum(r) plus mu times squared overlap and wall violations; overlaps are allowed but penalised."""
+    c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+    d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) + 1e-12
+    ov = np.maximum(0, r[iu[0]] + r[iu[1]] - d)
+    wall = np.maximum(0, r[:, None] - c) + np.maximum(0, c + r[:, None] - 1)
+    return -r.sum() + mu * ((ov ** 2).sum() + (wall ** 2).sum())
+
+
+def _solve_once(n, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+=======
+    iu = np.triu_indices(n, 1)
+    bnds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    for mu in (10.0, 1000.0):   # soft-penalty stages before the hard-constraint polish
+        x0 = minimize(_penalty, x0, args=(mu, n, iu), method="L-BFGS-B", bounds=bnds, options={"maxiter": 300}).x
+>>>>>>> REPLACE
+-----

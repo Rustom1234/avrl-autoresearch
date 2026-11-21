@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+=======
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    D_tr, D_te = desc_features(train_smiles), desc_features(test_smiles)
+    mu, sd = D_tr.mean(0), D_tr.std(0)
+    sd[sd == 0] = 1.0
+    Z_tr = np.clip((D_tr - mu) / sd, -5, 5)
+    Z_te = np.clip((D_te - mu) / sd, -5, 5)
+    d = Z_tr.shape[1]
+    sq_tr = (Z_tr ** 2).sum(1)
+    sq_te = (Z_te ** 2).sum(1)
+    R_tr = np.exp(-np.maximum(sq_tr[:, None] + sq_tr[None, :] - 2 * Z_tr @ Z_tr.T, 0) / (2 * d))
+    R_te = np.exp(-np.maximum(sq_te[:, None] + sq_tr[None, :] - 2 * Z_te @ Z_tr.T, 0) / (2 * d))
+    K_tr = tanimoto(X_tr, X_tr) * R_tr
+    K_te = tanimoto(X_te, X_tr) * R_te
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, K_te, s2)
+>>>>>>> REPLACE
+-----

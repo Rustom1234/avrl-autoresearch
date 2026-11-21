@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _greedy_centres(n, rng, m=500):
+    """Farthest-point insertion: each new centre is the candidate farthest from existing centres and walls."""
+    c = [rng.uniform(0, 1, 2)]
+    for _ in range(n - 1):
+        cand = rng.uniform(0, 1, (m, 2))
+        d = np.sqrt(((cand[:, None] - np.array(c)[None]) ** 2).sum(-1)).min(1)
+        d = np.minimum(d, np.minimum(cand, 1 - cand).min(1))
+        c.append(cand[np.argmax(d)])
+    return np.array(c)
+
+
+def _solve_once(n, rng, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        y0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), [INIT_RADIUS]])
+=======
+        y0 = np.concatenate([_greedy_centres(n, rng).ravel(), [INIT_RADIUS]])
+>>>>>>> REPLACE
+-----

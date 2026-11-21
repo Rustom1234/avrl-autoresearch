@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+def _optimize(centers0, radii0):
+    """Joint SLSQP over (x, y, r): maximize sum r subject to containment and non-overlap."""
+    n = len(radii0)
+    iu, ju = np.triu_indices(n, 1)
+    m = len(iu)
+=======
+def _pair_set(centers, n):
+    """Delaunay edges plus close pairs (distance < 0.35) as the constraint index set."""
+    from scipy.spatial import Delaunay
+    cs = set()
+    try:
+        tri = Delaunay(np.asarray(centers, dtype=float))
+        for simp in tri.simplices:
+            for a in range(3):
+                for b2 in range(a + 1, 3):
+                    p, q = sorted((int(simp[a]), int(simp[b2])))
+                    cs.add((p, q))
+    except Exception:
+        pass
+    for i in range(n):
+        for j in range(i + 1, n):
+            if np.hypot(centers[i, 0] - centers[j, 0], centers[i, 1] - centers[j, 1]) < 0.35:
+                cs.add((i, j))
+    if not cs:
+        return np.triu_indices(n, 1)
+    pairs = sorted(cs)
+    return np.array([p[0] for p in pairs]), np.array([p[1] for p in pairs])
+
+
+def _optimize(centers0, radii0):
+    """Solve with a Delaunay-restricted pair set; re-solve once adding any pair that overlaps by more than 1e-6."""
+    n = len(radii0)
+    iu, ju = _pair_set(centers0, n)
+    c, r = _optimize_pairs(centers0, radii0, iu, ju)
+    d = np.hypot(c[:, None, 0] - c[None, :, 0], c[:, None, 1] - c[None, :, 1])
+    ov = (r[:, None] + r[None, :]) - d
+    viol = np.argwhere(np.triu(ov > 1e-6, 1))
+    if len(viol) > 0:
+        cs = set(zip(np.asarray(iu).tolist(), np.asarray(ju).tolist()))
+        cs |= set((int(a), int(b)) for a, b in viol)
+        pairs = sorted(cs)
+        iu2 = np.array([p[0] for p in pairs])
+        ju2 = np.array([p[1] for p in pairs])
+        c, r = _optimize_pairs(c, r, iu2, ju2)
+    return c, r
+
+
+def _optimize_pairs(centers0, radii0, iu, ju):
+    """Joint SLSQP over (x, y, r) on the given pair index set."""
+    n = len(radii0)
+    m = len(iu)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for start in range(12):
+=======
+    for start in range(24):
+>>>>>>> REPLACE
+-----

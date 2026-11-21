@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit import Chem, DataStructs
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.Pharm2D import Gobbi_Pharm2D, Generate
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+_CACHE = {}
+=======
+_CACHE = {}
+_PCACHE = {}
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def featurize_pharm_one(smi):
+    if smi not in _PCACHE:
+        m = Chem.MolFromSmiles(smi)
+        pf = Generate.Gen2DFingerprint(m, Gobbi_Pharm2D.factory)
+        arr = np.zeros(pf.GetNumBits(), dtype=np.uint8)
+        DataStructs.ConvertToNumpyArray(pf, arr)
+        _PCACHE[smi] = arr
+    return _PCACHE[smi]
+
+
+def featurize_pharm(smiles):
+    return np.array([featurize_pharm_one(s) for s in smiles], dtype=np.uint8)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+    Ptr = featurize_pharm(train_smiles)
+    keep = Ptr.mean(axis=0) >= 0.02
+    Xtr = np.hstack([featurize(train_smiles), Ptr[:, keep]])
+    Xte = np.hstack([featurize(test_smiles), featurize_pharm(test_smiles)[:, keep]])
+    model.fit(Xtr, np.asarray(train_y, dtype=np.float64))
+    return model.predict(Xte)
+>>>>>>> REPLACE
+-----

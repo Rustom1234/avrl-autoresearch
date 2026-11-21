@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+=======
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    
+    # Cosine annealing with restarts
+    # progress is [0, 1]. Divide into 3 restart cycles.
+    num_restarts = 3
+    cycle_len = 1.0 / num_restarts
+    # Find which cycle we are in
+    cycle_idx = int(progress / cycle_len)
+    if cycle_idx >= num_restarts: cycle_idx = num_restarts - 1
+    
+    # Progress within the current cycle [0, 1]
+    inner_progress = (progress % cycle_len) / cycle_len
+    
+    # If it's the last cycle, we might want to decay more aggressively, 
+    # but for a pure restart schedule we use standard cosine.
+    return 0.5 * (1 + math.cos(math.pi * inner_progress))
+>>>>>>> REPLACE
+-----

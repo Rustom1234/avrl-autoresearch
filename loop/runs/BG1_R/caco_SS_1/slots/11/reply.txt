@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import ExtraTreesRegressor
+=======
+from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y)
+    et = model.predict(featurize(test_smiles))
+    knn = knn_predict(train_smiles, y, test_smiles)
+    return 0.75 * et + 0.25 * knn
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    model.fit(Xtr, y)
+    et = model.predict(Xte)
+    knn = knn_predict(train_smiles, y, test_smiles)
+    rf = 0.75 * et + 0.25 * knn
+    qt = QuantileTransformer(n_quantiles=min(200, len(y)), output_distribution='normal',
+                             random_state=seed)
+    Qtr = qt.fit_transform(Xtr)
+    Qte = qt.transform(Xte)
+    mlp = np.mean([MLPRegressor(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True,
+                                max_iter=300, random_state=seed + i).fit(Qtr, y).predict(Qte)
+                   for i in range(5)], axis=0)
+    return 0.5 * rf + 0.5 * mlp
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+model = torch.compile(model, dynamic=False)
+EMA_DECAY = 0.999
+ema_params = [p.detach().clone() for p in model.parameters()]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.zero_grad(set_to_none=True)
+
+    train_loss_f = train_loss.item()
+=======
+    model.zero_grad(set_to_none=True)
+    torch._foreach_lerp_(ema_params, [p.detach() for p in model.parameters()], 1 - EMA_DECAY)
+
+    train_loss_f = train_loss.item()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+print()  # newline after \r training log
+=======
+print()  # newline after \r training log
+
+with torch.no_grad():
+    for p, e in zip(model.parameters(), ema_params):
+        p.copy_(e)
+>>>>>>> REPLACE
+-----

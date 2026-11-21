@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _fast_radii(c):
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    np.fill_diagonal(d, np.inf)
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    return np.maximum(np.minimum(wall, d.min(1) / 2), 0)
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    lam = 12
+    mean, step, prev = rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(2 * n, 0.1), -np.inf
+    while best is None or time.process_time() - t0 < TIME_FRACTION * time_limit:
+        pop = np.clip(mean + step * rng.standard_normal((lam, 2 * n)), 0, 1)
+        scored = []
+        for x in pop:
+            c = x.reshape(n, 2)
+            r = _repair(c, _fast_radii(c))
+            scored.append((r.sum(), x, r))
+        scored.sort(key=lambda t: -t[0])
+        mean = np.mean([x for _, x, _ in scored[:lam // 4]], axis=0)
+        success = np.mean([s > prev for s, _, _ in scored])
+        step = step * (1.2 if success > 0.2 else 0.85)
+        prev = max(prev, scored[0][0])
+        c, r = _solve_once(n, rng, np.concatenate([scored[0][1], scored[0][2]]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

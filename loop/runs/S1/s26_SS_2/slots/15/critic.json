@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The diff adds a move to the existing time-limited local search: it removes the 1-2 smallest circles and puts each back at the best of 2000 random points (the point farthest from the kept circles and the walls), with radius 0.02. It reads no files and pastes no coordinates.",
+  "The distance formula contains a dead term, `(...)**2 * 0`, which adds zero. It does nothing but looks like a leftover edit and should be removed. The formula is otherwise correct: Euclidean distance to each kept circle's centre minus that circle's radius.",
+  "Small inefficiency: `set(rem.tolist())` is rebuilt for every j in the list comprehension. With n=26 this costs nothing.",
+  "When the move removes two circles, the second is placed using distances to the kept circles only, not to the first one just placed. They can overlap at first. The later optimisation and clipping should fix this, and the final validity check is unchanged, so the result is not invalidated.",
+  "The search stops on wall-clock time (`time.time() - t0 < 200`), so results are not exactly repeatable. This was already in the incumbent and is not new here.",
+  "There is only one run on each side. The candidate (-2.636) equals the incumbent mean (-2.6360), so the difference is 0. The variance cannot be estimated from n=1, but because the difference is zero, z = 0 whatever the variance. The reported z of -0.000 and the decision to reject (no improvement) match the numbers.",
+  "There are no claims in the diff that contradict the numbers."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0
+ }
+}

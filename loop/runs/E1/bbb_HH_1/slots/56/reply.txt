@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    D_train = full_descriptors(train_smiles)
+    D_test = full_descriptors(test_smiles)
+=======
+PH = 7.4
+ACIDS = [(Chem.MolFromSmarts('[CX3](=O)[OX2H1,OX1-]'), 4.5),
+         (Chem.MolFromSmarts('[#6]1:[#7]:[#7]:[#7]:[#7]:1'), 5.0),
+         (Chem.MolFromSmarts('[OX2H]c'), 10.0)]
+BASES = [(Chem.MolFromSmarts('[NX3;H0;!$(NC=[O,S,N]);!$(N-a)]([C;!$(C=*)])([C;!$(C=*)])[C;!$(C=*)]'), 9.5),
+         (Chem.MolFromSmarts('[NX3;H1;!$(NC=[O,S,N]);!$(N-a)]([C;!$(C=*)])[C;!$(C=*)]'), 10.0),
+         (Chem.MolFromSmarts('[NX3][CX3;!a]=[NX2;!a]'), 12.0)]
+
+
+def ionization(mol):
+    corr = 0.0
+    for patt, pka in ACIDS:
+        hits = {m[0] for m in mol.GetSubstructMatches(patt)}
+        corr += len(hits) * np.log10(1 + 10 ** (PH - pka))
+    for patt, pka in BASES:
+        hits = {m[0] for m in mol.GetSubstructMatches(patt)}
+        corr += len(hits) * np.log10(1 + 10 ** (pka - PH))
+    return [Crippen.MolLogP(mol) - corr, corr]
+
+
+def ion_features(smiles_list):
+    return np.array([ionization(Chem.MolFromSmiles(s)) for s in smiles_list], dtype=np.float64)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    D_train = np.hstack([full_descriptors(train_smiles), ion_features(train_smiles)])
+    D_test = np.hstack([full_descriptors(test_smiles), ion_features(test_smiles)])
+>>>>>>> REPLACE
+-----

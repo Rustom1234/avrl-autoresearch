@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+# This part remains fixed (not evolved)
+def _valid_packing(centers, radii):
+=======
+def _dual_weights(centers):
+    # Per-circle total LP dual weight (pair and border constraints touching it).
+    # Small weight means the circle is loosely constrained.
+    n = centers.shape[0]
+    x = np.clip(centers[:, 0], 0.0, 1.0)
+    y = np.clip(centers[:, 1], 0.0, 1.0)
+    border = np.maximum(np.minimum(np.minimum(x, y), np.minimum(1 - x, 1 - y)), 0.0)
+    I, J = np.triu_indices(n, 1)
+    d = np.sqrt((x[I] - x[J]) ** 2 + (y[I] - y[J]) ** 2)
+    A = np.zeros((len(I), n))
+    A[np.arange(len(I)), I] = 1.0
+    A[np.arange(len(I)), J] = 1.0
+    bounds = [(0.0, float(b)) for b in border]
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=bounds, method="highs")
+    w = np.zeros(n)
+    if res.status != 0:
+        return w
+    pair_m = np.abs(np.asarray(res.ineqlin.marginals, dtype=float))
+    w += np.bincount(I, weights=pair_m, minlength=n)
+    w += np.bincount(J, weights=pair_m, minlength=n)
+    w += np.abs(np.asarray(res.upper.marginals, dtype=float))
+    return w
+
+
+# This part remains fixed (not evolved)
+def _valid_packing(centers, radii):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    attempt = 0
+    while time.perf_counter() < deadline:
+        order = np.argsort(best_r)
+        i = int(order[attempt % n])
+        attempt += 1
+=======
+    attempt = 0
+    rng_dual = np.random.default_rng(4242)
+    while time.perf_counter() < deadline:
+        order = np.argsort(best_r)
+        i = int(order[attempt % n])
+        if attempt % 2 == 1:
+            # Dual-guided: pick one of the three least-constrained circles at random.
+            w = _dual_weights(best_c)
+            least = np.argsort(w)[:3]
+            i = int(least[int(rng_dual.integers(3))])
+        attempt += 1
+>>>>>>> REPLACE
+-----

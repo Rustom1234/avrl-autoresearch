@@ -1,0 +1,80 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    best = None
+    best_val = -1.0
+    pool = []
+
+    def prune():
+        pool.sort(key=lambda t: -t[0])
+        outp = []
+        for t in pool:
+            if all(abs(t[0] - u[0]) > 1e-5 for u in outp):
+                outp.append(t)
+        pool[:] = outp[:10]
+
+    it = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        v = r.sum()
+        if v > best_val:
+=======
+        v = r.sum()
+        pool.append((v, c, r))
+        if len(pool) > 40:
+            prune()
+        if v > best_val:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = best
+        k = rng.choice(np.argsort(r)[:4])
+        keep = np.arange(n) != k
+        cc = c[keep]
+        rr = r[keep]
+        P = rng.random((3000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:10]
+        p = P[rng.choice(top)]
+        c0 = np.vstack([cc, p[None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, [0.03]])
+=======
+        prune()
+        ia = rng.integers(len(pool))
+        ib = rng.integers(len(pool))
+        cA, rA = pool[ia][1], pool[ia][2]
+        cB, rB = pool[ib][1], pool[ib][2]
+        if rng.random() < 0.5:
+            cB = cB[:, ::-1]
+        ax = int(rng.integers(2))
+        cut = 0.3 + 0.4 * rng.random()
+        mA = cA[:, ax] < cut
+        mB = cB[:, ax] >= cut
+        cc = np.vstack([cA[mA], cB[mB]])
+        rr = np.concatenate([rA[mA], rB[mB]])
+        if len(rr) > n:
+            kp = np.sort(np.argsort(rr)[len(rr) - n:])
+            cc = cc[kp]
+            rr = rr[kp]
+        while len(rr) < n:
+            P = rng.random((2000, 2))
+            dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+            clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+            p = P[np.argmax(clear)]
+            cc = np.vstack([cc, p[None]])
+            rr = np.concatenate([rr, [max(clear.max(), 0.01) / 0.9 * 0.5]])
+        c0 = np.clip(cc + rng.normal(0, 0.002, cc.shape), 0.01, 0.99)
+        r0 = rr * 0.9
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c2, r2 = out
+        if r2.sum() > best_val:
+=======
+        c2, r2 = out
+        pool.append((r2.sum(), c2, r2))
+        if r2.sum() > best_val:
+>>>>>>> REPLACE
+-----

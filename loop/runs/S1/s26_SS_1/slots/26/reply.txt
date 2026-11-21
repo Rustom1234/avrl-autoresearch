@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+=======
+    best_s, best = -1, None
+    pool = []
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+=======
+        s = r2.sum()
+        if all(abs(s - p[0]) > 1e-7 for p in pool):
+            pool.append((s, c2, r2))
+            pool.sort(key=lambda p: -p[0])
+            pool = pool[:5]
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    iu, ju = _IU
+    while time.time() - t0 < 180 and pool:
+        try:
+            _, pc, pr = pool[rng.integers(len(pool))]
+            r0 = pr * np.exp(rng.normal(0, 0.15, _N))
+            c0 = pc.copy()
+            for _ in range(3):
+                dv = c0[iu] - c0[ju]
+                d = np.sqrt((dv ** 2).sum(1)) + 1e-9
+                ov = np.maximum(r0[iu] + r0[ju] - d, 0)
+                f = (ov / d)[:, None] * dv * 0.5
+                np.add.at(c0, iu, f)
+                np.add.at(c0, ju, -f)
+            c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+            c2 = np.clip(_polish(c0, r0), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+>>>>>>> REPLACE
+-----

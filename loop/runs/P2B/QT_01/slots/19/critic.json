@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine. The diff doesn't touch the val_bpb measurement, the data, the seed lines, the prepare.py import or the evaluation call. The harness reported no integrity flags.",
+  "Code quality: the diff doesn't edit the existing ASPECT_RATIO line. It adds a second definition after DEVICE_BATCH_SIZE, which leaves dead, confusing code. The override only works if ASPECT_RATIO isn't read before line ~454. The model is built in the 'Setup' section below it, so it probably is applied, but this should be confirmed. A cleaner fix is to change the original line.",
+  "The comment claims a reduction of about 10% in parameter count. Going from 32 to 28 scales model_dim by 0.875, so the transformer matrices shrink by about 23% (0.875^2 \u2248 0.766) and the embeddings by 12.5%. The total drop is about 12\u201323%, not 10%. The comment's claim doesn't match the change.",
+  "model_dim = depth*28 may not be a multiple of the head dim. Check that the code rounds it up or that the head count stays valid. If it rounds, the actual parameter change differs from the comment.",
+  "Evidence: one candidate run (1.0555) against an incumbent mean of 1.0578 over 3 runs. The difference is 0.0023 and z = 0.362, well within noise, so the provisional reject is consistent. A smaller model may run more steps in 300 s, so a replicate would be needed before any claim of improvement.",
+  "I couldn't recompute z independently because the incumbent's standard deviation isn't given. The reported z implies a noise scale of about 0.0064 (0.0023/0.362)."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

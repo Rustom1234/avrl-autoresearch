@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+def _drop_start(n, rng):
+    """Packs n+1 circles, drops the smallest-radius circle, and returns the remaining n centres (flat)."""
+    _, p = _relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * (n + 1)), n + 1)
+    c, r = _solve_once(n + 1, p)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    return c[np.argsort(r)[1:]].ravel()
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+    budget = TIME_FRACTION * time_limit
+=======
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+        c, r = _solve_once(n, _drop_start(n, rng))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    budget = TIME_FRACTION * time_limit
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.05)])
+    k = np.arange(n)
+=======
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.05)])
+    k = np.arange(n)
+    pbounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+
+    def pen(z, mu):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        d = np.sqrt(dx * dx + dy * dy + 1e-18)
+        ov = np.maximum(r[iu] + r[ju] - d, 0.0)
+        bl = np.maximum(r - x, 0.0)
+        br = np.maximum(r + x - 1.0, 0.0)
+        bb = np.maximum(r - y, 0.0)
+        bt = np.maximum(r + y - 1.0, 0.0)
+        f = -np.sum(r) + mu * (np.sum(ov * ov) + np.sum(bl * bl + br * br + bb * bb + bt * bt))
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        gd = 2.0 * mu * ov
+        ux = dx / d
+        uy = dy / d
+        np.add.at(g[2 * n:], iu, gd)
+        np.add.at(g[2 * n:], ju, gd)
+        np.add.at(g[:n], iu, -gd * ux)
+        np.add.at(g[:n], ju, gd * ux)
+        np.add.at(g[n:2 * n], iu, -gd * uy)
+        np.add.at(g[n:2 * n], ju, gd * uy)
+        g[2 * n:] += 2.0 * mu * (bl + br + bb + bt)
+        g[:n] += 2.0 * mu * (br - bl)
+        g[n:2 * n] += 2.0 * mu * (bt - bb)
+        return f, g
+
+    try:
+        zp = z0.copy()
+        for mu in (10.0, 1e2, 1e3, 1e4, 1e5):
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 300})
+            zp = rp.x
+        z0 = zp
+    except Exception:
+        pass
+>>>>>>> REPLACE
+-----

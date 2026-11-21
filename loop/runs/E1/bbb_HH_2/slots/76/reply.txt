@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+from xgboost import XGBClassifier
+=======
+from scipy.stats import rankdata
+from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+=======
+    # Local member: similarity-weighted logistic regression over Tanimoto neighbourhoods
+    x_desc_tr = featurize(train_smiles)
+    x_desc_te = featurize(test_smiles)
+    mu = x_desc_tr.mean(axis=0)
+    sd = x_desc_tr.std(axis=0) + 1e-6
+    z_tr = (x_desc_tr - mu) / sd
+    z_te = (x_desc_te - mu) / sd
+    b_tr = train_sets[0]
+    b_te = test_sets[0]
+    inter = b_te @ b_tr.T
+    sim = inter / (b_te.sum(axis=1)[:, None] + b_tr.sum(axis=1)[None, :] - inter + 1e-12)
+    local = np.zeros(len(test_smiles))
+    for i in range(len(test_smiles)):
+        idx = np.argsort(-sim[i])[:150]
+        w = sim[i, idx] ** 2 + 1e-12
+        yy = y[idx]
+        if len(np.unique(yy)) < 2:
+            local[i] = np.average(yy, weights=w)
+        else:
+            lr = LogisticRegression(C=0.3, max_iter=200, random_state=seed)
+            lr.fit(z_tr[idx], yy, sample_weight=w)
+            local[i] = lr.predict_proba(z_te[i:i + 1])[0, 1]
+    total += rankdata(local)
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+>>>>>>> REPLACE
+-----

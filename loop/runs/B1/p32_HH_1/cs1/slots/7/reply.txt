@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+=======
+ROWS = [[6, 5, 6, 5, 6, 4], [5, 6, 5, 6, 5, 5], [6, 6, 5, 5, 5, 5], [4, 5, 6, 6, 5, 6], [7, 6, 6, 7, 6]]
+
+
+def _row_init(rng):
+    rows = ROWS[rng.integers(len(ROWS))]
+    ys = np.linspace(0.1, 0.9, len(rows))
+    pts = np.array([((i + 0.5) / k, y) for k, y in zip(rows, ys) for i in range(k)])
+    dx, dy = 1 / max(rows), 0.8 / (len(rows) - 1)
+    pts = np.clip(pts + rng.normal(0, 0.02, pts.shape), 0.02, 0.98)
+    return rng.permutation(pts), 0.5 * min(dx, dy) * 0.9
+
+
+def _solve_once(n, rng, init=None):
+    r0 = INIT_RADIUS
+    if init is None and n == 32 and rng.random() < 0.5:
+        base, r0 = _row_init(rng)
+    else:
+        base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, r0)])
+>>>>>>> REPLACE
+-----

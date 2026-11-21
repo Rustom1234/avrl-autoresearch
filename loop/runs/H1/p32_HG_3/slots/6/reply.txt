@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+        if best is not None and (time.process_time() - t0 < 0.9 * time_limit):
+            bc, br = best
+            idx = np.argmin(br)
+            bc_new = np.delete(bc, idx, axis=0)
+            br_new = np.delete(br, idx)
+            
+            # Find farthest point from existing circles and walls
+            pts = rng.uniform(0, 1, (2000, 2))
+            dists = np.ones((2000, 1))
+            for i in range(len(bc_new)):
+                d = np.sqrt(np.sum((pts - bc_new[i])**2, axis=1))
+                dists = np.minimum(dists, d - br_new[i])
+                dists = np.minimum(dists, pts[:,0], axis=1)
+                dists = np.minimum(dists, 1 - pts[:,0], axis=1)
+                dists = np.minimum(dists, pts[:,1], axis=1)
+                dists = np.minimum(dists, 1 - pts[:,1], axis=1)
+            
+            best_pt = pts[np.argmax(dists)]
+            # Try to insert the removed circle
+            new_c = np.vstack([bc_new, best_pt])
+            new_r = np.append(br_new, br[idx])
+            
+            c_next = np.clip(new_c, 0, 1)
+            r_next = _repair(c_next, new_r)
+            if r_next.sum() > best[1].sum():
+                best = (c_next, r_next)
+                
+    return best
+>>>>>>> REPLACE
+-----

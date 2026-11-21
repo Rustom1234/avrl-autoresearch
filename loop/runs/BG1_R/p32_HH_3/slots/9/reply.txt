@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+SUBSET = 12
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _solve_subset(c, r, idx):
+    """SLSQP over the circles in idx only; all other circles are fixed obstacles."""
+    k = len(idx)
+    fixed = np.setdiff1d(np.arange(len(r)), idx)
+    cf, rf = c[fixed], r[fixed]
+    iu = np.triu_indices(k, 1)
+
+    def cons(v):
+        cs, rs = v[:2 * k].reshape(k, 2), v[2 * k:]
+        d = np.sqrt(((cs[iu[0]] - cs[iu[1]]) ** 2).sum(1)) - rs[iu[0]] - rs[iu[1]]
+        df = np.sqrt(((cs[:, None] - cf[None]) ** 2).sum(-1)) - rs[:, None] - rf[None]
+        return np.concatenate([d, df.ravel(), cs[:, 0] - rs, cs[:, 1] - rs, 1 - cs[:, 0] - rs, 1 - cs[:, 1] - rs, rs])
+
+    x0 = np.concatenate([c[idx].ravel(), r[idx]])
+    res = minimize(lambda v: -v[2 * k:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c2, r2 = c.copy(), r.copy()
+    c2[idx] = res.x[:2 * k].reshape(k, 2)
+    r2[idx] = res.x[2 * k:]
+    return c2, r2
+
+
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random subset re-optimisation
+        bc, br = best
+        p = rng.uniform(0, 1, 2)
+        idx = np.argsort(((bc - p) ** 2).sum(1))[:min(SUBSET, n)]
+        c, r = _solve_subset(bc, br, idx)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > br.sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

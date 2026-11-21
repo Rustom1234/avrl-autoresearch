@@ -1,0 +1,316 @@
+<<<<<<< SEARCH
+    # Predict on validation (needs kernel between X_train_sub and X_val_sub)
+    K_val = tanimoto_kernel(np.hstack([X_train_sub, X_val_sub]))
+    preds = model.predict(K_val[:, split:])
+    
+    # Score (simplified: just mean squared error here as proxy for complexity)
+    score = np.mean((preds - y_val_sub)**2)
+    if score < best_score:
+        best_score = score
+        best_alpha = alpha
+    
+    # Final model
+    final_model = KernelRidge(alpha=best_alpha, kernel='precomputed')
+    K_final = tanimoto_kernel(X_train)
+    final_model.fit(K_final, y_train_scaled)
+    
+    # Predict test
+    X_test = featurize(test_smiles)
+    K_test = tanimoto_kernel(np.hstack([X_train, X_test]))
+    return final_model.predict(K_test[:, len(train_smiles):])
+=======
+    # Predict on validation
+    K_train_val = tanimoto_kernel(np.hstack([X_train_sub, X_val_sub]))
+    preds = model.predict(K_train_val[:, split:])
+    
+    # Score
+    score = np.mean((preds - y_val_sub)**2)
+    if score < best_score:
+        best_score = score
+        best_alpha = alpha
+            
+    # Final model
+    final_model = KernelRidge(alpha=best_alpha, kernel='precomputed')
+    K_final = tanimoto_kernel(X_train)
+    final_model.fit(K_final, y_train_scaled)
+    
+    # Predict test
+    X_test = featurize(test_smiles)
+    K_train_test = tanimoto_kernel(np.hstack([X_train, X_test]))
+    return final_model.predict(K_train_test[:, len(train_smiles):])
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.preprocessing import StandardScaler
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+def tanimoto_kernel(X):
+    # X is (N, D). We apply Tanimoto only to the Morgan bits (first N_BITS)
+    X_fp = X[:, :N_BITS]
+    dot = np.dot(X_fp, X_fp.T)
+    sq_sums = np.sum(X_fp**2, axis=1).reshape(-1, 1)
+    return dot / (sq_sums + sq_sums.T - dot + 1e-9)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    # Target transform
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    
+    # Standardize target
+    scaler = StandardScaler()
+    y_train_scaled = scaler.fit_transform(y_train_log.reshape(-1, 1)).flatten()
+    
+    # Simple grid search for alpha
+    best_alpha = 1.0
+    best_score = float('inf')
+    
+    # Use first 80% for inner validation
+    split = int(len(y_train_scaled) * 0.8)
+    X_train_sub = X_train[:split]
+    y_train_sub = y_train_scaled[:split]
+    X_val_sub = X_train[split:]
+    y_val_sub = y_train_scaled[split:]
+    
+    for alpha in [0.01, 0.1, 1.0, 10.0]:
+        model = KernelRidge(alpha=alpha, kernel='precomputed')
+        K = tanimoto_kernel(X_train_sub)
+        model.fit(K, y_train_sub)
+        
+        # Predict on validation (needs kernel between X_train_sub and X_val_sub)
+        K_val = tanimoto_kernel(np.hstack([X_train_sub, X_val_sub]))
+        preds = model.predict(K_val[:, split:])
+        
+        # Score (simplified: just mean squared error here as proxy for complexity)
+        score = np.mean((preds - y_val_sub)**2)
+        if score < best_score:
+            best_score = score
+            best_alpha = alpha
+            
+    # Final model
+    final_model = KernelRidge(alpha=best_alpha, kernel='precomputed')
+    K_final = tanimoto_kernel(X_train)
+    final_model.fit(K_final, y_train_scaled)
+    
+    # Predict test
+    X_test = featurize(test_smiles)
+    K_test = tanimoto_kernel(np.hstack([X_train, X_test]))
+    return final_model.predict(K_test[:, len(train_smiles):])
+ цу
+=======
+import lightgbm as lgb
+from sklearn.preprocessing import StandardScaler
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    # Target transform
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    
+    # Standardize target
+    scaler = StandardScaler()
+    y_train_scaled = scaler.fit_transform(y_train_log.reshape(-1, 1)).flatten()
+    
+    # Use LightGBM for robust regression
+    params = {
+        'objective': 'regression',
+        'metric': 'rmse',
+        'verbosity': '-1',
+        'learning_rate': 0.05,
+        'num_leaves': 31,
+        'feature_fraction': 0.8,
+        'bagging_fraction': 0.8,
+        'bagging_freq': 5,
+        'seed': seed
+    }
+    
+    train_data = lgb.Dataset(X_train, label=y_train_scaled)
+    
+    # Train with early stopping to save time/resources
+    model = lgb.train(
+        params,
+        train_data,
+        num_boost_round=100,
+        valid_sets=[train_data],
+        valid_names=['train'],
+        callbacks=[lgb.early_stopping(stopping_rounds=10)]
+    )
+    
+    # Predict test
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.preprocessing import StandardScaler
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+def tanimoto_kernel(X):
+    # X is (N, D). We apply Tanimoto only to the Morgan bits (first N_BITS)
+    X_fp = X[:, :N_BITS]
+    dot = np.dot(X_fp, X_fp.T)
+    sq_sums = np.sum(X_fp**2, axis=1).reshape(-1, 1)
+    return dot / (sq_sums + sq_sums.T - dot + 1e-9)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    # Target transform
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    
+    # Standardize target
+    scaler = StandardScaler()
+    y_train_scaled = scaler.fit_transform(y_train_log.reshape(-1, 1)).flatten()
+    
+    # Simple grid search for alpha
+    best_alpha = 1.0
+    best_score = float('inf')
+    
+    # Use first 80% for inner validation
+    split = int(len(y_train_scaled) * 0.8)
+    X_train_sub = X_train[:split]
+    y_train_sub = y_train_scaled[:split]
+    X_val_sub = X_train[split:]
+    y_val_sub = y_train_scaled[split:]
+    
+    for alpha in [0.01, 0.1, 1.0, 10.0]:
+        model = KernelRidge(alpha=alpha, kernel='precomputed')
+        K = tanimoto_kernel(X_train_sub)
+        model.fit(K, y_train_sub)
+        
+        # Predict on validation (needs kernel between X_train_sub and X_val_sub)
+        K_val = tanimoto_kernel(np.hstack([X_train_sub, X_val_sub]))
+        preds = model.predict(K_val[:, split:])
+        
+        # Score (simplified: just mean squared error here as proxy for complexity)
+        score = np.mean((preds - y_val_sub)**2)
+        if score < best_score:
+            best_score = score
+            best_alpha = alpha
+            
+    # Final model
+    final_model = KernelRidge(alpha=best_alpha, kernel='precomputed')
+    K_final = tanimoto_kernel(X_train)
+    final_model.fit(K_final, y_train_scaled)
+    
+    # Predict test
+    X_test = featurize(test_smiles)
+    K_test = tanimoto_kernel(np.hstack([X_train, X_test]))
+    return final_model.predict(K_test[:, len(train_smiles):])
+=======
+from xgboost import XGBRegressor
+from sklearn.preprocessing import StandardScaler
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    # Target transform
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    
+    # Standardize target
+    scaler = StandardScaler()
+    y_train_scaled = scaler.fit_transform(y_train_log.reshape(-1, 1)).flatten()
+    
+    # XGBoost handles large data better than KernelRidge
+    # and doesn't require precomputing a massive N^2 kernel matrix.
+    model = XGBRegressor(
+        n_estimators=100,
+        max_depth=6,
+        learning_rate=0.1,
+        colsample_bytree=0.8,
+        subsample=0.8,
+        random_state=seed,
+        tree_method='hist', # fast method
+        device='cpu'
+    )
+    
+    model.fit(X_train, y_train_scaled)
+    
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+>>>>>>>
+-----

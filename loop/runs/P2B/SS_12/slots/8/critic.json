@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "The diff changes only two hyperparameters: TOTAL_BATCH_SIZE goes from 2**18 to 96*2048 = 196608, and DEVICE_BATCH_SIZE goes from 64 to 96. It does not touch the val_bpb evaluation call, the data loading, the prepare.py import line, the seed lines or the final summary printing.",
+  "Nothing in this diff explains the harness integrity flag. If the flag is real, the cause is outside the diff shown: the file that ran may differ from this diff, or the flag may be a timeout or VRAM rejection mislabelled as integrity. The harness log should be checked to see which check fired.",
+  "Sanity check: 196608 / (96 * 2048) = 1, so there is no gradient accumulation. This assumes the training sequence length is 2048, which the diff's own comment implies. The divisibility assert, if there is one, still holds.",
+  "Risk: 128 is known to overflow 40 GB and 96 is close to that limit. 96 may OOM or push total time over 450 s. That would be a crash or timeout, not an integrity problem.",
+  "The effective batch drops by 25% (262K to 197K tokens per step) while the learning rates stay the same. This is a legitimate hyperparameter change, not a bug.",
+  "The harness gives no val_bpb numbers because the run was rejected, so z cannot be recomputed and there is no claim to check."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

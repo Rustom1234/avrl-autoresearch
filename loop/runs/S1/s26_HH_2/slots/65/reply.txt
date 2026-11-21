@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+def _slsqp_refine(c, r, maxiter=150):
+=======
+def _slsqp_refine(c, r, maxiter=150, W=1.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        wall = np.concatenate([x - rr, y - rr, 1.0 - x - rr, 1.0 - y - rr])
+=======
+        wall = np.concatenate([x - rr, y - rr, W - x - rr, 1.0 - y - rr])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+=======
+    bounds = [(0.0, W), (0.0, 1.0)] * n + [(0.0, 0.5)] * n
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _template():
+=======
+def _aniso_stage(c, r):
+    """Anisotropic container continuation: optimise in width-a rectangles, map x -> x/a, rescore in unit square."""
+    t0 = _time.time()
+    best_c = c.copy()
+    best_r = _make_valid(c, r)
+    best_s = float(best_r.sum())
+    for a in (0.95, 0.975, 1.025, 1.05):
+        if _time.time() - t0 > 45:
+            break
+        try:
+            cs = c.copy()
+            cs[:, 0] = np.clip(cs[:, 0] * a, 0.0, a)
+            cs, _rs = _slsqp_refine(cs, np.minimum(r, a * 0.5), 150, a)
+            cs[:, 0] = np.clip(cs[:, 0], 0.0, a) / a
+            cs = np.clip(cs, 0.0, 1.0)
+            rv, s = _score(cs)
+        except Exception:
+            continue
+        if rv is not None and s > best_s:
+            best_s, best_c, best_r = s, cs.copy(), rv
+    return best_c, best_r
+
+
+def _template():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    centers, radii = _two_phase()
+=======
+    centers, radii = _two_phase()
+    centers, radii = _aniso_stage(centers, radii)
+>>>>>>> REPLACE
+-----

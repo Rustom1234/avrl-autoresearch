@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    return 0.7 * np.mean(preds, axis=0) + 0.3 * rankdata(pr) / len(pr)
+=======
+    rpr = rankdata(pr) / len(pr)
+    base = 0.7 * np.mean(preds, axis=0) + 0.3 * rpr
+    k = int(0.3 * len(base))
+    if k < 1:
+        return base
+    idx = np.argsort(np.std(preds, axis=0))[:k]
+    Xa = np.vstack([Xtr, Xte[idx]])
+    ya = np.concatenate([y, rankdata(base)[idx] / len(base)])
+    new = []
+    for m in models[:2]:
+        m.fit(Xa, ya)
+        p = m.predict(Xte)
+        new.append(rankdata(p) / len(p))
+    new.append(preds[2])
+    base2 = 0.7 * np.mean(new, axis=0) + 0.3 * rpr
+    return 0.5 * base + 0.5 * base2
+>>>>>>> REPLACE
+-----

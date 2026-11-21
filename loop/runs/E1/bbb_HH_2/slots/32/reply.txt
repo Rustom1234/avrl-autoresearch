@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from xgboost import XGBClassifier
+=======
+from xgboost import XGBClassifier
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+=======
+    # Leaf-embedding logistic regression on ExtraTrees (one extra rank-averaged member)
+    x_tr = np.hstack([train_sets[0], train_sets[2]])
+    x_te = np.hstack([test_sets[0], test_sets[2]])
+    et = ExtraTreesClassifier(n_estimators=400, max_features=0.3, min_samples_leaf=2,
+                              random_state=seed, n_jobs=8)
+    et.fit(x_tr, y)
+    leaves_tr = et.apply(x_tr)
+    leaves_te = et.apply(x_te)
+    enc = OneHotEncoder(handle_unknown='ignore')
+    enc.fit(leaves_tr)
+    lr = LogisticRegression(C=0.05, max_iter=2000)
+    lr.fit(enc.transform(leaves_tr), y)
+    total += rankdata(lr.predict_proba(enc.transform(leaves_te))[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+>>>>>>> REPLACE
+-----

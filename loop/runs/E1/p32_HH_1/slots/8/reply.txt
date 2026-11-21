@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    return np.maximum(r - SHRINK, 0)
+=======
+    return np.maximum(r - SHRINK, 0)
+
+
+def _inflate(c, r, rng):
+    """Greedily grow radii to the largest value allowed by walls and neighbours, in random order."""
+    n = len(r)
+    for _ in range(100):
+        grew = 0.0
+        for i in rng.permutation(n):
+            d = np.sqrt(((c - c[i]) ** 2).sum(1))
+            d[i] = np.inf
+            lim = min(c[i, 0], c[i, 1], 1 - c[i, 0], 1 - c[i, 1], np.min(d - r))
+            if lim > r[i]:
+                grew = max(grew, lim - r[i])
+                r[i] = lim
+        if grew <= 1e-12:
+            break
+    return r
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+=======
+        r = _inflate(c, _repair(c, r), rng)
+>>>>>>> REPLACE
+-----

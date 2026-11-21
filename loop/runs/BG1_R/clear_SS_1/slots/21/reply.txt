@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+=======
+    Xa, Xb = xgb_features(train_smiles), xgb_features(test_smiles)
+    nd = len(Descriptors.descList)
+    keep = np.ones(Xa.shape[1], dtype=bool)
+    keep[:nd] = Xa[:, :nd].std(0) > 0
+    keep[nd:nd + 1024] = (Xa[:, nd:nd + 1024] > 0).sum(0) >= 10
+    idx = np.where(keep[:nd])[0]
+    C = np.nan_to_num(np.abs(np.corrcoef(Xa[:, idx].astype(np.float64), rowvar=False)))
+    for i in range(len(idx)):
+        if keep[idx[i]]:
+            for j in range(i + 1, len(idx)):
+                if C[i, j] > 0.95:
+                    keep[idx[j]] = False
+    model.fit(Xa[:, keep], y)
+    p_rf = model.predict(Xb[:, keep])
+>>>>>>> REPLACE
+-----

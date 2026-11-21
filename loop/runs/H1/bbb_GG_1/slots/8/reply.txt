@@ -1,0 +1,176 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 1000
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1] تحقيق
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+import lightgbm as lgb
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import SelectFromModel
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 1000
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+    
+    # Use Random Forest to select the top 512 features
+    selector = SelectFromModel(RandomForestClassifier(n_estimators=100, random_state=seed))
+    selector.fit(X_train, y_train)
+    X_train_reduced = selector.transform(X_train)
+    X_test_reduced = selector.transform(X_test)
+    
+    # Train LightGBM on the reduced feature set
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(X_train_reduced, y_train)
+    return model.predict_proba(X_test_reduced)[:, 1] 
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 1000
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+izable
+==============
+import lightgbm as lgb
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import SelectFromModel
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 1000
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+    
+    # Use Random Forest to select the top 512 features
+    selector = SelectFromModel(RandomForestClassifier(n_estimators=100, random_state=seed, max_depth=10))
+    selector.fit(X_train, y_train)
+    X_train_reduced = selector.transform(X_train)
+    X_test_reduced = selector.transform(X_test)
+    
+    # Train LightGBM on the reduced feature set
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(X_train_reduced, y_train)
+    return model.predict_proba(X_test_reduced)[:, 1]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 1000
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+import lightgbm as lgb
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_selection import SelectFromModel
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 1000
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+
+    # Feature selection to reduce dimensionality
+    selector = SelectFromModel(RandomForestClassifier(n_estimators=100, max_depth=10, random_state=seed))
+    selector.fit(X_train, y_train)
+    
+    X_train_sel = selector.transform(X_train)
+    X_test_sel = selector.transform(X_test)
+
+    # Train LightGBM on the reduced feature set
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(X_train_sel, y_train)
+    return model.predict_proba(X_test_sel)[:, 1]
+-----

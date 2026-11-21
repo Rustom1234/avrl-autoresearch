@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+    centers = np.clip(best_c, 0.0, 1.0)
+    radii = safe_radii(centers, np.maximum(best_r, 0.0))
+    return centers, radii
+=======
+    centers = np.clip(best_c, 0.0, 1.0)
+    radii = safe_radii(centers, np.maximum(best_r, 0.0))
+    # trust-constr polish on sparse near-neighbour pair constraints
+    try:
+        from scipy.optimize import Bounds, NonlinearConstraint
+        from scipy.optimize import minimize as tc_minimize
+        from scipy.sparse import csr_matrix
+        budget = min(40.0, 225.0 - (time.time() - t0))
+        if budget > 5.0:
+            t1 = time.time()
+            rb = np.maximum(best_r, 0.0)
+            dd = np.sqrt(np.sum((centers[I] - centers[Jp]) ** 2, axis=1))
+            sel = np.where(dd < 1.5 * (rb[I] + rb[Jp]) + 0.05)[0]
+            Is, Js = I[sel], Jp[sel]
+            ms = len(sel)
+            rs_ = np.arange(ms)
+
+            def tc_fun(z):
+                dx = z[Is] - z[Js]
+                dy = z[n + Is] - z[n + Js]
+                rr = z[2 * n + Is] + z[2 * n + Js]
+                return dx * dx + dy * dy - rr * rr
+
+            def tc_jac(z):
+                dx = z[Is] - z[Js]
+                dy = z[n + Is] - z[n + Js]
+                rr = z[2 * n + Is] + z[2 * n + Js]
+                Jm = np.zeros((ms, 3 * n))
+                Jm[rs_, Is] = 2 * dx
+                Jm[rs_, Js] = -2 * dx
+                Jm[rs_, n + Is] = 2 * dy
+                Jm[rs_, n + Js] = -2 * dy
+                Jm[rs_, 2 * n + Is] = -2 * rr
+                Jm[rs_, 2 * n + Js] = -2 * rr
+                return csr_matrix(Jm)
+
+            z0 = np.concatenate([centers[:, 0], centers[:, 1], rb])
+            lb = np.zeros(3 * n)
+            ub = np.concatenate([np.ones(2 * n), 0.5 * np.ones(n)])
+            res = tc_minimize(lambda z: -np.sum(z[2 * n:]), z0,
+                              jac=lambda z: obj_grad, method="trust-constr",
+                              constraints=[NonlinearConstraint(tc_fun, 0.0, np.inf, jac=tc_jac)],
+                              bounds=Bounds(lb, ub),
+                              callback=lambda xk, st: time.time() - t1 > budget,
+                              options={"maxiter": 500, "xtol": 1e-12})
+            zn = res.x
+            if np.all(np.isfinite(zn)):
+                cn = np.clip(np.stack([zn[:n], zn[n:2 * n]], axis=1), 0.0, 1.0)
+                rn = safe_radii(cn, np.maximum(zn[2 * n:], 0.0))
+                if np.sum(rn) > np.sum(radii):
+                    centers, radii = cn, rn
+    except Exception:
+        pass
+    return centers, radii
+>>>>>>> REPLACE
+-----

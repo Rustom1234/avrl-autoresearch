@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+    from sklearn.linear_model import Ridge
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+    pr = r.predict(np.log1p(Xte[:, -N_BITS:]))
+=======
+    from sklearn.linear_model import Ridge
+    from sklearn.model_selection import GroupKFold
+    from scipy.stats import spearmanr
+    from rdkit.Chem.Scaffolds import MurckoScaffold
+    scaf = []
+    for s in train_smiles:
+        try:
+            scaf.append(MurckoScaffold.MurckoScaffoldSmiles(s))
+        except Exception:
+            scaf.append(s)
+    Ltr = np.log1p(Xtr[:, -N_BITS:])
+    Lte = np.log1p(Xte[:, -N_BITS:])
+    best_a, best_score = 10.0, -np.inf
+    for a in [1.0, 3.0, 10.0, 30.0, 100.0]:
+        fold_scores = []
+        for tr_i, va_i in GroupKFold(n_splits=5).split(Ltr, y, groups=scaf):
+            pv = Ridge(alpha=a).fit(Ltr[tr_i], y[tr_i]).predict(Ltr[va_i])
+            fold_scores.append(spearmanr(pv, y[va_i]).correlation)
+        sc = np.nanmean(fold_scores)
+        if sc > best_score:
+            best_a, best_score = a, sc
+    r = Ridge(alpha=best_a).fit(Ltr, y)
+    pr = r.predict(Lte)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,103 @@
+<<<<<<< SEARCH
+def _sym_search(rng):
+    """Mirror-symmetric SLSQP over reduced variables, then expand to 26 circles."""
+    k, m = (13, 0) if rng.random() < 0.5 else (12, 2)
+    A, b, n = _sym_layout(k, m)
+    cl = rng.uniform(0.08, 0.45, size=(k, 2))
+    ca = rng.uniform(0.2, 0.8, size=m)
+    ra = rng.uniform(0.06, 0.1, size=m)
+    rl = rng.uniform(0.06, 0.1, size=k)
+    v0 = np.concatenate([cl[:, 0], cl[:, 1], rl, ca, ra])
+    nv = len(v0)
+=======
+def _sym_search(rng, init=None):
+    """Mirror-symmetric SLSQP over reduced variables, then expand to 26 circles."""
+    if init is None:
+        k, m = (13, 0) if rng.random() < 0.5 else (12, 2)
+        A, b, n = _sym_layout(k, m)
+        cl = rng.uniform(0.08, 0.45, size=(k, 2))
+        ca = rng.uniform(0.2, 0.8, size=m)
+        ra = rng.uniform(0.06, 0.1, size=m)
+        rl = rng.uniform(0.06, 0.1, size=k)
+        v0 = np.concatenate([cl[:, 0], cl[:, 1], rl, ca, ra])
+    else:
+        k, m, v0 = init
+        A, b, n = _sym_layout(k, m)
+    nv = len(v0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.clip(centers, 0.0, 1.0), radii
+=======
+    return np.clip(centers, 0.0, 1.0), radii, (k, m, res.x)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Mirror-symmetric phase: reduced SLSQP, then one unconstrained polish and repair.
+    for _ in range(8):
+        if time.time() - t0 > 40:
+            break
+        try:
+            c, r = _sym_search(rng)
+            c, r = _optimize(c, r)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    for start in range(12):
+=======
+    # Mirror-symmetric phase: reduced SLSQP, then one unconstrained polish and repair.
+    best_sym_s, best_sym_info = -1.0, None
+    for _ in range(8):
+        if time.time() - t0 > 40:
+            break
+        try:
+            c, r, info = _sym_search(rng)
+            rs = _repair(c, r)
+            if float(np.sum(rs)) > best_sym_s:
+                best_sym_s = float(np.sum(rs))
+                best_sym_info = (info[0], info[1], info[2], c, rs)
+            c, r = _optimize(c, r)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    # Symmetric-subspace basin hopping: kick free half, re-solve reduced symmetric SLSQP.
+    if best_sym_info is not None:
+        k_s, m_s, v_s, sc, sr = best_sym_info
+        cur_v, cur_s = v_s, best_sym_s
+        bs_c, bs_r, bs_s = sc, sr, best_sym_s
+        acc = 0
+        for _ in range(60):
+            if time.time() - t0 > 90 or acc >= 6:
+                break
+            v0 = cur_v.copy()
+            kk = int(rng.integers(1, 4))
+            pick = rng.choice(k_s, size=kk, replace=False)
+            v0[pick] = np.clip(v0[pick] + rng.normal(0.0, 0.05, size=kk), 0.0, 1.0)
+            v0[k_s + pick] = np.clip(v0[k_s + pick] + rng.normal(0.0, 0.05, size=kk), 0.0, 1.0)
+            try:
+                c, r, info = _sym_search(rng, (k_s, m_s, v0))
+                r = _repair(c, r)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            if s > cur_s or rng.random() < np.exp((s - cur_s) / 0.01):
+                cur_v, cur_s = info[2], s
+                acc += 1
+            if s > bs_s:
+                bs_c, bs_r, bs_s = c, r, s
+        if bs_s > best_sum:
+            best_sum, best_c, best_r = bs_s, bs_c, bs_r
+        try:
+            c, r = _optimize(bs_c, bs_r)
+            r = _repair(c, r)
+            if float(np.sum(r)) > best_sum:
+                best_sum, best_c, best_r = float(np.sum(r)), c, r
+        except Exception:
+            pass
+    for start in range(12):
+>>>>>>> REPLACE
+-----

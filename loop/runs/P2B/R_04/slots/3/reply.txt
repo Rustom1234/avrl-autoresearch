@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+        for shape in sorted({p.shape for p in matrix_params}):
+            group_params = [p for p in matrix_params if p.shape == shape]
+            param_groups.append(dict(
+                kind='muon', params=group_params, lr=matrix_lr,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            ))
+=======
+        layer_params = [(i, p) for i, block in enumerate(self.transformer.h) for p in block.parameters()]
+        for shape in sorted({p.shape for _, p in layer_params}):
+            for ratio in sorted(set(LRSCHEDULES)):
+                group_params = [p for i, p in layer_params if p.shape == shape and LRSCHEDULES[i] == ratio]
+                if not group_params:
+                    continue
+                param_groups.append(dict(
+                    kind='muon', params=group_params, lr=matrix_lr * ratio,
+                    momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+                ))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+=======
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+LRSCHEDULES = [0.4] * 5 + [0.8] * 3  # per-layer ratio of MATRIX_LR (layers 0-4, 5-7)
+>>>>>>> REPLACE
+-----

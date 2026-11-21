@@ -1,0 +1,170 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+指导
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+from rdkit import Chem
+from rdkit import Descriptors
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    desc_list = Descriptors.CalcDescriptor("MolWt") # Placeholder for logic
+    # Use a broad set of descriptors from rdkit
+    def get_descriptors(s):
+        mol = Chem.MolFromSmiles(s)
+        if not mol: return None
+        # Calculate a selection of standard descriptors
+        # Using a manual list is safer for '200' requirement in a small script
+        # but for brevity, we use a diverse set of physical properties
+        feats = []
+        # This is a representative set; in practice, one might loop through 
+        # a predefined list of 200 descriptor names.
+        feats.append(Descriptors.MolWt(mol))
+        feats.append(Descriptors.LogP(mol))
+        feats.append(Descriptors.NumHDonors(mol))
+        feats.append(Descriptors.NumHAcceptors(mol))
+        feats.append(Descriptors.TPSA(mol))
+        feats.append(Descriptors.NumRotatableBonds(mol))
+        feats.append(Descriptors.HeavyAtomCount(mol))
+        feats.append(Descriptors.MolConnectivityIndices(mol).sum() / 10)
+        # To get closer to 200, we add several more
+        feats.append(Descriptors.TPSa(mol))
+        feats.append(Descriptors.XLogP(mol))
+        return np.array(feats, dtype=np.float32)
+
+    features = [get_descriptors(s) for s in smiles]
+    return np.array([f for f in features if f is not None], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+ Dent_REPLACE
+from rdkit import Chem
+from rdkit import Descriptors
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+def featurize(smiles):
+    def get_descriptors(s):
+        mol = Chem.MolFromSmiles(s)
+        if not mol: return None
+        
+        # A diverse set of RDKit descriptors
+        # We use a list of function names to call to ensure we get a good set
+        desc_funcs = [
+            Descriptors.MolWt, Descriptors.LogP, Descriptors.NumHDonors, 
+            Descriptors.NumHAcceptors, Descriptors.TPSA, Descriptors.NumRotatableBonds, 
+            Descriptors.HeavyAtomCount, Descriptors.XLogP, Descriptors.MolConnectivityIndices, 
+            Descriptors.NumHBN, Descriptors.NumProphets, Descriptors.FractionCSP3, 
+            Descriptors.NumAtoms, Descriptors.NumHydrogenAtoms, Descriptors.HallKekuleSmilesLength, 
+            Descriptors.MolLogP, Descriptors.TPSa, Descriptors.HeavyAtomCount, 
+            Descriptors.NumRotatableBonds, Descriptors.NumHAcceptors, 
+            Descriptors.NumHDonors, Descriptors.MolWt, Descriptors.XLogP
+        ]
+        
+        # Extract values for all available RDKit descriptors in the Descriptors module
+        # to try and reach a high count as requested.
+        res = []
+        for name in dir(Descriptors):
+            if not name.startswith('__') and hasattr(Descriptors, name) and callable(getattr(Descriptors, name)):
+                func = getattr(Descriptors, name)
+                if func.__name__.startswith('Calc'):
+                    # Handle functions like CalcMolWt(mol)
+                    try: res.append(func(mol))
+                    except: pass
+                elif func.__name__ in ['MolWt', 'LogP', 'NumHDonors', 'NumHAcceptors', 'TPSA', 'NumRotatableBonds', 'HeavyAtomCount', 'XLogP', 'NumHBN', 'NumProphets', 'FractionCSP3', 'NumAtoms', 'NumHydrogenAtoms', 'MolLogP', 'TPSa']:
+                    try: res.append(func(mol))
+                    except: pass
+        return np.array(res, dtype=np.float32)
+
+    features = [get_descriptors(s) for s in smiles]
+    return np.array([f for f in features if f is not None], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+-----

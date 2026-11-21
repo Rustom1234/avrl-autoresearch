@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+=======
+    while time.time() - t0 < 110:
+        try:
+            u = rng.random()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    while time.time() - t0 < 150:
+        try:
+            c, r = best
+            n = _N
+            dd = np.sqrt(((c[:, None, :] - c[None, :, :]) ** 2).sum(2))
+            gap = dd - r[:, None] - r[None, :]
+            np.fill_diagonal(gap, 1.0)
+            cnt = (gap < 1e-6).sum(1)
+            cnt = cnt + (c[:, 0] - r < 1e-6) + (1 - c[:, 0] - r < 1e-6)
+            cnt = cnt + (c[:, 1] - r < 1e-6) + (1 - c[:, 1] - r < 1e-6)
+            rat = list(np.where(cnt < 3)[0])
+            if len(rat) == 0:
+                rat = [int(np.argmin(r))]
+            extra = rng.integers(0, 2)
+            for _ in range(extra):
+                rat.append(int(rng.integers(n)))
+            rat = list(set(rat))
+            keep = np.array([k for k in range(n) if k not in rat])
+            c3 = c.copy()
+            r3 = r.copy()
+            for k in rat:
+                ck, rk = c3[keep], r3[keep]
+                d = np.sqrt(((_GRID[:, None, :] - ck[None, :, :]) ** 2).sum(2)) - rk[None, :]
+                wall = np.minimum(np.minimum(_GRID[:, 0], _GRID[:, 1]),
+                                  np.minimum(1 - _GRID[:, 0], 1 - _GRID[:, 1]))
+                clr = np.minimum(d.min(1), wall)
+                top = np.argsort(-clr)[:15]
+                p = _GRID[top[rng.integers(len(top))]]
+                c3[k] = p
+                r3[k] = max(clr[top[0]] * 0.5, 0.0)
+                keep = np.append(keep, k)
+            c3 = c3 + rng.normal(0, 0.003, c3.shape)
+            c3 = np.clip(c3, 0.01, 0.99)
+            c2 = np.clip(_polish(c3, r3), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        if r2.sum() > best[1].sum():
+            best = (c2, r2)
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

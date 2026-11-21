@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    c, r = best
+    while time.time() - t0 < 150:
+        try:
+            c0, r0 = best
+            c1 = c0.copy()
+            d = np.sqrt(((c1[:, None] - c1[None]) ** 2).sum(2))
+            gap = d - (r0[:, None] + r0[None])
+            np.fill_diagonal(gap, 9)
+            pi, pj = np.where(np.triu(gap < 1e-6, 1))
+            if len(pi) > 0 and rng.random() < 0.5:
+                k = rng.integers(len(pi))
+                a, b = pi[k], pj[k]
+                v = c1[b] - c1[a]
+                v = v / (np.linalg.norm(v) + 1e-12)
+                c1[a] -= 0.015 * v
+                c1[b] += 0.015 * v
+            else:
+                a = rng.integers(_N)
+                th = rng.uniform(0, 2 * np.pi)
+                c1[a] += 0.05 * np.array([np.cos(th), np.sin(th)])
+            c1 = np.clip(c1, 0.02, 0.98)
+            c2 = _polish(c1, r0 * 0.8)
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        if r2.sum() > best_s:
+            best_s, best = r2.sum(), (c2, r2)
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

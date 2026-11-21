@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best = None
+=======
+    rng = np.random.default_rng(12345)
+    best = None
+    cand = []
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if time.time() - t0 > 200.0 and best is not None:
+            break
+=======
+        if time.time() - t0 > 150.0 and best is not None:
+            break
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = float(np.sum(r))
+        if best is None or s > best[0]:
+            centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            best = (s, centers, r)
+    if best is None:
+=======
+        s = float(np.sum(r))
+        centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+        cand.append((s, centers, r))
+        cand.sort(key=lambda t: -t[0])
+        del cand[5:]
+        if best is None or s > best[0]:
+            best = (s, centers, r)
+    if best is None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    s0, c0, r0 = best
+    x2, y2 = _polish(c0[:, 0].copy(), c0[:, 1].copy(), r0)
+    for shrink in (1e-12, 1e-9):
+        r2 = _lp_radii(x2, y2, shrink)
+        if r2 is None:
+            continue
+        if _valid(x2, y2, r2) and float(np.sum(r2)) > s0:
+            return np.column_stack([x2, y2]), r2
+    return best[1], best[2]
+=======
+    fb_centers, fb_radii = best[1], best[2]
+    best_s = float(np.sum(fb_radii))
+    for s_c, c_c, r_c in cand:
+        if time.time() - t0 > 235.0:
+            break
+        try:
+            x2, y2 = _polish(c_c[:, 0].copy(), c_c[:, 1].copy(), r_c)
+            r2 = _lp_radii(x2, y2, 1e-12)
+        except Exception:
+            continue
+        if r2 is None or not (np.all(np.isfinite(r2)) and np.all(np.isfinite(x2)) and np.all(np.isfinite(y2))):
+            continue
+        if _valid(x2, y2, r2) and float(np.sum(r2)) > best_s:
+            best_s = float(np.sum(r2))
+            fb_centers = np.column_stack([x2, y2])
+            fb_radii = r2
+    return fb_centers, fb_radii
+>>>>>>> REPLACE
+-----

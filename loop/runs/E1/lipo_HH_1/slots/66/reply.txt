@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+from rdkit.Chem.Scaffolds import MurckoScaffold
+=======
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from rdkit.Chem.Pharm2D import Gobbi_Pharm2D, Generate
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+_GOBBI_CACHE = {}
+
+
+def gobbi_vec(smiles):
+    # Gobbi 2D pharmacophore bits folded to N_BITS; cached per SMILES like the descriptors.
+    if smiles not in _GOBBI_CACHE:
+        v = np.zeros(N_BITS, dtype=np.float64)
+        fp = Generate.Gen2DFingerprint(Chem.MolFromSmiles(smiles), Gobbi_Pharm2D.factory)
+        for b in fp.GetOnBits():
+            v[b % N_BITS] = 1.0
+        _GOBBI_CACHE[smiles] = v
+    return _GOBBI_CACHE[smiles]
+
+
+def gobbi_fp(smiles):
+    return np.array([gobbi_vec(s) for s in smiles])
+
+
+_DESC_CACHE = {}
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+=======
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, Ha, Hb, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([p_rf, p_lgb, p_krr])
+=======
+    # Gobbi pharmacophore Tanimoto kernel ridge member, fixed lam=0.5, no inner search.
+    Ga_t, Gb_t = tanimoto(Ha, Ha), tanimoto(Hb, Ha)
+    w_g = np.linalg.solve(Ga_t + 0.5 * np.eye(len(ya)), ya - mu)
+    p_g = Gb_t @ w_g + mu
+    return np.column_stack([p_rf, p_lgb, p_krr, p_g])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+=======
+    Htr, Hte = gobbi_fp(train_smiles), gobbi_fp(test_smiles)
+    oof = np.zeros((len(y), 4))
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], Htr[tr], Htr[va], seed)
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, Htr, Hte, seed)
+>>>>>>> REPLACE
+-----

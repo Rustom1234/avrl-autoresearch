@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def scaffold_weights(smiles):
+    keys = []
+    for s in smiles:
+        try:
+            key = MurckoScaffold.MurckoScaffoldSmiles(smiles=s)
+        except Exception:
+            key = ""
+        keys.append(key)
+    counts = {}
+    for k in keys:
+        counts[k] = counts.get(k, 0) + 1
+    w = np.array([1.0 / np.sqrt(counts[k]) for k in keys], dtype=np.float64)
+    return w / w.mean()
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    w = scaffold_weights(train_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        m.fit(X, y)
+=======
+        m.fit(X, y, sample_weight=w)
+>>>>>>> REPLACE
+-----

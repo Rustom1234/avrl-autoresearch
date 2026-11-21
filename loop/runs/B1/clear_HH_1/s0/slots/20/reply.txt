@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    mu, sd = y.mean(), y.std() + 1e-9
+    ys = (y - mu) / sd
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, ys)
+    pred = model.predict(K_test)
+
+    # heavy-atom-size tertile specialists; cut points from training data only
+    n_tr = np.array([Chem.MolFromSmiles(s).GetNumHeavyAtoms() for s in train_smiles])
+    n_te = np.array([Chem.MolFromSmiles(s).GetNumHeavyAtoms() for s in test_smiles])
+    c1, c2 = np.quantile(n_tr, [1.0 / 3.0, 2.0 / 3.0])
+    g_tr = np.digitize(n_tr, [c1, c2])
+    g_te = np.digitize(n_te, [c1, c2])
+    for g in range(3):
+        idx = np.where(g_tr == g)[0]
+        tidx = np.where(g_te == g)[0]
+        if len(idx) < 30 or len(tidx) == 0:
+            continue  # keep global SVR prediction
+        sub = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+        sub.fit(K_train[np.ix_(idx, idx)], ys[idx])
+        pred[tidx] = sub.predict(K_test[np.ix_(tidx, idx)])
+    return pred
+>>>>>>> REPLACE
+-----

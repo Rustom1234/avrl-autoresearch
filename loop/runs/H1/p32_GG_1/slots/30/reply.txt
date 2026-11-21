@@ -1,0 +1,203 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c = res.x[:2 * n].reshape(n, 2)
+    r = res.x[2 * n:]
+
+    # Simple local search: try small random shifts
+    best_sum = r.sum()
+    for _ in range(20): 
+        shift = rng.uniform(-0.01, 0.01, (n, 2))
+        new_c = np.clip(c + shift, 0, 1)
+        # Check validity
+        valid = True
+        for i in range(n):
+            if new_c[i, 0] - r[i] < 0 or new_c[i, 1] - r[i] < 0 or 
+               new_c[i, 0] + r[i] > 1 or new_c[i, 1] + r[i] > 1:
+                valid = False; break
+            for j in range(i + 1, n):
+                if np.linalg.norm(new_c[i] - new_c[j]) < (r[i] + r[j]):
+                    valid = False; break
+            if not valid: break
+        
+        if valid and r.sum() > best_sum:
+            c = new_c
+            best_sum = r.sum()
+            
+    return c, r
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraintss={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+}
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c = res.x[:2 * n].reshape(n, 2)
+    r = res.x[2 * n:]
+
+    best_sum = r.sum()
+    for _ in range(20):
+        shift = rng.uniform(-0.005, 0.005, (n, 2))
+        new_c = np.clip(c + shift, 0, 1)
+        valid = True
+        for i in range(n):
+            if new_c[i, 0] - r[i] < 0 or new_c[i, 1] - r[i] < 0 or 
+               new_c[i, 0] + r[i] > 1 or new_c[i, 1] + r[i] > 1:
+                valid = False
+                break
+            for j in range(i + 1, n):
+                if np.linalg.norm(new_c[i] - new_c[j]) < (r[i] + r[j]):
+                    valid = False
+                    break
+            if not valid: break
+        
+        if valid and r.sum() > best_sum:
+            c = new_c
+            best_sum = r.sum()
+
+    return c, r
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+}
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c = res.x[:2 * n].reshape(n, 2)
+    r = res.x[2 * n:]
+
+    # Simple local search: small random perturbations to centers
+    best_c, best_r = c.copy(), r.copy()
+    best_sum = r.sum()
+    for _ in range(30):
+        shift = rng.uniform(-0.004, 0.004, (n, 2))
+        nc = np.clip(c + shift, 0, 1)
+        # Check validity
+        valid = True
+        for i in range(n):
+            if nc[i, 0] - r[i] < 0 or nc[i, 1] - r[i] < 0 or 
+               nc[i, 0] + r[i] > 1 or nc[i, 1] + r[i] > 1:
+                valid = False; break
+            for j in range(i + 1, n):
+                if np.sum((nc[i] - nc[j])**2) < (r[i] + r[j])**2:
+                    valid = False; break
+            if not valid: break
+        
+        if valid and r.sum() > best_sum:
+            best_c, best_sum = nc, r.sum()
+            c = nc.copy()
+
+    return best_c, best_r
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----

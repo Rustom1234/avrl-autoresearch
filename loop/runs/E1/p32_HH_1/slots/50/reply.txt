@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+=======
+def _hex_start(n, rng):
+    """Hexagonal lattice with about n+k sites in the unit square, k in 2..6; drop sites to n, then jitter."""
+    k = rng.integers(2, 7)
+    s = np.sqrt(2 / (np.sqrt(3) * (n + k)))          # spacing so that about n+k sites fit in the square
+    theta, off = rng.uniform(0, np.pi / 3), rng.uniform(0, 1, 2)
+    m = int(np.ceil(2 / s)) + 2
+    i, j = np.meshgrid(np.arange(-m, m + 1), np.arange(-m, m + 1))
+    i, j = i.ravel(), j.ravel()
+    lat = np.stack([i + 0.5 * j, np.sqrt(3) / 2 * j], 1) * s
+    R = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+    pts = lat @ R.T + off
+    pts = pts[((pts >= 0) & (pts <= 1)).all(1)]
+    if len(pts) < n:
+        pts = np.vstack([pts, rng.uniform(0, 1, (n - len(pts), 2))])
+    else:
+        pts = pts[rng.permutation(len(pts))[:n]]
+    return np.clip(pts + rng.normal(0, 0.02, (n, 2)), 0.05, 0.95)
+
+
+def _solve_once(n, rng, init=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+    if init is None and rng.random() < 0.5:
+        base = _hex_start(n, rng)
+    else:
+        base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+-----

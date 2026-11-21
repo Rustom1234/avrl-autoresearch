@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+TRANSLATE = 2
+=======
+TRANSLATE = 2
+EMA_DECAY = 0.995
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lr_factors2_initial = [group["initial_lr"] for group in optimizer1.param_groups[1:] + optimizer2.param_groups]
+=======
+    lr_factors2_initial = [group["initial_lr"] for group in optimizer1.param_groups[1:] + optimizer2.param_groups]
+    # EMA of trainable weights (float32 buffers), starts at half of training
+    ema_params = [p for p in model.parameters() if p.requires_grad]
+    ema_bufs = [p.detach().float().clone() for p in ema_params]
+    ema_start = ceil(0.5 * total_train_steps)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            step += 1
+            if step >= total_train_steps:
+                break
+=======
+            # EMA update: raw copy before ema_start, decayed average afterwards
+            if step < ema_start:
+                for e, p in zip(ema_bufs, ema_params):
+                    e.copy_(p.detach())
+            else:
+                torch._foreach_lerp_(ema_bufs, [p.detach().float() for p in ema_params], 1 - EMA_DECAY)
+
+            step += 1
+            if step >= total_train_steps:
+                break
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if step >= total_train_steps:
+            break
+
+
+def predict(model, images):
+=======
+        if step >= total_train_steps:
+            break
+
+    # Load EMA weights into the model for prediction
+    with torch.no_grad():
+        for e, p in zip(ema_bufs, ema_params):
+            p.copy_(e)
+
+
+def predict(model, images):
+>>>>>>> REPLACE
+-----

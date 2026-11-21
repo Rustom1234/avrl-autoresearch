@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+import lightgbm as lgb
+=======
+import lightgbm as lgb
+from scipy.optimize import minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    def softmax(z):
+        e = np.exp(z - z.max())
+        return e / e.sum()
+
+    def mae_loss(z):
+        return np.abs(oof @ softmax(z) - y).mean()
+
+    w = softmax(minimize(mae_loss, np.zeros(oof.shape[1]), method="Nelder-Mead").x)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return base_te @ w
+>>>>>>> REPLACE
+-----

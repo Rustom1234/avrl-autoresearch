@@ -1,0 +1,146 @@
+<<<<<<< SEARCH
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+thought
+# SMARTS patterns for ionization states
+SMARTS_PATTERNS = [
+    'C(=O)[O-]',             # Carboxylic acid (deprotonated)
+    '[NH2]',                 # Aliphatic primary amine
+    '[NH]',                  # Aliphatic secondary amine
+    '[NH3+]',                # Aliphatic tertiary amine
+    '[N+]',                  # Quaternary nitrogen
+    'O-C1=CC=C(O)C=C1',      # Phenol
+    'S(=O)(=O)[O-]',        # Sulfonic acid
+    'P(=O)(O)(O)O-',         # Phosphate
+    'NC(=O)',                # Amide
+    'C(=O)O'                 # Carboxylic acid (neutral)
+]
+# We'll select a subset to keep the feature space manageable
+# Let's stick to 7 specific ones as requested
+SELECTED_SMARTS = [
+    'C(=O)[O-]',           # Carboxylic acid
+    '[NH2]',                # Primary amine
+    '[NH]',                 # Secondary amine
+    '[NH3+]',               # Tertiary amine
+    '[N+]',                 # Quaternary nitrogen
+    'O-C1=CC=C(O)C=C1',      # Phenol
+    'NC(=O)'                # Amide
+]
+
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                       Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    
+    # SMARTS counts
+    smarts_feats = []
+    for m in mols:
+        counts = [len(m.GetSubstructMatches(Chem.MolFromSmarts(s))) for s in SELECTED_SMARTS]
+        smarts_feats.append(counts)
+    smarts_feats = np.array(smarts_feats, dtype=np.float32)
+    
+    return np.hstack([fps, desc, smarts_feats])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                       Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    # Ionization-class SMARTS counts
+    smarts_patterns = [
+        'C(=O)[O-]',           # Carboxylic acid
+        '[NH2]',                # Primary amine
+        '[NH]',                 # Secondary amine
+        '[NH3+]',               # Tertiary amine
+        '[N+]',                 # Quaternary nitrogen
+        'O-C1=CC=C(O)C=C1',      # Phenol
+        'NC(=O)'                # Amide
+    ]
+    smarts_feats = []
+    for m in mols:
+        counts = [len(m.GetSubstructMatches(Chem.MolFromSmarts(s))) for s in smarts_patterns]
+        smarts_feats.append(counts)
+    smarts_feats = np.array(smarts_feats, dtype=np.float32)
+    
+    return np.hstack([fps, desc, smarts_feats])
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+ Aquaculture
+=======
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+
+    # Ionization-class SMARTS counts
+    smarts_patterns = [
+        'C(=O)[O-]', '[NH2]', '[NH]', '[NH3+]', '[N+]', 
+        'O-C1=CC=C(O)C=C1', 'S(=O)(=O)[O-]', 'P(=O)(O)(O)O-', 'NC(=O)']
+    
+    smarts_feats = []
+    for m in mols:
+        counts = [len(m.GetSubstructMatches(Chem.MolFromSmarts(s))) for s in smarts_patterns]
+        smarts_feats.append(counts)
+    smarts_feats = np.array(smarts_feats, dtype=np.float32)
+
+    return np.hstack([fps, desc, smarts_feats])
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+>>>>>>>>
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+
+    # Ionization-class SMARTS counts
+    patterns = [
+        'C(=O)[O-]', '[NH2]', '[NH]', '[NH3+]', '[N+]', 
+        'O-C1=CC=C(O)C=C1', 'S(=O)(=O)[O-]', 'P(=O)(O)(O)O-', 'NC(=O)']
+    
+    smarts_feats = []
+    for m in mols:
+        counts = [len(m.GetSubstructMatches(Chem.MolFromSmarts(p))) for p in patterns]
+        smarts_feats.append(counts)
+    smarts_feats = np.array(smarts_feats, dtype=np.float32)
+
+    return np.hstack([fps, desc, smarts_feats]
+-----

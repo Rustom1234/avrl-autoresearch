@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+HOP_START = 0.4
+=======
+EPOCH_FRAC = 0.1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < HOP_START * TIME_FRACTION * time_limit:   # random restarts first
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+        for _, p in pool[:KEEP]:
+            c, r = _solve_once(n, p)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    budget = TIME_FRACTION * time_limit
+    epoch = 0
+    while time.process_time() - t0 < budget:
+        epoch += 1
+        end = t0 + min(budget, epoch * EPOCH_FRAC * budget)
+        if epoch % 2 == 1:   # odd epochs: one round of pooled random restarts
+            pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+            for _, p in pool[:KEEP]:
+                c, r = _solve_once(n, p)
+                c = np.clip(c, 0, 1)
+                r = _repair(c, r)
+                if best is None or r.sum() > best[1].sum():
+                    best = (c, r)
+        else:   # even epochs: basin hopping from the shared best packing until the epoch ends
+            while time.process_time() < end:
+                c, r = best
+                p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+                c, r = _solve_once(n, p)
+                c = np.clip(c, 0, 1)
+                r = _repair(c, r)
+                if r.sum() > best[1].sum():
+                    best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+RESTART_FRACTION = 0.3
+=======
+RESTART_FRACTION = 0.3
+K_CANDIDATES = 6
+PENALTY_WEIGHT = 1.0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _penalty(x, r, iu):
+    """Quadratic overlap and wall-violation penalty at fixed radii, with analytic gradient."""
+    n = len(r)
+    c = x.reshape(n, 2)
+    diff = c[iu[0]] - c[iu[1]]
+    d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+    ov = np.maximum(0, r[iu[0]] + r[iu[1]] - d)
+    lo = np.maximum(0, r[:, None] - c)
+    hi = np.maximum(0, c + r[:, None] - 1)
+    f = (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum()
+    coef = -2 * ov[:, None] * diff / d[:, None]
+    g = np.zeros((n, 2))
+    np.add.at(g, iu[0], coef)
+    np.add.at(g, iu[1], -coef)
+    g += -2 * lo + 2 * hi
+    return PENALTY_WEIGHT * f, PENALTY_WEIGHT * g.ravel()
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+=======
+    c, r = best
+    iu = np.triu_indices(n, 1)
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        i = np.argmin(r)
+        cands = []
+        for _ in range(K_CANDIDATES):   # screen candidate reinsertions by penalty energy
+            c0 = c.copy()
+            c0[i] = rng.uniform(0, 1, 2)
+            res = minimize(_penalty, c0.ravel(), args=(r, iu), jac=True, method="L-BFGS-B",
+                           options={"maxiter": 200})
+            cands.append((res.fun, res.x.reshape(n, 2)))
+        _, c2 = min(cands, key=lambda t: t[0])
+        r2 = r.copy()
+        r2[i] = 0
+>>>>>>> REPLACE
+-----

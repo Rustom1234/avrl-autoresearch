@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+import numpy as np
+=======
+import zlib
+import numpy as np
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import BRICS
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def brics_counts(smiles):
+    C = np.zeros((len(smiles), 1024), dtype=np.float64)
+    for i, s in enumerate(smiles):
+        for frag in BRICS.BRICSDecompose(Chem.MolFromSmiles(s)):
+            C[i, zlib.crc32(frag.encode()) % 1024] += 1.0
+    return C
+
+
+def minmax(A, B):
+    out = np.zeros((A.shape[0], B.shape[0]))
+    for i in range(A.shape[0]):
+        out[i] = np.minimum(A[i], B).sum(axis=1)
+    denom = A.sum(axis=1)[:, None] + B.sum(axis=1)[None, :] - out
+    return out / np.maximum(denom, 1e-9)
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    Ctr = brics_counts(train_smiles)
+    Cte = brics_counts(test_smiles)
+    K_train = (tanimoto(X, X) + rbf(D, D, gamma) + minmax(Ctr, Ctr)) / 3.0
+    K_test = (tanimoto(Xt, X) + rbf(Dt, D, gamma) + minmax(Cte, Ctr)) / 3.0
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import zlib
+import numpy as np
+=======
+import numpy as np
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            C[i, zlib.crc32(frag.encode()) % 1024] += 1.0
+=======
+            C[i, sum((k + 1) * ord(ch) for k, ch in enumerate(frag)) % 1024] += 1.0
+>>>>>>> REPLACE
+-----

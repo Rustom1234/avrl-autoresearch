@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _lp_polish(c, r, iters=30):
+    """Sequential LP: linearise pair and wall constraints, maximise sum(r) in a trust region, accept improving steps."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+    m = len(iu[0])
+    rows = np.arange(m)
+    c, r = c.copy(), _repair(c, r)
+    tr = 0.01
+    for _ in range(iters):
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        g = diff / d[:, None]
+        A_pair = np.zeros((m, 3 * n))
+        for a in range(2):
+            A_pair[rows, 2 * iu[0] + a] = -g[:, a]
+            A_pair[rows, 2 * iu[1] + a] = g[:, a]
+        A_pair[rows, 2 * n + iu[0]] = 1
+        A_pair[rows, 2 * n + iu[1]] = 1
+        b_pair = d - r[iu[0]] - r[iu[1]]
+        A_w, b_w = [], []
+        for k in range(n):
+            for a in range(2):
+                row = np.zeros(3 * n)
+                row[2 * k + a] = -1
+                row[2 * n + k] = 1
+                A_w.append(row)
+                b_w.append(c[k, a] - r[k])
+                row = np.zeros(3 * n)
+                row[2 * k + a] = 1
+                row[2 * n + k] = 1
+                A_w.append(row)
+                b_w.append(1 - c[k, a] - r[k])
+        A = np.vstack([A_pair, np.array(A_w)])
+        b = np.concatenate([b_pair, b_w])
+        cost = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+        res = linprog(cost, A_ub=A, b_ub=b, bounds=[(-tr, tr)] * (3 * n), method="highs")
+        if res.status != 0:
+            tr /= 2
+            continue
+        c_new = np.clip(c + res.x[:2 * n].reshape(n, 2), 0, 1)
+        r_new = _repair(c_new, np.maximum(r + res.x[2 * n:], 0))
+        if r_new.sum() > r.sum():
+            c, r = c_new, r_new
+        else:
+            tr /= 2
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+=======
+    return _lp_polish(*best)
+>>>>>>> REPLACE
+-----

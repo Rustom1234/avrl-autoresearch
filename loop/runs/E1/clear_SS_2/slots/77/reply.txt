@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    return 0.7 * np.mean(preds, axis=0) + 0.3 * rankdata(pr) / len(pr)
+=======
+    nd = Xtr.shape[1] - N_BITS
+    mu = Xtr[:, :nd].mean(0)
+    sd = Xtr[:, :nd].std(0) + 1e-6
+    Dtr = np.clip((Xtr[:, :nd] - mu) / sd, -5, 5) * 0.5
+    Dte = np.clip((Xte[:, :nd] - mu) / sd, -5, 5) * 0.5
+    A = np.hstack([Dtr, np.log1p(Xtr[:, -N_BITS:])])
+    B = np.hstack([Dte, np.log1p(Xte[:, -N_BITS:])])
+    r2 = Ridge(alpha=30.0).fit(A, y)
+    pr2 = r2.predict(B)
+    ridge = 0.5 * (rankdata(pr) + rankdata(pr2)) / len(pr)
+    return 0.7 * np.mean(preds, axis=0) + 0.3 * ridge
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+        self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) else None
+=======
+        self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) else None
+        self.q_gain = nn.Parameter(torch.ones(self.n_head))
+        self.k_gain = nn.Parameter(torch.ones(self.n_kv_head))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        q, k = norm(q), norm(k)
+=======
+        q, k = norm(q), norm(k)
+        q = q * self.q_gain.to(q.dtype).view(1, 1, -1, 1)
+        k = k * self.k_gain.to(k.dtype).view(1, 1, -1, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for block in self.transformer.h:
+            if block.attn.ve_gate is not None:
+                torch.nn.init.zeros_(block.attn.ve_gate.weight)
+=======
+        for block in self.transformer.h:
+            if block.attn.ve_gate is not None:
+                torch.nn.init.zeros_(block.attn.ve_gate.weight)
+        # QK gains start at 1 (to_empty leaves memory uninitialized, so set explicitly)
+        for block in self.transformer.h:
+            block.attn.q_gain.fill_(1.0)
+            block.attn.k_gain.fill_(1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        matrix_params = list(self.transformer.h.parameters())
+=======
+        gain_params = [p for n, p in self.named_parameters() if n.endswith("q_gain") or n.endswith("k_gain")]
+        matrix_params = [p for p in self.transformer.h.parameters() if all(p is not g for g in gain_params)]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        resid_params = [self.resid_lambdas]
+=======
+        resid_params = [self.resid_lambdas] + gain_params
+>>>>>>> REPLACE
+-----

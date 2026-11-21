@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+def fingerprints(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+=======
+_FP_CACHE = {}
+
+
+def fingerprints(smiles):
+    missing = [s for s in dict.fromkeys(smiles) if s not in _FP_CACHE]
+    if missing:
+        sets = _compute_fingerprints(missing)
+        for i, s in enumerate(missing):
+            _FP_CACHE[s] = [x[i] for x in sets]
+    return [np.array([_FP_CACHE[s][k] for s in smiles], dtype=np.float32) for k in range(6)]
+
+
+def _compute_fingerprints(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+>>>>>>> REPLACE
+-----

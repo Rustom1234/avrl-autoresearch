@@ -1,0 +1,60 @@
+<<<<<<< SEARCH
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+=======
+def _pool_update(pool, v, st):
+    """Keep up to 3 distinct states (max centre difference > 0.05) with the largest values."""
+    for k, (pv, ps) in enumerate(pool):
+        if np.max(np.abs(ps - st)) <= 0.05:
+            if v > pv:
+                pool[k] = (v, st.copy())
+            return pool
+    if len(pool) < 3:
+        pool.append((v, st.copy()))
+    else:
+        k = int(np.argmin([p[0] for p in pool]))
+        if v > pool[k][0]:
+            pool[k] = (v, st.copy())
+    return pool
+
+
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best, best_v = cur.copy(), cur_v
+    for s in range(steps):
+=======
+    best, best_v = cur.copy(), cur_v
+    pool = [(cur_v, cur.copy())]
+    for s in range(steps):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v, cur_r = cand, v, rc
+            if v > best_v:
+                best, best_v = cand.copy(), v
+    return best
+=======
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v, cur_r = cand, v, rc
+            if v > best_v:
+                best, best_v = cand.copy(), v
+            pool = _pool_update(pool, v, cand)
+    pool.sort(key=lambda p: -p[0])
+    return [p[1] for p in pool[:3]]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = sa_centers(c0, rng, t0)
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+=======
+        pool_c = sa_centers(c0, rng, t0)
+        cur, cur_val = None, -1.0
+        for cc in pool_c:
+            zc = np.concatenate([cc[:, 0], cc[:, 1], lp_radii(cc)])
+            zo = optimize(zc)
+            vo = np.sum(zo[2 * n:])
+            if cur is None or vo > cur_val:
+                cur, cur_val = zo, vo
+>>>>>>> REPLACE
+-----

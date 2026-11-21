@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+    def make_cons(s):
+        def cons(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt((c[iu[0], 0] - c[iu[1], 0]) ** 2 + (s * (c[iu[0], 1] - c[iu[1], 1])) ** 2) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        return cons
+=======
+    def make_cons(s):
+        def cons(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt((c[iu[0], 0] - c[iu[1], 0]) ** 2 + (s * (c[iu[0], 1] - c[iu[1], 1])) ** 2) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+        def jac(v):
+            c = v[:2 * n].reshape(n, 2)
+            i, j = iu
+            dx = c[i, 0] - c[j, 0]
+            dy = c[i, 1] - c[j, 1]
+            L = np.maximum(np.sqrt(dx ** 2 + (s * dy) ** 2), 1e-12)
+            m = len(i)
+            J = np.zeros((m + 5 * n, 3 * n))
+            p = np.arange(m)
+            J[p, 2 * i] = dx / L
+            J[p, 2 * j] = -dx / L
+            J[p, 2 * i + 1] = s * s * dy / L
+            J[p, 2 * j + 1] = -s * s * dy / L
+            J[p, 2 * n + i] = -1
+            J[p, 2 * n + j] = -1
+            k = np.arange(n)
+            b = m
+            J[b + k, 2 * k] = 1
+            J[b + k, 2 * n + k] = -1
+            b += n
+            J[b + k, 2 * k + 1] = 1
+            J[b + k, 2 * n + k] = -1
+            b += n
+            J[b + k, 2 * k] = -1
+            J[b + k, 2 * n + k] = -1
+            b += n
+            J[b + k, 2 * k + 1] = -1
+            J[b + k, 2 * n + k] = -1
+            b += n
+            J[b + k, 2 * n + k] = 1
+            return J
+
+        return {"type": "ineq", "fun": cons, "jac": jac}
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(obj, x0, method="SLSQP", constraints={"type": "ineq", "fun": make_cons(s0)},
+=======
+    res = minimize(obj, x0, method="SLSQP", constraints=make_cons(s0),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(obj, res.x, method="SLSQP", constraints={"type": "ineq", "fun": make_cons(1.0)},
+=======
+    res = minimize(obj, res.x, method="SLSQP", constraints=make_cons(1.0),
+>>>>>>> REPLACE
+-----

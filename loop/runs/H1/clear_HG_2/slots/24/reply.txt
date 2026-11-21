@@ -1,0 +1,240 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+=======
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from sklearn.cross_decomposition import TruncatedSVD
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train_raw = featurize(train_smiles)
+    X_test_raw = featurize(test_smiles)
+    
+    # Morgan block is the first N_BITS columns
+    X_train_morgan = X_train_raw[:, :N_BITS]
+    X_test_morgan = X_test_raw[:, :N_BITS]
+    
+    svd = TruncatedSVD(n_components=32, random_state=seed)
+    X_train_latent = svd.fit_transform(X_train_morgan)
+    X_test_latent = svd.transform(X_test_morgan)
+    
+    X_train = np.hstack([X_train_raw, X_train_latent])
+    X_test = np.hstack([X_test_raw, X_test_latent])
+    
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    model.fit(X_train, y_train_log)
+    return model.predict(X_test)
+-----
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+-----
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+ Dent in original code: 
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+=======
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from sklearn.cross_decomposition import TruncatedSVD
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train_raw = featurize(train_smiles)
+    X_test_raw = featurize(test_smiles)
+    
+    # Extract Morgan fingerprints (first N_BITS columns)
+    X_train_fp = X_train_raw[:, :N_BITS]
+    X_test_fp = X_test_raw[:, :N_BITS]
+    
+    # Apply TruncatedSVD
+    svd = TruncatedSVD(n_components=32, random_state=seed)
+    X_train_latent = svd.fit_transform(X_train_fp)
+    X_test_latent = svd.transform(X_test_fp)
+    
+    # Combine original features with latent features
+    X_train = np.hstack([X_train_raw, X_train_latent])
+    X_test = np.hstack([X_test_raw, X_test_latent])
+    
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(X_test)
+>>>>>>> REPLACE
+-----

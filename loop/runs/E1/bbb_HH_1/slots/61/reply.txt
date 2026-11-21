@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    D_train = full_descriptors(train_smiles)
+    D_test = full_descriptors(test_smiles)
+    lo, hi = np.percentile(D_train, [1, 99], axis=0)
+    X_train = np.hstack([X_train, np.clip(D_train, lo, hi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+    y = np.asarray(train_y, dtype=np.int64)
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+def confident_idx(p, frac=0.1):
+    # top and bottom `frac` of test molecules by rank, with pseudo-labels 1 / 0
+    r = scaled_rank(p)
+    hi_idx = np.where(r >= 1 - frac)[0]
+    lo_idx = np.where(r <= frac)[0]
+    idx = np.concatenate([hi_idx, lo_idx])
+    lab = np.concatenate([np.ones(len(hi_idx), dtype=np.int64), np.zeros(len(lo_idx), dtype=np.int64)])
+    return idx, lab
+
+
+def fit_view_fp(X, y, seed):
+    m = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                       random_state=seed, n_jobs=8, verbose=-1)
+    return m.fit(X, y)
+
+
+def fit_view_desc(X, y, seed):
+    m = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                               n_jobs=-1, random_state=seed)
+    return m.fit(X, y)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xa_train = featurize(train_smiles)[:, :N_BITS]
+    Xa_test = featurize(test_smiles)[:, :N_BITS]
+    D_train = full_descriptors(train_smiles)
+    D_test = full_descriptors(test_smiles)
+    lo, hi = np.percentile(D_train, [1, 99], axis=0)
+    Xb_train = np.clip(D_train, lo, hi).astype(np.float32)
+    Xb_test = np.clip(D_test, lo, hi).astype(np.float32)
+    y = np.asarray(train_y, dtype=np.int64)
+
+    ma = fit_view_fp(Xa_train, y, seed)
+    mb = fit_view_desc(Xb_train, y, seed)
+    for _ in range(2):
+        pa = ma.predict_proba(Xa_test)[:, 1]
+        pb = mb.predict_proba(Xb_test)[:, 1]
+        ia, la = confident_idx(pa)
+        ib, lb = confident_idx(pb)
+        ma = fit_view_fp(np.vstack([Xa_train, Xa_test[ib]]), np.concatenate([y, lb]), seed)
+        mb = fit_view_desc(np.vstack([Xb_train, Xb_test[ia]]), np.concatenate([y, la]), seed)
+    return 0.5 * (scaled_rank(ma.predict_proba(Xa_test)[:, 1]) + scaled_rank(mb.predict_proba(Xb_test)[:, 1]))
+>>>>>>> REPLACE
+-----

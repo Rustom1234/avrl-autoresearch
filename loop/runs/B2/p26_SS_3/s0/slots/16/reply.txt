@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+        c0, r0 = start[0].copy(), start[1].copy()
+        if rng.random() < 0.5:
+            idx = rng.choice(n, rng.integers(2, 5), replace=False)
+            c0[idx] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (len(idx), 2))
+            r0[idx] = INIT_RADIUS * 0.5
+        else:
+            c0 = c0 + rng.normal(0, 0.02, c0.shape)
+        x0 = np.concatenate([np.clip(c0, 0, 1).ravel(), r0 * 0.9])
+=======
+        c0, r0 = start[0].copy(), start[1].copy()
+        fac = np.full(n, 0.9)
+        if rng.random() < 0.5:
+            idx = rng.choice(n, rng.integers(2, 5), replace=False)
+            c0[idx] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (len(idx), 2))
+            r0[idx] = INIT_RADIUS * 0.5
+        elif rng.random() < 0.5:
+            i = rng.integers(n)
+            m = np.linalg.norm(c0 - c0[i], axis=1) < 0.28
+            g = c0[m].mean(0)
+            a = rng.uniform(-np.pi / 3, np.pi / 3)
+            R = np.array([[np.cos(a), -np.sin(a)], [np.sin(a), np.cos(a)]])
+            c0[m] = (c0[m] - g) @ R.T + g
+            fac[m] = 0.7
+        else:
+            c0 = c0 + rng.normal(0, 0.02, c0.shape)
+        x0 = np.concatenate([np.clip(c0, 0, 1).ravel(), r0 * fac])
+>>>>>>> REPLACE
+-----

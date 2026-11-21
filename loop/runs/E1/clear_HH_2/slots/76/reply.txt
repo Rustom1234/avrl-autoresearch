@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def bit_encoder(X_tr, r, X_te, k=5):
+    cnt = X_tr.sum(0)
+    enc = (X_tr.T @ r) / (cnt + k)  # mean residual per bit shrunk by n/(n+k)
+    seen = (cnt > 0).astype(np.float64)
+    num = X_te @ enc
+    den = X_te @ seen
+    return np.where(den > 0, num / np.maximum(den, 1e-9), 0.0)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+    p_enc = bit_encoder(X_tr, r, X_te) + base_te
+
+    n = len(p_desc)
+    return 0.5 * rankdata(p_desc) / n + 0.3 * rankdata(p_fp) / n + 0.2 * rankdata(p_enc) / n
+>>>>>>> REPLACE
+-----

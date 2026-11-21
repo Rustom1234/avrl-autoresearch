@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _merge_split(c, r, rng):
+    """Merge a close pair into one circle at their midpoint, then put a circle in the largest hole."""
+    n = len(r)
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    np.fill_diagonal(d, np.inf)
+    close = np.argwhere(d < 2.5 * r.mean())
+    if len(close) == 0:
+        return c, r
+    i, j = close[rng.integers(len(close))]
+    mid = (c[i] + c[j]) / 2
+    keep = np.ones(n, bool)
+    keep[[i, j]] = False
+    c2 = np.vstack([c[keep], mid])
+    r2 = np.append(r[keep], min(0.8 * (r[i] + r[j]), mid.min(), (1 - mid).min()))
+    p = rng.uniform(0, 1, (500, 2))
+    dp = np.sqrt(((p[:, None] - c2[None]) ** 2).sum(-1)) - r2[None]
+    free = np.minimum(dp.min(1), np.minimum(p.min(1), (1 - p).min(1)))
+    k = int(np.argmax(free))
+    return np.vstack([c2, p[k]]), np.append(r2, max(free[k], 0))
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0, r0 = _relocate(c0, r0, rng)
+=======
+        if rng.uniform() < 0.2:
+            c0, r0 = _merge_split(c0, r0, rng)
+        c0, r0 = _relocate(c0, r0, rng)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,68 @@
+<<<<<<< SEARCH
+def _cons_fun(z):
+    n = _N
+    x = z[:n]
+    y = z[n:2 * n]
+    r = z[2 * n:]
+    I, J = _I, _J
+=======
+def _cons_fun(z, I=_I, J=_J):
+    n = _N
+    x = z[:n]
+    y = z[n:2 * n]
+    r = z[2 * n:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _cons_jac(z):
+    n = _N
+    I, J = _I, _J
+=======
+def _cons_jac(z, I=_I, J=_J):
+    n = _N
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _optimize(x0, y0, r0):
+    z0 = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    try:
+        res = minimize(_obj, z0, jac=_obj_grad, constraints=cons,
+                       method="SLSQP",
+                       options={"maxiter": 300, "ftol": 1e-12})
+        z = res.x
+    except Exception:
+        z = z0
+    if not np.all(np.isfinite(z)):
+        z = z0
+    return z[:_N], z[_N:2 * _N]
+=======
+def _optimize(x0, y0, r0):
+    z = np.concatenate([x0, y0, r0])
+    for _ in range(4):
+        x = z[:_N]
+        y = z[_N:2 * _N]
+        d = np.hypot(x[_I] - x[_J], y[_I] - y[_J])
+        act = d < 0.4
+        I, J = _I[act], _J[act]
+        cons = [{"type": "ineq",
+                 "fun": lambda w, I=I, J=J: _cons_fun(w, I, J),
+                 "jac": lambda w, I=I, J=J: _cons_jac(w, I, J)}]
+        try:
+            res = minimize(_obj, z, jac=_obj_grad, constraints=cons,
+                           method="SLSQP",
+                           options={"maxiter": 300, "ftol": 1e-12})
+            zn = res.x
+        except Exception:
+            break
+        if not np.all(np.isfinite(zn)):
+            break
+        z = zn
+        x = z[:_N]
+        y = z[_N:2 * _N]
+        r = z[2 * _N:]
+        dd = np.hypot(x[_I] - x[_J], y[_I] - y[_J])
+        viol = np.max(r[_I] + r[_J] - dd)
+        if viol <= 1e-9:
+            break
+    return z[:_N], z[_N:2 * _N]
+>>>>>>> REPLACE
+-----

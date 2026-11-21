@@ -1,0 +1,54 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (regression).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from lightgbm import LGBMClassifier
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    
+    # Quantile binning
+    num_bins = 8
+    _, bins = np. Olha, np.quantile(y_train_log, np.linspace(0, 1, num_bins + 1))
+    y_train_bins = np.digitize(y_train_log, bins[1:-1])
+    
+    model = LGBMClassifier(
+        num_leaves=15, 
+        learning_rate=0.05, 
+        n_estimators=300, 
+        random_state=seed, 
+        importance_type='gain', 
+        n_jobs=-1
+    )
+    model.fit(X_train, y_train_bins)
+    
+    X_test = featurize(test_smiles)
+    probs = model.predict_proba(X_test)
+    expected_bins = np.sum(probs * np.arange(num_bins), axis=1)
+    return expected_bins

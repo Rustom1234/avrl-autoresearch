@@ -1,0 +1,18 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problems found. The diff does not touch the seed lines, the prepare.py import line, the evaluation call or the final summary. It only calls make_dataloader, which is already imported, on the 'train' split, so no validation data is used for training.",
+  "No bug that makes the result meaningless. Tokens per step stay the same (64*2048 = 256*512), so the schedules and step accounting still work.",
+  "Minor: short_loader and train_loader each start reading the train stream independently. After the switch at 40% of the time budget, the model probably sees the same documents again. This costs some quality but does not invalidate the run.",
+  "Minor: changing from 512 to 2048 sequence length in the middle of the loop probably makes torch.compile recompile. That time probably counts toward total_training_time, and it adds wall-clock time toward the 450 s limit. Check that the runs stayed well under the limit.",
+  "Minor: short_loader stays alive after the switch and keeps holding its buffers or worker state. This could be cleaned up, but it is small.",
+  "Statistics: there are only 2 candidate runs (mean 1.10415 vs incumbent mean 1.1145, a difference of 0.01035). z cannot be recomputed exactly because the incumbent's standard deviation (and whatever variance the harness used) is not given. If the incumbent SD is used, z = 2.52 implies an SD of about 0.0058, which is plausible. With n=2, one more replicate would be wise before treating this as solid.",
+  "The claims match the numbers given: both candidate runs are below the incumbent mean, and the provisional decision to accept is consistent with z = 2.52."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.10415,
+  "delta_vs_incumbent": -0.01035
+ }
+}

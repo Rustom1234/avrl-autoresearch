@@ -1,0 +1,186 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 4096
+C = 10.0
+EPS = 0.1
+
+def get_tanimoto(A, B):
+    # A: (n, d), B: (m, d)
+    dot_prod = np.dot(A, B.T)
+    sum_A = np.sum(A, axis=1).reshape(-1, 1)
+    sum_B = np.sum(B, axis=1).reshape(1, -1)
+    return dot_prod / (sum_A + sum_B - dot_prod + 1e-9)
+
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    K_train = np.zeros((len(train_smiles), len(train_smiles)), dtype=np.float32)
+    K_test = np.zeros((len(test_smiles), len(train_smiles)), dtype=np.float32)
+    
+    for r in [1, 2, 3]:
+        X_train = featurize(train_smiles, r)
+        X_test = featurize(test_smiles, r)
+        K_train += get_tanimoto(X_train, X_train)
+        K_test += get_tanimoto(X_test, X_train)
+    
+    K_train /= 3.0
+    K_test /= 3.0
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    return model.predict(K_test)
+ Dent
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 4096
+C = 10.0
+EPS = 0.1
+
+def get_tanimoto(A, B):
+    # A: (n, d), B: (m, d)
+    dot_prod = np.dot(A, B.T)
+    sum_A = np.sum(A, axis=1).reshape(-1, 1)
+    sum_B = np.sum(B, axis=1).reshape(1, -1)
+    return dot_prod / (sum_A + sum_B - dot_prod + 1e-9)
+
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    K_train = np.zeros((len(train_smiles), len(train_smiles)), dtype=np.float32)
+    K_test = np.zeros((len(test_smiles), len(train_smiles)), dtype=np.float32)
+    
+    for r in [1, 2, 3]:
+        X_train = featurize(train_smiles, r)
+        X_test = featurize(test_smiles, r)
+        K_train += get_tanimoto(X_train, X_train)
+        K_test += get_tanimoto(X_test, X_train)
+    
+    K_train /= 3.0
+    K_test /= 3.0
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    return model.predict(K_test)
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+C = 10.0
+EPS = 0.1
+
+def get_tanimoto(A, B):
+    # A: (n, d), B: (m, d)
+    dot_prod = np.dot(A, B.T)
+    sum_A = np.sum(A, axis=1).reshape(-1, 1)
+    sum_B = np.sum(B, axis=1).reshape(1, -1)
+    return dot_prod / (sum_A + sum_B - dot_prod + 1e-9)
+
+def featurize(smiles, gen):
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    # Morgan radius 2
+    morgan_gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=N_BITS)
+    X_train_m = featurize(train_smiles, morgan_gen)
+    X_test_m = featurize(test_smiles, morgan_gen)
+    
+    # Atom pairs
+    pair_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    X_train_p = featurize(train_smiles, pair_gen)
+    X_test_p = featurize(test_smiles, pair_gen)
+    
+    K_train = (get_tanimoto(X_train_m, X_train_m) + 
+                  get_tanimoto(X_train_p, X_train_p)) / 2.0
+    K_test = (get_tanimoto(X_test_m, X_train_m) + 
+                get_tanimoto(X_test_p, X_train_p)) / 2.0
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    return model.predict(K_test)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+# Settings
+N_BITS = 4096
+C = 10.0
+EPS = 0.1
+
+def get_tanimoto(A, B):
+    # A: (n, d), B: (m, d)
+    dot_prod = np.dot(A, B.T)
+    sum_A = np.sum(A, axis=1).reshape(-1, 1)
+    sum_B = np.sum(B, axis=1).reshape(1, -1)
+    return dot_prod / (sum_A + sum_B - dot_prod + 1e-9)
+
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    K_train = np.zeros((len(train_smiles), len(train_smiles)), dtype=np.float32)
+    K_test = np.zeros((len(test_smiles), len(train_smiles)), dtype=np.float32)
+    
+    for r in [1, 2, 3]:
+        X_train = featurize(train_smiles, r)
+        X_test = featurize(test_smiles, r)
+        K_train += get_tanimoto(X_train, X_train)
+        K_test += get_tanimoto(X_test, X_train)
+    
+    K_train /= 3.0
+    K_test /= 3.0
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    return model.predict(K_test)
+-----
+<<<<<<< SEARCH
+# Settings
+N_BITS = 4096
+C = 10.0
+EPS = 0.1
+
+def get_tanimoto(A, B):
+    # A: (n, d), B: (m, d)
+    dot_prod = np.dot(A, B.T)
+    sum_A = np.sum(A, axis=1).reshape(-1, 1)
+    sum_B = np.sum(B, axis=1).reshape(1, -1)
+    return dot_prod / (sum_A + sum_B - dot_prod + 1e-9)
+
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    K_train = np.zeros((len(train_smiles), len(train_smiles)), dtype=np.float32)
+    K_test = np.zeros((len(test_smiles), len(train_smiles)), dtype=np.float32)
+    
+    for r in [1, 2, 3]:
+        X_train = featurize(train_smiles, r)
+        X_test = featurize(test_smiles, r)
+        K_train += get_tanimoto(X_train, X_train)
+        K_test += get_tanimoto(X_test, X_train)
+    
+    K_train /= 3.0
+    K_test /= 3.0
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    return model.predict(K_test)
+"""
+-----

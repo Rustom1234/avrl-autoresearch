@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+    if best_c is not None:
+        cur_c, cur_r, cur_s = best_c, best_r, best_sum
+        for _ in range(200):
+            if time.time() - t0 > 200:
+                break
+            c0 = cur_c.copy()
+            k = int(rng.integers(1, 4))
+            pick = rng.choice(n, size=k, replace=False)
+            c0[pick] = np.clip(c0[pick] + rng.normal(0.0, 0.1, size=(k, 2)), 0.0, 1.0)
+            try:
+                c, r = _optimize(c0, np.maximum(cur_r, 0.01))
+                r = _repair(c, r)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+            if s > cur_s or rng.random() < np.exp((s - cur_s) / 0.01):
+                cur_c, cur_r, cur_s = c, r, s
+=======
+    # Parallel tempering over basin-hopping replicas at fixed temperatures
+    if best_c is not None:
+        temps = [0.002, 0.005, 0.012, 0.03]
+        R = len(temps)
+        reps = [(best_c.copy(), best_r.copy(), best_sum) for _ in range(R)]
+        for sweep in range(40):
+            if time.time() - t0 > 200:
+                break
+            for q in range(R):
+                cur_c, cur_r, cur_s = reps[q]
+                c0 = cur_c.copy()
+                k = int(rng.integers(1, 4))
+                pick = rng.choice(n, size=k, replace=False)
+                c0[pick] = np.clip(c0[pick] + rng.normal(0.0, 0.1, size=(k, 2)), 0.0, 1.0)
+                try:
+                    c, r = _optimize(c0, np.maximum(cur_r, 0.01))
+                    r = _repair(c, r)
+                except Exception:
+                    continue
+                s = float(np.sum(r))
+                if s > best_sum:
+                    best_sum, best_c, best_r = s, c, r
+                if s > cur_s or rng.random() < np.exp((s - cur_s) / temps[q]):
+                    reps[q] = (c, r, s)
+            for q in range(R - 1):
+                s_lo = reps[q][2]
+                s_hi = reps[q + 1][2]
+                logp = (1.0 / temps[q] - 1.0 / temps[q + 1]) * (s_hi - s_lo)
+                if logp >= 0.0 or rng.random() < np.exp(logp):
+                    reps[q], reps[q + 1] = reps[q + 1], reps[q]
+>>>>>>> REPLACE
+-----

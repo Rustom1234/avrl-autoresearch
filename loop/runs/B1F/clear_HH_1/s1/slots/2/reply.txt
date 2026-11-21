@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    ys = (y - mu) / sd
+    n = len(ys)
+    preds = np.zeros(K_test.shape[0])
+    for i in range(15):
+        rng = np.random.default_rng(seed + i)
+        idx = rng.choice(n, size=int(0.8 * n), replace=False)
+        model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+        model.fit(K_train[np.ix_(idx, idx)], ys[idx])
+        preds += rankdata(model.predict(K_test[:, idx]))
+    return preds / 15
+>>>>>>> REPLACE
+-----

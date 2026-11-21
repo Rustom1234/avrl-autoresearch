@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+=======
+        c, r = best
+        if rng.random() < 0.5:   # smooth displacement field: neighbouring circles move together
+            disp = np.zeros_like(c)
+            for _ in range(3):
+                k = rng.integers(-2, 3, 2)
+                while not k.any():
+                    k = rng.integers(-2, 3, 2)
+                phase = rng.uniform(0, 2 * np.pi)
+                amp = rng.normal(0, 0.03, 2)
+                disp += np.sin(2 * np.pi * (c @ k) + phase)[:, None] * amp
+            c = np.clip(c + disp + rng.normal(0, 0.005, c.shape), 0.02, 0.98)
+            p = c.ravel()
+        else:
+            p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+>>>>>>> REPLACE
+-----

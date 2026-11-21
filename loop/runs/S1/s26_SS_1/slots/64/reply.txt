@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+=======
+    while time.time() - t0 < 90:
+        try:
+            u = rng.random()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    cur_s, cur = best_s, (c.copy(), r.copy())
+    while time.time() - t0 < 145:
+        try:
+            cc, rr = cur
+            c0 = cc.copy()
+            k = int(rng.integers(1, 4))
+            idx = np.argsort(rr)[:k]
+            for q in idx:
+                if rng.random() < 0.5:
+                    c0[q] = rng.uniform(0.05, 0.95, 2)
+                else:
+                    keep = np.ones(_N, bool)
+                    keep[q] = False
+                    d2 = ((_GRID[:, None, :] - c0[keep][None, :, :]) ** 2).sum(2)
+                    dc = np.sqrt(d2.min(1)) - rr[keep][d2.argmin(1)]
+                    dw = np.minimum(np.minimum(_GRID[:, 0], _GRID[:, 1]),
+                                    np.minimum(1 - _GRID[:, 0], 1 - _GRID[:, 1]))
+                    sc = np.minimum(dc, dw)
+                    c0[q] = _GRID[sc.argmax()]
+            c0 = np.clip(c0 + rng.normal(0, 0.01, c0.shape), 0.01, 0.99)
+            r0 = _lp_radii(c0)
+            c2 = np.clip(_polish(c0, r0), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > cur_s or rng.random() < 0.05 * np.exp((s - cur_s) / 0.002):
+            cur_s, cur = s, (c2, r2)
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

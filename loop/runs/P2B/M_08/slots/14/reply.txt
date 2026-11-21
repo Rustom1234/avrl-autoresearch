@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+    optimizer.step()
+    
+    # EMA update
+    if not hasattr(model, "ema_params"):
+        model.ema_params = [p.data.clone() for p in model.parameters()]
+    for p, ema_p in zip(model.parameters(), model.ema_params):
+        ema_p.mul_(0.999).add_(p.data, alpha=0.001)
+
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+with autocast_ctx:
+    val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+=======
+# Final eval
+model.eval()
+for p, ema_p in zip(model.parameters(), model.ema_params):
+    p.data.copy_(ema_p)
+with autocast_ctx:
+    val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+>>>>>>> REPLACE
+-----

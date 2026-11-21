@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+def _local_opt(c0):
+=======
+def _maximin_floor_radii(centers):
+    # LP1: maximise the minimum radius t. LP2: maximise sum(r) with r_i >= 0.98 t.
+    n = centers.shape[0]
+    x = np.clip(centers[:, 0], 0.0, 1.0)
+    y = np.clip(centers[:, 1], 0.0, 1.0)
+    border = np.maximum(np.minimum(np.minimum(x, y), np.minimum(1 - x, 1 - y)), 0.0)
+    I, J = np.triu_indices(n, 1)
+    d = np.sqrt((x[I] - x[J]) ** 2 + (y[I] - y[J]) ** 2)
+    m = len(I)
+    A = np.zeros((m, n))
+    A[np.arange(m), I] = 1.0
+    A[np.arange(m), J] = 1.0
+    # LP1 variables: [r (n), t]; r_i - t >= 0 written as -r_i + t <= 0
+    A1 = np.hstack([A, np.zeros((m, 1))])
+    Ab = np.zeros((n, n + 1))
+    Ab[np.arange(n), np.arange(n)] = -1.0
+    Ab[:, n] = 1.0
+    A_ub1 = np.vstack([A1, Ab])
+    b_ub1 = np.concatenate([d, np.zeros(n)])
+    bounds1 = [(0.0, float(b)) for b in border] + [(0.0, None)]
+    cost1 = np.concatenate([np.zeros(n), [-1.0]])
+    res = linprog(cost1, A_ub=A_ub1, b_ub=b_ub1, bounds=bounds1, method="highs")
+    if res.status != 0:
+        return None
+    t = float(res.x[n])
+    floor = 0.98 * t
+    # LP2: maximise sum(r) with floor <= r_i <= border_i
+    bounds2 = [(min(floor, float(b)), float(b)) for b in border]
+    res2 = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=bounds2, method="highs")
+    if res2.status != 0:
+        return None
+    return np.maximum(res2.x - 1e-10, 0.0)
+
+
+def _local_opt(c0):
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    r0 = _lp_radii(c0)
+    z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+    r0 = _lp_radii(c0)
+    try:
+        r0m = _maximin_floor_radii(c0)
+        if r0m is not None and np.sum(r0m) > 0 and _valid_packing(c0, r0m):
+            r0 = r0m
+    except Exception:
+        pass
+    z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+>>>>>>> REPLACE
+-----

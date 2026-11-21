@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _solve_once(n, rng, x0=None, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _jump(c, r, rng):
+=======
+def _jump(c, r, rng, maxiter):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return _solve_once(len(r), rng, np.concatenate([c.ravel(), r]))
+=======
+    return _solve_once(len(r), rng, np.concatenate([c.ravel(), r]), maxiter)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit:
+            c, r = _jump(best[0], best[1], rng)   # basin-hopping jump from the best packing
+        else:
+            c, r = _solve_once(n, rng)            # random restart
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:
+        frac = (time.process_time() - t0) / budget
+        maxiter = 50 if frac < 0.2 else (400 if frac > 0.8 else MAX_ITER)
+        if best is not None and time.process_time() - t0 > 0.5 * budget:
+            c, r = _jump(best[0], best[1], rng, maxiter)   # basin-hopping jump from the best packing
+        else:
+            c, r = _solve_once(n, rng, maxiter=maxiter)    # random restart
+>>>>>>> REPLACE
+-----

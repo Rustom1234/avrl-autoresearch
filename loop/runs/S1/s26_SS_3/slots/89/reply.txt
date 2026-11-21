@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+        k = rng.choice(np.argsort(r)[:4])
+        keep = np.arange(n) != k
+        cc = c[keep]
+        rr = r[keep]
+        P = rng.random((3000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:10]
+        p = P[rng.choice(top)]
+        c0 = np.vstack([cc, p[None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, [0.03]])
+=======
+        ctr = rng.random(2)
+        inside = np.sqrt(((c - ctr) ** 2).sum(1)) < 0.2
+        kk = int(inside.sum())
+        if kk == 0:
+            continue
+        cc = c[~inside]
+        rr = r[~inside]
+        mr = r[inside].mean()
+        pts = []
+        dmin = 1.2 * mr
+        for _ in range(400):
+            if len(pts) >= kk:
+                break
+            a = rng.random() * 2 * np.pi
+            d = 0.2 * np.sqrt(rng.random())
+            q = ctr + d * np.array([np.cos(a), np.sin(a)])
+            if q.min() < 0.02 or q.max() > 0.98:
+                continue
+            if all(np.hypot(*(q - p0)) >= dmin for p0 in pts):
+                pts.append(q)
+        while len(pts) < kk:
+            pts.append(np.clip(ctr + rng.normal(0, 0.08, 2), 0.02, 0.98))
+        pts = np.array(pts)
+        c0 = np.vstack([cc, pts])
+        c0 = np.clip(c0 + rng.normal(0, 0.005, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, np.full(kk, mr * 0.8)])
+>>>>>>> REPLACE
+-----

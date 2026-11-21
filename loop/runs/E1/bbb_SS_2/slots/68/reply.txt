@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def knn_predict(train_smiles, y, test_smiles, k=25):
+=======
+def morgan_counts(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+    return np.log1p(np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float64))
+
+
+def knn_predict(train_smiles, y, test_smiles, k=25):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = len(p_rf)
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn)) / (3 * n)
+=======
+    lr = LogisticRegression(C=0.05, solver="liblinear", penalty="l2")
+    lr.fit(morgan_counts(train_smiles), y)
+    p_lr = lr.predict_proba(morgan_counts(test_smiles))[:, 1]
+    n = len(p_rf)
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn) + rankdata(p_lr)) / (4 * n)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.neural_network import MLPClassifier
+=======
+from sklearn.neural_network import MLPClassifier
+from sklearn.linear_model import LogisticRegression
+>>>>>>> REPLACE
+-----

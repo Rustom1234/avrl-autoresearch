@@ -1,0 +1,18 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problems. The diff changes only two hyperparameters: DEPTH goes from 8 to 6 and ASPECT_RATIO from 64 to 85. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing.",
+  "Possible bug: 6*85 = 510 is not a multiple of HEAD_DIM = 128. If train.py rounds model_dim up to a multiple of head_dim, as the upstream autoresearch code does, the width becomes 512. That is the same width as the incumbent (8*64), so the change is really just removing 2 layers, and the ASPECT_RATIO edit is cosmetic. If train.py does not round, the head-count calculation would fail or truncate. The runs finished with plausible numbers, so it most likely rounds. Either way the result is still meaningful.",
+  "Can't check z = 3.855. The candidate mean is 1.06315, which is 0.02585 better than the incumbent's 1.0890. With only 1 incumbent run, the harness must be using an assumed noise level of about 0.0067 to get 3.855; that is not given here. Using only the spread of the 2 candidate runs gives SD of about 0.00445, SE of about 0.00315 and z of about 8.2. Both values are well past any normal acceptance threshold, so the decision to accept holds.",
+  "Note: the two candidate runs differ by 0.0063, which is a lot of run-to-run noise. Still, both are more than 0.022 better than the incumbent. The gain makes sense: a shallower model runs more optimizer steps within the fixed 300 s.",
+  "Simplicity: this is a pure hyperparameter change that adds no code, so it is fine under the simplicity rule."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.06315,
+  "delta": 0.02585,
+  "z_candidate_spread_only": 8.21,
+  "implied_sigma_for_reported_z": 0.0067
+ }
+}

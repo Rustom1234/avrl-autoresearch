@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+=======
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            # Ramp momentum 0.95 -> 0.97 during warmdown (last 50% of training)
+            warmdown_frac = (1.0 - progress) / WARMDOWN_RATIO
+            base_momentum = get_muon_momentum(step)
+            target_momentum = 0.95 + (0.97 - 0.95) * max(0, 1 - warmdown_frac)
+            group["momentum"] = max(0.8, min(0.97, target_momentum))  # clamp to valid range
+            group["weight_decay"] = muon_weight_decay
+>>>>>>> REPLACE bold=
+-----
+<<<<<<< SEARCH
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+=======
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            # Ramp momentum 0.95 -> 0.97 during warmdown (last 50% of training)
+            warmdown_frac = (1.0 - progress) / WARMDOWN_RATIO
+            base_momentum = get_muon_momentum(step)
+            # Linearly interpolate from 0.95 at start of warmdown to 0.97 at end
+            target_momentum = 0.95 + (0.97 - 0.95) * max(0, 1 - warmdown_frac)
+            group["momentum"] = min(0.97, max(0.85, target_momentum))  # clamp to valid range
+            group["weight_decay"] = muon_weight_decay
+>>>>>>> REPLACE
+-----

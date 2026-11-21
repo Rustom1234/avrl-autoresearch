@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from catboost import CatBoostRegressor
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+=======
+    X_tr = featurize(train_smiles)
+    resid = y - A_tr @ coef
+    scaf = np.array([MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles])
+    uniq = np.unique(scaf)
+    np.random.RandomState(seed).shuffle(uniq)
+    val_scafs, n_val = [], 0
+    for u in uniq:
+        if n_val >= 0.2 * len(y):
+            break
+        val_scafs.append(u)
+        n_val += np.sum(scaf == u)
+    is_val = np.isin(scaf, val_scafs)
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=3000,
+                              od_type='Iter', early_stopping_rounds=100,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(X_tr[~is_val], resid[~is_val], eval_set=(X_tr[is_val], resid[is_val]))
+>>>>>>> REPLACE
+-----

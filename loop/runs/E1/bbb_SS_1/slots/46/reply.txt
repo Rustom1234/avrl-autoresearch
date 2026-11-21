@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    # Kernel ridge on combined MinMax-Tanimoto (Morgan counts) + descriptor RBF kernel
+    from sklearn.kernel_ridge import KernelRidge
+    from sklearn.metrics.pairwise import rbf_kernel
+
+    def minmax(P, Q):
+        inter = sum((P[:, nd:] >= t).astype(np.float32) @ (Q[:, nd:] >= t).astype(np.float32).T for t in range(1, 6))
+        sp = np.minimum(P[:, nd:], 5).sum(1)
+        sq = np.minimum(Q[:, nd:], 5).sum(1)
+        return inter / np.maximum(sp[:, None] + sq[None, :] - inter, 1e-9)
+
+    g = 1.0 / nd
+    Ktr = 0.5 * minmax(X, X) + 0.5 * rbf_kernel(Dq, Dq, gamma=g)
+    Kte = 0.5 * minmax(Xt, X) + 0.5 * rbf_kernel(Dtq, Dq, gamma=g)
+    kr = KernelRidge(alpha=1.0, kernel="precomputed")
+    kr.fit(Ktr, 2.0 * y - 1.0)
+    preds.append(rankdata(kr.predict(Kte)) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

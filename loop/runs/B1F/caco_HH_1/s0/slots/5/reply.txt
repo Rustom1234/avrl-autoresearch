@@ -1,0 +1,12 @@
+<<<<<<< SEARCH
+    stage2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400, **params)
+    stage2.fit(Xtr, y - base_tr, xgb_model=stage1.get_booster())
+    return base_te + stage2.predict(Xte)
+=======
+    stage2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=600, **params)
+    stage2.fit(Xtr, y - base_tr, xgb_model=stage1.get_booster())
+    # Snapshots at stage-2 rounds 300/400/500/600; the booster also holds the 200 stage-1 trees, so offset by 200
+    snaps = [stage2.predict(Xte, iteration_range=(0, 200 + k)) for k in (300, 400, 500, 600)]
+    return base_te + np.mean(snaps, axis=0)
+>>>>>>> REPLACE
+-----

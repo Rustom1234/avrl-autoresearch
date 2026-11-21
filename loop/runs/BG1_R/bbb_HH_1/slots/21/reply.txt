@@ -1,0 +1,72 @@
+<<<<<<< SEARCH
+import numpy as np
+=======
+import zlib
+
+import numpy as np
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+N_WL_BINS = 1024
+N_WL_ROUNDS = 3
+_CRIPPEN_EDGES = [-0.4, -0.1, 0.1, 0.4]  # 5 contribution levels
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def descriptors(mol):
+=======
+def _h(obj):
+    return zlib.crc32(repr(obj).encode())
+
+
+def wl_counts(mol):
+    contribs = rdMolDescriptors._CalcCrippenContribs(mol)
+    labels = []
+    for atom in mol.GetAtoms():
+        crip_bin = int(np.digitize(contribs[atom.GetIdx()][0], _CRIPPEN_EDGES))
+        labels.append(_h((atom.GetSymbol(), atom.GetDegree(), atom.GetFormalCharge(),
+                          atom.GetIsAromatic(), crip_bin)))
+    all_labels = list(labels)
+    for _ in range(N_WL_ROUNDS):
+        labels = [_h((labels[a.GetIdx()], sorted(labels[n.GetIdx()] for n in a.GetNeighbors())))
+                  for a in mol.GetAtoms()]
+        all_labels.extend(labels)
+    counts = np.zeros(N_WL_BINS, dtype=np.float32)
+    for lab in all_labels:
+        counts[lab % N_WL_BINS] += 1
+    return counts
+
+
+def descriptors(mol):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+=======
+    rows = []
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([gen.GetFingerprintAsNumPy(mol), np.array(descriptors(mol), dtype=np.float32)]))
+=======
+        rows.append(np.concatenate([wl_counts(mol), np.array(descriptors(mol), dtype=np.float32)]))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import zlib
+
+import numpy as np
+=======
+import numpy as np
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _h(obj):
+    return zlib.crc32(repr(obj).encode())
+=======
+def _h(obj):
+    h = 2166136261
+    for b in repr(obj).encode():
+        h = ((h ^ b) * 16777619) & 0xFFFFFFFF
+    return h
+>>>>>>> REPLACE
+-----

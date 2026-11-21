@@ -1,0 +1,105 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+ Egg
+=======
+def _repair(c, r):
+    """Move centers and shrink radii to resolve overlaps using a gradient-based push."""
+    n = len(r)
+    c = c.copy()
+    r = r.copy()
+    # Ensure initial bounds
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(200):
+        d_vec = c[:, None, :] - c[None, :, :]
+        d_mag = np.linalg.norm(d_vec, axis=2)
+        np.fill_diagonal(d_mag, 1.0)
+        
+        over = (r[:, None] + r[None, :]) - d_mag
+        if np.max(over) <= 0:
+            break
+            
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        
+        # Gradient: move centers away, shrink radii
+        dist = d_mag[i, j]
+        if dist < 1e-9:
+            # Circles are on top of each other, push in random direction
+            direction = np.array([1.0, 1.0]) 
+        else:
+            direction = d_vec[i, j] / dist
+            
+        push = over[i, j] * 0.5
+        c[i] += direction * push
+        c[j] -= direction * push
+        r[i] -= push * 0.5
+        r[j] -= push * 0.5
+        r = np.clip(r, 0, 1)
+        
+    # Final safety shrink
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Move centers and shrink radii to resolve overlaps using a gradient-based push."""
+    n = len(r)
+    c = c.copy()
+    r = r.copy()
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(100):
+        d_vec = c[:, None, :] - c[None, :, :]
+        d_mag = np.linalg.norm(d_vec, axis=2)
+        np.fill_diagonal(d_mag, 1e9)
+        over = (r[:, None] + r[None, :]) - d_mag
+        max_over = np.max(over)
+        if max_over <= 0:
+            break
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        dist = d_mag[i, j]
+        if dist < 1e-9:
+            direction = np.array([1.0, 0.0])
+        else:
+            direction = d_vec[i, j] / dist
+        push = max_over * 0.5
+        c[i] += direction * push
+        c[j] -= direction * push
+        r[i] -= push * 0.5
+        r[j] -= push * 0.5
+        r = np.clip(r, 0, 1)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----

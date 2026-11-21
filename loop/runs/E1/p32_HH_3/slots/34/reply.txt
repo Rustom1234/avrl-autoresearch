@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def _relocate(c, r, rng, trials=30):
+=======
+def _lattice_x0(n, rng):
+    """Jittered square or hexagonal lattice start (orientation near 0 or 30 degrees), as a full x0 vector."""
+    theta = rng.choice([0.0, np.pi / 6]) + rng.normal(0, 0.05)
+    s = rng.uniform(0.9, 1.3) / np.sqrt(n)
+    a = s * np.array([np.cos(theta), np.sin(theta)])
+    b = s * np.array([np.cos(theta + np.pi / 3), np.sin(theta + np.pi / 3)])
+    ij = np.array([(i, j) for i in range(-n, n + 1) for j in range(-n, n + 1)])
+    pts = rng.uniform(0, 1, 2) + ij[:, :1] * a + ij[:, 1:] * b
+    pts = pts[((pts >= 0) & (pts <= 1)).all(1)]
+    rng.shuffle(pts)
+    pts = np.vstack([pts[:n], rng.uniform(0, 1, (max(n - len(pts), 0), 2))])
+    pts = np.clip(pts + rng.uniform(-0.03, 0.03, pts.shape), 0.05, 0.95)
+    return np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+
+
+def _relocate(c, r, rng, trials=30):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = _solve_once(n, rng)
+=======
+    c, r = _solve_once(n, rng, _lattice_x0(n, rng) if rng.random() < 0.5 else None)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+def _optimize(centers0, radii0):
+=======
+def _optimize(centers0, radii0, bonus=False):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def obj(z):
+        return -np.sum(z[2 * n:])
+
+    def obj_grad(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        return g
+=======
+    def obj(z):
+        v = -np.sum(z[2 * n:])
+        if bonus:
+            x, y, r = unpack(z)
+            gp = np.hypot(x[iu] - x[ju], y[iu] - y[ju]) - (r[iu] + r[ju])
+            msk = gp < 0.02
+            v += 0.001 * np.sum(gp[msk] ** 2)
+        return v
+
+    def obj_grad(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        if bonus:
+            x, y, r = unpack(z)
+            ddx = x[iu] - x[ju]
+            ddy = y[iu] - y[ju]
+            dd = np.hypot(ddx, ddy) + 1e-12
+            gp = dd - (r[iu] + r[ju])
+            w = np.where(gp < 0.02, 0.002 * gp, 0.0)
+            np.add.at(g, iu, w * ddx / dd)
+            np.add.at(g, ju, -w * ddx / dd)
+            np.add.at(g, n + iu, w * ddy / dd)
+            np.add.at(g, n + ju, -w * ddy / dd)
+            np.add.at(g, 2 * n + iu, -w)
+            np.add.at(g, 2 * n + ju, -w)
+        return g
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+=======
+    if best_c is not None:
+        try:
+            cb, rb = _optimize(best_c, best_r, bonus=True)
+            c2, r2 = _optimize(cb, rb)
+            r2 = _repair(c2, r2)
+            s2 = float(np.sum(r2))
+            if s2 > best_sum:
+                best_sum, best_c, best_r = s2, c2, r2
+        except Exception:
+            pass
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+>>>>>>> REPLACE
+-----

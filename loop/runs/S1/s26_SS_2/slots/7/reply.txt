@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+    bv = None
+=======
+    bv = None
+    pool = []
+
+    def add_pool(s, v):
+        for q in pool:
+            if abs(q[0] - s) <= 1e-5:
+                if s > q[0]:
+                    q[0] = s; q[1] = v.copy()
+                return
+        pool.append([s, v.copy()])
+        pool.sort(key=lambda q: -q[0])
+        del pool[8:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > bs:
+            bs = s; best = (c, r); bv = v.copy()
+=======
+        add_pool(s, v)
+        if s > bs:
+            bs = s; best = (c, r); bv = v.copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.time() - t0 < 200:
+=======
+    while time.time() - t0 < 160:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > bs:
+            bs = s; best = (c, r)
+    return best
+=======
+        add_pool(s, w)
+        if s > bs:
+            bs = s; best = (c, r)
+    for sv, v in list(pool):
+        if time.time() - t0 > 235:
+            break
+        try:
+            v = minimize(lambda z: -z[2 * n:].sum(), v, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                         method="SLSQP", bounds=bounds,
+                         constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                         options={"maxiter": 1000, "ftol": 1e-15}).x
+        except Exception:
+            pass
+        c, r = finalize(v)
+        if r.sum() > bs:
+            bs = r.sum(); best = (c, r)
+        try:
+            u = v.copy()
+            for _ in range(3):
+                g = cons(u)
+                act = g < 1e-7
+                Ja = cjac(u)[act]
+                step = np.linalg.lstsq(Ja, -g[act], rcond=None)[0]
+                u = u + step
+            c, r = finalize(u)
+            if np.all(np.isfinite(r)) and r.sum() > bs:
+                bs = r.sum(); best = (c, r)
+        except Exception:
+            pass
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def objective(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Boundary penalties
+        p_bound = np.sum(np.maximum(0, r - c[:, 0]), axis=1) + 
+                    np.sum(np.maximum(0, r - (1 - c[:, 1])), axis=1) + 
+                    np.sum(np.maximum(0, r - (1 - c[:, 0])), axis=1) + 
+                    np.sum(np.maximum(0, r - c[:, 1]), axis=1)
+        # Overlap penalties
+        dist = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        p_over = np.sum(np.maximum(0, (r[iu[0]] + r[iu[1]]) - dist))
+        # Total objective: -sum(r) + large_penalty * (p_bound + p_over)
+        return -np.sum(r) + 1e6 * (np.sum(p_bound) + np.sum(p_over))
+
+    res = minimize(objective, x0, method="L-BFGS-B", options={"maxiter": MAX_ITER * 2})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

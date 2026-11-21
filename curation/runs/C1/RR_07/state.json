@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/RR_07/cand/s02_0.py",
+ "inc_scores": {
+  "11": 1.8363418769420188,
+  "12": 1.8258361485447356
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Calculate the token counts of all documents in the pool using tiktoken. Estimate the relevance of each document by checking for commonality with the target_sample's vocabulary (using a simple word overlap or shared substrings), and select documents that have a high overlap with the target_sample vocabulary first.",
+   "outcome": "dev 1.9122 against 1.9638 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Add a word-order-aware score so that word-shuffled wiki articles (e.g. the pool's '= Ross Youngs =\\n1927 player 10 April professional ...' documents) stop passing the bag-of-words filter. Implementation: (1) Tokenise on whitespace, lowercased, keeping punctuation tokens such as ',', '.', '@-@'. (2) Build the set of adjacent-token bigrams from the 200 target_sample documents. (3) For each pool document compute bigram_hit = (number of its adjacent bigrams found in the target bigram set) / (number of bigrams + 20). (4) Calibrate a threshold without labels: make a word-shuffled copy of each target document (shuffle the tokens after the title line, seeded from CURATE_SEED) and compute bigram_hit for both real and shuffled target documents, scoring each one with a leave-one-out bigram set (or a bigram set built from the other half of the sample). Set the threshold at the midpoint between the 5th percentile of the real target scores and the 95th percentile of the shuffled target scores. (5) Mark pool documents below the threshold as unusable. Also mark as unusable any document where more than 3% of adjacent tokens are punctuation pairs such as ', ,', '. ,' or ', .'. (6) Rank the remaining documents by final = existing IDF overlap score * bigram_hit. Keep the existing exact-duplicate removal, the fill to T tokens and the seeded shuffle. If the usable documents hold fewer than T tokens, return only them and let the trainer cycle the list rather than topping up with shuffled or junk documents.",
+   "outcome": "dev 1.8363 against 1.9122 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 3,
+   "idea": "In `_overlap_scores`, replace the current IDF weighting with a term frequency-inverse document frequency (TF-IDF) logic that specifically boosts words that appear in a high percentage of the target_sample (e.g., the top 50% most frequent target words) while penalizing words that appear in many pool documents but few target documents.",
+   "outcome": "dev 1.8271 against 1.8363 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the ranking score (IDF overlap * bigram_hit) with a label-free positive-vs-pool classifier, and keep every existing filter unchanged (bigram_hit threshold, punctuation-pair filter, exact-duplicate removal, fill to T, seeded shuffle).\n\nImplementation:\n1. Positives: split each of the 200 target_sample documents into chunks of about 300 whitespace tokens (cap at about 4000 chunks, sampled with CURATE_SEED).\n2. Negatives: a seeded random sample of 6000 pool documents, each truncated to its first 300 whitespace tokens. The pool is treated as unlabeled negatives.\n3. Features: HashingVectorizer(analyzer='word', token_pattern=r'\\S+', lowercase=False, ngram_range=(1,2), n_features=2**18, alternate_sign=False, norm='l2', binary=True), so wikitext markers such as '@-@', ' , ', '= =' and case are preserved.\n4. Model: LogisticRegression(C=1.0, class_weight='balanced', solver='liblinear', max_iter=200).\n5. Scoring: for each pool document, take the mean decision_function over up to 3 evenly spaced 300-token windows (start, middle, end), so partly damaged documents score lower.\n6. Ranking: sort usable documents by this classifier score, descending, in place of `final`. Fill to T and shuffle as before.\n\nIf the classifier raises an error or would exceed the time budget, fall back to the current `final` score.",
+   "outcome": "dev 1.8316 against 1.8363 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the current 'final' ranking score (IDF overlap * bigram_hit) with a 'Local Contextual Overlap' score. This score calculates the ratio of adjacent bigrams in a pool document that are also present in the target_sample (using the same bigram_set construction as the current bigram_hit calculation), but instead of a threshold, it uses this shared bigram frequency as the primary ranking metric, weighted by the document's IDF-weighted vocabulary overlap.",
+   "outcome": "dev 1.8355 against 1.8363 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Improve the overlap score by switching from a global vocabulary mask to a more localized 'Target Context' score: for each document, calculate the fraction of its tokens that are in the target vocabulary, but weight those tokens by their frequency within the target_sample specifically (effectively a local TF-IDF where the 'corpus' is the target_sample).",
+   "outcome": "dev 1.8301 against 1.8363 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Implement a 'Structure Similarity' score based on the distribution of punctuation and special symbols. Calculate the density of wikitext-specific markers (e.g., '@-@', '=', '(', ')') and common sentence-ending punctuation in both the target_sample and pool documents. Rank documents by the cosine similarity between their punctuation-density profiles and the average profile of the target_sample.",
+   "outcome": "dev 1.8257 against 1.8363 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Replace the current 'final' ranking score with a 'Weighted Token-Level Similarity' score. For each pool document, calculate the score as the sum of the log-probabilities of its tokens given a simple Kneser-Ney or basic Laplacian smoothed multi-nomial distribution built from the target_sample. If a token is not in the target vocabulary, assign it a small constant negative weight. This treats the target_sample as a 'language model' and ranks pool documents by how 'likely' they are to be generated by that language, capturing local context better than bigram hits alone.",
+   "outcome": "dev 1.8299 against 1.8363 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Add a hard, label-free 'wikitext format' gate and stop topping up with off-domain text; cycle the pure set instead. Keep all existing filters and the existing `final` ranking.\n\n1. Format feature per document: with toks = text.split(), spaced_punct = (number of tokens that are exactly ',', '.', '@-@', '@,@', '@.@', '(', ')', ';', ':', '\"' or \"'s\") / len(toks). Also glued_punct = (number of tokens of length > 1 that end with ',' or '.') / len(toks). Wikitext target articles have high spaced_punct and near-zero glued_punct; web, news and StackExchange text is the reverse.\n\n2. Calibrate from target_sample only: lo = 0.6 * (5th percentile of spaced_punct over the target documents), hi = max(0.02, 2.0 * (95th percentile of glued_punct over the target documents)). format_ok = spaced_punct >= lo and glued_punct <= hi.\n\n3. Partial-damage check: compute bigram_hit also on consecutive windows of 200 whitespace tokens (windows shorter than 100 tokens are ignored) and require the minimum window bigram_hit (same +20 shrink) to be >= 0.8 * the existing calibrated threshold, so articles that are only partly word-shuffled are dropped.\n\n4. Title dedupe: for documents whose first line matches '= ... =', group by the lowercased first line and keep only the document with the highest whole-document bigram_hit (ties: the longest). This removes near-duplicates and damaged copies of the same article.\n\n5. usable = existing usable & format_ok & window_ok & title_unique. Rank usable documents by the existing `final`, fill up to T tokens, seeded shuffle. If the usable set holds fewer than T tokens, return only it and let the trainer cycle it; do NOT add documents that fail the gate. Safety fallback only: if the gated set holds fewer than 0.25*T tokens, drop the format gate (step 2) and use the previous behaviour.\n\n6. Print or log the token total of the gated set as a fraction of T, so the next experiment knows whether the list is being cycled.",
+   "outcome": "dev 1.8373 against 1.8363 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Implement a 'Coherence Check' based on the diversity of the target vocabulary. Calculate the 'Entropy of Vocabulary Overlap': for each pool document, identify the subset of tokens that also appear in the target_sample. Instead of just counting them (current overlap), calculate the Shannon entropy of the relative frequencies of these shared tokens. Documents whose shared tokens follow a distribution similar to the target_sample's token distribution (measured via KL-divergence or a simple mean-square error of top-K frequencies) are ranked higher, as this identifies documents that match not just the 'words' but the 'proportions' of the target domain.",
+   "outcome": "dev 1.8424 against 1.8363 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Replace the single ranking score with a rank ensemble of the three scores that each measured slightly below the current best on their own (experiments 4, 7 and the current `final`), and add title dedupe. Keep every existing filter unchanged (bigram_hit threshold, punctuation-pair filter, exact-duplicate removal, fill to T, seeded shuffle, cycling if the usable set is under T).\n\n1. Score A: the current `final` = IDF overlap * bigram_hit.\n\n2. Score B (classifier from experiment 4): positives are the target_sample documents split into chunks of about 300 whitespace tokens. Negatives are a random sample of 6000 pool documents (seeded from CURATE_SEED), each truncated to its first 300 whitespace tokens. Features: HashingVectorizer(analyzer='word', token_pattern=r'\\S+', lowercase=False, ngram_range=(1,2), n_features=2**18, alternate_sign=False, norm='l2', binary=True). Model: LogisticRegression(C=1.0, class_weight='balanced', solver='liblinear', max_iter=200). For each pool document, B is the mean decision_function over up to 3 evenly spaced 300-token windows (start, middle, end).\n\n3. Score C (punctuation profile from experiment 7): for each document, build the vector of per-token densities of the whitespace tokens ',', '.', '@-@', '@,@', '@.@', '(', ')', ';', ':', '\"', \"'s\", '=', plus one more density for tokens longer than 1 character that end in ',' or '.'. C is the cosine similarity to the mean vector of the target_sample.\n\n4. Convert A, B and C to fractional ranks in [0,1] over all pool documents (1 = best). ensemble = 0.4*rank(B) + 0.3*rank(A) + 0.3*rank(C). Sort usable documents by ensemble, descending, in place of `final`.\n\n5. Title dedupe: among usable documents whose first line matches '= ... =', group by the lowercased, stripped first line and keep only the document with the highest bigram_hit (ties: the longest). Mark the others unusable before the fill.\n\n6. If the classifier raises an error or the elapsed time exceeds about 120 seconds, use ensemble = 0.5*rank(A) + 0.5*rank(C). Print the token total of the usable set as a fraction of T.",
+   "outcome": "dev 1.8330 against 1.8363 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Implement a 'Temporal Coherence' score by calculating the average skip-gram probability (using a simple backoff/smoothing) for the target sample. For each pool document, score it based on how many of its adjacent bigrams exist in the target sample, but weight each bigram by its 'uniqueness' in the target sample (inverse frequency). Combine this with a 'sentence-length-distribution' filter: calculate the standard deviation of sentence lengths in the target sample and penalize pool documents whose sentence length variance deviates significantly (e.g., by more than 2 standard deviations) from the target distribution.",
+   "outcome": "dev 1.8983 against 1.8363 for the best at the time, rejected"
+  }
+ ],
+ "usd": 2.5257764000000007,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.1591303,
+   "dev": 1.9121935841717153,
+   "inc": 1.9637658011491717,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 7.097745248755354,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.36715559999999997,
+   "dev": 1.8363418769420188,
+   "inc": 1.9121935841717153,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.537011313948923,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.3052330000000001,
+   "dev": 1.8270734710998373,
+   "inc": 1.8363418769420188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.537011313948923,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5230675999999999,
+   "dev": 1.8315537996476683,
+   "inc": 1.8363418769420188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.537011313948923,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002943300000000093,
+   "dev": 1.8355349242318808,
+   "inc": 1.8363418769420188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.537011313948923,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.2650888,
+   "dev": 1.830075654150235,
+   "inc": 1.8363418769420188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.537011313948923,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002776350000000205,
+   "dev": 1.825723399405482,
+   "inc": 1.8363418769420188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.537011313948923,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002592600000000056,
+   "dev": 1.8299365771433804,
+   "inc": 1.8363418769420188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.537011313948923,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6705396000000001,
+   "dev": 1.8372825464626965,
+   "inc": 1.8363418769420188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.537011313948923,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.004844700000000035,
+   "dev": 1.8423521926492765,
+   "inc": 1.8363418769420188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.537011313948923,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.2195917500000002,
+   "dev": 1.8330077000362266,
+   "inc": 1.8363418769420188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.537011313948923,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0028128000000000597,
+   "dev": 1.8982954171293045,
+   "inc": 1.8363418769420188,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9637658011491717,
+ "inc_slot": 2
+}

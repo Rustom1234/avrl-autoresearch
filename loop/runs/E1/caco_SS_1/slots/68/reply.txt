@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    pi = [names.index(n) for n in ['MolLogP', 'TPSA', 'NumHDonors', 'NumHAcceptors', 'MolWt', 'NumRotatableBonds']]
+=======
+    pi = [names.index(n) for n in ['MolLogP', 'TPSA', 'NumHDonors', 'NumHAcceptors', 'MolWt', 'NumRotatableBonds',
+                                   'NumAromaticRings', 'FractionCSP3', 'HeavyAtomCount', 'RingCount']]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    ridge = Ridge(alpha=10.0).fit(sc.transform(Xtr[:, pi]), y)
+    rtr = ridge.predict(sc.transform(Xtr[:, pi]))
+    rte = ridge.predict(sc.transform(Xte[:, pi]))
+=======
+    from sklearn.model_selection import KFold
+    Ptr = sc.transform(Xtr[:, pi])
+    Pte = sc.transform(Xte[:, pi])
+    ridge = Ridge(alpha=30.0).fit(Ptr, y)
+    rtr = ridge.predict(Ptr)
+    rte = ridge.predict(Pte)
+    oof = np.zeros(len(y))
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(Ptr):
+        oof[b] = Ridge(alpha=30.0).fit(Ptr[a], y[a]).predict(Ptr[b])
+    Xtr = np.column_stack([Xtr, oof])
+    Xte = np.column_stack([Xte, rte])
+>>>>>>> REPLACE
+-----

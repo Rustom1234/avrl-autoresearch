@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, polish=False):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    opts = {"maxiter": 1000, "ftol": 1e-14} if polish else {"maxiter": MAX_ITER}
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options=opts)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    c, r = _solve_once(n, rng, np.concatenate([best[0].ravel(), best[1]]), polish=True)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

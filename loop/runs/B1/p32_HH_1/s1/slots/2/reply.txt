@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+MAX_ITER = 200
+=======
+MAX_ITER = 100
+POLISH_ITER = 500
+POLISH_SD = 1e-3
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+def _solve_once(n, rng, init=None, sd=0.03, maxiter=MAX_ITER):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, sd, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    end = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < 0.75 * end:   # cheap random restarts for the first 75% of the time
+        guided = best is not None and time.process_time() - t0 > 0.5 * end and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    while time.process_time() - t0 < end:   # polish the best basin to full convergence
+        c, r = _solve_once(n, rng, best[0], POLISH_SD, POLISH_ITER)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _cornertmpl(rng):
+    a = 0.13
+    pts = [[a, a], [1 - a, a], [a, 1 - a], [1 - a, 1 - a]]
+    e = 0.07
+    pts += [[0.5, e], [0.5, 1 - e], [e, 0.5], [1 - e, 0.5]]
+    ys = [0.25, 0.5, 0.75]
+    for k, y in enumerate(ys):
+        m = 6
+        for j in range(m):
+            x = (j + 0.5) / m + (0.04 if k % 2 else -0.0)
+            pts.append([x, y])
+    c = np.array(pts, float)
+    c = c[:_N] if len(c) >= _N else c
+    c = c[rng.permutation(len(c))[:_N]] if len(c) > _N else c
+    if rng.random() < 0.5:
+        c = c[:, ::-1].copy()
+    c = c + rng.normal(0, rng.uniform(0.01, 0.04), c.shape)
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            if u < 0.3:
+                c = _cornertmpl(rng)
+            else:
+                u = rng.random()
+                c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+>>>>>>> REPLACE
+-----

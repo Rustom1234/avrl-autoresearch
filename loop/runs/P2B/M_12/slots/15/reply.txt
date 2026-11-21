@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+model = torch.compile(model, dynamic=False)
+# EMA of weights (kept in float32 so small updates are not lost to bf16 rounding)
+EMA_DECAY = 0.999
+ema_params = [p.detach().float().clone() for p in model.parameters()]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.zero_grad(set_to_none=True)
+=======
+    model.zero_grad(set_to_none=True)
+    with torch.no_grad():
+        torch._foreach_lerp_(ema_params, [p.detach().float() for p in model.parameters()], 1 - EMA_DECAY)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Swap in EMA weights for final evaluation
+with torch.no_grad():
+    for p, e in zip(model.parameters(), ema_params):
+        p.copy_(e)
+# Final eval
+model.eval()
+>>>>>>> REPLACE
+-----

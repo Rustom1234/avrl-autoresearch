@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+=======
+def _repair(c, r):
+    """Optimal radii for fixed centres via LP; the greedy repair afterwards guarantees validity."""
+    n = len(r)
+    try:
+        iu = np.triu_indices(n, 1)
+        m = len(iu[0])
+        A = np.zeros((m, n))
+        A[np.arange(m), iu[0]] = 1
+        A[np.arange(m), iu[1]] = 1
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        wall = np.maximum(np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])), 0)
+        res = linprog(-np.ones(n), A_ub=A, b_ub=d - 1e-12, bounds=np.column_stack([np.zeros(n), wall]),
+                      method="highs", options={"primal_feasibility_tolerance": 1e-10})
+        if res.status == 0:
+            r = np.maximum(res.x - 1e-9, 0)
+    except Exception:
+        pass
+    return _greedy_repair(c, r)
+
+
+def _greedy_repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+-----

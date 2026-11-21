@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+            res = minimize(lambda z: -z[2 * n:].sum(), v, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                           method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                           options={"maxiter": 200, "ftol": 1e-12})
+            v = res.x
+        except Exception:
+            pass
+        c, r = finalize(v)
+        s = r.sum()
+        if s > bs:
+=======
+            for cap in (0.10, 0.13, 0.5):
+                bd = [(0, 1)] * (2 * n) + [(0, cap)] * n
+                v = v.copy()
+                v[2 * n:] = np.minimum(v[2 * n:], cap)
+                res = minimize(lambda z: -z[2 * n:].sum(), v, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                               method="SLSQP", bounds=bd,
+                               constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                               options={"maxiter": 80, "ftol": 1e-12})
+                v = res.x
+        except Exception:
+            pass
+        c, r = finalize(v)
+        s = r.sum()
+        if s > bs:
+>>>>>>> REPLACE
+-----

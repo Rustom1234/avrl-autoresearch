@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.metrics.pairwise import rbf_kernel
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def minmax_kernel(A, B):
+    sa, sb = A.sum(1), B.sum(1)
+    K = np.empty((len(A), len(B)), dtype=np.float64)
+    for i in range(len(A)):
+        mn = np.minimum(A[i], B).sum(1)
+        K[i] = mn / np.maximum(sa[i] + sb - mn, 1e-9)
+    return K
+
+
+def kernel_svc(X, y, Xt, seed):
+    nd = len(Descriptors.descList)
+    qt = QuantileTransformer(n_quantiles=min(500, len(X)), random_state=seed)
+    D = qt.fit_transform(X[:, :nd])
+    Dt = qt.transform(Xt[:, :nd])
+    g = 1.0 / nd
+    K = 0.5 * minmax_kernel(X[:, nd:], X[:, nd:]) + 0.5 * rbf_kernel(D, D, gamma=g)
+    Kt = 0.5 * minmax_kernel(Xt[:, nd:], X[:, nd:]) + 0.5 * rbf_kernel(Dt, D, gamma=g)
+    svc = SVC(kernel='precomputed', C=1.0)
+    svc.fit(K, y)
+    return svc.decision_function(Kt)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    preds.append(rankdata(kernel_svc(X, y, Xt, seed)) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

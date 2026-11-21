@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+    def bits(smiles):
+        return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+    btr, bte = bits(train_smiles), bits(test_smiles)
+    inter = bte @ btr.T
+    union = bte.sum(1)[:, None] + btr.sum(1)[None, :] - inter
+    s = (inter / np.maximum(union, 1.0)).max(axis=1)
+    g = np.clip((s - 0.2) / 0.3, 0.0, 1.0)
+    return base_te + g * stage2.predict(Xte)
+>>>>>>> REPLACE
+-----

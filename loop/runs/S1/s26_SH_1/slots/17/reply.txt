@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def _optimize(x0, y0, r0):
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+=======
+def _penalty_warm(x0, y0, r0):
+    # penalty stage: minimize -sum(r) + mu * sum(min(0, c)^2) with L-BFGS-B,
+    # increasing mu; the result warm-starts the SLSQP stages below
+    z = np.concatenate([x0, y0, r0])
+    bnds = [(None, None)] * (2 * _N) + [(0.0, None)] * _N
+    for mu in (1e1, 1e2, 1e3, 1e4, 1e5):
+        def fg(zz, mu=mu):
+            v = np.minimum(_cons_fun(zz), 0.0)
+            f = _obj(zz) + mu * np.dot(v, v)
+            g = _obj_grad(zz) + 2.0 * mu * (_cons_jac(zz).T @ v)
+            return f, g
+        try:
+            res = minimize(fg, z, jac=True, method="L-BFGS-B",
+                           bounds=bnds, options={"maxiter": 500})
+            if np.all(np.isfinite(res.x)):
+                z = res.x
+        except Exception:
+            pass
+    return z[:_N], z[_N:2 * _N], z[2 * _N:]
+
+
+def _optimize(x0, y0, r0):
+    x0, y0, r0 = _penalty_warm(x0, y0, r0)
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _relax(rng):
+    n = _N
+    r = rng.lognormal(0, 0.3, n)
+    r = r * 2.6 / r.sum()
+    c = rng.uniform(0.1, 0.9, (n, 2))
+    for t in range(30):
+        d = c[:, None, :] - c[None, :, :]
+        dist = np.sqrt((d ** 2).sum(2)) + np.eye(n)
+        ov = (r[:, None] + r[None, :]) - dist
+        np.fill_diagonal(ov, 0)
+        ov = np.maximum(ov, 0)
+        push = (ov / dist)[:, :, None] * d
+        c = c + 0.5 * push.sum(1)
+        c = np.clip(c, r[:, None], 1 - r[:, None])
+    c = c + rng.normal(0, 0.003, c.shape)
+    return np.clip(c, 0.02, 0.98)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            if u < 0.25:
+                c = _relax(rng)
+            elif u < 0.45:
+                c = _hexgrid(rng)
+            elif u < 0.75:
+                c = _hexinit(rng)
+            else:
+                c = _physics(rng)
+>>>>>>> REPLACE
+-----

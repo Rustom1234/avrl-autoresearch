@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+=======
+def _solve_once(n, rng, x0=None, w=None):
+    if w is None:
+        w = np.ones(n)
+    if x0 is None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+=======
+    res = minimize(lambda v: -np.dot(w, v[2 * n:]), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+=======
+    w = np.clip(1 + rng.normal(0, 0.2, n), 0.5, 1.5)
+    x = None
+    for wt in (w, (1 + w) / 2):
+        c, r = _solve_once(n, rng, x, wt)
+        x = np.concatenate([c.ravel(), r])
+    c, r = _solve_once(n, rng, x)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+>>>>>>> REPLACE
+-----

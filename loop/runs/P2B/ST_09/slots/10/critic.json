@@ -1,0 +1,15 @@
+{
+ "ok": false,
+ "issues": [
+  "The penalty is added inside GPT.forward, so it also runs during evaluation, not just training. The val_bpb evaluation calls model(x, y, reduction='none') and turns the returned per-token loss into bits per byte. With this change, every token's loss gets z_lambda * mean(logits^2) added to it. That changes what val_bpb measures, so it is no longer pure cross-entropy, and the integrity flag is justified.",
+  "Direction of the effect: the added term is always >= 0, so it can only push the reported bpb up. That points to a bug rather than gaming. Either way, the number from this run is not comparable with the incumbent and is meaningless as written.",
+  "Bug with reduction='none': sim_loss is a per-token vector but z_loss is a single scalar averaged over the whole batch. Adding them gives every token the same constant offset. The z_loss average also includes positions where targets == -1, which should be ignored.",
+  "Naming / method: mean(logits^2) is an L2 penalty on the logits, not the standard z-loss, which is mean(logsumexp(logits)^2). Logit softcapping may already limit the logits, so the expected gain is small.",
+  "Fix: apply the penalty only during training. Either guard it with `if self.training and reduction == 'mean'`, or add it in the training loop. Leave the loss returned to evaluation as plain cross_entropy.",
+  "No numbers were reported (the run was rejected), so z cannot be recomputed and there are no claims to check against numbers."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

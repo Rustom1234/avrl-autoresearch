@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _reinsert(c, r, rng):
+    """Move the smallest circle to the sampled point with the largest clearance to all other circles and walls."""
+    k = np.argmin(r)
+    others = np.delete(np.arange(len(r)), k)
+    p = rng.uniform(0, 1, (2000, 2))
+    d = np.sqrt(((p[:, None] - c[others][None]) ** 2).sum(-1))
+    clear = np.minimum((d - r[others]).min(1), np.minimum(p, 1 - p).min(1))
+    c, r = c.copy(), r.copy()
+    c[k], r[k] = p[np.argmax(clear)], max(clear.max(), 0)
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if cur is None:
+            c, r = _solve_once(n, rng)
+        else:
+=======
+        if cur is None:
+            c, r = _solve_once(n, rng)
+        elif rng.uniform() < 0.5:
+            c0, r0 = _reinsert(best[0], best[1], rng)
+            c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        else:
+>>>>>>> REPLACE
+-----

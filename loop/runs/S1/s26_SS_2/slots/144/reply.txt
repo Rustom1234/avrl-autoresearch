@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+    best = None
+    bs = -1
+=======
+    def cont(v0):
+        v1 = v0.copy()
+        for p in (0.6, 0.85):
+            def f(z, p=p):
+                return -np.sum(np.maximum(z[2 * n:], 1e-6) ** p)
+
+            def g(z, p=p):
+                gg = np.zeros(3 * n)
+                gg[2 * n:] = -p * np.maximum(z[2 * n:], 1e-6) ** (p - 1)
+                return gg
+            try:
+                res = minimize(f, v1, jac=g, method="SLSQP", bounds=bounds,
+                               constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                               options={"maxiter": 60, "ftol": 1e-10})
+                if np.all(np.isfinite(res.x)):
+                    v1 = res.x
+            except Exception:
+                pass
+        return v1
+
+    best = None
+    bs = -1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            res = minimize(lambda z: -z[2 * n:].sum(), v, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+=======
+            v = cont(v)
+            res = minimize(lambda z: -z[2 * n:].sum(), v, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            res = minimize(lambda z: -z[2 * n:].sum(), w, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+=======
+            if rng.random() < 0.4:
+                w = cont(w)
+            res = minimize(lambda z: -z[2 * n:].sum(), w, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+>>>>>>> REPLACE
+-----

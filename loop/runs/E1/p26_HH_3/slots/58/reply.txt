@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+=======
+    c, r = best
+    step = 0
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        step += 1
+        if step % 20 == 0:   # dual search: add a circle to the incumbent, solve n+1, drop the smallest, solve n
+            c2 = np.vstack([c, rng.uniform(0, 1, 2)])
+            r2 = np.append(r, 0.05)
+            c2, r2 = _optimise(n + 1, np.concatenate([c2.ravel(), r2]))
+            c2 = np.clip(c2, 0, 1)
+            r2 = _repair(c2, r2)
+            keep = np.arange(n + 1) != np.argmin(r2)
+            c2, r2 = _optimise(n, np.concatenate([c2[keep].ravel(), r2[keep]]))
+            c2 = np.clip(c2, 0, 1)
+            r2 = _repair(c2, r2)
+            if r2.sum() > r.sum():
+                c, r = c2, r2
+            continue
+        c2, r2 = c.copy(), r.copy()
+>>>>>>> REPLACE
+-----

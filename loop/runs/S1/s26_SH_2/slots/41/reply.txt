@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+    base = np.array([[0.13, 0.13], [0.87, 0.13], [0.13, 0.87], [0.87, 0.87],
+                     [0.5, 0.13], [0.5, 0.87], [0.13, 0.5], [0.87, 0.5]])
+    interior = []
+    for row, yy in enumerate([0.3, 0.5, 0.7]):
+        shift = 0.04 if row % 2 else 0.0
+        for xx in np.linspace(0.3, 0.7, 6) + shift:
+            interior.append([xx, yy])
+    pts = np.vstack([base, np.array(interior)])
+    pts = pts + rng.normal(0.0, 0.02, size=pts.shape)
+    pts = np.clip(pts, 0.05, 0.95)
+=======
+    ring_opts = [(12, 9, 5), (11, 10, 5), (12, 8, 6)]
+    c_outer, c_mid, c_in = ring_opts[seed % len(ring_opts)]
+
+    def _ring_pts(inset, cnt):
+        L = 1.0 - 2.0 * inset
+        per = 4.0 * L
+        out = []
+        for t in np.arange(cnt) / cnt * per:
+            side = int(t // L)
+            u = t - side * L
+            if side == 0:
+                out.append([inset + u, inset])
+            elif side == 1:
+                out.append([1.0 - inset, inset + u])
+            elif side == 2:
+                out.append([1.0 - inset - u, 1.0 - inset])
+            else:
+                out.append([inset, 1.0 - inset - u])
+        return out
+
+    outer = _ring_pts(0.09, c_outer)
+    mid = _ring_pts(0.27, c_mid)
+    inner = [[0.5, 0.5]]
+    for a in np.arange(c_in - 1) * 2 * np.pi / (c_in - 1):
+        inner.append([0.5 + 0.1 * np.cos(a), 0.5 + 0.1 * np.sin(a)])
+    pts = np.array(outer + mid + inner, dtype=float)
+    pts = pts + rng.normal(0.0, 0.015, size=pts.shape)
+    pts = np.clip(pts, 0.02, 0.98)
+>>>>>>> REPLACE
+-----

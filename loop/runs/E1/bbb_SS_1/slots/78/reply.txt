@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    # Random Fourier features of an RBF kernel on descriptors + Morgan-bit PCA, linear logistic model
+    from sklearn.decomposition import PCA
+    from sklearn.linear_model import LogisticRegression
+    rng = np.random.RandomState(seed)
+    W = rng.normal(0.0, np.sqrt(1.0 / nd), size=(nd, 2000))
+    b0 = rng.uniform(0, 2 * np.pi, 2000)
+    pca = PCA(n_components=min(256, len(A) - 1), whiten=True, random_state=seed)
+    Pa = pca.fit_transform(A)
+    Pb = pca.transform(B)
+    Fa = np.hstack([np.sqrt(2.0) * np.cos(Dq @ W + b0), Pa])
+    Fb = np.hstack([np.sqrt(2.0) * np.cos(Dtq @ W + b0), Pb])
+    lr = LogisticRegression(C=0.3, max_iter=2000)
+    lr.fit(Fa, y)
+    preds.append(rankdata(lr.predict_proba(Fb)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

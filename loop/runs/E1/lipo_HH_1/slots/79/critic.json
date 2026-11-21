@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The diff adds no file or network access and no hard-coded answers, and it does not use test labels. test_smiles are only featurized and predicted, as before.",
+  "No bug that would make the result meaningless. The candidate makes three changes: it cuts the random forest from 200 to 100 trees, swaps the single kernel ridge model for an average of 8 kernel ridge models that each use a random half of the fingerprint bits, and drops the out-of-fold stacking step. A plain average of the three base learners replaces the fitted Ridge meta-learner. Its randomness comes from the seed argument (seed + j). These changes make the model weaker but leave the evaluation valid.",
+  "Minor robustness point: on a random half of the bits, a sparse molecule could share no set bits with another, making the Tanimoto denominator 0. That would give NaN unless tanimoto() handles it. The run finished with a finite loss, so it did not affect this result.",
+  "Minor: lam and wr are still chosen with the full-bit kernel, then reused for the half-bit kernels, so they may not suit those kernels. This is a design weakness, not an integrity problem.",
+  "The numbers are consistent. The candidate scored 0.5176 against the incumbent's 0.4895, which is 0.0281 worse. With one run each and noise sd 0.0042, the sd of the difference is 0.0042*sqrt(2) \u2248 0.00594, so z \u2248 -4.73. The harness gave -4.744; the small gap is probably rounding in the adjusted values. Rejecting is correct."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -4.73
+ }
+}

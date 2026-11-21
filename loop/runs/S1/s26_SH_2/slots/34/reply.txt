@@ -1,0 +1,71 @@
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _pack_once(seed, cheap=False):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pts = _relax(pts, rng)
+=======
+    pts = _relax(pts, rng, steps=150 if cheap else 300)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for mu in (10.0, 1e2, 1e3, 1e4, 1e5):
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 300})
+=======
+        for mu in ((10.0, 1e3, 1e5) if cheap else (10.0, 1e2, 1e3, 1e4, 1e5)):
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 100 if cheap else 300})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                       options={"maxiter": 500, "ftol": 1e-12})
+=======
+                       options={"maxiter": 80 if cheap else 500, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def construct_packing():
+    """Multi-start mirror-symmetric init + SLSQP; returns best (centers, radii)."""
+    t0 = time.time()
+    best = None
+    best_sum = -1.0
+    for seed in range(10000):
+        if seed > 0 and time.time() - t0 > 200.0:
+            break
+        c, r = _pack_once(seed)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum = s
+            best = (c, r)
+    return best
+=======
+def construct_packing():
+    """Cheap screening of many starts, then full SLSQP refinement of the top 8 distinct ones."""
+    t0 = time.time()
+    scored = []
+    seed = 0
+    while time.time() - t0 < 100.0 and seed < 150:
+        c, r = _pack_once(seed, cheap=True)
+        scored.append((float(np.sum(r)), seed))
+        seed += 1
+    scored.sort(reverse=True)
+    picked = []
+    for s, sd in scored:
+        if all(abs(s - ps) > 1e-6 for ps, _ in picked):
+            picked.append((s, sd))
+        if len(picked) == 8:
+            break
+    best = None
+    best_sum = -1.0
+    for _, sd in picked:
+        if best is not None and time.time() - t0 > 200.0:
+            break
+        c, r = _pack_once(sd)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum = s
+            best = (c, r)
+    if best is None:
+        best = _pack_once(0)
+    return best
+>>>>>>> REPLACE
+-----

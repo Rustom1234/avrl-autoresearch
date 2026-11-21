@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity breach. The candidate adds an EMA (exponential moving average) of the weights and copies it into the model before the final eval. The evaluation call, data, seed lines and summary printing are untouched. Evaluating EMA weights is a normal training method, not a change to how val_bpb is measured, so there is no veto.",
+  "Not a bug that makes the result meaningless, but a poor design. The EMA (decay 0.999, about a 1000-step window) starts from the weights at step 1 with no bias correction. In a 300 s run with relatively few steps, the averaged weights stay heavily weighted toward early, poorly trained weights. The averaging also undoes the LR warmdown, whose late, annealed weights would score best. This likely explains the large loss (1.5066 vs 1.0659).",
+  "The per-parameter Python loop with mul_/add_ on every step adds optimizer overhead and costs training steps within the fixed time budget. A foreach version (torch._foreach_lerp_) or applying the EMA only during warmdown would be cheaper.",
+  "The EMA list is attached as an attribute set lazily with hasattr inside the training loop. This works but is ugly. If the loop ran zero steps, model.ema_params would not exist and the final eval would crash. That is a minor risk.",
+  "Whether the numbers hold up: the candidate is worse by 0.4407 bpb. The reported z = -65.739 implies an incumbent std of about 0.0067. That fits a 2-run incumbent, though such a std estimate is noisy. Rejecting is clearly correct whatever the exact z.",
+  "z cannot be recomputed exactly because the incumbent's individual runs and std are not given. Only the implied std above can be checked."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/SS_04/cand/s09_0.py",
+ "inc_scores": {
+  "11": 1.8481678999273035
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random shuffle with a target-similarity filter. (1) Exact-dedupe docs by hash of whitespace-normalised text (also drop near-duplicates sharing the same first 200 chars). (2) Drop junk: docs shorter than 200 chars, docs with <70% alphabetic/space chars, or with low distinct-word ratio / high repeated-template content (e.g. gzip compression ratio len(zlib.compress)/len < 0.2). (3) Fit a TfidfVectorizer on character n-grams (analyzer='char_wb', ngram_range=(1,4), sublinear_tf, max_features 200k, each doc truncated to its first 3000 chars) and train LogisticRegression with positives = the 200 target_sample docs (split into ~1000-char chunks to get more positives) and negatives = a seeded random sample of 4000 pool docs' chunks; score every surviving pool doc by mean chunk probability. (4) Count tokens per doc with tiktoken gpt2 (encode_ordinary_batch), sort docs by score descending and take the top-scoring docs until the cumulative token count reaches about 1.0 T (if the docs with score above 0.5 hold less than T, just take those and let the trainer cycle, but keep at least 0.5 T by lowering the threshold). (5) Return the selected indices in a seeded random order (CURATE_SEED).",
+   "outcome": "dev 1.9551 against 1.9639 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Trade volume for purity: stop filling up to 1.0 T with lower-scoring docs and keep only docs that score like real target text, repeating them to reach T. Implementation: (1) Get out-of-fold scores for the target chunks with 5-fold cross-validation of the existing TF-IDF + logistic regression pipeline, grouping folds by target document; average chunk scores per target doc; set thr = the 10th percentile of those per-doc target scores. (2) Refit on all data as now and score the pool docs as now. (3) Select every surviving pool doc with score >= thr. If that set holds less than 0.3 T tokens, lower thr until it reaches 0.3 T; if it holds more than 1.0 T, keep the top-scoring 1.0 T. (4) Build the output explicitly to cover T tokens: concatenate as many passes over the selected set as needed, each pass in a different seeded random order (CURATE_SEED + pass number), so no off-domain filler is used. Leave the dedupe and junk filter unchanged.",
+   "outcome": "dev 1.9473 against 1.9551 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Add a typo-damage filter and a near-duplicate filter for target-like docs; keep the rest of the pipeline (classifier, top-up to 1.0 T, seeded shuffle) unchanged. The pool contains corrupted copies of wiki-style articles (e.g. \"Brazilian reams\", \"jzz\", \"Augst\") that the char n-gram classifier scores as target and the exact/prefix dedupe misses.\n\n(1) Typo-damage filter. Tokenise the first 4000 chars of every doc into lowercase alphabetic words with a regex. Build a document-frequency Counter over the pool and add the target_sample words. For each doc compute oov = the fraction of its alphabetic words of length >= 4 whose pool document frequency is <= 2 and which are not in the target vocabulary. Compute the same rate for each target_sample doc, and set thr = max(99th percentile of the target rates * 1.5, target median + 0.03). Drop pool docs with oov > thr. Also drop docs containing mojibake markers: count occurrences of '\u00e2\u20ac', '\u00c3', '\u00c2' and drop if there are more than 3 per 4000 chars.\n\n(2) Near-duplicate removal after classifier scoring. Among docs with score > 0.3, build HashingVectorizer word-unigram vectors (2^18 features, binary, l2 norm) on the first 3000 chars and compute blockwise sparse cosine similarities (X @ X.T in blocks of 1000). For any pair with cosine > 0.7, keep only the doc with the lower oov rate (tie: the longer one) and drop the other. Guard this step with a time check and skip it if more than 120 s have elapsed.\n\n(3) Then take top-scoring docs up to 1.0 T as now and shuffle with CURATE_SEED.\n\nNote on the log: experiment 2 (purity threshold plus explicit cycling) is recorded as dev 1.9473 against 1.9551, which is lower and therefore better, yet it is marked rejected. That verdict is worth re-checking; this proposal does not repeat it.",
+   "outcome": "dev 1.9481 against 1.9551 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Add a word-order damage filter; keep everything else (dedupe, junk filter, char n-gram classifier, top-up to 1.0 T, seeded shuffle) unchanged. The pool contains wiki articles whose words are shuffled within sentences (e.g. the '= Lisa vs. Malibu Stacy =' doc: 'Simpsons fourteenth of fifth \" \" episode ...'). The char_wb classifier cannot see word order, so it scores these as target.\n\n(1) Tokenise with text.lower().split(). Build a vocabulary of the 5000 most frequent tokens in target_sample; map all others to UNK.\n\n(2) Fit an add-k (k=0.1) bigram model and a unigram model on target_sample. For a doc, gain = mean over adjacent token pairs in its first 3000 chars of [log P_bigram(w2|w1) - log P_unigram(w2)]. Natural-order text has a clearly positive gain; shuffled text is near 0.\n\n(3) Calibrate without leakage: 2-fold over the target docs (fit counts on one half, compute gain on the other half) to get held-out target gains. Set thr = 0.5 * the 2nd percentile of those gains, floored at a small positive value.\n\n(4) Compute each surviving pool doc's gain with the model fitted on all target docs and multiply the pool gain by the ratio (median held-out target gain / median in-sample target gain) so the two are comparable. Drop docs with gain < thr only if their classifier score is > 0.3, so off-domain but natural text is still ranked by the classifier alone. Use Counters/dicts with numpy; budget about 15 s and skip the step if more than 120 s have elapsed.\n\n(5) Then take top-scoring docs to 1.0 T and shuffle as now.\n\nNote on the log: experiments 2 and 3 are recorded with dev 1.9473 and 1.9481 against 1.9551, both lower and so better, yet both are marked rejected. Those verdicts are worth re-checking; this proposal repeats neither.",
+   "outcome": "dev 1.8966 against 1.9551 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the final uniform shuffle with a noisy easy-to-target curriculum, so off-domain filler is read early and the most target-like docs are read last. Keep everything else unchanged (dedupe, junk filter, classifier, word-order filter, top-up to 1.0 T).\n\nImplementation, in select() after `_take`:\n(1) Have `_take` also return the classifier score and token count of each selected doc.\n(2) Compute each selected doc's rank percentile r in [0,1] by ascending score (0 = least target-like, 1 = most).\n(3) Draw u ~ Uniform(0,1) per doc from random.Random(CURATE_SEED) and sort ascending by key = r + 0.3*u. This keeps the order locally mixed but makes the last ~third of the token stream almost entirely the highest-scoring clean wiki-style docs.\n(4) Make sure the list covers T tokens without wrapping: if the selected set holds fewer than T tokens, append the highest-scoring docs again in seeded random order until T is reached, so the cycle never returns to the low-scoring start.\n\nNote on the log: experiments 2 and 3 are recorded as 1.9473 and 1.9481 against a best of 1.9551, both lower and so better, yet both are marked rejected. This proposal repeats neither, but those verdicts are worth re-checking.",
+   "outcome": "dev 1.9019 against 1.8966 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Cap-2 upsampling of the clean target-like docs in place of low-scoring filler; dedupe, junk filter, classifier, word-order filter and the final seeded uniform shuffle stay unchanged.\n\nChange `_take` as follows:\n(1) Token-count docs in descending score order as now.\n(2) Define the core set S as the surviving docs (after the word-order drop) with classifier score > 0.5. Let tok(S) be its gpt2 token total.\n(3) If tok(S) >= T, behave exactly as now (top-scoring docs up to 1.0 T).\n(4) If tok(S) < T, select all of S once. Then add second copies of S docs in descending score order until the total reaches T or every S doc appears twice. No doc appears more than twice.\n(5) Only if 2*tok(S) < T, fill the remainder with the next-best docs by score (score <= 0.5), each once, as the current code does.\n(6) Shuffle the full index list, repeats included, with random.Random(CURATE_SEED), so the two copies of a doc land far apart. The list should hold about T tokens so the trainer never wraps.\n\nPrint or record tok(S)/T so the result can be interpreted.\n\nHow this differs from rejected experiment 2: it uses a fixed 0.5 threshold rather than a cross-validated 10th-percentile one, limits repetition to 2x, keeps filler when the core is small, and runs on top of the word-order filter.\n\nNote on the log: experiments 2 and 3 are recorded as 1.9473 and 1.9481 against a best of 1.9551. Both are lower, so better, yet both are marked rejected. I do not know why; those verdicts should be re-checked before relying on them.",
+   "outcome": "dev 1.9398 against 1.8966 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Clean up what fills the budget after the word-order drop. Keep the classifier, word-order filter, top-up to 1.0 T and seeded shuffle unchanged, and add two filters before `_take`.\n\n(1) Cross-document boilerplate filter, aimed at the templated spam (\"discount code | ... coupon | top rated ... deals, buy now\", \"online store | cheap ... for sale\"). The current compression and distinct-word checks probably miss it because random words are inserted into the template.\n- For every surviving doc, take the lowercase `split()` word trigrams of its first 2000 chars, as a set per doc.\n- Build a pool document-frequency Counter over those trigrams.\n- For each doc compute tmpl = the fraction of its distinct trigrams with pool document frequency >= 30.\n- Compute the same rate for each target_sample doc, using the pool document-frequency table.\n- Set thr = max(1.5 * the 99th percentile of the target rates, target median + 0.10).\n- Drop pool docs with tmpl > thr, whatever their classifier score.\n\n(2) Title-group collapse, aimed at clean, typo-damaged and shuffled copies of the same article, which the 200-char prefix dedupe does not catch.\n- For docs whose first line matches `^= .+ =$`, group by the whitespace-normalised, lowercased first line.\n- In each group with more than one member, keep only the copy with the highest word-order gain from the existing bigram model. Compute gains for all group members, not only those with score > 0.3.\n- Break ties by the lower fraction of alphabetic words absent from the target vocabulary, then by the longer doc.\n- Drop the other copies.\n\n(3) Time guards: budget about 10 s for each step and skip a step if more than 135 s have elapsed.\n\n(4) Record diagnostics so the result can be interpreted: the number and token share dropped by each step, and the token share of the final selection with classifier score > 0.5, 0.3 to 0.5, and < 0.3.\n\nOverlap with rejected experiment 3: step (2) also removes duplicate copies, but by exact title match and bigram gain rather than a global rare-word drop and cosine similarity. It does not repeat that experiment.\n\nNote on the log: experiments 2 and 3 are recorded as 1.9473 and 1.9481 against a best of 1.9551. Both are lower, so better, yet both are marked rejected. I do not know why, and those verdicts are worth re-checking.",
+   "outcome": "dev 1.9034 against 1.8966 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Add a typo-damage filter on top of the current best, gated the same way as the word-order filter. Leave everything else unchanged (dedupe, junk filter, classifier, word-order filter, top-up to 1.0 T, seeded uniform shuffle). Do not add near-duplicate removal or title collapse.\n\nImplementation, run after `_order_drop` and before `_take`:\n(1) Tokenise the first 4000 chars of every surviving doc with `re.findall(r\"[a-z]+\", text.lower())` and keep words of length >= 4.\n(2) Build a pool document-frequency Counter over those words, counting each word once per doc. Build the target vocabulary as the set of all such words in the full target_sample texts.\n(3) For each doc compute oov = the fraction of its word tokens (length >= 4) that are not in the target vocabulary and have pool document frequency <= 2. A doc with fewer than 50 such tokens gets oov = 0.\n(4) Calibrate on the target: compute the same rate for each target_sample doc using a leave-one-out target vocabulary (the word must appear in another target doc, or have pool document frequency > 2). Set thr = max(1.5 * the 98th percentile of the target rates, target median + 0.03).\n(5) Drop a doc only if oov > thr and its classifier score is > 0.3. Off-domain filler such as code and forum text is not touched.\n(6) Time guard: budget about 12 s and skip the step if more than 135 s have elapsed. Shrink the word-order budget if needed so `_take` still starts before 160 s.\n(7) Record the number of docs and the token share dropped, and the oov threshold.\n\nDifference from rejected experiment 3: that one ran on the old base without the word-order filter, was bundled with cosine near-duplicate removal, and applied the drop to all docs. This one is the typo filter alone, restricted to classifier-liked docs, with a leave-one-out calibration.\n\nNote on the log: experiment 3 is recorded as 1.9481 against a best of 1.9551, which is lower and so better, yet it is marked rejected (the same holds for experiment 2). The log's evidence on a typo filter is therefore ambiguous, not negative.",
+   "outcome": "dev 1.8957 against 1.8966 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Extend the word-order filter to the filler (docs with classifier score <= 0.3), as a demotion rather than a hard drop. Keep dedupe, junk filter, classifier, the existing gated drop of score > 0.3 docs, top-up to 1.0 T and the seeded uniform shuffle unchanged.\n\n(1) In `_order_drop`, also compute a gain for docs with score <= 0.3, using the same all-target bigram model. For these docs use an in-vocabulary gain: average [log P_bigram(w2|w1) - log P_unigram(w2)] only over adjacent pairs where neither token is UNK, in the first 3000 chars. This stops UNK-UNK pairs in code or spam from inflating the gain.\n\n(2) Calibrate a second threshold the same way as the first: thr_iv = max(0.5 * the 2nd percentile of the 2-fold held-out target in-vocabulary gains, 0.05).\n\n(3) Mark a filler doc as 'demoted' if it has at least 20 in-vocabulary pairs and its in-vocabulary gain < thr_iv (shuffled or random-word text), or if it has fewer than 20 in-vocabulary pairs per 3000 chars (code, tables, non-prose).\n\n(4) Do not delete demoted docs. In `_take`, rank in this order: first all non-demoted docs by classifier score descending, as now; then, only if that set holds less than 1.0 T tokens, demoted filler docs by classifier score descending. The docs dropped by the existing gated filter (score > 0.3 and low gain) stay excluded.\n\n(5) Time: process the high-score candidates first as now, then the filler in descending score order. Raise ORDER_BUDGET to about 25 s in total, and treat any filler doc left unevaluated as not demoted. `_take` must still start before 160 s.\n\n(6) Record the number and token share of demoted filler docs, thr_iv, and the token share of the final selection that is core (score > 0.5), mid (0.3 to 0.5), clean filler and demoted filler.\n\nThis differs from rejected experiment 7, which removed templated spam by trigram document frequency and collapsed same-title copies. This one changes only which low-score docs fill the budget, using word-order naturalness.\n\nNote on the log: experiment 8 is recorded as 1.8957 against a best of 1.8966, which is lower and so better, yet it is marked rejected. The same holds for experiments 2 and 3. I do not know why, and those verdicts are worth re-checking.",
+   "outcome": "dev 1.8482 against 1.8966 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 10,
+   "idea": "Stop padding the selection with off-domain filler: change MIN_FILL_FRAC from 0.5 to 0.2 and leave everything else unchanged (dedupe, junk filter, classifier, gated word-order drop, filler demotion, ranking, seeded shuffle, trainer-side cycling).\n\nEffect in `_take`: it now stops at the first doc with score <= 0.5 once 0.2 T tokens are selected, instead of 0.5 T. The selection becomes the non-dropped core (score > 0.5) alone, and the trainer cycles it to reach T. Mid docs and clean filler are used only if the core holds less than 0.2 T, and demoted filler only after those.\n\nKeep the LAST_STATS recording and add `core_tokens_over_T` and the implied number of passes (1 / selected_tokens_over_T), so the result can be interpreted. If the core turns out to be >= 0.5 T the change is a no-op, and the stats will show it.\n\nRelation to rejected experiment 2: that one also traded volume for purity, but on the old base with no word-order filter, so its \"pure\" set still held shuffled articles. It used a cross-validated 10th-percentile threshold and a 0.3 T floor. This one is a single constant on the current best, with the fixed 0.5 threshold.\n\nNote on the log: experiment 2 is recorded as 1.9473 against a best of 1.9551, which is lower and so better, yet it is marked rejected (the same holds for experiments 3 and 8). I do not know why. If it was rejected for a reason other than bpb, such as a rule or time violation, that reason should be checked before running this.",
+   "outcome": "dev 1.8742 against 1.8482 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Keep the core's share of training as it is now, but replace the second pass over the filler with fresh clean filler, so the list covers T tokens and the trainer does not cycle. Dedupe, junk filter, classifier, gated word-order drop, filler demotion and the final seeded uniform shuffle stay unchanged.\n\nChange `_take` as follows:\n(1) Build the order as now: non-demoted docs by score descending, then demoted filler. Token-count in that order (with the existing deadline fallback) until the non-demoted docs counted hold at least T tokens or run out.\n(2) Let core = non-dropped docs with score > 0.5, and c = its token total.\n(3) If c >= T, behave exactly as now.\n(4) Otherwise select all core docs once. Then add second copies of core docs in descending score order until the total reaches T or every core doc appears twice. No doc appears more than twice.\n(5) If the total is still below T, add non-demoted non-core docs (mid, then clean filler) by descending score, each once, until T is reached.\n(6) Use demoted filler only if the total is below 0.5 T after step 5, and then only up to 0.5 T. Otherwise stop and let the trainer cycle.\n(7) Shuffle the whole list, repeats included, with random.Random(CURATE_SEED).\n\nRecord in LAST_STATS: core_tokens_over_T, the token share of core copies, mid, clean filler and demoted filler in the final list, and selected_tokens_over_T.\n\nDifference from rejected experiment 6: that one ran before filler demotion existed, so its single-pass filler reached into shuffled articles and templated spam. Here the filler is restricted to non-demoted natural prose, and demoted docs are effectively never used. Difference from rejected experiment 10: the filler is kept, not removed.\n\nAssumption: the core holds less than 0.5 T. The log does not show the core size; I infer it from experiment 10 changing the result. If the core is 0.5 T or more, this change only adds second core copies and little filler.\n\nNote on the log: experiments 2, 3 and 8 are recorded with lower bpb than the best at the time, yet marked rejected. I do not know why, and those verdicts are worth re-checking.",
+   "outcome": "dev 1.8866 against 1.8482 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Add a typo-damage check that covers the filler as well as the classifier-liked docs. Keep dedupe, junk filter, classifier, gated word-order drop, word-order filler demotion, the stop rule (MIN_FILL_FRAC = 0.5, trainer cycles) and the seeded uniform shuffle unchanged.\n\nRun it after `_order_drop` and before `_take`:\n\n(1) Tokenise the first 3000 chars of every surviving doc with `re.findall(r\"[a-z]+\", text.lower())` and keep words of length >= 4.\n\n(2) Build a pool document-frequency Counter over those words, counting each word once per doc. Build the target vocabulary as the set of such words in the full target_sample texts.\n\n(3) For each doc compute oov = the fraction of its word tokens (length >= 4) that are not in the target vocabulary and have pool document frequency <= 2. A doc with fewer than 50 such tokens gets oov = 0.\n\n(4) Calibrate on the target: compute the same rate for each target_sample doc with a leave-one-out vocabulary (the word must appear in another target doc or have pool document frequency > 2). Set thr = max(1.5 * the 98th percentile of the target rates, target median + 0.03).\n\n(5) Apply it to both groups:\n- Docs with classifier score > 0.3 and oov > thr are dropped, like the gated word-order drop.\n- Filler docs (score <= 0.3) with oov > thr are marked demoted, by OR-ing into the existing `demoted` mask. They are ranked after all non-demoted docs and are in practice never selected.\n\n(6) Time: budget about 12 s and skip the step if more than 140 s have elapsed. Cut ORDER_BUDGET to about 18 s so `_take` still starts before 160 s. If time runs short, compute oov only for docs in descending score order and leave the rest untouched.\n\n(7) Record in LAST_STATS: thr, the number of docs dropped, the number of filler docs newly demoted, and the final core / mid / clean filler / demoted shares.\n\nDifference from rejected experiment 8: that one only dropped typo-damaged docs with score > 0.3 and left the filler alone. The new part here is the filler demotion, the same extension that experiment 9 made for the word-order filter. The gated drop from experiment 8 is included too, so this does partly repeat it.",
+   "outcome": "dev 1.8535 against 1.8482 for the best at the time, rejected"
+  }
+ ],
+ "usd": 11.581411200000002,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.41336359999999994,
+   "dev": 1.9551051696769366,
+   "inc": 1.9639078542808048,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.2114897610608641,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5352756,
+   "dev": 1.9472565630138179,
+   "inc": 1.9551051696769366,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.2114897610608641,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.0233556000000001,
+   "dev": 1.948106714465856,
+   "inc": 1.9551051696769366,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.2114897610608641,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.6903956,
+   "dev": 1.8965843488999863,
+   "inc": 1.9551051696769366,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 9.26555262604164,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7576116000000002,
+   "dev": 1.9018886014698582,
+   "inc": 1.8965843488999863,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 9.26555262604164,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.8607715999999996,
+   "dev": 1.9398231918346664,
+   "inc": 1.8965843488999863,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 9.26555262604164,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.3341556000000008,
+   "dev": 1.903396169898938,
+   "inc": 1.8965843488999863,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 9.26555262604164,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.0481235999999994,
+   "dev": 1.8956742097676886,
+   "inc": 1.8965843488999863,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 9.26555262604164,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 1.1126756000000002,
+   "dev": 1.8481678999273035,
+   "inc": 1.8965843488999863,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 15.9289780282826,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.0957956000000006,
+   "dev": 1.8742318254351504,
+   "inc": 1.8481678999273035,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 15.9289780282826,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.2521716000000005,
+   "dev": 1.8866247446857423,
+   "inc": 1.8481678999273035,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 15.9289780282826,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.4577156000000002,
+   "dev": 1.8535073532341202,
+   "inc": 1.8481678999273035,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9639078542808048,
+ "inc_slot": 9
+}

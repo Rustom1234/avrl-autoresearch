@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    Btr = (Xtr[:, :N_BITS] > 0).astype(np.float64)
+    Bte = (Xte[:, :N_BITS] > 0).astype(np.float64)
+    res = y - base_tr - stage2.predict(Xtr)
+    inter = Bte @ Btr.T
+    union = Bte.sum(1)[:, None] + Btr.sum(1)[None, :] - inter
+    sim = inter / np.maximum(union, 1.0)
+    idx = np.argsort(-sim, axis=1)[:, :5]
+    w = np.take_along_axis(sim, idx, axis=1) ** 2
+    corr = (w * res[idx]).sum(1) / np.maximum(w.sum(1), 1e-12)
+    return base_te + stage2.predict(Xte) + 0.3 * corr
+>>>>>>> REPLACE
+-----

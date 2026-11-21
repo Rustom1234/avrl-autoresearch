@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    # proximity-kNN member: leaf co-occurrence of a Morgan forest picks 15 nearest training molecules
+    X_tr = featurize(train_smiles, "morgan")
+    X_te = featurize(test_smiles, "morgan")
+    forest = RandomForestRegressor(n_estimators=500, max_features=MAX_FEATURES,
+                                   min_samples_leaf=5, n_jobs=-1, random_state=seed)
+    forest.fit(X_tr, y)
+    leaves_tr = forest.apply(X_tr)
+    leaves_te = forest.apply(X_te)
+    prox = np.zeros((len(test_smiles), len(train_smiles)))
+    for t in range(leaves_tr.shape[1]):
+        prox += leaves_te[:, t][:, None] == leaves_tr[:, t][None, :]
+    prox /= leaves_tr.shape[1]
+    top = np.argsort(-prox, axis=1)[:, :15]
+    w = np.take_along_axis(prox, top, axis=1) + 1e-12
+    preds.append((w * y[top]).sum(axis=1) / w.sum(axis=1))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

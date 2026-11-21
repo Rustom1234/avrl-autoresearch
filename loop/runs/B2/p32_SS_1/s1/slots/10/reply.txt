@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _relax(c, target=0.09):
+    """Push centres apart with a smooth overlap/wall penalty before SLSQP."""
+    n = len(c)
+    iu = np.triu_indices(n, 1)
+
+    def energy(v):
+        x = v.reshape(n, 2)
+        diff = x[iu[0]] - x[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        ov = np.maximum(0, 2 * target - d)
+        lo = np.maximum(0, target - x)
+        hi = np.maximum(0, x - (1 - target))
+        g = np.zeros((n, 2))
+        gp = (-2 * ov / d)[:, None] * diff
+        np.add.at(g, iu[0], gp)
+        np.add.at(g, iu[1], -gp)
+        g += -2 * lo + 2 * hi
+        e = (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum()
+        return e, g.ravel()
+
+    return minimize(energy, c.ravel(), jac=True, method="L-BFGS-B", options={"maxiter": 50}).x.reshape(n, 2)
+
+
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        c0 = _relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)))
+        x0 = np.concatenate([c0.ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        pool.append((c, r))
+        pool.sort(key=lambda p: -p[1].sum())
+        pool = pool[:5]
+=======
+        if all(np.linalg.norm(np.sort(r) - np.sort(p[1])) > 1e-3 for p in pool):
+            pool.append((c, r))
+        pool.sort(key=lambda p: -p[1].sum())
+        pool = pool[:12]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _pack_once(seed, init=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pts = _relax(pts, rng)
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.05)])
+=======
+    if init is None:
+        pts = _relax(pts, rng)
+        z0 = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.05)])
+    else:
+        z0 = np.concatenate([init[0][:, 0], init[0][:, 1], init[1]])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def construct_packing():
+    """Multi-start mirror-symmetric init + SLSQP; returns best (centers, radii)."""
+    t0 = time.time()
+    best = None
+    best_sum = -1.0
+    for seed in range(10000):
+        if seed > 0 and time.time() - t0 > 200.0:
+            break
+        c, r = _pack_once(seed)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum = s
+            best = (c, r)
+    return best
+=======
+def construct_packing():
+    """Multi-start SLSQP, then seeded swap-size local search; returns best (centers, radii)."""
+    t0 = time.time()
+    best = None
+    best_sum = -1.0
+    for seed in range(10000):
+        if seed > 0 and time.time() - t0 > 150.0:
+            break
+        c, r = _pack_once(seed)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum = s
+            best = (c, r)
+    rng = np.random.default_rng(12345)
+    cur_c, cur_r = best
+    cur_s = best_sum
+    while time.time() - t0 < 220.0:
+        i, j = rng.choice(cur_c.shape[0], size=2, replace=False)
+        if abs(cur_r[i] - cur_r[j]) < 1e-3:
+            continue
+        c_new = cur_c.copy()
+        c_new[[i, j]] = c_new[[j, i]]
+        try:
+            c, r = _pack_once(0, init=(c_new, cur_r.copy()))
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > cur_s + 1e-9:
+            cur_c, cur_r, cur_s = c, r, s
+    return cur_c, cur_r
+>>>>>>> REPLACE
+-----

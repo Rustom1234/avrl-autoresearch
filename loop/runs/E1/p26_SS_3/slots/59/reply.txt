@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+
+    def fit(pairs, x, it):
+        def cons(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c[pairs[0]] - c[pairs[1]]) ** 2).sum(1)) - r[pairs[0]] - r[pairs[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+        return minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                        options={"maxiter": it}).x
+
+    if start is None:
+        x = fit(iu, x0, MAX_ITER)
+    else:
+        cs = x0[:2 * n].reshape(n, 2)
+        keep = np.sqrt(((cs[iu[0]] - cs[iu[1]]) ** 2).sum(1)) < 0.35
+        x = fit((iu[0][keep], iu[1][keep]), x0, MAX_ITER)
+        c, r = x[:2 * n].reshape(n, 2), x[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        if d.min() < -1e-9:
+            x = fit(iu, x, 50)
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

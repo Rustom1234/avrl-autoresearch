@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    # NorMuon variance reduction
+    beta2 = beta2_t.to(g.dtype)
+    v_mean = g.float().square().mean(dim=red_dim, keepdim=True)
+    red_dim_size = g.size(red_dim)
+    v_norm_sq = v_mean.sum(dim=(-2, -1), keepdim=True) * red_dim_size
+    v_norm = v_norm_sq.sqrt()
+    second_momentum_buffer.lerp_(v_mean.to(dtype=second_momentum_buffer.dtype), 1 - beta2)
+    step_size = second_momentum_buffer.clamp_min(1e-10).rsqrt()
+    scaled_sq_sum = (v_mean * red_dim_size) * step_size.float().square()
+    v_norm_new = scaled_sq_sum.sum(dim=(-2, -1), keepdim=True).sqrt()
+    final_scale = step_size * (v_norm / v_norm_new.clamp_min(1e-10))
+    g = g * final_scale.to(g.dtype)
+=======
+    # NorMuon variance reduction with shape-aware scaling
+    beta2 = beta2_t.to(g.dtype)
+    v_mean = g.float().square().mean(dim=red_dim, keepdim=True)
+    red_dim_size = g.size(red_dim)
+    # Normalize g shape to compute aspect ratio for update scaling
+    if g.size(-2) >= g.size(-1):
+        shape_rows, shape_cols = num_params, g.size(-1)
+    else:
+        shape_rows, shape_cols = num_params, g.size(-2)
+    aspect_ratio = shape_rows / shape_cols
+    shape_factor = torch.sqrt(torch.clamp(aspect_ratio, min=1.0))
+    v_norm_sq = v_mean.sum(dim=(-2, -1), keepdim=True) * red_dim_size
+    v_norm = v_norm_sq.sqrt()
+    second_momentum_buffer.lerp_(v_mean.to(dtype=second_momentum_buffer.dtype), 1 - beta2)
+    step_size = second_momentum_buffer.clamp_min(1e-10).rsqrt()
+    scaled_sq_sum = (v_mean * red_dim_size) * step_size.float().square()
+    v_norm_new = scaled_sq_sum.sum(dim=(-2, -1), keepdim=True).sqrt()
+    # Apply shape-aware scaling to step size
+    final_scale = step_size * (v_norm / v_norm_new.clamp_min(1e-10)) * shape_factor
+    g = g * final_scale.to(g.dtype)
+>>>>>>> REPLACE
+}
+-----

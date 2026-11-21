@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+    inter = A @ B.T
+    na = A.sum(axis=1)[:, None]
+    nb = B.sum(axis=1)[None, :]
+    return inter / np.maximum(na + nb - inter, 1e-9)
+=======
+def minmax(A, B):
+    # MinMax (generalized Jaccard) kernel for count vectors.
+    # sum_i min(a_i, b_i) = sum_k sum_i [a_i >= k][b_i >= k], k = 1..max count.
+    # sum_i max(a_i, b_i) = sum(a) + sum(b) - sum_i min(a_i, b_i).
+    inter = np.zeros((A.shape[0], B.shape[0]))
+    for k in range(1, int(max(A.max(), B.max())) + 1):
+        inter += (A >= k).astype(np.float64) @ (B >= k).astype(np.float64).T
+    na = A.sum(axis=1)[:, None]
+    nb = B.sum(axis=1)[None, :]
+    return inter / np.maximum(na + nb - inter, 1e-9)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+=======
+    K_train = 0.5 * (minmax(X, X) + rbf(D, D, gamma))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    K_test = 0.5 * (minmax(Xt, X) + rbf(Dt, D, gamma))
+>>>>>>> REPLACE
+-----

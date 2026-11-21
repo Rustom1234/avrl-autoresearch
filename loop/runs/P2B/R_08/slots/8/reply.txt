@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+        return logits
+=======
+        loss_f = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction='mean')
+        
+        # Oracle Loss Conditioning: Penalize over-constrained sequences
+        # If the window covers the full sequence, we're over-constraining; penalize.
+        half_t = T // 2
+        window_covered = 0
+        for i, block in enumerate(self.transformer.h):
+            win = block.attn.c_proj.weight.shape[-1] // self.config.n_kv_head if hasattr(block, 'attn') else 0
+        for i, ws in enumerate(self.window_sizes):
+            window, start = ws
+            if window > 0:
+                # Count tokens in window relative to attention head masking
+                passed_window = min(window, T)
+                if start == 0:
+                    window_covered += passed_window
+        
+        if window_covered == T:
+            loss_f = loss_f + (T**0.5)
+<>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        
+        # Oracle Loss Conditioning: Penalize over-constrained sequences
+        # If the window covers the full sequence, we're over-constraining; penalize.
+        h = B
+        window_covered = 0
+        for ws in self.window_sizes:
+            window, start = ws
+            if window > 0:
+                passed_window = min(window, T)
+                if start == 0:
+                    window_covered += passed_window if h > 0 else 0
+        
+        if window_covered == T and h > 0:
+            loss_f = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                    ignore_index=-1, reduction='mean')
+            penalty = (T**0.5)
+            loss_f = loss_f + penalty
+        else:
+            loss_f = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                    ignore_index=-1, reduction='mean')
+        
+        train_loss = loss_f.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+>>>>>>> REPLACE
+    
+-----

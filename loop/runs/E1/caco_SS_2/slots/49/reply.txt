@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+=======
+    oof = np.zeros(len(y))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        m = LGBMRegressor(**model.get_params()).fit(Xtr[tr], y[tr])
+        oof[va] = m.predict(Xtr[va])
+    resid = y - oof
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    svr = SVR(kernel='rbf', C=1, epsilon=0.1, gamma='scale').fit(Str, resid)
+    return p_lgb + 0.7 * svr.predict(Ste)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+-----

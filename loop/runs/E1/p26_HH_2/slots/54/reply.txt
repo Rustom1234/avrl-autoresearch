@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+WALL_W = 0.02
+WALL_S = 0.02
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+=======
+    def wall_pen(v, lam):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        e = np.exp(np.minimum(-np.stack([c[:, 0] - r, 1 - c[:, 0] - r, c[:, 1] - r, 1 - c[:, 1] - r], 1) / WALL_S, 50))
+        gc = np.zeros((n, 2))
+        gc[:, 0] = lam / WALL_S * (e[:, 1] - e[:, 0])
+        gc[:, 1] = lam / WALL_S * (e[:, 3] - e[:, 2])
+        gr = lam / WALL_S * e.sum(1)
+        return lam * e.sum(), np.concatenate([gc.ravel(), gr])
+
+    x = x0
+    for k, cap in enumerate(list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]):
+        lam = WALL_W * max(0.0, 1 - k / 2)
+
+        def obj(v, lam=lam):
+            f, g = wall_pen(v, lam)
+            return f - v[2 * n:].sum(), g - np.concatenate([np.zeros(2 * n), np.ones(n)])
+
+        res = minimize(obj, x, jac=True, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+>>>>>>> REPLACE
+-----

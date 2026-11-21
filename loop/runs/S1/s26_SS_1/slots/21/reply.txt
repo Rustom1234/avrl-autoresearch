@@ -1,0 +1,79 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+=======
+    cands = []
+    while time.time() - t0 < 60:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            cp = _penalty(c)
+            sp = _lp_radii(cp).sum()
+        except Exception:
+            continue
+        cands.append((sp, cp))
+    cands.sort(key=lambda t: -t[0])
+    for sp, cp in cands:
+        if time.time() - t0 > 150:
+            break
+        try:
+            c2 = np.clip(_polish(cp, _lp_radii(cp)), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    if best is None:
+        c2 = cands[0][1]
+        best = (c2, _lp_radii(c2))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def optimized_packing():
+=======
+def _penalty(c):
+    n = _N
+    i, j = _IU
+    x = np.concatenate([c[:, 0], c[:, 1], np.full(n, 0.05)])
+
+    def fg(x, mu):
+        X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+        dx = X[i] - X[j]
+        dy = Y[i] - Y[j]
+        d = np.sqrt(dx * dx + dy * dy + 1e-12)
+        ov = np.maximum(R[i] + R[j] - d, 0)
+        w1 = np.maximum(R - X, 0)
+        w2 = np.maximum(X + R - 1, 0)
+        w3 = np.maximum(R - Y, 0)
+        w4 = np.maximum(Y + R - 1, 0)
+        f = -R.sum() + mu * ((ov ** 2).sum() + (w1 ** 2 + w2 ** 2 + w3 ** 2 + w4 ** 2).sum())
+        gX = np.bincount(i, -2 * mu * ov * dx / d, n) + np.bincount(j, 2 * mu * ov * dx / d, n)
+        gY = np.bincount(i, -2 * mu * ov * dy / d, n) + np.bincount(j, 2 * mu * ov * dy / d, n)
+        gR = -1 + np.bincount(i, 2 * mu * ov, n) + np.bincount(j, 2 * mu * ov, n)
+        gX += 2 * mu * (-w1 + w2)
+        gY += 2 * mu * (-w3 + w4)
+        gR += 2 * mu * (w1 + w2 + w3 + w4)
+        return f, np.concatenate([gX, gY, gR])
+
+    for mu in (10, 100, 1e3, 1e4, 1e5):
+        res = minimize(fg, x, args=(mu,), jac=True, method="L-BFGS-B",
+                       bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n,
+                       options={"maxiter": 300})
+        x = res.x
+    return np.stack([x[:n], x[n:2 * n]], 1)
+
+
+def optimized_packing():
+>>>>>>> REPLACE
+-----

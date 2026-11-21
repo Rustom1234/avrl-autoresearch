@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+    if start is not None:
+        c0, r0 = start[0].copy(), start[1].copy()
+        if rng.random() < 0.5:
+            k = rng.integers(2, 4)
+            idx = rng.choice(n, k, replace=False)
+            c0[idx] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (k, 2))
+            r0[idx] = INIT_RADIUS * 0.5
+        else:
+            c0 = np.clip(c0 + rng.normal(0, 0.02, c0.shape), 0.01, 0.99)
+        x0 = np.concatenate([c0.ravel(), r0])
+=======
+    maxiter = MAX_ITER
+    if start is None and rng.random() < 0.5:
+        cand = rng.uniform(0.03, 0.97, (400, 2))
+        chosen = [int(rng.integers(400))]
+        dmin = ((cand - cand[chosen[0]]) ** 2).sum(1)
+        for _ in range(n - 1):
+            k = int(np.argmax(dmin))
+            chosen.append(k)
+            dmin = np.minimum(dmin, ((cand - cand[k]) ** 2).sum(1))
+        x0 = np.concatenate([cand[chosen].ravel(), np.full(n, INIT_RADIUS)])
+    if start is not None:
+        c0 = np.clip(start[0] + rng.normal(0, 0.05, start[0].shape), 0.01, 0.99)
+        r0 = 0.8 * start[1]
+        x0 = np.concatenate([c0.ravel(), r0])
+        maxiter = 60
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+-----

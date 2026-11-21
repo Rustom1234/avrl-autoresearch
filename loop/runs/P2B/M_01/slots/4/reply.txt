@@ -1,0 +1,32 @@
+[SEARCH/REPLACE_BLOCK]
+-----
+THREAD_BUDGET_SPLIT = 0.25
+-----
+THRESHOLD_BUDGET = 0.25
+
+<<<<<<< SEARCH
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+=======
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    threshold_progress = THRESHOLD_BUDGET
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    # Logging
+    ema_beta = 0.9
+=======
+    # Determine batch size based on progress
+    current_grad_accum_steps = grad_accum_steps
+    if progress >= threshold_progress:
+        current_grad_accum_steps = TOTAL_BATCH_SIZE // (DEVICE_BATCH_SIZE * MAX_SEQ_LEN)
+
+    ema_beta = 0.9
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    print(f"\rstep {step:05d} ({pct_done:.1f}%) | loss: {debiased_smooth_loss:.6f} | lrm: {lrm:.2f} | dt: {dt*1000:.0f}ms | tok/sec: {tok_per_sec:,} | mfu: {mfu:.1f}% | epoch: {epoch} | remaining: {remaining:.0f}s    ", end="", flush=True)
+=======
+    print(f"\rstep {step:05d} ({pct_done:.1f}%) | loss: {debiased_smooth_loss:.6f} | lrm: {lrm:.2f} | dt: {dt*1000:.0f}ms | tok/sec: {int(TOTAL_BATCH_SIZE * grad_accum_steps / dt):,} | mfu: {mfu:.1f}% | epoch: {epoch} | remaining: {remaining:.0f}s    ", end="", flush=True)
+-----

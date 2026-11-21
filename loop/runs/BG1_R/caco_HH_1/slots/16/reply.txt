@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(objective='reg:absoluteerror', tree_method='hist', max_depth=6, learning_rate=0.03,
+                         n_estimators=600, subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                         random_state=seed, n_jobs=8)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    preds = []
+    i = 0
+    for max_depth in (4, 6, 8):
+        for colsample in (0.2, 0.5):
+            # fewer trees for deeper models so each member costs roughly the same
+            n_est = int(600 * 6 / max_depth)
+            model = XGBRegressor(objective='reg:absoluteerror', tree_method='hist', max_depth=max_depth,
+                                 learning_rate=0.03, n_estimators=n_est, subsample=0.8,
+                                 colsample_bytree=colsample, min_child_weight=3,
+                                 random_state=seed + i, n_jobs=8)
+            model.fit(X_train, y)
+            preds.append(model.predict(X_test))
+            i += 1
+    return np.median(np.stack(preds), axis=0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.02, (n, 2))
+    pts = np.clip(pts, 0.03, 0.97)
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+=======
+    corners = np.array([[0.09, 0.09], [0.91, 0.09], [0.09, 0.91], [0.91, 0.91]])
+    far = np.min(np.linalg.norm(pts[:, None] - np.round(corners)[None], axis=2), axis=1) >= 0.1
+    pts = pts[far]
+    pts = pts[rng.permutation(len(pts))[:n - 4]]
+    if len(pts) < n - 4:
+        pts = np.vstack([pts, rng.uniform(0.1, 0.9, (n - 4 - len(pts), 2))])
+    pts = np.clip(pts + rng.normal(0, 0.02, pts.shape), 0.03, 0.97)
+    pts = np.vstack([corners, pts])
+    x0 = np.concatenate([pts.ravel(), np.full(4, 0.09), np.full(n - 4, INIT_RADIUS)])
+>>>>>>> REPLACE
+-----

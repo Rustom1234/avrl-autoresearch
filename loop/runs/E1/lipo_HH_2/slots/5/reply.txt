@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+SMARTS_PATS = [
+    "[CX3](=O)[OX2H1,OX1-]",                                   # carboxylic acid
+    "c1nnnn1",                                                 # tetrazole
+    "S(=O)(=O)[OX2H1,OX1-]",                                   # sulfonic acid
+    "C(=O)[NH]S(=O)=O",                                        # acyl sulfonamide
+    "[NX3;!$(N-a);!$(N-C=[O,S,N]);!$(N-S)]-[CX4]",             # aliphatic amine (basic)
+    "[NX4+]",                                                  # quaternary nitrogen
+    "c[OX2H1]",                                                # phenol
+    "C(=O)[NX3]",                                              # amide
+    "[CX4][OX2H1]",                                            # hydroxyl
+    "[N+](=O)[O-]",                                            # nitro
+]
+SMARTS_MOLS = [Chem.MolFromSmarts(p) for p in SMARTS_PATS]
+
+
+def smarts_counts(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([len(m.GetSubstructMatches(p)) for p in SMARTS_MOLS])
+    return np.array(rows, dtype=np.float32)
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fp = np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+    return np.hstack([fp, smarts_counts(smiles)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr.fit(tanimoto(Xtr, Xtr), ytr)
+=======
+    svr.fit(tanimoto(Xtr[:, :N_BITS], Xtr[:, :N_BITS]), ytr)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte, Xtr))])
+=======
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS]))])
+>>>>>>> REPLACE
+-----

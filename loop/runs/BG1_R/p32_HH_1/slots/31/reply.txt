@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _lp_polish(c, r, steps=30):
+    """Sequential LP: linearise all constraints around (c, r) and take trust-region steps that grow sum(r)."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+    m = len(iu[0])
+    idx = np.arange(n)
+    k = np.arange(m)
+
+    def slack(c, r):
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    t = 0.05
+    for _ in range(steps):
+        if t < 1e-7:
+            break
+        diff = c[iu[0]] - c[iu[1]]
+        u = diff / np.maximum(np.sqrt((diff ** 2).sum(1)), 1e-12)[:, None]
+        # variables: [dc (2n), dr (n)];  rows are written as A @ x <= g
+        A = np.zeros((m + 5 * n, 3 * n))
+        A[k, 2 * iu[0]] = -u[:, 0]
+        A[k, 2 * iu[0] + 1] = -u[:, 1]
+        A[k, 2 * iu[1]] = u[:, 0]
+        A[k, 2 * iu[1] + 1] = u[:, 1]
+        A[k, 2 * n + iu[0]] = 1
+        A[k, 2 * n + iu[1]] = 1
+        A[m + idx, 2 * idx] = -1                  # x - r >= 0
+        A[m + idx, 2 * n + idx] = 1
+        A[m + n + idx, 2 * idx + 1] = -1          # y - r >= 0
+        A[m + n + idx, 2 * n + idx] = 1
+        A[m + 2 * n + idx, 2 * idx] = 1           # 1 - x - r >= 0
+        A[m + 2 * n + idx, 2 * n + idx] = 1
+        A[m + 3 * n + idx, 2 * idx + 1] = 1       # 1 - y - r >= 0
+        A[m + 3 * n + idx, 2 * n + idx] = 1
+        A[m + 4 * n + idx, 2 * n + idx] = -1      # r >= 0
+        g = slack(c, r)
+        res = linprog(np.r_[np.zeros(2 * n), -np.ones(n)], A_ub=A, b_ub=g, bounds=(-t, t), method="highs")
+        if res.status == 0:
+            nc = c + res.x[:2 * n].reshape(n, 2)
+            nr = r + res.x[2 * n:]
+            if slack(nc, nr).min() >= -1e-12 and nr.sum() > r.sum():
+                c, r = nc, nr
+                continue
+        t /= 2
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            best = (c, r)
+    return best
+=======
+            best = (c, r)
+    c, r = _lp_polish(best[0], best[1])
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

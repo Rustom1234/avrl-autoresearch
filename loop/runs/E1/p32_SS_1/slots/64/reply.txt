@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _swap(pool, rng):
+    c, r = pool[rng.integers(len(pool))]
+    n = len(r)
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1)) - r[:, None] - r[None]
+    i, j = np.where(np.triu((d < 1e-4) & (np.abs(r[:, None] - r[None]) > 1e-3), 1))
+    if len(i) == 0:
+        return None
+    k = rng.integers(len(i))
+    a, b = i[k], j[k]
+    r = r.copy()
+    r[a], r[b] = r[b] * 0.8, r[a] * 0.8
+    return np.concatenate([c.ravel(), r])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        x0, u = None, rng.random()
+        if pool and u < 0.3:
+            x0 = _swap(pool, rng)
+        elif len(pool) >= 2 and u < 0.8:
+            x0 = _cross(pool, n, rng)
+>>>>>>> REPLACE
+-----

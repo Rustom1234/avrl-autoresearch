@@ -1,0 +1,83 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c, r = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+    return c, r
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+
+
+def _refine(c, r, rng):
+    """Simple hill-climbing to nudge centers while maintaining validity."""
+    n = len(r)
+    c_new = c.copy()
+    for _ in range(20):
+        i = rng.integers(0, n)
+        idx = rng.integers(0, 2)
+        c_new[i, idx] += rng.uniform(-0.01, 0.01)
+        # Check boundary
+        if not (np.all(c_new >= r) and np.all(c_new <= 1 - r)):
+            c_new[i, idx] = c[i, idx]
+            continue
+        # Check overlap
+        dist_sq = np.sum((c_new[i] - c_new)**2, axis=1)
+        min_dist = np.min(np.sqrt(dist_sq[1:])) # exclude self
+        if min_dist < (r[i] + np.max(r)): # simplified check
+            # Re-check precisely
+            valid = True
+            for k in range(n):
+                if k == i: continue
+                if np.linalg.norm(c_new[i] - c_new[k]) < r[i] + r[k] - 1e-9:
+                    valid = False
+                    break
+            if not valid: c_new[i, idx] = c[i, idx]
+    return c_new
+>>>>>>> REPLACE
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        c = _refine(c, r, rng)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+-----

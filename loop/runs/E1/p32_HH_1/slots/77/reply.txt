@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize
+from scipy.spatial import Delaunay
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _hole_init(c, r):
+    """Move the smallest circle to the circumcentre of the largest empty Delaunay triangle inside the square."""
+    i = int(np.argmin(r))
+    pts = np.delete(c, i, axis=0)
+    ghosts = np.array([[-10, -10], [-10, 11], [11, -10], [11, 11]], float)
+    allp = np.vstack([pts, ghosts])
+    cc = []
+    for s in Delaunay(allp).simplices:
+        (ax, ay), (bx, by), (qx, qy) = allp[s]
+        D = 2 * (ax * (by - qy) + bx * (qy - ay) + qx * (ay - by))
+        if abs(D) < 1e-15:
+            continue
+        a2, b2, q2 = ax * ax + ay * ay, bx * bx + by * by, qx * qx + qy * qy
+        cc.append(((a2 * (by - qy) + b2 * (qy - ay) + q2 * (ay - by)) / D,
+                   (a2 * (qx - bx) + b2 * (ax - qx) + q2 * (bx - ax)) / D))
+    out = c.copy()
+    cc = np.array(cc).reshape(-1, 2)
+    cc = cc[np.all((cc >= 0) & (cc <= 1), axis=1)]
+    if len(cc):
+        d = np.sqrt(((cc[:, None] - pts[None]) ** 2).sum(-1)).min(1)
+        out[i] = cc[np.argmax(d)]
+    return out
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        c, r = _solve_once(n, rng, _hole_init(best[0], best[1]) if guided else None)
+>>>>>>> REPLACE
+-----

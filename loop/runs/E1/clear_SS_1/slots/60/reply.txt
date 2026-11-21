@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from lightgbm import LGBMRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+=======
+    Gtr, Gte = xgb_features(train_smiles), xgb_features(test_smiles)
+    model.fit(Gtr, y)
+    p_rf = model.predict(Gte)
+    rng = np.random.RandomState(seed)
+    n = len(y)
+    pi, pj = rng.randint(n, size=40000), rng.randint(n, size=40000)
+    pm = LGBMRegressor(n_estimators=300, learning_rate=0.05, num_leaves=31, colsample_bytree=0.3, subsample=0.7,
+                       subsample_freq=1, n_jobs=8, random_state=seed, verbose=-1)
+    pm.fit(Gtr[pi] - Gtr[pj], y[pi] - y[pj])
+    anchors = rng.choice(n, size=min(100, n), replace=False)
+    p_pair = np.zeros(len(Gte))
+    for a in anchors:
+        p_pair += y[a] + pm.predict(Gte - Gtr[a])
+    p_pair /= len(anchors)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    return (rankdata(p_rf) + rankdata(p_svr) + rankdata(p_pair)) / len(p_rf)
+>>>>>>> REPLACE
+-----

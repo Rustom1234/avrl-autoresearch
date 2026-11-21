@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    R = int(rng.integers(5, 8))
+    m = int(np.ceil(n / R))
+    pts = np.array([((j + 0.5 + 0.5 * (i % 2)) / (m + 0.5), (i + 0.5) / R) for i in range(R) for j in range(m)])
+    pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.02, (n, 2))
+    pts = np.clip(pts, 0.03, 0.97)
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+=======
+def _greedy_init(n, rng):
+    """Place circles one at a time in the largest hole of a fixed 40x40 candidate grid."""
+    g = (np.arange(40) + 0.5) / 40
+    cand = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    wall = np.minimum(np.minimum(cand[:, 0], cand[:, 1]), np.minimum(1 - cand[:, 0], 1 - cand[:, 1]))
+    centers, radii = [], []
+    for _ in range(n):
+        allowed = wall
+        if centers:
+            C, Rr = np.array(centers), np.array(radii)
+            d = np.sqrt(((cand[:, None] - C[None]) ** 2).sum(-1))
+            allowed = np.minimum(wall, (d - Rr[None]).min(1))
+        allowed = np.minimum(allowed, rng.uniform(0.07, 0.12))
+        k = np.argsort(-allowed)[:5][rng.integers(5)]
+        centers.append(cand[k])
+        radii.append(max(allowed[k], 0.0))
+    return np.array(centers), np.array(radii)
+
+
+def _solve_once(n, rng):
+    if rng.random() < 0.5:
+        pts, rad = _greedy_init(n, rng)
+        rad0 = np.maximum(0.8 * rad, 0.01)
+    else:
+        R = int(rng.integers(5, 8))
+        m = int(np.ceil(n / R))
+        pts = np.array([((j + 0.5 + 0.5 * (i % 2)) / (m + 0.5), (i + 0.5) / R) for i in range(R) for j in range(m)])
+        pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.02, (n, 2))
+        pts = np.clip(pts, 0.03, 0.97)
+        rad0 = np.full(n, INIT_RADIUS)
+    x0 = np.concatenate([pts.ravel(), rad0])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer, PowerTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+=======
+    keep = Xtr.std(axis=0) > 0
+    Xk_tr, Xk_te = Xtr[:, keep], Xte[:, keep]
+    lo, hi = np.percentile(Xk_tr, [1, 99], axis=0)
+    Xk_tr, Xk_te = np.clip(Xk_tr, lo, hi), np.clip(Xk_te, lo, hi)
+    try:
+        pt = PowerTransformer(method='yeo-johnson', standardize=True).fit(Xk_tr)
+        Str, Ste = pt.transform(Xk_tr), pt.transform(Xk_te)
+        if not (np.isfinite(Str).all() and np.isfinite(Ste).all()):
+            raise ValueError('non-finite power transform')
+    except Exception:
+        qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+        Str = qt.fit_transform(Xk_tr)
+        Ste = qt.transform(Xk_te)
+>>>>>>> REPLACE
+-----

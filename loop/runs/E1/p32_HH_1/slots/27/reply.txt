@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+    iu = np.triu_indices(n, 1)
+
+    def eq_cons(v):
+        c, R = v[:2 * n].reshape(n, 2), v[2 * n]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * R
+        return np.concatenate([d, c[:, 0] - R, c[:, 1] - R, 1 - c[:, 0] - R, 1 - c[:, 1] - R])
+
+    pre = minimize(lambda v: -v[-1], np.concatenate([base.ravel(), [INIT_RADIUS]]), method="SLSQP",
+                   constraints={"type": "ineq", "fun": eq_cons}, options={"maxiter": MAX_ITER})
+    x0 = np.concatenate([pre.x[:2 * n], np.full(n, max(pre.x[-1], 0.0))])
+>>>>>>> REPLACE
+-----

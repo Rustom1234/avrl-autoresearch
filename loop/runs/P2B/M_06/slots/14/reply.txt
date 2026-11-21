@@ -1,0 +1,75 @@
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+=======
+    def forward(self, x, ve, cos_sin, window_size, v0=None, lam=None):
+        B, T, C = x.size()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        cos, sin = cos_sin
+        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
+        q, k = norm(q), norm(k)
+
+        y = fa3.flash_attn_func(q, k, v, causal=True, window_size=window_size)
+        y = y.contiguous().view(B, T, -1)
+        y = self.c_proj(y)
+        return y
+=======
+        v_raw = v
+        if v0 is not None:
+            v = v + lam * v0
+
+        cos, sin = cos_sin
+        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
+        q, k = norm(q), norm(k)
+
+        y = fa3.flash_attn_func(q, k, v, causal=True, window_size=window_size)
+        y = y.contiguous().view(B, T, -1)
+        y = self.c_proj(y)
+        return y, v_raw
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(norm(x))
+        return x
+=======
+    def forward(self, x, ve, cos_sin, window_size, v0=None, lam=None):
+        a, v = self.attn(norm(x), ve, cos_sin, window_size, v0, lam)
+        x = x + a
+        x = x + self.mlp(norm(x))
+        return x, v
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+=======
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        self.v0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.x0_lambdas.fill_(0.1)
+=======
+        self.x0_lambdas.fill_(0.1)
+        self.v0_lambdas.fill_(0.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0_params = [self.x0_lambdas]
+=======
+        x0_params = [self.x0_lambdas, self.v0_lambdas]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+=======
+        x0 = x
+        v0 = None
+        for i, block in enumerate(self.transformer.h):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+            x, v = block(x, ve, cos_sin, self.window_sizes[i], v0, self.v0_lambdas[i])
+            if i == 0:
+                v0 = v
+>>>>>>> REPLACE
+-----

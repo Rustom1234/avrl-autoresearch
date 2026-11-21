@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    heavy_counts = np.array([float(Chem.GetMolFromSmiles(s).GetNumHeavyDos()) for s in smiles], dtype=np.float32).reshape(-1, 1)
+    return np.hstack([fps, heavy_counts])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+>>>>>>> REPLACE
+-----

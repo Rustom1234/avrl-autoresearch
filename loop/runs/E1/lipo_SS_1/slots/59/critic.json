@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The linear fit on MolLogP uses only the training rows (Xtr, y). Test rows use only their MolLogP feature values, never their labels. There is no file or network access.",
+  "No bug that makes the result meaningless. The residual target (y - lin_tr) is fitted correctly, and the linear part is added back at prediction time. One assumption I couldn't check from the diff: the MolLogP column sits at N_BITS + its position in Descriptors.descList, i.e. the descriptors are appended in descList order right after the fingerprint bits. If that assumption is wrong, the edit regresses on some other descriptor instead. That would still be a valid measurement, so no veto.",
+  "The numbers check out. The candidate mean is (0.4887 + 0.4948)/2 = 0.49175 against an incumbent mean of 0.4928, a gain of 0.00105. With 2 runs on each side, SE = 0.0042 * sqrt(1/2 + 1/2) = 0.0042, so z \u2248 0.25, consistent with the reported 0.253 (the small gap is likely from unrounded run values). The gain is well inside the noise, so the reject decision is consistent.",
+  "A smaller point: lin_tr and lin_te are computed from the raw feature column, which may be float32, while a and b come from a float64 fit. The mixed precision does no harm."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.25
+ }
+}

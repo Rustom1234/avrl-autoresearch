@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/RR_01/cand/s04_0.py",
+ "inc_scores": {
+  "11": 1.9322331221354299,
+  "12": 1.934730989476808
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Implement a simple scoring mechanism using the target_sample as a reference. For each document in the pool, calculate a similarity score based on shared vocabulary (using a simple set intersection of words) with the target_sample, then sort the pool indices by this score in descending order before returning them.",
+   "outcome": "dev 1.9723 against 1.9599 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Use a TF-IDF-like weighting to score documents in the pool: for each doc, calculate the intersection of words with the target_sample, but give more weight to words that appear frequently in the target_sample but rarely in the total pool. Sort the pool indices by this score descending.",
+   "outcome": "dev 1.9517 against 1.9599 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 3,
+   "idea": "Calculate the average word length and character density of the target_sample and use it to filter or re-weight the documents in the pool. Specifically, compute a 'stylistic' score where a document's relevance is multiplied by a similarity coefficient between its average word length and the target_sample's average word length.",
+   "outcome": "dev 1.9590 against 1.9517 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the unigram score with a word-order-aware quality score, deduplicate, cut the list at about T tokens, and shuffle it.\n\n1. Tokenise by `text.split()` with case preserved, since the target is WikiText-style and already space-tokenised (\" , \", \" @-@ \").\n2. Build the set of all adjacent token bigrams and the unigram vocabulary from `target_sample`.\n3. For each pool doc, using its first ~2000 tokens, compute:\n   - `b` = fraction of its adjacent bigrams that are in the target bigram set;\n   - `u` = fraction of its tokens that are in the target vocabulary.\n4. Score = `b + 0.25*u`, plus 0.1 if the doc starts with \"= \" and its first line ends with \" =\" (WikiText title line).\n5. Drop exact duplicates, keyed on a hash of the whitespace-normalised text, keeping the first occurrence. Drop docs under 50 tokens.\n6. Sort by score descending. Take docs from the top until the cumulative GPT-2 token count reaches about 1.02*T (count with tiktoken `encode_ordinary_batch`, or approximate as `len(text)/4` if time is tight).\n7. Shuffle the selected indices with `random.Random(CURATE_SEED)` and return them, so training sees a uniform mix rather than a best-to-worst order.",
+   "outcome": "dev 1.9322 against 1.9517 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Refine the scoring weights and the relevance metric: change the score to (b * 1.5 + u) and incorporate a 'density' factor where the score is multiplied by the ratio of characters to whitespace tokens (clamped to 1-5), while also increasing the weight of the WikiText title bonus to 0.5.",
+   "outcome": "dev 1.9329 against 1.9322 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Implement a 'distance' scoring mechanism: instead of raw proportions, calculate the score as (b + 0.5*u) / (1 + log(1 + complexity_penalty)), where complexity_penalty is the ratio of unique tokens to total tokens in the first 2000 tokens, to penalize overly repetitive or 'spammy' documents while still favoring the target domain's vocabulary.",
+   "outcome": "dev 1.9422 against 1.9322 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Keep the current pipeline (exact dedup, MIN_TOKENS, 1.02*T cut with tiktoken) but replace the final ranking with a self-trained discriminative classifier, add near-duplicate removal, and order filler first.\n\n1. Compute the current score s = b + 0.25*u + 0.1*title for every surviving doc, as now.\n2. Build pseudo-labels. Positives = the 200 target_sample docs cut into ~400-whitespace-token chunks, plus the first 2000 tokens of pool docs in the top 15% by s. Negatives = the first 2000 tokens of pool docs in the bottom 50% by s.\n3. Featurise with sklearn HashingVectorizer(analyzer='word', token_pattern=r'\\S+', lowercase=False, ngram_range=(1,2), n_features=2**20, norm='l2', alternate_sign=False) followed by a TfidfTransformer fit on the pool. Train LogisticRegression(C=10, max_iter=200, solver='liblinear', class_weight='balanced').\n4. Score every surviving pool doc (first 2000 tokens) with decision_function. Final rank key = that margin, with s as tie-break.\n5. Near-duplicate removal: while walking the ranked list, skip a doc if the md5 of its first 30 lowercased alphanumeric-only words, or of its words 100-130, was already seen from a higher-ranked doc.\n6. Take docs from the top until 1.02*T GPT-2 tokens, as now.\n7. Ordering: instead of one global shuffle, put the lowest-ranked 30% of selected docs (seeded shuffle among themselves) first, then the top 70% (seeded shuffle among themselves), so the final training steps see only the most in-domain text.\n\nIf the time check exceeds ~120 s before step 3, fall back to the current s ranking.",
+   "outcome": "dev 1.9528 against 1.9322 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Refine the scoring of pool documents by prioritizing 'informative' density: calculate the ratio of unique tokens to total tokens in the first 2000 tokens, and multiply the current score (b + 0.25*u + 0.1*title) by a factor that favors a diversity of vocabulary (e.g., log(unique/total + 1)) while penalizing extremely low-entropy spam (e.g., repetitive text).",
+   "outcome": "dev 1.9453 against 1.9322 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Improve the scoring by normalizing the bigram and unigram overlaps (b and u) by the 'information density' of the target sample. Specifically, calculate the average bigram overlap (b_target) and unigram overlap (u_target) across all docs in the target_sample, and then score pool docs as (b / b_target + 0.5 * (u / u_target)). Also, use a sliding window of the first 1000 tokens for the overlap calculation to ensure a more consistent comparison of the 'lead' of the documents.",
+   "outcome": "dev 1.9383 against 1.9322 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Keep the current score s = b + 0.25*u + 0.1*title, the exact dedup and MIN_TOKENS, but add a hard \"clean in-domain\" gate calibrated on the target sample, and repeat clean in-domain docs instead of filling the budget with off-domain or damaged text.\n\n1. Calibrate a bigram threshold. For each bigram, count how many target_sample docs contain it (document frequency). For each target doc, compute a leave-one-out b: the fraction of its adjacent bigrams (first 2000 whitespace tokens) that occur in at least one OTHER target doc, i.e. df >= 2, or df >= 1 for bigrams the doc does not itself contain. Set tau = 0.7 * (10th percentile of these 200 leave-one-out values).\n\n2. For each surviving pool doc, compute b, u and s as now. Mark it CLEAN if b >= tau. This is meant to exclude the word-shuffled WikiText docs (they have a title line and high u but low b, like the \"= Flaming Moe 's =\" example), the coupon spam and the off-domain text. Everything else is FILLER.\n\n3. Count GPT-2 tokens of the CLEAN docs with tiktoken; call the total C.\n   - If C >= 1.02*T: take CLEAN docs by s descending until 1.02*T tokens, then do a seeded shuffle (same as now, but restricted to clean docs).\n   - Otherwise: k = min(3, floor(1.02*T / C)), at least 1. Build the output as k passes over all CLEAN docs. If k*C < 1.02*T, fill the remainder with the highest-s FILLER docs that satisfy b >= 0.5*tau (never shuffled or spam docs); if there are not enough of those, add one more partial pass of CLEAN docs, best s first. Mix the filler into the first pass. Shuffle each pass independently with random.Random(CURATE_SEED) and concatenate the passes.\n\n4. Safety fallback: if fewer than 200 docs are CLEAN, or the time check exceeds 150 s, return the current behaviour unchanged.",
+   "outcome": "dev 1.9406 against 1.9322 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Implement a cross-entropy-inspired quality score: For each pool doc, calculate the log-probability (or a surrogate) of its tokens given the target_sample's distribution. Specifically, calculate the 'local' bigram/unigram overlap score and multiply it by a 'coherence' factor (the ratio of non-repeating bigrams to total bigrams in the first 1000 tokens) to distinguish between high-overlap spam (repetitive) and high-overlap content (diverse but relevant). If the total tokens of high-coherence/high-overlap docs are less than 0.8*T, fill the remaining budget with docs that have the highest bigram overlap regardless of coherence, but skip any doc with a 'spam' signature (e.g., excessive exclamation marks or URLs).",
+   "outcome": "dev 1.9257 against 1.9322 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Refine the 'coherence' logic from experiment 11 by implementing a multi-stage filter: 1) Calculate 'coherence' as the ratio of unique bigrams to total bigrams (first 1000 tokens). 2) Calculate 'relevance' as b + 0.5 * u + 0.1 * title. 3) Filter out 'spam' docs (docs where unique_bigrams / total_bigrams < 0.2 or containing 'http' or 'click here'). 4) Score surviving docs as Relevance * Coherence. 5) Select top docs until 1.02*T tokens; if under budget, fill with highest Relevance docs that are not spam. 6) Keep the final shuffle-per-pass or global shuffle logic.",
+   "outcome": "dev 1.9253 against 1.9322 for the best at the time, rejected"
+  }
+ ],
+ "usd": 1.5688394500000002,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.071988,
+   "dev": 1.9722828491378674,
+   "inc": 1.9599362739120232,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0008023499999999933,
+   "dev": 1.9517463326963813,
+   "inc": 1.9599362739120232,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.127159539725003,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.001102800000000001,
+   "dev": 1.9589672466269152,
+   "inc": 1.9517463326963813,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.127159539725003,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.24429160000000003,
+   "dev": 1.9322331221354299,
+   "inc": 1.9517463326963813,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.8127101261482697,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.1139423,
+   "dev": 1.9329124503686113,
+   "inc": 1.9322331221354299,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.8127101261482697,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0015166500000000083,
+   "dev": 1.9422035736108558,
+   "inc": 1.9322331221354299,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.8127101261482697,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.1657405,
+   "dev": 1.952841660267936,
+   "inc": 1.9322331221354299,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.8127101261482697,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0014723999999999293,
+   "dev": 1.9452814839712251,
+   "inc": 1.9322331221354299,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.8127101261482697,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.1529897,
+   "dev": 1.9383171273265454,
+   "inc": 1.9322331221354299,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.8127101261482697,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.4350836,
+   "dev": 1.940567408045922,
+   "inc": 1.9322331221354299,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.8127101261482697,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.22267750000000008,
+   "dev": 1.9257080029188673,
+   "inc": 1.9322331221354299,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.8127101261482697,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.15723205000000018,
+   "dev": 1.9252902987843288,
+   "inc": 1.9322331221354299,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9599362739120232,
+ "inc_slot": 4
+}

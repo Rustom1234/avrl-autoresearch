@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+from xgboost import XGBClassifier
+=======
+from sklearn.model_selection import KFold
+from xgboost import XGBClassifier, XGBRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+=======
+def aux_descriptors(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([
+            Descriptors.MolLogP(m),
+            rdMolDescriptors.CalcTPSA(m),
+            Descriptors.MolWt(m),
+            rdMolDescriptors.CalcNumHBD(m),
+            rdMolDescriptors.CalcNumHBA(m),
+        ])
+    return np.array(rows, dtype=np.float32)
+
+
+def aux_features(x_tr, t_tr, x_te, seed):
+    # Out-of-fold predictions for training rows, full-fit predictions for test rows.
+    oof = np.zeros((len(x_tr), t_tr.shape[1]))
+    te = np.zeros((len(x_te), t_tr.shape[1]))
+    kf = KFold(n_splits=5, shuffle=True, random_state=seed)
+    for j in range(t_tr.shape[1]):
+        for tr_idx, va_idx in kf.split(x_tr):
+            reg = XGBRegressor(n_estimators=200, max_depth=5, learning_rate=0.1, subsample=0.8, colsample_bytree=0.3,
+                               random_state=seed, n_jobs=8)
+            reg.fit(x_tr[tr_idx], t_tr[tr_idx, j])
+            oof[va_idx, j] = reg.predict(x_tr[va_idx])
+        reg = XGBRegressor(n_estimators=200, max_depth=5, learning_rate=0.1, subsample=0.8, colsample_bytree=0.3,
+                           random_state=seed, n_jobs=8)
+        reg.fit(x_tr, t_tr[:, j])
+        te[:, j] = reg.predict(x_te)
+    return oof, te
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    oof, aux_te = aux_features(train_sets[0], aux_descriptors(train_smiles), test_sets[0], seed)
+    train_sets[0] = np.hstack([train_sets[0], oof])
+    test_sets[0] = np.hstack([test_sets[0], aux_te])
+>>>>>>> REPLACE
+-----

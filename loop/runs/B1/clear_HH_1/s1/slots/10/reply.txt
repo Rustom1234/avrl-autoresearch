@@ -1,0 +1,80 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+    D = descriptors(train_smiles)
+    Dt = descriptors(test_smiles)
+    keep = D.std(axis=0) > 1e-9
+    D, Dt = D[:, keep], Dt[:, keep]
+    dmu, dsd = D.mean(axis=0), D.std(axis=0) + 1e-9
+    D = np.clip((D - dmu) / dsd, -5.0, 5.0)
+    Dt = np.clip((Dt - dmu) / dsd, -5.0, 5.0)
+    gamma = 1.0 / D.shape[1]
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    n = len(train_smiles)
+    smi = list(train_smiles) + list(test_smiles)
+    X = featurize(smi).astype(np.float64)
+    D = descriptors(smi)
+    keep = D[:n].std(axis=0) > 1e-9
+    D = D[:, keep]
+    dmu, dsd = D[:n].mean(axis=0), D[:n].std(axis=0) + 1e-9
+    D = np.clip((D - dmu) / dsd, -5.0, 5.0)
+    gamma = 1.0 / D.shape[1]
+    K = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    F = np.hstack([X, D])
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    tr = np.arange(n)
+    te = np.arange(n, len(smi))
+
+    def svr(a, b, yy):
+        mu, sd = yy.mean(), yy.std() + 1e-9
+        m = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+        m.fit(K[np.ix_(a, a)], (yy - mu) / sd)
+        return m.predict(K[np.ix_(b, a)])
+
+    def lgbm(a, b, yy):
+        m = lgb.LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15,
+                              min_child_samples=5, colsample_bytree=0.3, subsample=0.8,
+                              subsample_freq=1, random_state=seed, n_jobs=8, verbose=-1)
+        m.fit(F[a], yy)
+        return m.predict(F[b])
+
+    def rf(a, b, yy):
+        m = RandomForestRegressor(n_estimators=300, max_features=0.3, min_samples_leaf=2,
+                                  n_jobs=8, random_state=seed)
+        m.fit(F[a], yy)
+        return m.predict(F[b])
+
+    models = [svr, lgbm, rf]
+
+    def base_all(a, b, yy):
+        return np.column_stack([m(a, b, yy) for m in models])
+
+    oof = np.zeros((n, len(models)))
+    for a, b in KFold(n_splits=5, shuffle=True, random_state=seed).split(tr):
+        oof[b] = base_all(tr[a], tr[b], y[a])
+    Z = np.column_stack([rankdata(oof[:, j]) / n for j in range(len(models))])
+    meta = Ridge(alpha=1.0, positive=True).fit(Z, y)
+    P = base_all(tr, te, y)
+    Pz = np.column_stack([rankdata(P[:, j]) / len(te) for j in range(len(models))])
+    return meta.predict(Pz)
+>>>>>>> REPLACE
+-----

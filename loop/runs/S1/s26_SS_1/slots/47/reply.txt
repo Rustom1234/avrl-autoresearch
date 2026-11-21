@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 120:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    c, r = best
+    try:
+        from scipy.optimize import differential_evolution
+        idx = np.argsort(r)[:5]
+        base = c.copy()
+        t1 = time.time()
+
+        def build(v):
+            cc = base.copy()
+            cc[idx] = np.clip(base[idx] + v.reshape(5, 2), 0.0, 1.0)
+            return cc
+
+        def fit(v):
+            return -_lp_radii(build(v)).sum()
+
+        def cb(xk, convergence=None):
+            return time.time() - t1 > 25
+
+        de = differential_evolution(fit, [(-0.08, 0.08)] * 10, seed=1, popsize=15,
+                                    maxiter=100000, tol=0, polish=False,
+                                    callback=cb, updating="immediate")
+        cd = build(de.x)
+        rd = _lp_radii(cd)
+        if rd.sum() > r.sum():
+            c, r = cd, rd
+        c2 = np.clip(_polish(cd, rd), 0, 1)
+        r2 = _lp_radii(c2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    except Exception:
+        pass
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

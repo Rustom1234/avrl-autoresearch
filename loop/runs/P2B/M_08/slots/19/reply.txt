@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+        with autocast_ctx:
+            logits = model(x, y)[0]
+            # RMS-normalize logits to keep them scaled (for z-loss)
+            logits = logits / (logits.mean(dim=-1, keepdim=True).sqrt() + 1e-8)
+            # z-loss: 1e-4 * mean squared logits
+            z_loss = logits.square().mean() * 1e-4
+            loss = model(x, y)[1] + z_loss
+=======
+        with autocast_ctx:
+            logits = model(x)
+            # z-loss: 1e-4 * mean squared logits
+            z_loss = logits.square().mean() * 1e-4
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), y.view(-1), ignore_index=-1) + z_loss
+>>>>>>> REPLACE
+-----

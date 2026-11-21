@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+        c, rr = _relax(c, np.full(_N, 0.005), 200, 0.05, 0.01, 0.5, cur_c)
+        c, rr = _slsqp_refine(c, rr, 80)
+=======
+        pool = [c.copy()]
+        for _m in range(3):
+            pool.append(np.clip(c + rng.normal(0.0, 0.01, size=c.shape), 0.0, 1.0))
+        scored = []
+        for q in pool:
+            qc, qr = _relax(q, np.full(_N, 0.005), 60, 0.05, 0.01, 0.5, cur_c)
+            _qv, qs = _score(qc)
+            scored.append((qs, qc, qr))
+        scored.sort(key=lambda t: -t[0])
+        c, rr = _relax(scored[0][1], np.full(_N, 0.005), 200, 0.05, 0.01, 0.5, cur_c)
+        c, rr = _slsqp_refine(c, rr, 80)
+>>>>>>> REPLACE
+-----

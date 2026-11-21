@@ -1,0 +1,94 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+from sklearn.linear_model import Ridge
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import KFold
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+=======
+from xgboost import XGBRegressor
+from sklearn.svm import SVR
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import KFold
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+SVR_C = 5.0
+SVR_EPS = 0.1
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_all = featurize(train_smiles)
+    y_all = np.asarray(train_y, dtype=np.float64)
+    
+    # Split features for Ridge
+    X_desc = X_all[:, -5:]
+    
+    # Ridge on descriptors
+    scaler = StandardScaler()
+    X_desc_scaled = scaler.fit_transform(X_desc)
+    
+    # Out-of-fold residuals for XGB
+    kf = KFold(n_splits=5, shuffle=True, random_state=seed)
+    oof_res = np.zeros_like(y_all)
+    
+    # Ridge model to predict residuals
+    ridge = Ridge(alpha=1.0)
+    for tr_idx, val_idx in kf.split(X_desc_scaled):
+        X_train_r = X_desc_scaled[tr_idx]
+        X_val_r = X_desc_scaled[val_idx]
+        y_train_r = y_all[tr_idx]
+        
+        ridge.fit(X_train_r, y_train_r)
+        oof_res[val_idx] = y_all[val_idx] - ridge.predict(X_val_r)
+    
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_test = featurize(test_smiles)
+    
+    # Compute Tanimoto kernel
+    # Morgan fingerprints are bit vectors, so Tanimoto = (A & B) / (A | B)
+    # We use dot product on bit vectors to get intersection count for speed
+    def get_tanimoto(A, B):
+        dot = np.dot(A, B.T)
+        sq_norm = np.sum(A**2, axis=1).reshape(-1, 1) + np.sum(B**2, axis=1).reshape(1, -1)
+        return dot / (sq_norm + 1e-7)
+
+    K_train = get_tanimoto(X_train, X_train)
+    K_test = get_tanimoto(X_train, X_test)
+    
+    # SVR with precomputed Tanimoto kernel
+    # To keep it efficient, we only use the fingerprint bits (first 2048 columns)
+    # if there were more columns, we'd slice them here.
+    svr = SVR(kernel='precomputed', C=SVR_C, epsilon=SVR_EPS)
+    svr.fit(K_train, y_train)
+    
+    return svr.predict(K_test)
+>>>>>>> REPLACE
+-----

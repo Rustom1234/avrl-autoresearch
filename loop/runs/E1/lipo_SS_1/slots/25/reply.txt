@@ -1,0 +1,89 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    model = XGBRegressor(
+=======
+def mlp_predict(Dtr, y, Dte, seed, n):
+    return np.mean([
+        MLPRegressor(hidden_layer_sizes=(512, 256), alpha=1e-2, early_stopping=True,
+                     max_iter=300, random_state=seed + k).fit(Dtr, y).predict(Dte)
+        for k in range(n)], axis=0)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    qt = QuantileTransformer(n_quantiles=min(1000, len(y)), output_distribution="normal", random_state=seed)
+    Dtr = qt.fit_transform(Xtr[:, N_BITS:])
+    Dte = qt.transform(Xte[:, N_BITS:])
+    p_mlp = mlp_predict(Dtr, y, Dte, seed, 5)
+    oof = np.zeros(len(y))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Dtr):
+        oof[va] = mlp_predict(Dtr[tr], y[tr], Dtr[va], seed, 3)
+    Xtr = np.hstack([Xtr, oof[:, None].astype(np.float32)])
+    Xte = np.hstack([Xte, p_mlp[:, None].astype(np.float32)])
+    model = XGBRegressor(
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_tree = model.predict(Xte)
+
+    qt = QuantileTransformer(n_quantiles=min(1000, len(y)), output_distribution="normal", random_state=seed)
+    Dtr = qt.fit_transform(Xtr[:, N_BITS:])
+    Dte = qt.transform(Xte[:, N_BITS:])
+    p_mlp = np.mean([
+        MLPRegressor(hidden_layer_sizes=(512, 256), alpha=1e-2, early_stopping=True,
+                     max_iter=300, random_state=seed + k).fit(Dtr, y).predict(Dte)
+        for k in range(5)], axis=0)
+    return 0.5 * p_tree + 0.5 * p_mlp
+=======
+    p_tree = model.predict(Xte)
+    return 0.7 * p_tree + 0.3 * p_mlp
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+
+    def mlp_predict(A, t, B, n):
+        return np.mean([
+            MLPRegressor(hidden_layer_sizes=(512, 256), alpha=1e-2, early_stopping=True,
+                         max_iter=300, random_state=seed + k).fit(A, t).predict(B)
+            for k in range(n)], axis=0)
+
+    qt = QuantileTransformer(n_quantiles=min(1000, len(y)), output_distribution="normal", random_state=seed)
+    Dtr = qt.fit_transform(Xtr[:, N_BITS:])
+    Dte = qt.transform(Xte[:, N_BITS:])
+    p_mlp = mlp_predict(Dtr, y, Dte, 5)
+    oof = np.zeros(len(y))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Dtr):
+        oof[va] = mlp_predict(Dtr[tr], y[tr], Dtr[va], 3)
+    Xtr = np.hstack([Xtr, oof[:, None].astype(np.float32)])
+    Xte = np.hstack([Xte, p_mlp[:, None].astype(np.float32)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    qt = QuantileTransformer(n_quantiles=min(1000, len(y)), output_distribution="normal", random_state=seed)
+    Dtr = qt.fit_transform(Xtr[:, N_BITS:])
+    Dte = qt.transform(Xte[:, N_BITS:])
+    p_mlp = np.mean([
+        MLPRegressor(hidden_layer_sizes=(512, 256), alpha=1e-2, early_stopping=True,
+                     max_iter=300, random_state=seed + k).fit(Dtr, y).predict(Dte)
+        for k in range(5)], axis=0)
+    return 0.5 * p_tree + 0.5 * p_mlp
+=======
+    return 0.7 * p_tree + 0.3 * p_mlp
+>>>>>>> REPLACE
+-----

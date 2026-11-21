@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+        z = res.x
+        if -res.fun < best_val - 0.02:
+=======
+        z = res.x
+        _x, _y, _r = z[:n], z[n:2 * n], z[2 * n:]
+        _gap = np.sqrt((_x[iu] - _x[ju]) ** 2 + (_y[iu] - _y[ju]) ** 2) - _r[iu] - _r[ju]
+        _nc = int(np.sum(_gap < 1e-7)) + int(np.sum(np.concatenate(
+            [_x - _r, 1 - _x - _r, _y - _r, 1 - _y - _r]) < 1e-7))
+        if _nc < 55:
+            z1 = z.copy()
+            z1[:2 * n] = np.clip(z1[:2 * n] + rng.normal(0, 1e-3, 2 * n), 0, 1)
+            z1[2 * n:] *= 0.98
+            try:
+                res2 = minimize(obj, z1, jac=grad, method="SLSQP", bounds=bounds,
+                                constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                                options={"maxiter": 300, "ftol": 1e-11})
+                if -res2.fun > -res.fun:
+                    res = res2
+                    z = res.x
+            except Exception:
+                pass
+        if -res.fun < best_val - 0.02:
+>>>>>>> REPLACE
+-----

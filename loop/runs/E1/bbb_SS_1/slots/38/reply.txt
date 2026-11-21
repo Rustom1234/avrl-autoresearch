@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from scipy.spatial.distance import cdist
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.svm import SVC
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    nd = len(Descriptors.descList)
+    qt = QuantileTransformer(n_quantiles=200, random_state=seed).fit(X[:, :nd])
+    Dtr, Dte = qt.transform(X[:, :nd]), qt.transform(Xt[:, :nd])
+    Ftr, Fte = X[:, nd:].astype(np.float64), Xt[:, nd:].astype(np.float64)
+
+    def kern(Da, Fa, Db, Fb):
+        s = Fa.sum(1)[:, None] + Fb.sum(1)[None, :]
+        d = cdist(Fa, Fb, 'cityblock')
+        tani = (s - d) / np.maximum(s + d, 1e-9)
+        rbf = np.exp(-cdist(Da, Db, 'sqeuclidean') / nd)
+        return 0.5 * tani + 0.5 * rbf
+
+    svc = SVC(kernel='precomputed', C=1.0)
+    svc.fit(kern(Dtr, Ftr, Dtr, Ftr), y)
+    preds.append(rankdata(svc.decision_function(kern(Dte, Fte, Dtr, Ftr))) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

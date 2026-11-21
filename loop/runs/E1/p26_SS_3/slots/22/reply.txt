@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+=======
+    iu = np.triu_indices(n, 1)
+
+    if start is None:
+        def energy(v, mu):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            diff = c[iu[0]] - c[iu[1]]
+            d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+            o = np.maximum(r[iu[0]] + r[iu[1]] - d, 0)
+            gc, gr = np.zeros((n, 2)), np.full(n, -1.0)
+            f = -r.sum() + mu * (o ** 2).sum()
+            g = (2 * mu * o / d)[:, None] * diff
+            np.add.at(gc, iu[0], -g)
+            np.add.at(gc, iu[1], g)
+            np.add.at(gr, iu[0], 2 * mu * o)
+            np.add.at(gr, iu[1], 2 * mu * o)
+            for k in range(2):
+                a = np.maximum(r - c[:, k], 0)
+                b = np.maximum(r + c[:, k] - 1, 0)
+                f += mu * ((a ** 2).sum() + (b ** 2).sum())
+                gr += 2 * mu * (a + b)
+                gc[:, k] += 2 * mu * (b - a)
+            return f, np.concatenate([gc.ravel(), gr])
+
+        bnds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+        for mu in (10, 100, 1000):
+            x0 = minimize(energy, x0, args=(mu,), jac=True, method="L-BFGS-B", bounds=bnds,
+                          options={"maxiter": 50}).x
+
+    def cons(v):
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+W_DESC = 0.6  # weight of the descriptor-based LightGBM rank; fingerprint ExtraTrees gets 1 - W_DESC
+=======
+W_DESC = 0.5  # weight of the descriptor-based LightGBM rank; the two fingerprint GPs share 1 - W_DESC equally
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def pair_torsion_fingerprints(smiles):
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+    tt_gen = rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=2048)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.concatenate([ap_gen.GetFingerprintAsNumPy(m), tt_gen.GetFingerprintAsNumPy(m)]))
+    return np.array(rows, dtype=np.float64)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+
+    P_tr, P_te = pair_torsion_fingerprints(train_smiles), pair_torsion_fingerprints(test_smiles)
+    K_pt = tanimoto(P_tr, P_tr)
+    s2_pt = choose_sigma2(K_pt, y, train_smiles)
+    p_pt = gp_mean(K_pt, y, tanimoto(P_te, P_tr), s2_pt)
+
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) / 2 * (rankdata(p_fp) / n + rankdata(p_pt) / n)
+>>>>>>> REPLACE
+-----

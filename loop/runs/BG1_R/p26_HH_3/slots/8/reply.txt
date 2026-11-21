@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+RESTART_FRACTION = 0.3
+=======
+RESTART_FRACTION = 0.3
+STALE_LIMIT = 15
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < RESTART_FRACTION * budget or best is None:   # short random-restart phase
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+    stale = 0
+    while time.process_time() - t0 < RESTART_FRACTION * budget or best is None:   # short random-restart phase
+        if stale > STALE_LIMIT:   # restarts have stopped finding better basins: switch to basin hopping
+            break
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            stale = 0
+        else:
+            stale += 1
+>>>>>>> REPLACE
+-----

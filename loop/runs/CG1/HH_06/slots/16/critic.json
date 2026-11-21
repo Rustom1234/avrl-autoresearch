@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "I found nothing in the diff that gets around the measurement. The EMA buffers are rebuilt inside train() from the freshly initialised model on every run, so nothing carries over between runs or from the untimed first call. There is no seeding, no file access, no new imports and no use of test images. predict() is unchanged. The integrity flag looks like a false positive, or it comes from something outside this diff; the harness should say which check fired.",
+  "Not a veto: the batch-norm running statistics were collected with the raw weights, but prediction now uses the EMA weights, so the two do not match. This could lower accuracy, but the result is still a valid measurement.",
+  "Not a veto: please check that `ceil` is imported in train.py (for example `from math import ceil`). If it is missing, the run will fail with a NameError.",
+  "Small cost: before ema_start the code copies every parameter on every step. After that it builds a list of float32 copies on every step for the foreach lerp. This adds kernel launches to the timed run, which matters at about 7.6 s per run.",
+  "The harness gave no time or accuracy numbers, so z cannot be recomputed and there is no claim to check."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

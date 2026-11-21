@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = _soft_relax(n, rng)
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _anneal(x, n, rng, steps=8000, penalty=1e3):
+    """Simulated annealing on E = -sum(r) + penalty * (squared overlaps + wall violations), single-coordinate moves."""
+    iu = np.triu_indices(n, 1)
+
+    def energy(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        ov = np.maximum(r[iu[0]] + r[iu[1]] - d, 0)
+        wall = (np.maximum(r[:, None] - c, 0) ** 2).sum() + (np.maximum(r[:, None] + c - 1, 0) ** 2).sum()
+        return -r.sum() + penalty * ((ov ** 2).sum() + wall + (np.maximum(-r, 0) ** 2).sum())
+
+    v = x.copy()
+    e = energy(v)
+    best_v, best_e = v.copy(), e
+    T0, T1 = 1e-2, 1e-6
+    for s in range(steps):
+        T = T0 * (T1 / T0) ** (s / steps)
+        i = rng.integers(3 * n)
+        u = v.copy()
+        u[i] += rng.normal(0, 0.1 * (T / T0) + 1e-4)
+        e2 = energy(u)
+        if e2 < e or rng.random() < np.exp(-(e2 - e) / T):
+            v, e = u, e2
+            if e < best_e:
+                best_v, best_e = v.copy(), e
+    return best_v
+
+
+def _solve_once(n, rng):
+    x0 = _soft_relax(n, rng)
+    v = _anneal(x0, n, rng)
+    return v[:2 * n].reshape(n, 2), v[2 * n:]
+>>>>>>> REPLACE
+-----

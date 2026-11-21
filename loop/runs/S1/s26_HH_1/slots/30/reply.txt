@@ -1,0 +1,99 @@
+<<<<<<< SEARCH
+def jitter_anneal_search(seed=12345, budget=150.0, start=None):
+    n = 26
+    rng = np.random.default_rng(seed)
+    t0 = time.time()
+    c = _ls_growth(rng) if start is None else start
+    best_c, best_r = _local_opt(c)
+    best_s = float(np.sum(best_r))
+    K = 20
+    for k in range(K):
+        if time.time() - t0 > budget:
+            break
+        frac = k / (K - 1)
+        sigma = 0.1 * (0.002 / 0.1) ** frac
+        cand = np.clip(best_c + rng.normal(0.0, sigma, (n, 2)), 0.0, 1.0)
+        cc, rr = _local_opt(cand)
+        s = float(np.sum(rr))
+        if s > best_s:
+            best_c, best_r, best_s = cc, rr, s
+    return best_c, best_r
+=======
+def jitter_anneal_search(seed=12345, budget=150.0, start=None):
+    # CMA-ES over the 52 centre coordinates; fitness is the LP radii sum (LP is the only evaluator).
+    n = 26
+    dim = 2 * n
+    rng = np.random.default_rng(seed)
+    t0 = time.time()
+    c = _ls_growth(rng) if start is None else start
+    mean = np.concatenate([np.clip(c[:, 0], 0.0, 1.0), np.clip(c[:, 1], 0.0, 1.0)])
+    elite = []
+
+    def to_c(v):
+        return np.clip(np.stack([v[:n], v[n:]], axis=1), 0.0, 1.0)
+
+    def add_elite(cc_):
+        s = float(np.sum(_lp_radii(cc_)))
+        elite.append((s, cc_))
+        elite.sort(key=lambda e: -e[0])
+        del elite[3:]
+        return s
+
+    add_elite(to_c(mean))
+    lam = 12
+    mu = lam // 2
+    w = np.log(mu + 0.5) - np.log(np.arange(1, mu + 1))
+    w = w / np.sum(w)
+    mueff = 1.0 / np.sum(w * w)
+    cc_ = (4.0 + mueff / dim) / (dim + 4.0 + 2.0 * mueff / dim)
+    cs = (mueff + 2.0) / (dim + mueff + 5.0)
+    c1 = 2.0 / ((dim + 1.3) ** 2 + mueff)
+    cmu = min(1.0 - c1, 2.0 * (mueff - 2.0 + 1.0 / mueff) / ((dim + 2.0) ** 2 + mueff))
+    damps = 1.0 + 2.0 * max(0.0, np.sqrt((mueff - 1.0) / (dim + 1.0)) - 1.0) + cs
+    chiN = np.sqrt(dim) * (1.0 - 1.0 / (4.0 * dim) + 1.0 / (21.0 * dim * dim))
+    sigma = 0.05
+    C = np.eye(dim)
+    B = np.eye(dim)
+    D = np.ones(dim)
+    invsqrtC = np.eye(dim)
+    pcv = np.zeros(dim)
+    psv = np.zeros(dim)
+    gen = 0
+    while time.time() - t0 < budget:
+        gen += 1
+        Z = rng.standard_normal((lam, dim))
+        Y = (Z * D) @ B.T
+        X = mean + sigma * Y
+        fit = np.empty(lam)
+        for k in range(lam):
+            fit[k] = -add_elite(to_c(X[k]))
+        order = np.argsort(fit)
+        sel = Y[order[:mu]]
+        ydw = w @ sel
+        mean = mean + sigma * ydw
+        psv = (1.0 - cs) * psv + np.sqrt(cs * (2.0 - cs) * mueff) * (invsqrtC @ ydw)
+        hsig = float(np.linalg.norm(psv) / np.sqrt(1.0 - (1.0 - cs) ** (2 * gen)) / chiN < 1.4 + 2.0 / (dim + 1.0))
+        pcv = (1.0 - cc_) * pcv + hsig * np.sqrt(cc_ * (2.0 - cc_) * mueff) * ydw
+        C = ((1.0 - c1 - cmu) * C
+             + c1 * (np.outer(pcv, pcv) + (1.0 - hsig) * cc_ * (2.0 - cc_) * C)
+             + cmu * ((sel.T * w) @ sel))
+        sigma = sigma * np.exp((cs / damps) * (np.linalg.norm(psv) / chiN - 1.0))
+        sigma = float(np.clip(sigma, 1e-5, 0.3))
+        C = 0.5 * (C + C.T)
+        ev, B = np.linalg.eigh(C)
+        D = np.sqrt(np.maximum(ev, 1e-20))
+        invsqrtC = (B / D) @ B.T
+    cands = []
+    if elite:
+        pol_c, pol_r = _local_opt(elite[0][1])
+        cands.append((float(np.sum(pol_r)), pol_c, pol_r))
+    for s, ce in elite:
+        rr = _lp_radii(ce)
+        cands.append((float(np.sum(rr)), ce, rr))
+    cands = [t for t in cands if _valid_packing(t[1], t[2])]
+    if not cands:
+        return c, _lp_radii(c)
+    best = max(cands, key=lambda t: t[0])
+    return best[1], best[2]
+>>>>>>> REPLACE
+-----

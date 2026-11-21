@@ -1,0 +1,84 @@
+<<<<<<< SEARCH
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def get_descriptors(smiles):
+=======
+    def get_ionizable_counts(mol):
+        patterns = {f"Carboxylic acid": "[CX3](=[OX1-])[OX2H1]",
+                     f"Tetrazole": "N1=N+N=NN1",
+                     f"Acyl sulfonamide": "[CX3](=[OX1-])[S](=[OX2-])[N;H0,H1]
+-----
+<<<<<<< SEARCH
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def get_descriptors(smiles):
+=======
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    
+    def get_ionizable_counts(mol):
+        # SMARTS for common ionizable groups
+        patterns = {
+            "Carboxylic acid": "[CX3](=[OX1-])[OX2H1]",
+            "Tetrazole": "N1=N+N=NN1",
+            "Acyl sulfonamide": "[CX3](=[OX1-])[S](=[OX2-])[N;H0,H1]",
+            "Phenol": "[CX3](=[OX1-])[OH]",
+            "Primary amine": "[NX3;H1;!$(SumAt([NX3;H1])>1)]",
+            "Secondary amine": "[NX3;H2;!$(SumAt([NX3;H2])>1)]",
+            "Tertiary amine": "[NX3;H0;!$(SumAt([NX3;H0])>1)]",
+            "Amidine": "[NX3;H1;$(SumAt([NX3;H1])>=1)]\[NX3;H1]",
+            "Quaternary nitrogen": "[NX4;H0;!$(SumAt([NX4;H0])>1)]"
+        }
+        counts = []
+        for name, smarts in patterns.items():
+            p = Chem.MolFromSmarts(smarts)
+            if p:
+                counts.append(1 if mol.HasSubstructMatch(p) else 0)
+            else:
+                counts.append(0)
+        return np.array(counts, dtype=np.float32)
+
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    ion_counts = np.array([get_ionizable_counts(m) for m in mols], dtype=np.float32)
+    return np.hstack([fps, ion_counts])
+
+def get_descriptors(smiles):
+-----
+<<<<<<< SEARCH
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def get_descriptors(smiles):
+=======
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    
+    def get_ionizable_counts(mol):
+        patterns = {
+            "Carboxylic acid": "[CX3](=[OX1-])[OX2H1]",
+            "Tetrazole": "N1=N+N=NN1",
+            "Acyl sulfonamide": "[CX3](=[OX1-])[S](=[OX2-])[N;H0,H1]",
+            "Phenol": "[CX3](=[OX1-])[OH]",
+            "Primary amine": "[NX3;H1;!$(SumAt([NX3;H1])>1)]",
+            "Secondary amine": "[NX3;H2;!$(SumAt([NX3;H2])>1)]",
+            "Tertiary amine": "[NX3;H0;!$(SumAt([NX3;H0])>1)]",
+            "Amidine": "[NX3;H1;$(SumAt([NX3;H1])>=1)]\[NX3;H1]",
+            "Quaternary nitrogen": "[NX4;H0;!$(SumAt([NX4;H0])>1)]"
+        }
+        counts = []
+        for smarts in patterns.values():
+            p = Chem.MolFromSmarts(smarts)
+            counts.append(1 if p and mol.HasSubstructMatch(p) else 0)
+        return np.array(counts, dtype=np.float32)
+
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    ion_counts = np.array([get_ionizable_counts(m) for m in mols], dtype=np.float32)
+    return np.hstack([fps, ion_counts])
+
+def get_descriptors(smiles):
+-----

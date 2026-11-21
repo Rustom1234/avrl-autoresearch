@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+=======
+    model = LGBMRegressor(n_estimators=300, learning_rate=0.02, num_leaves=15, subsample=0.8, subsample_freq=1,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(np.hstack([Xtr, extra_feats(train_smiles)]), y)
+    p_lgb = model.predict(np.hstack([Xte, extra_feats(test_smiles)]))
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+    oof = np.zeros(len(y))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Str):
+        oof[va] = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str[tr], y[tr]).predict(Str[va])
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    model.fit(np.hstack([Xtr, extra_feats(train_smiles)]), y, init_score=oof)
+    corr = model.predict(np.hstack([Xte, extra_feats(test_smiles)]))
+    return svr.predict(Ste) + 0.5 * 0.7 * corr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMRegressor
+=======
+from lightgbm import LGBMRegressor
+from xgboost import XGBRegressor
+from catboost import CatBoostRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+N_BITS = 1024
+=======
+N_BITS = 512
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64))
+=======
+    rows = []
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        d = [f(m) for _, f in Descriptors.descList]
+        rows.append(np.concatenate([np.array(d, dtype=np.float64), gen.GetCountFingerprintAsNumPy(m)]))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                          colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    models = [
+        LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                      colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8),
+        XGBRegressor(n_estimators=500, learning_rate=0.03, max_depth=5, subsample=0.8, colsample_bytree=0.5,
+                     min_child_weight=3, random_state=seed, n_jobs=8),
+        CatBoostRegressor(iterations=800, learning_rate=0.05, depth=6, rsm=0.3, random_seed=seed,
+                          verbose=0, thread_count=8),
+    ]
+    preds = [m.fit(Xtr, y).predict(Xte) for m in models]
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

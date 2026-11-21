@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from rdkit.Chem import MACCSkeys
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64))
+=======
+ND = len(Descriptors.descList)
+
+
+def featurize(smiles):
+    rows = []
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=2, fpSize=512, atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen())
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        d = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        maccs = np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float64)
+        fc = gen.GetCountFingerprintAsNumPy(m).astype(np.float64)
+        rows.append(np.concatenate([d, maccs, fc]))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    keep = Xtr.std(axis=0) > 0
+=======
+    Xtr, Xte = Xtr[:, :ND], Xte[:, :ND]
+    keep = Xtr.std(axis=0) > 0
+>>>>>>> REPLACE
+-----

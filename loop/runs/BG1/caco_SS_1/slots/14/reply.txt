@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.neural_network import MLPRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * p_xgb + 0.25 * p_et + 0.25 * p_svr
+=======
+    D = Xtr[:, :nd]
+    keep = D.std(axis=0) > 0
+    qt = QuantileTransformer(n_quantiles=min(200, len(y)), output_distribution="normal", random_state=seed)
+    Dtr = qt.fit_transform(D[:, keep])
+    Dte = qt.transform(Xte[:, :nd][:, keep])
+    p_mlp = np.zeros(len(Dte))
+    for k in range(5):
+        mlp = MLPRegressor(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True,
+                           max_iter=500, random_state=seed * 10 + k)
+        mlp.fit(Dtr, y)
+        p_mlp += mlp.predict(Dte) / 5
+    return 0.7 * (0.5 * p_xgb + 0.25 * p_et + 0.25 * p_svr) + 0.3 * p_mlp
+>>>>>>> REPLACE
+-----

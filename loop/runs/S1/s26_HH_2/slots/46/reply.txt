@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize as _minimize
+=======
+from scipy.optimize import minimize as _minimize
+from scipy.spatial import Delaunay
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _old_construct_packing():
+=======
+def _flip_move(c, r, rng):
+    """Delaunay edge flip: move one endpoint of a non-contact interior edge onto the midpoint of its opposite pair."""
+    try:
+        tri = Delaunay(c)
+    except Exception:
+        return False
+    pairs = {}
+    for s_ in tri.simplices:
+        for k_ in range(3):
+            a_ = int(s_[k_])
+            b_ = int(s_[(k_ + 1) % 3])
+            o_ = int(s_[(k_ + 2) % 3])
+            pairs.setdefault((min(a_, b_), max(a_, b_)), []).append(o_)
+    cand = []
+    for (a_, b_), opp in pairs.items():
+        if len(opp) != 2:
+            continue
+        p_, q_ = opp
+        gap = np.sqrt(np.sum((c[p_] - c[q_]) ** 2)) - r[p_] - r[q_]
+        if gap > 1e-3:
+            cand.append((a_, b_, p_, q_))
+    if not cand:
+        return False
+    a_, b_, p_, q_ = cand[rng.randint(len(cand))]
+    c[a_] = 0.5 * (c[p_] + c[q_]) + rng.normal(0.0, 0.003, size=2)
+    c[:] = np.clip(c, 0.0, 1.0)
+    return True
+
+
+def _old_construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c = cur_c.copy()
+        if rng.rand() < 0.5:
+=======
+        c = cur_c.copy()
+        flip_ok = False
+        if rng.rand() < 0.3:
+            flip_ok = _flip_move(c, cur_r, rng)
+        if flip_ok:
+            pass
+        elif rng.rand() < 0.5:
+>>>>>>> REPLACE
+-----

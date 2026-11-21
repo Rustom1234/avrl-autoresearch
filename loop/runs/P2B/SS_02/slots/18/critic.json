@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "No tampering found. The diff only changes hyperparameters: TOTAL_BATCH_SIZE drops from 2**19 to 2**17 (4x smaller), and EMBEDDING, UNEMBEDDING, MATRIX and SCALAR LR are each multiplied by 0.7. It doesn't touch the eval call, the data, the seed lines or the prepare.py import.",
+  "No bug found. If the sequence length is 2048, 2**17 = 64 * 2048, so the gradient accumulation steps become exactly 1 and the divisibility check should still pass. The extra optimizer steps in the 300 s window explain the gain, so the result is meaningful.",
+  "I couldn't reproduce z. Candidate mean is 1.0526 (n=2) and incumbent is 1.0918 (n=1), a gap of 0.0392. Using only the candidate's spread (sample sd about 0.00226) gives z of about 17 to 24, far above the reported 5.847. The reported value implies a noise sd of about 0.0067, so the harness probably uses a pooled or prior noise estimate. Either way the decision to accept is the same.",
+  "The incumbent has only 1 run, so its own variance isn't measured. A replicate of the incumbent would make the comparison more solid, but this isn't grounds for a veto."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0526,
+  "delta": 0.0392,
+  "z_candidate_sd_only": 17.3
+ }
+}

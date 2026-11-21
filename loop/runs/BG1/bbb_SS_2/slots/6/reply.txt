@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+def descriptors(smiles):
+    names = [d[0] for d in Descriptors._descList]
+    X = np.array([[f(Chem.MolFromSmiles(s)) for _, f in Descriptors._descList] for s in smiles], dtype=np.float64)
+=======
+PATTERNS = [Chem.MolFromSmarts(p) for p in [
+    "[CX3](=O)[OX2H1,OX1-]",
+    "S(=O)(=O)[NX3]",
+    "[NX4+]",
+    "[NX3;H2,H1,H0;!$(NC=[O,S,N]);!$(N-a);!$(NS=O);!$(N-[#7,#8])]([CX4])",
+    "P(=O)(O)O",
+]]
+
+
+def descriptors(smiles):
+    def row(s):
+        m = Chem.MolFromSmiles(s)
+        return [f(m) for _, f in Descriptors._descList] + [len(m.GetSubstructMatches(p)) for p in PATTERNS]
+    X = np.array([row(s) for s in smiles], dtype=np.float64)
+>>>>>>> REPLACE
+-----

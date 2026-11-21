@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def _physics(rng):
+    n = _N
+    c = rng.uniform(0.05, 0.95, (n, 2))
+=======
+def _corner_init(rng):
+    n = _N
+    c = np.zeros((n, 2))
+    rc = rng.uniform(0.10, 0.15)
+    c[0] = [rc, rc]
+    c[1] = [1 - rc, rc]
+    c[2] = [rc, 1 - rc]
+    c[3] = [1 - rc, 1 - rc]
+    re = rng.uniform(0.06, 0.12)
+    k = 4
+    for side in range(4):
+        for _ in range(2):
+            t = rng.uniform(0.25, 0.75)
+            if side == 0:
+                c[k] = [t, re]
+            elif side == 1:
+                c[k] = [t, 1 - re]
+            elif side == 2:
+                c[k] = [re, t]
+            else:
+                c[k] = [1 - re, t]
+            k += 1
+    c[k:] = rng.uniform(0.2, 0.8, (n - k, 2))
+    c = c + rng.normal(0, 0.01, c.shape)
+    return np.clip(c, 0.02, 0.98)
+
+
+def _physics(rng):
+    n = _N
+    if rng.random() < 0.5:
+        return _corner_init(rng)
+    c = rng.uniform(0.05, 0.95, (n, 2))
+>>>>>>> REPLACE
+-----

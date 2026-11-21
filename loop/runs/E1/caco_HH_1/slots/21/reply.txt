@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBRegressor
+=======
+from scipy.optimize import minimize
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import KFold
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = XGBRegressor(objective='reg:absoluteerror', tree_method='hist', max_depth=6, learning_rate=0.03,
+                         n_estimators=600, subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                         random_state=seed, n_jobs=8)
+    model.fit(featurize(train_smiles), y - base_tr)
+    return base_te + model.predict(featurize(test_smiles))
+=======
+    def make_model(s):
+        return XGBRegressor(objective='reg:absoluteerror', tree_method='hist', max_depth=6, learning_rate=0.03,
+                            n_estimators=600, subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                            random_state=s, n_jobs=8)
+
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    # Inner 5-fold out-of-fold predictions of the full (ridge + XGB) model
+    oof = np.zeros(len(y))
+    for tr_idx, va_idx in KFold(n_splits=5, shuffle=True, random_state=seed).split(Xtr):
+        m = make_model(seed).fit(Xtr[tr_idx], (y - base_tr)[tr_idx])
+        oof[va_idx] = base_tr[va_idx] + m.predict(Xtr[va_idx])
+
+    # Fit the two-parameter stretch y ~ a*p + b by minimising MAE on out-of-fold predictions
+    def mae(ab):
+        return np.mean(np.abs(y - (ab[0] * oof + ab[1])))
+    a, b = minimize(mae, x0=np.array([1.0, 0.0]), method='Nelder-Mead').x
+
+    model = make_model(seed).fit(Xtr, y - base_tr)
+    pred = base_te + model.predict(Xte)
+    return a * pred + b
+>>>>>>> REPLACE
+-----

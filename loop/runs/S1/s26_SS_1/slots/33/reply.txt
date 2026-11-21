@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 80:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    try:
+        from scipy.optimize import differential_evolution
+        bc = best[0]
+        npop = 104
+        pop = np.clip(bc.T.reshape(-1)[None, :] if False else
+                      np.concatenate([bc[:, 0], bc[:, 1]])[None, :]
+                      + rng.normal(0, 0.03, (npop, 2 * _N)), 0, 1)
+        pop[0] = np.concatenate([bc[:, 0], bc[:, 1]])
+        pop[npop // 2:] = rng.uniform(0, 1, (npop - npop // 2, 2 * _N))
+
+        def fit(x):
+            cc = np.stack([x[:_N], x[_N:]], 1)
+            return -_lp_radii(cc).sum()
+
+        t1 = time.time()
+
+        def stop(xk, convergence=None):
+            return time.time() - t1 > 60
+
+        res = differential_evolution(fit, [(0, 1)] * (2 * _N), init=pop,
+                                     maxiter=100000, popsize=4, tol=0, polish=False,
+                                     seed=1, callback=stop, mutation=(0.3, 0.8),
+                                     recombination=0.8)
+        x = res.x
+        cd = np.stack([x[:_N], x[_N:]], 1)
+        c2 = np.clip(_polish(cd, _lp_radii(cd)), 0, 1)
+        r2 = _lp_radii(c2)
+        if r2.sum() > best_s:
+            best_s, best = r2.sum(), (c2, r2)
+    except Exception:
+        pass
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

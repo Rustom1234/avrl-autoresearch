@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+W_DESC = 0.6  # weight of the descriptor-based LightGBM rank; fingerprint ExtraTrees gets 1 - W_DESC
+=======
+W_DESC = 0.6  # weight of the descriptor-based LightGBM rank; fingerprint ExtraTrees gets 1 - W_DESC
+SMOOTH_SELF = 0.8  # weight kept on each test molecule's own blended score in transductive smoothing
+SMOOTH_K = 5  # number of most similar test molecules used as neighbours
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    n = len(p_desc)
+    p = W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+
+    X_te_bits = bit_fingerprints(test_smiles)
+    S = tanimoto(X_te_bits, X_te_bits)
+    np.fill_diagonal(S, 0.0)
+    rows = np.arange(n)[:, None]
+    idx = np.argsort(-S, axis=1)[:, :SMOOTH_K]
+    W = np.zeros_like(S)
+    W[rows, idx] = S[rows, idx]
+    W = W / np.maximum(W.sum(1, keepdims=True), 1e-9)
+    return rankdata(SMOOTH_SELF * p + (1 - SMOOTH_SELF) * (W @ p)) / n
+>>>>>>> REPLACE
+-----

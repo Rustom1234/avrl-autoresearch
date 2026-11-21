@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def _optimize(x0, y0, r0):
+    z0 = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    try:
+        res = minimize(_obj, z0, jac=_obj_grad, constraints=cons,
+                       method="SLSQP",
+                       options={"maxiter": 300, "ftol": 1e-12})
+        z = res.x
+    except Exception:
+        z = z0
+    if not np.all(np.isfinite(z)):
+        z = z0
+    return z[:_N], z[_N:2 * _N]
+=======
+def _optimize(x0, y0, r0):
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    # staged radius growth: cap radii at 0.08, 0.10, 0.12, then uncapped,
+    # warm-starting each SLSQP stage from the previous solution
+    for cap in (0.08, 0.10, 0.12, None):
+        hi = None if cap is None else cap
+        bnds = [(None, None)] * (2 * _N) + [(0.0, hi)] * _N
+        z_prev = z
+        try:
+            res = minimize(_obj, z_prev, jac=_obj_grad, constraints=cons,
+                           bounds=bnds, method="SLSQP",
+                           options={"maxiter": 300, "ftol": 1e-12})
+            z_new = res.x
+        except Exception:
+            z_new = z_prev
+        if np.all(np.isfinite(z_new)):
+            z = z_new
+        else:
+            z = z_prev
+    if not np.all(np.isfinite(z)):
+        z = np.concatenate([x0, y0, r0])
+    return z[:_N], z[_N:2 * _N]
+>>>>>>> REPLACE
+-----

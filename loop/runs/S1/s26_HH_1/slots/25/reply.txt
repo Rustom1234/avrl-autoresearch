@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+def run_packing():
+=======
+def _trust_polish(c, r, deadline):
+    # trust-constr on joint centres and radii with the same pair and boundary constraints as _local_opt.
+    # A callback stops the solver at the deadline. The result is kept only if it is valid and better.
+    from scipy.optimize import NonlinearConstraint, Bounds
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    z0 = np.concatenate([c[:, 0], c[:, 1], r])
+
+    def cons(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        rr = z[2 * n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        rs = rr[I] + rr[J]
+        pair = dx * dx + dy * dy - rs * rs
+        bnd = np.concatenate([x - rr, 1 - x - rr, y - rr, 1 - y - rr])
+        return np.concatenate([pair, bnd])
+
+    lb = np.zeros(3 * n)
+    ub = np.concatenate([np.ones(2 * n), np.full(n, 0.5)])
+    best_c, best_r = np.array(c, dtype=float), np.array(r, dtype=float)
+    best_s = float(np.sum(best_r))
+
+    def cb(xk, state):
+        return time.perf_counter() > deadline
+
+    try:
+        res = minimize(lambda z: -np.sum(z[2 * n:]), z0, method="trust-constr",
+                       jac="2-point",
+                       bounds=Bounds(lb, ub),
+                       constraints=[NonlinearConstraint(cons, 0.0, np.inf)],
+                       options={"maxiter": 200, "gtol": 1e-10},
+                       callback=cb)
+        z = res.x
+        cc = np.clip(np.stack([z[:n], z[n:2 * n]], axis=1), 0.0, 1.0)
+        rr = _lp_radii(cc)
+        s = float(np.sum(rr))
+        if s > best_s and _valid_packing(cc, rr):
+            best_c, best_r, best_s = cc, rr, s
+    except Exception:
+        pass
+    return best_c, best_r
+
+
+def run_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+=======
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 215.0)
+        best_c, best_r = _trust_polish(best_c, best_r, t_start + 240.0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 200:
+=======
+    while time.time() - t0 < 170:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+
+
+# EVOLVE-BLOCK-END
+=======
+    from scipy.optimize import NonlinearConstraint, BFGS
+    gobj = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+    v0 = np.concatenate([best[0][:, 0], best[0][:, 1], best[1]])
+    cand = [v0]
+    try:
+        tc_end = t0 + 215
+
+        def cb(xk, state=None):
+            return time.time() > tc_end
+
+        res = minimize(lambda z: -z[2 * n:].sum(), v0, jac=lambda z: gobj,
+                       hess=BFGS(), method="trust-constr", bounds=bounds,
+                       constraints=[NonlinearConstraint(cons, 0, np.inf, jac=cjac, hess=BFGS())],
+                       callback=cb, options={"xtol": 1e-12, "maxiter": 2000})
+        cand.append(res.x)
+    except Exception:
+        pass
+    for w in list(cand):
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), w, jac=lambda z: gobj,
+                           method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                           options={"maxiter": 500, "ftol": 1e-15})
+            cand.append(res.x)
+        except Exception:
+            pass
+    for w in cand:
+        try:
+            c, r = finalize(w)
+            if r.sum() > bs:
+                bs = r.sum(); best = (c, r)
+        except Exception:
+            pass
+    return best
+
+
+# EVOLVE-BLOCK-END
+>>>>>>> REPLACE
+-----

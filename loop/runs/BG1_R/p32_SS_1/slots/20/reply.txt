@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def gaps(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        return np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+
+    def run(x, mask, iters):
+        a, b = iu[0][mask], iu[1][mask]
+
+        def cons(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c[a] - c[b]) ** 2).sum(1)) - r[a] - r[b]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+        return minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                        options={"maxiter": iters}).x
+
+    x = run(x0, np.ones(len(iu[0]), bool), 60)
+    mask = gaps(x) < 0.15
+    for _ in range(3):
+        x = run(x, mask, MAX_ITER)
+        viol = (gaps(x) < -1e-9) & ~mask
+        if not viol.any():
+            break
+        mask |= viol
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+        final_orthogonalized_grads = _zeropower_via_newtonschulz5(
+            nesterov_grads,
+            filter_meta_for_current_step,
+            self.max_D,
+            self.max_K,
+            self.step_count,
+            self.total_train_steps,
+        )
+=======
+        final_orthogonalized_grads = [None] * len(nesterov_grads)
+        shape_groups = {}
+        for meta in filter_meta_for_current_step:
+            shape_groups.setdefault((meta[1], meta[2]), []).append(meta)
+        for (group_D, group_K), metas in shape_groups.items():
+            group_out = _zeropower_via_newtonschulz5(
+                nesterov_grads,
+                metas,
+                group_D,
+                group_K,
+                self.step_count,
+                self.total_train_steps,
+            )
+            for meta in metas:
+                final_orthogonalized_grads[meta[3]] = group_out[meta[3]]
+>>>>>>> REPLACE
+-----

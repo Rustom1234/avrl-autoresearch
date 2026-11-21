@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, init=None, full=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)]) if full is None else full
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        full = None
+        if guided and rng.random() < 0.5:   # swap move: exchange two centres, shrink both radii by 0.9
+            diff = np.triu(np.abs(best[1][:, None] - best[1][None]) > 0.02, 1)
+            pairs = np.argwhere(diff)
+            if len(pairs):
+                i, j = pairs[rng.integers(len(pairs))]
+                c1, r1 = best[0].copy(), best[1].copy()
+                c1[[i, j]] = best[0][[j, i]]
+                r1[[i, j]] *= 0.9
+                full = np.concatenate([c1.ravel(), r1])
+        c, r = _solve_once(n, rng, best[0] if guided else None, full)
+>>>>>>> REPLACE
+-----

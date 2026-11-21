@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    return 0.7 * np.mean(preds, axis=0) + 0.3 * rankdata(pr) / len(pr)
+=======
+    from sklearn.preprocessing import QuantileTransformer
+    from sklearn.kernel_approximation import RBFSampler
+    qt = QuantileTransformer(n_quantiles=200, output_distribution="normal", random_state=seed)
+    Dtr = qt.fit_transform(Xtr[:, :-N_BITS])
+    Dte = qt.transform(Xte[:, :-N_BITS])
+    rbf = RBFSampler(gamma=1.0 / Dtr.shape[1], n_components=1500, random_state=seed).fit(Dtr)
+    rr = Ridge(alpha=3.0).fit(rbf.transform(Dtr), y)
+    prf = rr.predict(rbf.transform(Dte))
+    return (0.55 * np.mean(preds, axis=0) + 0.3 * rankdata(pr) / len(pr)
+            + 0.15 * rankdata(prf) / len(prf))
+>>>>>>> REPLACE
+-----

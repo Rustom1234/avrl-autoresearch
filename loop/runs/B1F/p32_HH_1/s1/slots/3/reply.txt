@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+def _smooth_field(c, rng):
+    """Displace centres by a smooth low-frequency field so that neighbouring circles move together."""
+    a = rng.normal(0, 0.03, (2, 2, 2))            # a[d, t, 0]: amplitude of term t in direction d
+    k = rng.integers(1, 3, (2, 2))                # k[t] = (kx, ky), each in {1, 2}
+    ph = rng.uniform(0, 2 * np.pi, 2)
+    s = np.sin(2 * np.pi * (c @ k.T) + ph)        # (n, 2 terms)
+    disp = np.einsum('dt,nt->nd', a[:, :, 0], s)  # (n, 2)
+    return c + disp + rng.normal(0, 0.005, c.shape)
+
+
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(_smooth_field(init, rng), 0, 1)
+>>>>>>> REPLACE
+-----

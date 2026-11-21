@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "No attempt to get around the measurement. The candidate uses the test molecules' SMILES and features, but never their labels. The pseudo-labels come from the models' own rank agreement: all three models must put a molecule in the top quartile (>=0.75) or the bottom quartile (<=0.25). This is ordinary transductive self-training. It only uses inputs that fit_predict is given, and it works the same way on the final held-out test molecules.",
+  "No bug that makes the result meaningless. The ranks rankdata(...)/len(Xt) fall in (0,1], so the quartile thresholds are valid. The label mapping is correct: top becomes 1, bottom becomes 0. The data are stacked correctly, and the seed is passed through. The second round refits all three models on train plus pseudo-labelled test, then ranks the full test set again.",
+  "Cost: each fit trains every model twice, so the job takes about twice as long. The job should still stay well under the 10-minute limit, but this adds complexity for no gain.",
+  "The numbers support the reject. Candidate 0.0947 against incumbent 0.0942 is a gap of 0.0005, slightly worse and far inside the noise (sd about 0.0049). Recomputed z = (0.0942-0.0947)/(0.0049*sqrt(2)) \u2248 -0.072. This matches the harness's -0.067 up to rounding of the displayed values. Rejecting is correct: the gain is zero or negative and the code is more complex."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -0.072
+ }
+}

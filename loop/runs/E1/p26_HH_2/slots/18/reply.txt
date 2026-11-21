@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+    def cons(v, cap):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+=======
+    def cons(v, cap, p):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[p[0]] - c[p[1]]) ** 2).sum(1)) - r[p[0]] - r[p[1]]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+=======
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        c0, r0 = x[:2 * n].reshape(n, 2), x[2 * n:]
+        cut = 2 * r0.max() + 0.1   # safety margin: pairs farther apart than this cannot overlap
+        d0 = np.sqrt(((c0[iu[0]] - c0[iu[1]]) ** 2).sum(1))
+        keep = d0 < cut
+        pairs = (iu[0][keep], iu[1][keep])
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap, p=pairs: cons(v, cap, p)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+_G2 = 200
+_g2 = (np.arange(_G2) + 0.5) / _G2
+_GR2 = np.stack(np.meshgrid(_g2, _g2), -1).reshape(-1, 2)
+_WALL2 = np.minimum(np.minimum(_GR2[:, 0], _GR2[:, 1]),
+                    np.minimum(1 - _GR2[:, 0], 1 - _GR2[:, 1]))
+
+
+def _greedy(rng):
+    n = _N
+    pts = rng.uniform(0.15, 0.85, (4, 2))
+    rad = [0.08] * 4
+    f = _WALL2.copy()
+    for p, r in zip(pts, rad):
+        f = np.minimum(f, np.sqrt(((_GR2 - p) ** 2).sum(1)) - r)
+    cs = [p for p in pts]
+    while len(cs) < n:
+        top = np.argpartition(-f, 5)[:5]
+        k = top[rng.integers(5)]
+        r = max(0.9 * f[k], 0.01)
+        p = _GR2[k].copy()
+        cs.append(p)
+        f = np.minimum(f, np.sqrt(((_GR2 - p) ** 2).sum(1)) - r)
+    c = np.array(cs, float)
+    c = c + rng.normal(0, 0.003, c.shape)
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            if u < 0.2:
+                c = _hexgrid(rng)
+            elif u < 0.5:
+                c = _hexinit(rng)
+            elif u < 0.7:
+                c = _physics(rng)
+            else:
+                c = _greedy(rng)
+>>>>>>> REPLACE
+-----

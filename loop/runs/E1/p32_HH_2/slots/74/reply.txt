@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+POOL = 20
+KEEP = 3
+HOP_START = 0.4
+=======
+POOL = 20
+POOL_EARLY = 10
+KEEP = 3
+ROUNDS = 8
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < HOP_START * TIME_FRACTION * time_limit:   # random restarts first
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+        for _, p in pool[:KEEP]:
+            c, r = _solve_once(n, p)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    round_len = TIME_FRACTION * time_limit / ROUNDS
+    for k in range(ROUNDS):   # each round: one restart pool, then one basin-hopping chunk from the current best
+        pool_size = POOL_EARLY if k < ROUNDS // 2 else POOL
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(pool_size)), key=lambda t: t[0])
+        for _, p in pool[:KEEP]:
+            c, r = _solve_once(n, p)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+        round_end = (k + 1) * round_len
+        while time.process_time() - t0 < round_end:
+            c, r = best
+            p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+            c, r = _solve_once(n, p)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if r.sum() > best[1].sum():
+                best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

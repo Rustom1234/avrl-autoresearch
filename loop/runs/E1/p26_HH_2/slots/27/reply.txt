@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+COULOMB = 0.01
+EPS = 1e-4
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+=======
+    def fobj(v, lam):
+        c = v[:2 * n].reshape(n, 2)
+        g = np.zeros_like(v)
+        g[2 * n:] = -1.0
+        val = -v[2 * n:].sum()
+        if lam > 0:
+            diff = c[iu[0]] - c[iu[1]]
+            w = 1.0 / ((diff ** 2).sum(1) + EPS)
+            val += lam * w.sum()
+            gp = (-2.0 * lam * w * w)[:, None] * diff
+            gc = np.zeros((n, 2))
+            np.add.at(gc, iu[0], gp)
+            np.add.at(gc, iu[1], -gp)
+            g[:2 * n] = gc.ravel()
+        return val, g
+
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        lam = COULOMB * 0.5 ** ((cap - 0.05) / 0.02) if cap < 0.4 else 0.0
+        res = minimize(fobj, x, args=(lam,), jac=True, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+>>>>>>> REPLACE
+-----

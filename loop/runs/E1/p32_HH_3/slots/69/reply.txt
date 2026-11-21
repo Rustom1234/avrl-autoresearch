@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+ELITE = 5
+PFRESH = 0.3
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _child(elite, n, rng):
+    """Left-half centres from one elite parent, right-half centres from another; count fixed to n."""
+    i, j = rng.integers(len(elite), size=2)
+    (ca, ra), (cb, rb) = elite[i], elite[j]
+    ma, mb = ca[:, 0] < 0.5, cb[:, 0] >= 0.5
+    c = np.vstack([ca[ma], cb[mb]])
+    r = np.concatenate([ra[ma], rb[mb]])
+    if len(r) > n:
+        keep = rng.permutation(len(r))[:n]
+        c, r = c[keep], r[keep]
+    extra = n - len(r)
+    if extra > 0:
+        c = np.vstack([c, rng.uniform(INIT_LOW, 1 - INIT_LOW, (extra, 2))])
+        r = np.concatenate([r, np.full(extra, INIT_RADIUS)])
+    return np.concatenate([c.ravel(), r])
+
+
+def _add(elite, c, r):
+    """Insert a packing into the elite pool, skipping duplicates by sorted radii."""
+    key = np.sort(r)
+    for _, er in elite:
+        if np.allclose(np.sort(er), key):
+            return
+    elite.append((c, r))
+    elite.sort(key=lambda p: -p[1].sum())
+    del elite[ELITE:]
+
+
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    elite = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit or not elite:
+        x0 = None if not elite or rng.uniform() < PFRESH else _child(elite, n, rng)
+        c, r = _solve_once(n, rng, x0)
+        c = np.clip(c, 0, 1)
+        _add(elite, c, _repair(c, r))
+    return elite[0]
+>>>>>>> REPLACE
+-----

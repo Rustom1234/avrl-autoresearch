@@ -1,0 +1,13 @@
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    resid = np.abs(y - base_tr - stage2.predict(Xtr))
+    keep = resid <= np.quantile(resid, 0.95)
+    Xk, rk = Xtr[keep], (y - base_tr)[keep]
+    stage1 = XGBRegressor(objective='reg:squarederror', n_estimators=200, **params)
+    stage1.fit(Xk, rk)
+    stage2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400, **params)
+    stage2.fit(Xk, rk, xgb_model=stage1.get_booster())
+    return base_te + stage2.predict(Xte)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    def cons(v, cap):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+=======
+    def cons(v, cap, eps=0.0):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - (r[iu[0]] + r[iu[1]]) * (1 + eps)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+=======
+    caps = list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]
+    x = x0
+    for k, cap in enumerate(caps):
+        eps = 0.02 * 0.8 ** k if k < len(caps) - 1 else 0.0   # geometric margin, zero at the last stage
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap, eps=eps: cons(v, cap, eps)},
+>>>>>>> REPLACE
+-----

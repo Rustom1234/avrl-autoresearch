@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _relocate(pool, n, rng):
+    c, r = pool[rng.integers(len(pool))]
+    c, r = c.copy(), r.copy()
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    gap = d - r[:, None] - r[None]
+    np.fill_diagonal(gap, np.inf)
+    wall_gap = np.minimum(c.min(1), (1 - c).min(1)) - r
+    contacts = (gap < 1e-6).sum(1) + (wall_gap < 1e-6)
+    cand = np.flatnonzero(contacts <= 2)
+    i = rng.choice(cand) if len(cand) else np.argmin(r)
+    p = rng.uniform(0, 1, (500, 2))
+    dp = np.sqrt(((p[:, None] - c[None]) ** 2).sum(-1)) - r[None]
+    dp[:, i] = np.inf
+    clear = np.minimum(dp.min(1), np.minimum(p.min(1), (1 - p).min(1)))
+    k = np.argmax(clear)
+    c[i] = p[k]
+    r[i] = max(0.5 * clear[k], 0)
+    return np.concatenate([c.ravel(), r])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        if pool and rng.random() < 0.3:
+            x0 = _relocate(pool, n, rng)
+        else:
+            x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+>>>>>>> REPLACE
+-----

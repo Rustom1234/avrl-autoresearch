@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r, rng):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    I, J = np.triu_indices(n, 1)
+    for _ in range(50):
+        changed = False
+        for k in rng.permutation(len(I)):
+            i, j = I[k], J[k]
+            d = np.hypot(c[i, 0] - c[j, 0], c[i, 1] - c[j, 1])
+            if r[i] + r[j] > d:
+                s = d / (r[i] + r[j])
+                r[i], r[j] = r[i] * s, r[j] * s
+                changed = True
+        if not changed:
+            break
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+=======
+        r = _repair(c, r, rng)
+>>>>>>> REPLACE
+-----

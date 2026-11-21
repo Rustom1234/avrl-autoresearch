@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    bc, br = best
+    while time.time() - t0 < 180:
+        try:
+            c = bc.copy()
+            if rng.random() < 0.2:
+                idx = rng.permutation(_N)[:_N // 2]
+                k = rng.integers(3)
+                sub = c[idx]
+                if k == 0:
+                    sub[:, 0] = 1 - sub[:, 0]
+                elif k == 1:
+                    sub[:, 1] = 1 - sub[:, 1]
+                else:
+                    sub = np.stack([1 - sub[:, 1], sub[:, 0]], 1)
+                c[idx] = sub
+            c = np.clip(c + rng.normal(0, 0.02, c.shape), 0.02, 0.98)
+            r0 = br * rng.lognormal(0, 0.3, _N)
+            c2 = np.clip(_polish(c, r0), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+            bc, br = c2, r2
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

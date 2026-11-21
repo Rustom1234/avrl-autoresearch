@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+    Ta, Ra = tanimoto(Fa, Fa), rbf(Za, Za)
+    LAMS = (0.03, 0.1, 0.3, 1.0, 3.0)
+    best_err, best_cfg = np.inf, (0.5, 1.0)
+    for wr in (0.5, 1.0, 2.0):
+        errs = {lam: 0.0 for lam in LAMS}
+        for itr, iva in GroupKFold(n_splits=4).split(Ta, ya, ga):
+            s, U = np.linalg.eigh(Ta[np.ix_(itr, itr)] + wr * Ra[np.ix_(itr, itr)])
+            Kva = Ta[np.ix_(iva, itr)] + wr * Ra[np.ix_(iva, itr)]
+            UtY = U.T @ (ya[itr] - mu)
+            for lam in LAMS:
+                w_in = U @ (UtY / (s + lam))
+                pv = Kva @ w_in + mu
+                errs[lam] += np.abs(pv - ya[iva]).sum()
+        for lam in LAMS:
+            if errs[lam] < best_err:
+                best_err, best_cfg = errs[lam], (lam, wr)
+    lam, wr = best_cfg
+=======
+    Ta, Ra = tanimoto(Fa, Fa), rbf(Za, Za)
+    lam, wr = 0.3, 1.0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    groups = np.array([MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles])
+    oof = np.zeros((len(y), 3))
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, None, seed)
+    return base_te.mean(axis=1)
+>>>>>>> REPLACE
+-----

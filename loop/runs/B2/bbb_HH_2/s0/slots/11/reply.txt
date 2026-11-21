@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+=======
+from rdkit import Chem, DataStructs
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+=======
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    morgan = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fp_tr = [morgan.GetFingerprint(Chem.MolFromSmiles(s)) for s in train_smiles]
+    fp_te = [morgan.GetFingerprint(Chem.MolFromSmiles(s)) for s in test_smiles]
+    knn = np.zeros(len(test_smiles))
+    for i, fp in enumerate(fp_te):
+        sims = np.array(DataStructs.BulkTanimotoSimilarity(fp, fp_tr))
+        idx = np.argsort(-sims)[:15]
+        w = sims[idx] ** 3
+        knn[i] = np.sum(w * y[idx]) / (np.sum(w) + 1e-9)
+    total += rankdata(knn)
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+>>>>>>> REPLACE
+-----

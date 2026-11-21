@@ -1,0 +1,91 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    return np.array(features, dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    # Define SMARTS for common groups
+    benzene_smarts = '[c1]1[c][c][c][c][c]1' # Simplified benzene
+    hydroxyl_smarts = '[OX2H].P>H1' # Simplified OH
+    carbonyl_smarts = '[CX3](=O)'
+    
+    patterns = [
+        Chem.MolFromSmarts(benzene_smarts), 
+        Chem.MolFromSmarts(hydroxyl_smarts), 
+        Chem.MolFromSmarts(carbonyl_smarts)
+    ]
+
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        counts = [mol.GetNumSubstructs(p) for p in patterns]
+        
+        # Append NumAtoms, TPSA, and fragment counts
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol), *counts]))
+    return np.array(features, dtype=np.float32)
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_TREES, max_depth=6, 
+                            learning_rate=0.1, subsample=0.8, 
+                            colsample_bytree=MAX_FEATURES, 
+                            n_jobs=-1, random_state=seed)
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+    model.fit(featurize(train_smiles), y_train)
+    preds = model.predict(featurize(test_smiles))
+    return np.expm1(preds)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    # Patterns for common functional groups
+    patterns = [
+        Chem.MolFromSmarts('[c1]1[c][c][c][c][c]1'),  # Benzene
+        Chem.MolFromSmarts('[OX2H]'),                # Hydroxyl
+        Chem.MolFromSmarts('[CX3](=O)')              # Carbonyl
+    ]
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        counts = [mol.GetNumSubstructs(p) for p in patterns]
+        # Append NumAtoms, TPSA, and fragment counts
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol), *counts]))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_TREES, max_depth=6, 
+                            learning_rate=0.1, subsample=0.8, 
+                            colsample_bytree=MAX_FEATURES, 
+                            n_jobs=-1, random_state=seed)
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+    model.fit(featurize(train_smiles), y_train)
+    preds = model.predict(featurize(test_smiles))
+    return np.expm1(preds)
+>>>>>>> REPLACE
+-----

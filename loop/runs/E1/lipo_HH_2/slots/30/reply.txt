@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(X):
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed)
+    meta = LinearRegression(positive=True).fit(oof, y)
+    return meta.predict(base_predict(X, y, Xte, seed)) + a + b * Lte
+=======
+    Ttr = np.array([Descriptors.TPSA(Chem.MolFromSmiles(s)) for s in train_smiles])
+    Tte = np.array([Descriptors.TPSA(Chem.MolFromSmiles(s)) for s in test_smiles])
+    Ztr = np.column_stack([Ltr, Ttr])
+    Zte = np.column_stack([Lte, Tte])
+    zm, zs = Ztr.mean(0), Ztr.std(0) + 1e-9
+    Ztr = (Ztr - zm) / zs
+    Zte = (Zte - zm) / zs
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(X):
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed)
+    # +z and -z columns give each raw feature an unconstrained linear coefficient under positive=True
+    meta = LinearRegression(positive=True).fit(np.hstack([oof, Ztr, -Ztr]), y)
+    base_te = base_predict(X, y, Xte, seed)
+    return meta.predict(np.hstack([base_te, Zte, -Zte])) + a + b * Lte
+>>>>>>> REPLACE
+-----

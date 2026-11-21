@@ -1,0 +1,421 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.svm import SVR
+import lightgbm as lgb
+
+# Settings
+N_BITS = 4096
+C = 10.0
+EPS = 0.1
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.svm import SVR
+import lightgbm as lgb
+from scipy.stats import norm
+
+# Settings
+N_BITS = 4096
+C = 10.0
+EPS = 0.1
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    base_preds = model.predict(K_test)
+    
+    # Residual boosting
+    rng = np.random.RandomState(seed)
+    indices = np.arange(len(train_smiles))
+    rng.shuffle(indices)
+    
+    oof_preds = np.zeros(len(train_smiles))
+    # Simple 5-fold OOF (approximate for speed/simplicity)
+    folds = 5
+    fold_size = len(train_smiles) // folds
+    for i in range(folds):
+        start, end = i * fold_size, (i + 1) * fold_size
+        train_idx = indices[::fold_size]
+        # For OOF, we use a subset of the indices
+        # To save time/memory, we use a subset of train_smiles
+        # but to be strictly correct, we slice the shuffled indices
+        # Here we use a simplified 5-split of the shuffled indices
+        idx_subset = indices[i*fold_size : (i+1)*fold_size]
+        val_idx = indices[i*fold_size : (i+1)*fold_size]
+        # This part is tricky with K_train structure. Let's just use 5-fold on data.
+    
+    # Alternative: because K_train is already built, we can just
+    # take 5 blocks of the training data.
+    # However, to keep it clean and avoid complex OOF K-matrix logic:
+    # We'll use a simplified residual approach: train LightGBM on the
+    # residuals of a simple split to keep the job within limits.
+    
+    # Simplified residual: use a simple 80/20 split for the booster
+    # since OOF K-matrix logic is heavy on memory/time.
+    
+    train_y_arr = np.asarray(train_y, dtype=np.float64)
+    X_train_desc = get_descriptors(train_smiles)
+    
+    # Approximate OOF by using 5 blocks of the train data
+    # and predicting on the remainder
+    oof_res = np.zeros(len(train_smiles))
+    for i in range(folds):
+        start, end = i * fold_size, (i+1)*fold_size if i != folds-1 else len(train_smiles)
+        # This is slightly incorrect for K_train, but standard for boosting
+        # Let's just use a single split to ensure we stay under 10 mins
+        pass
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good.
+    # Let's try the booster on the residuals of the full train set to keep it simple.
+    
+    # Re-do: Train on all residuals for better generalization
+    base_model_full = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    base_model_full.fit(K_train, train_y_arr)
+    full_base_preds = base_model_full.predict(K_test)
+    
+    # Get residuals on training set (this is technically 'leakage' but common in boosting)
+    # To avoid leakage, we use the fold-based residuals
+    # but given the constraints, let's use the split residuals.
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good.
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good.
+    
+    train_full_preds = base_model_full.predict(K_train)
+    train_residuals = train_y_arr - train_full_preds
+    
+    train_lm_full = lgb.train(params, lgb.Dataset(X_train_desc, label=train_residuals),
+                                 num_boost_round=300)
+    
+    test_preds = full_base_preds + train_lm_full.predict(test_desc)
+    return test_preds
+=======
+    train_y_arr = np.asarray(train_y, dtype=np.float64)
+    
+    # Quantile Normalization
+    sorted_indices = np.argsort(train_y_arr)
+    sorted_y = train_y_arr[sorted_indices]
+    n = len(train_y_arr)
+    quantiles = (np.arange(1, n + 1) - 0.5) / n
+    transformed_y = norm.ppf(quantiles)
+    
+    # Fit SVR on transformed targets
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, transformed_y)
+    
+    # Predict and transform back
+    raw_test_preds = model.predict(K_test)
+    test_preds = np.interp(raw_test_preds, transformed_y, sorted_y)
+    
+    # Residual boosting
+    rng = np.random.RandomState(seed)
+    indices = np.arange(len(train_smiles))
+    rng.shuffle(indices)
+    
+    oof_preds = np.zeros(len(train_smiles))
+    # Simple 5-fold OOF (approximate for speed/simplicity)
+    folds = 5
+    fold_size = len(train_smiles) // folds
+    for i in range(folds):
+        start, end = i * fold_size, (i + 1) * fold_size
+        train_idx = indices[::fold_size]
+        # For OOF, we use a subset of the indices
+        # To save time/memory, we use a subset of train_smiles
+        # but to be strictly correct, we slice the shuffled indices
+        # Here we use a simplified 5-split of the shuffled indices
+        idx_subset = indices[i*fold_size : (i+1)*fold_size]
+        val_idx = indices[i*fold_size : (i+1)*fold_size]
+        # This part is tricky with K_train structure. Let's just use 5-fold on data.
+    
+    # Alternative: because K_train is already built, we can just
+    # take 5 blocks of the training data.
+    # However, to keep it clean and avoid complex OOF K-matrix logic:
+    # We'll use a simplified residual approach: train LightGBM on the
+    # residuals of a simple split to keep the job within limits.
+    
+    # Simplified residual: use a simple 80/20 split for the booster
+    # since OOF K-matrix logic is heavy on memory/time.
+    
+    train_y_arr = np.asarray(train_y, dtype=np.float64)
+    X_train_desc = get_descriptors(train_smiles)
+    
+    # Approximate OOF by using 5 blocks of the train data
+    # and predicting on the remainder
+    oof_res = np.zeros(len(train_smiles))
+    for i in range(folds):
+        start, end = i * fold_size, (i+1)*fold_size if i != folds-1 else len(train_smiles)
+        # This is slightly incorrect for K_train, but standard for boosting
+        # Let's just use a single split to ensure we stay under 10 mins
+        pass
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good.
+    # Let's try the booster on the residuals of the full train set to keep it simple.
+    
+    # Re-do: Train on all residuals for better generalization
+    base_model_full = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    base_model_full.fit(K_train, transformed_y)
+    full_base_preds_transformed = base_model_full.predict(K_test)
+    full_base_preds = np.interp(full_base_preds_transformed, transformed_y, sorted_y)
+    
+    # Get residuals on training set (this is technically 'leakage' but common in boosting)
+    # To avoid leakage, we use the fold-based residuals
+    # but given the constraints, let's use the split residuals.
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good.
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good.
+    
+    train_full_preds_transformed = base_model_full.predict(K_train)
+    train_full_preds = np.interp(train_full_preds_transformed, transformed_y, sorted_y)
+    train_residuals = train_y_arr - train_full_preds
+    
+    train_lm_full = lgb.train(params, lgb.Dataset(X_train_desc, label=train_residuals),
+                                 num_boost_round=300)
+    
+    test_preds = full_base_preds + train_lm_full.predict(test_desc)
+    return test_preds
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.svm import SVR
+import lightgbm as lgb
+
+# Settings
+N_BITS = 4096
+C = 10.0
+EPS = 0.1
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.svm import SVR
+import lightgbm as lgb
+from scipy.stats import norm
+
+# Settings
+N_BITS = 4096
+C = 10.0
+EPS = 0.1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    base_preds = model.predict(K_test)
+    
+    # Residual boosting
+    rng = np.random.RandomState(seed)
+    indices = np.arange(len(train_smiles))
+    rng.shuffle(indices)
+    
+    oof_preds = np.zeros(len(train_smiles))
+    # Simple 5-fold OOF (approximate for speed/simplicity)
+    folds = 5
+    fold_size = len(train_smiles) // folds
+    for i in range(folds):
+        start, end = i * fold_size, (i + 1) * fold_size
+        train_idx = indices[::fold_size]
+        # For OOF, we use a subset of the indices
+        # To save time/memory, we use a subset of train_smiles
+        # but to be strictly correct, we slice the shuffled indices
+        # Here we use a simplified 5-split of the shuffled indices
+        idx_subset = indices[i*fold_size : (i+1)*fold_size]
+        val_idx = indices[i*fold_size : (i+1)*fold_size]
+        # This part is tricky with K_train structure. Let's just use 5-fold on data.
+    
+    # Alternative: because K_train is already built, we can just
+    # take 5 blocks of the training data.
+    # However, to keep it clean and avoid complex OOF K-matrix logic:
+    # We'll use a simplified residual approach: train LightGBM on the
+    # residuals of a simple split to keep the job within limits.
+    
+    # Simplified residual: use a simple 80/20 split for the booster
+    # since OOF K-matrix logic is heavy on memory/time.
+    
+    train_y_arr = np.asarray(train_y, dtype=np.float64)
+    X_train_desc = get_descriptors(train_smiles)
+    
+    # Approximate OOF by using 5 blocks of the train data
+    # and predicting on the remainder
+    oof_res = np.zeros(len(train_smiles))
+    for i in range(folds):
+        start, end = i * fold_size, (i+1)*fold_size if i != folds-1 else len(train_smiles)
+        # This is slightly incorrect for K_train, but standard for boosting
+        # Let's just use a single split to ensure we stay under 10 mins
+        pass
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good.
+    # Let's try the booster on the residuals of the full train set to keep it simple.
+    
+    # Re-do: Train on all residuals for better generalization
+    base_model_full = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    base_model_full.fit(K_train, train_y_arr)
+    full_base_preds = base_model_full.predict(K_test)
+    
+    # Get residuals on training set (this is technically 'leakage' but common in boosting)
+    # To avoid leakage, 
+Send corrected edits_text.
+-----
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.svm import SVR
+import lightgbm as lgb
+
+# Settings
+N_BITS = 4096
+C = 10.0
+EPS = 0.1
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.svm import SVR
+import lightgbm as lgb
+from scipy.stats import norm
+
+# Settings
+N_BITS = 4096
+C = 10.0
+EPS = 0.1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    base_preds = model.predict(K_test)
+    
+    # Residual boosting
+    rng = np.random.RandomState(seed)
+    indices = np.arange(len(train_smiles))
+    rng.shuffle(indices)
+    
+    oof_preds = np.zeros(len(train_smiles))
+    # Simple 5-fold OOF (approximate for speed/simplicity)
+    folds = 5
+    fold_size = len(train_smiles) // folds
+    for i in range(folds):
+        start, end = i * fold_size, (i + 1) * fold_size
+        train_idx = indices[::fold_size]
+        # For OOF, we use a subset of the indices
+        # To save time/memory, we use a subset of train_smiles
+        # but to be strictly correct, we slice the shuffled indices
+        # Here we use a simplified 5-split of the shuffled indices
+        idx_subset = indices[i*fold_size : (i+1)*fold_size]
+        val_idx = indices[i*fold_size : (i+1)*fold_size]
+        # This part is tricky with K_train structure. Let's just use 5-fold on data.
+    
+    # Alternative: because K_train is already built, we can just
+    # take 5 blocks of the training data.
+    # However, to keep it clean and avoid complex OOF K-matrix logic:
+    # We'll use a simplified residual approach: train LightGBM on the
+    # residuals of a simple split to keep the job within limits.
+    
+    # Simplified residual: use a simple 80/20 split for the booster
+    # since OOF K-matrix logic is heavy on memory/time.
+    
+    train_y_arr = np.asarray(train_y, dtype=np.float64)
+    X_train_desc = get_descriptors(train_smiles)
+    
+    # Approximate OOF by using 5 blocks of the train data
+    # and predicting on the remainder
+    oof_res = np.zeros(len(train_smiles))
+    for i in range(folds):
+        start, end = i * fold_size, (i+1)*fold_size if i != folds-1 else len(train_smiles)
+        # This is slightly incorrect for K_train, but standard for boosting
+        # Let's just use a single split to ensure we stay under 10 mins
+        pass
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good.
+    # Let's try the booster on the residuals of the full train set to keep it simple.
+    
+    # Re-do: Train on all residuals for better generalization
+    base_model_full = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    base_model_full.fit(K_train, train_y_arr)
+    full_base_preds = base_model_full.predict(K_test)
+    
+    # Get residuals on training set (this is technically 'leakage' but common in boosting)
+    # To avoid leakage, 
+=======
+    train_y_arr = np.asarray(train_y, dtype=np.float64)
+    
+    # Quantile normalization
+    sorted_indices = np.argsort(train_y_arr)
+    sorted_y = train_y_arr[sorted_indices]
+    ranks = np.arange(1, len(train_y_arr) + 1)
+    quantiles = (ranks - 0.5) / len(train_y_arr)
+    train_y_transformed = norm.ppf(quantiles)
+    
+    # Fit SVR on normalized targets
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, train_y_transformed)
+    
+    # Predict and back-transform
+    transformed_preds = model.predict(K_test)
+    test_preds = np.interp(transformed_preds, norm.ppf(quantiles), sorted_y)
+
+    # Residual boosting
+    rng = np.random.RandomState(seed)
+    indices = np.arange(len(train_smiles))
+    rng.shuffle(indices)
+    
+    oof_preds = np.zeros(len(train_smiles))
+    # Simple 5-fold OOF (approximate for speed/simplicity)
+    folds = 5
+    fold_size = len(train_smiles) // folds
+    for i in range(folds):
+        start, end = i * fold_size, (i + 1) * fold_size
+        train_idx = indices[::fold_size]
+        # For OOF, we use a subset of the indices
+        # To save time/memory, we use a subset of train_smiles
+        # but to be strictly correct, we slice the shuffled indices
+        # Here we use a simplified 5-split of the shuffled indices
+        idx_subset = indices[i*fold_size : (i+1)*fold_size]
+        val_idx = indices[i*fold_size : (i+1)*fold_size]
+        # This part is tricky with K_train structure. Let's just use 5-fold on data.
+    
+    # Alternative: because K_train is already built, we can just
+    # take 5 blocks of the training data.
+    # However, to keep it clean and avoid complex OOF K-matrix logic:
+    # We'll use a simplified residual approach: train LightGBM on the
+    # residuals of a simple split to keep the job within limits.
+    
+    # Simplified residual: use a simple 80/20 split for the booster
+    # since OOF K-matrix logic is heavy on memory/time.
+    
+    X_train_desc = get_descriptors(train_smiles)
+    
+    # Approximate OOF by using 5 blocks of the train data
+    # and predicting on the remainder
+    oof_res = np.zeros(len(train_smiles))
+    for i in range(folds):
+        start, end = i * fold_size, (i+1)*fold_size if i != folds-1 else len(train_smiles)
+        # This is slightly incorrect for K_train, but standard for boosting
+        # Let's just use a single split to ensure we stay under 10 mins
+        pass
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good.
+    # Let's try the booster on the residuals of the full train set to keep it simple.
+    
+    # Re-do: Train on all residuals for better generalization
+    base_model_full = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    base_model_full.fit(K_train, train_y_transformed)
+    full_base_preds_trans = base_model_full.predict(K_test)
+    full_base_preds = np.interp(full_base_preds_trans, norm.ppf(quantiles), sorted_y)
+    
+    # Get residuals on training set (this is technically 'leakage' but common in boosting)
+    # To avoid leakage, 
+>>>>>>> REPLACE
+-----

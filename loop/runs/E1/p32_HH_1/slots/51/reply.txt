@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def pull(v, mu):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        gap = np.maximum(0, d - r[iu[0]] - r[iu[1]])
+        return -r.sum() + mu * (gap ** 2).sum()
+
+    x = x0
+    for mu in (0.05, 0.005, 0.0):   # geometric decay to 0; the final solve has exact constraints only
+        res = minimize(lambda v, mu=mu: pull(v, mu), x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

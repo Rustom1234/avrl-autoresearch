@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+=======
+def _lattice_start(n, rng):
+    """Jittered hexagonal-offset grid over [0.1, 0.9]^2: rows alternately shifted by half a spacing."""
+    m = int(np.ceil(np.sqrt(n)))
+    g = np.linspace(0.1, 0.9, m)
+    xs, ys = np.meshgrid(g, g)
+    pts = np.stack([xs.ravel(), ys.ravel()], 1)
+    pts[:, 0] += (np.arange(m * m) // m) % 2 * (g[1] - g[0]) / 2
+    pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.01, (n, 2))
+    return np.clip(pts, 0.1, 0.9).ravel()
+
+
+def _solve_once(n, centers0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+=======
+        pool = sorted((_relax(_lattice_start(n, rng) if k % 2 else rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n)
+                       for k in range(POOL)), key=lambda t: t[0])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+=======
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        if rng.random() < 0.4:
+            s_ = rng.uniform(0.17, 0.21)
+            th = rng.uniform(0, np.pi / 6)
+            a1 = s_ * np.array([np.cos(th), np.sin(th)])
+            a2 = s_ * np.array([np.cos(th + np.pi / 3), np.sin(th + np.pi / 3)])
+            off = 0.5 + rng.uniform(0, s_, 2)
+            g = np.arange(-12, 13)
+            gi, gj = np.meshgrid(g, g)
+            P = off + gi.reshape(-1, 1) * a1 + gj.reshape(-1, 1) * a2
+            P = P[np.all((P >= 0.04) & (P <= 0.96), axis=1)]
+            if len(P) > n:
+                P = P[rng.choice(len(P), n, replace=False)]
+            while len(P) < n:
+                cand = rng.uniform(0.04, 0.96, (300, 2))
+                dm = np.min(np.linalg.norm(cand[:, None, :] - P[None, :, :], axis=2), axis=1) if len(P) else np.zeros(300)
+                P = np.vstack([P, cand[np.argmax(dm)]])
+            v = np.concatenate([P[:, 0], P[:, 1], np.full(n, 0.45 * s_)])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                          colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(np.hstack([Xtr, extra_feats(train_smiles)]), y)
+    p_lgb = model.predict(np.hstack([Xte, extra_feats(test_smiles)]))
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    Ftr = np.hstack([Xtr, extra_feats(train_smiles)])
+    Fte = np.hstack([Xte, extra_feats(test_smiles)])
+    scaf = np.array([MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(s)) for s in train_smiles])
+    uniq = np.unique(scaf)
+    rng = np.random.RandomState(seed)
+    preds = []
+    for i in range(6):
+        chosen = rng.choice(uniq, size=max(1, int(0.8 * len(uniq))), replace=False)
+        idx = np.where(np.isin(scaf, chosen))[0]
+        model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                              colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed + i,
+                              n_jobs=8)
+        model.fit(Ftr[idx], y[idx])
+        preds.append(model.predict(Fte))
+    p_lgb = np.mean(preds, axis=0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best if late else None)
+=======
+        start = best if late else None
+        if late and rng.random() < 0.5:
+            m = np.arange(n) != rng.integers(n)
+            c1, r1 = _solve_once(n - 1, rng, (best[0][m], best[1][m]))
+            pts = rng.uniform(0, 1, (5000, 2))
+            g = np.sqrt(((pts[:, None] - c1[None]) ** 2).sum(-1)) - r1[None]
+            g = np.minimum(g.min(1), np.minimum(pts, 1 - pts).min(1))
+            k = np.argmax(g)
+            start = (np.vstack([c1, pts[k]]), np.append(r1, max(g[k], 0.01)))
+        c, r = _solve_once(n, rng, start)
+>>>>>>> REPLACE
+-----

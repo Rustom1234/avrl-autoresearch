@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+LABEL_SMOOTHING = 0.09
+=======
+LABEL_SMOOTHING_START = 0.2
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lr_factor2_base = 1.0 / total_train_steps
+=======
+    lr_factor2_base = 1.0 / total_train_steps
+    ls = torch.zeros((), device="cuda")
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward_step(inputs, labels, whiten_bias_grad):
+        outputs = model(inputs, whiten_bias_grad=whiten_bias_grad)
+        loss = F.cross_entropy(outputs, labels, label_smoothing=LABEL_SMOOTHING, reduction="sum")
+        return loss
+=======
+    def forward_step(inputs, labels, whiten_bias_grad, eps):
+        outputs = model(inputs, whiten_bias_grad=whiten_bias_grad)
+        logp = F.log_softmax(outputs.float(), dim=-1)
+        nll = -logp.gather(1, labels.unsqueeze(1)).squeeze(1)
+        smooth = -logp.mean(dim=-1)
+        loss = ((1 - eps) * nll + eps * smooth).sum()
+        return loss
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            loss = forward_step(inputs, labels, whiten_bias_grad)
+=======
+            ls.fill_(LABEL_SMOOTHING_START * (1 - step / total_train_steps))
+            loss = forward_step(inputs, labels, whiten_bias_grad, ls)
+>>>>>>> REPLACE
+-----

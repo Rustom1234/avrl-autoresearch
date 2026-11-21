@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: no veto. The diff only changes the MLP. It swaps the ReLU^2 MLP for SwiGLU. It does not touch the val_bpb measurement, the data, the seed lines or the evaluation call.",
+  "Correctness: no bug that would make the result meaningless. With hidden = round(8*n_embd/3/64)*64, c_fc maps n_embd to 2*hidden and c_proj maps hidden to n_embd. That gives about 3*hidden*n_embd \u2248 8*n_embd^2 parameters, close to the baseline. chunk(2) splits the fused gate and up projections correctly.",
+  "Minor, not a bug: the gate and up projections are fused into one matrix. Muon (if it handles this matrix) orthogonalizes them together, not separately. Any special init or scaling written for c_fc's old shape now applies to the fused shape. This could slightly hurt SwiGLU here, but the comparison stays valid.",
+  "Numbers: candidate 1.1038 vs incumbent 1.1021 is +0.0017 bpb, so the candidate is worse. The negative z of -0.221 and the reject are consistent with that. The gap is well within noise.",
+  "z cannot be recomputed independently: there is one run on each side and no noise sigma is given. The reported z implies a sigma of about 0.0077 on the difference. Taking that as the noise estimate, z = -(1.1038-1.1021)/0.0077 \u2248 -0.22, which matches.",
+  "Nothing in the material reviewed claims a gain that the numbers contradict."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "delta_bpb": 0.0017,
+  "implied_sigma_from_reported_z": 0.0077
+ }
+}

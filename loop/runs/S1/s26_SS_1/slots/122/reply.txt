@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _latsq(rng):
+    s = rng.uniform(0.16, 0.21)
+    pts = []
+    for a in range(-10, 11):
+        for b in range(-10, 11):
+            pts.append([s * (b + 0.5 * (a % 2)), s * a * np.sqrt(3) / 2])
+    p = np.array(pts, float)
+    p += rng.uniform(0, s, 2)
+    th = rng.uniform(0, np.pi)
+    R = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
+    p = p @ R.T
+    p[:, 0] *= rng.uniform(0.85, 1.15)
+    p[:, 1] *= rng.uniform(0.85, 1.15)
+    p += 0.5
+    d = ((p - 0.5) ** 2).sum(1)
+    c = p[np.argsort(d)[:_N]]
+    c = c + rng.normal(0, 0.005, c.shape)
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            if u < 0.3:
+                c = _latsq(rng)
+            elif u < 0.5:
+                c = _hexgrid(rng)
+            elif u < 0.75:
+                c = _hexinit(rng)
+            else:
+                c = _physics(rng)
+>>>>>>> REPLACE
+-----

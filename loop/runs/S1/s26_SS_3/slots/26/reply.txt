@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 4 == 0:
+            nb = int(rng.integers(14, 17))
+            c0 = rng.random((n, 2)) * 0.6 + 0.2
+            dwall = rng.uniform(0.04, 0.12, nb)
+            side = rng.integers(0, 4, nb)
+            along = rng.uniform(0.04, 0.96, nb)
+            for q in range(nb):
+                if side[q] == 0:
+                    c0[q] = [dwall[q], along[q]]
+                elif side[q] == 1:
+                    c0[q] = [1 - dwall[q], along[q]]
+                elif side[q] == 2:
+                    c0[q] = [along[q], dwall[q]]
+                else:
+                    c0[q] = [along[q], 1 - dwall[q]]
+            r0 = np.full(n, 0.1)
+            r0[:nb] = 0.07
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+>>>>>>> REPLACE
+-----

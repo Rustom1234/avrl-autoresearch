@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+import zlib
+from rdkit.Chem import BRICS
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def brics_fingerprints(smiles):
+    X = np.zeros((len(smiles), 1024), dtype=np.float64)
+    for i, s in enumerate(smiles):
+        for frag in BRICS.BRICSDecompose(Chem.MolFromSmiles(s)):
+            X[i, zlib.crc32(frag.encode()) % 1024] = 1.0
+    return X
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+
+    B_tr, B_te = brics_fingerprints(train_smiles), brics_fingerprints(test_smiles)
+    KB_tr = tanimoto(B_tr, B_tr)
+    sb2 = choose_sigma2(KB_tr, r, train_smiles)
+    p_brics = gp_mean(KB_tr, r, tanimoto(B_te, B_tr), sb2) + base_te
+
+    n = len(p_desc)
+    p_fp_rank = (rankdata(p_fp) + rankdata(p_brics)) / (2 * n)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * p_fp_rank
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import zlib
+from rdkit.Chem import BRICS
+=======
+from rdkit.Chem import BRICS
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            X[i, zlib.crc32(frag.encode()) % 1024] = 1.0
+=======
+            X[i, sum((k + 1) * ord(c) for k, c in enumerate(frag)) % 1024] = 1.0
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from scipy.spatial.distance import cdist
+from sklearn.linear_model import LogisticRegression
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+=======
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+
+    # Logistic regression on empirical kernel map of min-max Tanimoto kernel (Morgan counts)
+    C_tr = X[:, nd:].astype(np.float64)
+    C_te = Xt[:, nd:].astype(np.float64)
+
+    def minmax_kernel(P, Q):
+        l1 = cdist(P, Q, metric="cityblock")
+        s = P.sum(1)[:, None] + Q.sum(1)[None, :]
+        return (s - l1) / np.maximum(s + l1, 1e-9)
+
+    K = minmax_kernel(C_tr, C_tr)
+    Kt = minmax_kernel(C_te, C_tr)
+    lr = LogisticRegression(C=10, max_iter=2000)
+    lr.fit(K, y)
+    preds.append(rankdata(lr.predict_proba(Kt)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

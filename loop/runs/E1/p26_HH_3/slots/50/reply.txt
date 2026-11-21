@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+=======
+        c2, r2 = c.copy(), r.copy()
+        dist = np.stack([c2[:, 0], 1 - c2[:, 0], c2[:, 1], 1 - c2[:, 1]], 1)   # distance to each wall
+        touch = np.where(dist.min(1) <= r2)[0]
+        if len(touch) and rng.random() < 0.5:   # slide a wall-touching circle along its nearest wall, radius kept
+            i = rng.choice(touch)
+            k, pos = np.argmin(dist[i]), np.full(2, rng.uniform(0, 1))
+            pos[k // 2] = r2[i] + (k % 2) * (1 - 2 * r2[i])
+            c2[i] = pos
+        else:   # reinsert the smallest circle at a uniform random point
+            i = np.argmin(r2)
+            c2[i] = rng.uniform(0, 1, 2)
+            r2[i] = 0
+>>>>>>> REPLACE
+-----

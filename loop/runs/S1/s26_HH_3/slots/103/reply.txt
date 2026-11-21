@@ -1,0 +1,71 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _milp_start():
+    """MILP on a 12x12 candidate grid over [0.05, 0.95]^2: binary centre choice,
+    continuous radius per candidate, big-M pair conflicts for close candidates.
+    Returns (centers, radii) for exactly 26 chosen centres, or None."""
+    from scipy.optimize import milp, LinearConstraint, Bounds
+    g = np.linspace(0.05, 0.95, 12)
+    P = np.array([[x, y] for x in g for y in g])
+    K = len(P)
+    wall = np.minimum(np.minimum(P[:, 0], P[:, 1]), np.minimum(1 - P[:, 0], 1 - P[:, 1]))
+    pairs = []
+    for i in range(K):
+        for j in range(i + 1, K):
+            d = float(np.hypot(P[i, 0] - P[j, 0], P[i, 1] - P[j, 1]))
+            if d < 0.3:
+                pairs.append((i, j, d))
+    nrow = 1 + K + len(pairs)
+    A = np.zeros((nrow, 2 * K))
+    lb = np.full(nrow, -np.inf)
+    ub = np.zeros(nrow)
+    A[0, :K] = 1.0
+    lb[0] = 26.0
+    ub[0] = 26.0
+    for k in range(K):
+        A[1 + k, K + k] = 1.0
+        A[1 + k, k] = -wall[k]
+        ub[1 + k] = 0.0
+    for p, (i, j, d) in enumerate(pairs):
+        row = 1 + K + p
+        A[row, K + i] = 1.0
+        A[row, K + j] = 1.0
+        A[row, i] = 1.0
+        A[row, j] = 1.0
+        ub[row] = d + 2.0
+    c = np.concatenate([np.zeros(K), -np.ones(K)])
+    integrality = np.concatenate([np.ones(K), np.zeros(K)])
+    lo = np.zeros(2 * K)
+    hi = np.concatenate([np.ones(K), np.full(K, 0.5)])
+    res = milp(c, integrality=integrality, bounds=Bounds(lo, hi),
+               constraints=LinearConstraint(A, lb, ub),
+               options={"time_limit": 40.0, "mip_rel_gap": 1e-3})
+    if res.x is None:
+        return None
+    z = res.x[:K]
+    r = res.x[K:]
+    sel = np.where(z > 0.5)[0]
+    if len(sel) != 26:
+        return None
+    return P[sel].copy(), np.maximum(r[sel], 0.0)
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for start in range(12):
+=======
+    try:
+        mc, mr = _milp_start()
+        if mc is not None:
+            mc, mr = _optimize(mc, mr)
+            mr = _repair(mc, mr)
+            s = float(np.sum(mr))
+            if s > best_sum and len(mr) == 26:
+                best_sum, best_c, best_r = s, mc, mr
+    except Exception:
+        pass
+    for start in range(12):
+>>>>>>> REPLACE
+-----

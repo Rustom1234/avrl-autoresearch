@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    lgbm = lgb.LGBMRegressor(n_estimators=400, learning_rate=0.03, num_leaves=31, subsample=0.8, subsample_freq=1,
+                             colsample_bytree=0.5, min_child_samples=10, random_state=seed, n_jobs=8, verbose=-1)
+    lgbm.fit(desc_features(train_smiles), r)
+    p_desc = lgbm.predict(desc_features(test_smiles)) + base_te
+=======
+    D_tr, D_te = desc_features(train_smiles), desc_features(test_smiles)
+    mu, sd = D_tr.mean(0), D_tr.std(0) + 1e-9
+    Z_tr = np.clip((D_tr - mu) / sd, -5, 5)
+    Z_te = np.clip((D_te - mu) / sd, -5, 5)
+    rng = np.random.default_rng(seed)
+    i, j = rng.integers(0, len(y), 20000), rng.integers(0, len(y), 20000)
+    keep = i != j
+    i, j = i[keep], j[keep]
+    P = np.hstack([Z_tr[i] - Z_tr[j], Z_tr[i] + Z_tr[j]])
+    pair = lgb.LGBMRegressor(n_estimators=400, learning_rate=0.03, num_leaves=31, subsample=0.8, subsample_freq=1,
+                             colsample_bytree=0.5, min_child_samples=10, random_state=seed, n_jobs=8, verbose=-1)
+    pair.fit(P, y[i] - y[j])
+    anchors = rng.choice(len(y), 50, replace=False)
+    n_te = len(test_smiles)
+    Dt = np.repeat(Z_te, len(anchors), axis=0)
+    Da = np.tile(Z_tr[anchors], (n_te, 1))
+    f = pair.predict(np.hstack([Dt - Da, Dt + Da])).reshape(n_te, len(anchors))
+    p_desc = (y[anchors][None, :] + f).mean(1)
+>>>>>>> REPLACE
+-----

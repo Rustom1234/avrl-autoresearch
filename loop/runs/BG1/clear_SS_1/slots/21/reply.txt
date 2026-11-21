@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def multi_radius_fps(smiles):
+    out = []
+    for r in (1, 2, 3):
+        gen = rdFingerprintGenerator.GetMorganGenerator(radius=r, fpSize=N_BITS)
+        out.append(np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32))
+    return out
+
+
+def multi_kernel(As, Bs):
+    return np.mean([tanimoto(A, B) for A, B in zip(As, Bs)], axis=0)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr = SVR(kernel="precomputed", C=5.0).fit(tanimoto(Xtr, Xtr), y)
+    preds = [rf.predict(mixed_features(test_smiles)), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr))]
+=======
+    Ftr, Fte = multi_radius_fps(train_smiles), multi_radius_fps(test_smiles)
+    svr = SVR(kernel="precomputed", C=5.0).fit(multi_kernel(Ftr, Ftr), y)
+    preds = [rf.predict(mixed_features(test_smiles)), gb.predict(Xte), svr.predict(multi_kernel(Fte, Ftr))]
+>>>>>>> REPLACE
+-----

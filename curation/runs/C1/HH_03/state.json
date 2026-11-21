@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/HH_03/cand/s07_0.py",
+ "inc_scores": {
+  "11": 1.8874524351179156
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Rewrite select() as a filter-then-rank pipeline. (1) Drop exact duplicates by hashing normalized text (lowercase, collapse whitespace). (2) Drop junk: documents whose share of non-ASCII characters exceeds 2%, documents containing spam markers such as \"discount code\", \"coupon\", \"cheap\", \"buy now\", \"free shipping\", \"click here\", and documents without a Wikipedia-style \"= Title =\" header line. (3) Fit a TfidfVectorizer (word unigrams and bigrams, sublinear_tf=True, min_df=2) on target_sample plus the surviving pool, compute each pool document's cosine similarity to the centroid of the target_sample vectors, and sort descending by that score. Return the sorted indices with no repeats. Seed any tie-breaking shuffle from CURATE_SEED. Keep the whole list so the trainer still reads up to T tokens, and let it cycle only if the filtered list is short.",
+   "outcome": "dev 1.9060 against 1.9583 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "After the existing TF-IDF ranking, add a greedy near-duplicate filter. Walk the ranked survivors in order, keep a doc only if its cosine similarity to every already-kept doc is below 0.8 (use the same L2-normalized TF-IDF matrix, computing each candidate's dot products against the kept matrix in chunks to stay within 180 s). Append the dropped near-duplicates at the end of the returned list, in their ranked order, so the output still contains every surviving index and the trainer can still read T tokens. Keep the seeded tie-breaking shuffle as is.",
+   "outcome": "dev 1.9044 against 1.9060 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Add a word-order garbling filter after the junk filter and before TF-IDF ranking. For each surviving doc, lowercase and tokenize into words, form its word bigrams, and compute coverage = fraction of those bigrams that also occur in the bigram set built from target_sample (ignoring bigrams containing non-alphabetic tokens). Compute coverage for all survivors, then drop the bottom 10% by coverage (percentile cutoff, so no absolute threshold needs tuning). Keep the rest in the existing TF-IDF ranking and seeded tie-break. Do not drop any doc whose token count is below 50, since short docs have noisy coverage.",
+   "outcome": "dev 1.9181 against 1.9060 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "In select(), replace the single-centroid score with a kNN-style score. Keep steps (1) dedup and (2) junk filter unchanged, and keep the TF-IDF fit on target_sample plus survivors. Compute the L2-normalized target matrix T (200 x V) and survivor matrix D. Set S = D @ T.T (survivors x 200), then score each survivor as the mean of its top-k similarities with k=5 (np.partition on each row, take the 5 largest, average). Sort descending by that score, using the same seeded random.Random(seed) shuffle as a tie-breaker before the stable sort. Return the ordered survivor indices with no repeats.",
+   "outcome": "dev 1.9293 against 1.9060 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Add a surface-format filter after the junk filter and before TF-IDF ranking. For each surviving doc, compute fmt = (number of whitespace-separated tokens that are pure punctuation or the token \"@-@\", e.g. \",\", \".\", \"(\", \")\", \":\", \";\", \"@-@\") divided by total whitespace-separated tokens. Compute the same statistic for every target_sample doc and set cutoff = 10th percentile of those target values. Drop any survivor with fmt < cutoff, and do not drop docs with fewer than 50 tokens. Keep the remaining survivors in the existing TF-IDF centroid ranking and seeded tie-break, and keep the rest of select() unchanged.",
+   "outcome": "dev 1.9162 against 1.9060 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Keep the same filter and TF-IDF ranking, but change the output order to ascending score (most target-like last). Concretely: walk the descending-ranked list, accumulate whitespace-token counts until they reach about T tokens, take that prefix as the selected set, then reverse that prefix so the highest-scoring documents appear at the end of the stream. Keep the seeded tie-break. No new filters.",
+   "outcome": "dev 1.9783 against 1.9060 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "In select(), change the TfidfVectorizer so it keeps punctuation and the WikiText-style \"@-@\" / \"@,@\" / \"@.@\" joiner tokens instead of discarding them. Replace the default token_pattern with token_pattern=r\"[^\\s]+\" (leave lowercase=True, ngram_range=(1,2), sublinear_tf=True, min_df=2 unchanged), so the fit on target_sample plus survivors and the centroid cosine ranking see tokens such as \"@-@\", \"(\", \")\", \",\", \".\" and \"=\". Keep dedup, junk filter, seeded tie-break and the rest of select() as they are.",
+   "outcome": "dev 1.8875 against 1.9060 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 8,
+   "idea": "Add a character-garbling filter after the junk filter and before TF-IDF ranking. For each surviving doc, lowercase it and split on whitespace, stripping leading and trailing non-alphabetic characters from each token. Count how many pool-wide document frequencies each token has by building a Counter of the set of stripped tokens across all deduplicated pool docs (df). A token is \"common\" if df >= 3. Compute garble = fraction of the doc's alphabetic tokens that are common. Exempt docs with fewer than 50 tokens. Among the rest, drop the bottom 10% by garble (percentile cutoff, no absolute threshold). Keep everything else unchanged: the TF-IDF centroid ranking, the seeded tie-break, and the output list of indices with no repeats.",
+   "outcome": "dev 1.8954 against 1.8875 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "In select(), after the junk filter and before the TF-IDF fit, drop every surviving doc with fewer than 200 whitespace-separated tokens (a hard minimum length, not a percentile). Keep the rest of the pipeline unchanged: TF-IDF fit on target_sample plus survivors with token_pattern=r\"[^\\s]+\", centroid cosine ranking, seeded tie-break, and the full output list of indices with no repeats. If the length filter leaves no survivors, fall back to the current behaviour (no length filter).",
+   "outcome": "dev 1.8881 against 1.8875 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Keep the existing filters and TF-IDF centroid ranking unchanged, then upsample the most target-like documents. After computing the descending-score order, take the top 10% of ranked survivors (by score) and prepend a second copy of them, so the stream is [top10%] + [full ranked list]. Accumulate whitespace-token counts and truncate the stream once it reaches about T tokens, so the lowest-ranked docs are the ones dropped. Keep the seeded tie-break and allow the repeated indices, since select() may return repeats.",
+   "outcome": "dev 1.8887 against 1.8875 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "In select(), keep everything else as in the current best (dedup, junk filter, token_pattern=r\"[^\\s]+\", seeded tie-break), but change the TfidfVectorizer call to add stop_words=\"english\" and max_df=0.3 (keep ngram_range=(1,2), sublinear_tf=True, min_df=2). Stop words and terms that occur in more than 30% of documents are removed from the feature space, so the centroid cosine ranking depends on topical content words rather than function words and generic Wikipedia phrasing.",
+   "outcome": "dev 1.9584 against 1.8875 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "In select(), keep dedup, junk filter, the TfidfVectorizer call (token_pattern=r\"[^\\s]+\", ngram_range=(1,2), sublinear_tf=True, min_df=2), and the seeded tie-break unchanged. Replace the ranking score with a background-contrastive score: compute target_centroid as the normalized mean of the L2-normalized target_sample vectors, and pool_centroid as the normalized mean of the L2-normalized survivor vectors. For each survivor set score = cos(doc, target_centroid) - 0.5 * cos(doc, pool_centroid). Sort descending by score with the same seeded random.Random(seed) shuffle applied before a stable sort, and return the full ordered survivor list with no repeats.",
+   "outcome": "dev 1.8879 against 1.8875 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.04394914,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "accept",
+   "usd": 0.0020529,
+   "dev": 1.9060432928053606,
+   "inc": 1.9582834621358507,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 7.189673731143702,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.006948579999999999,
+   "dev": 1.9043674491008404,
+   "inc": 1.9060432928053606,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 7.189673731143702,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.004599280000000001,
+   "dev": 1.9180584212964404,
+   "inc": 1.9060432928053606,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 7.189673731143702,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0029620800000000023,
+   "dev": 1.9293028999848707,
+   "inc": 1.9060432928053606,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 7.189673731143702,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0033971799999999996,
+   "dev": 1.9161852494181093,
+   "inc": 1.9060432928053606,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 7.189673731143702,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0031190799999999998,
+   "dev": 1.9783441686460579,
+   "inc": 1.9060432928053606,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 7.189673731143702,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "accept",
+   "usd": 0.0028243800000000013,
+   "dev": 1.8874524351179156,
+   "inc": 1.9060432928053606,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 9.748283377089884,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.00463148,
+   "dev": 1.8954234540749861,
+   "inc": 1.8874524351179156,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 9.748283377089884,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0031858799999999986,
+   "dev": 1.8880544105378052,
+   "inc": 1.8874524351179156,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 9.748283377089884,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.003442380000000002,
+   "dev": 1.8886887585831713,
+   "inc": 1.8874524351179156,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 9.748283377089884,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0033574399999999963,
+   "dev": 1.958390412325048,
+   "inc": 1.8874524351179156,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 9.748283377089884,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0034284799999999976,
+   "dev": 1.8878644724571387,
+   "inc": 1.8874524351179156,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9582834621358507,
+ "inc_slot": 7
+}

@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+=======
+    x = x0
+    caps = list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]
+    for k, cap in enumerate(caps):
+        lam = k / (len(caps) - 1)   # 0 at the first stage, 1 at the last
+        lo, hi = 0.1 * (1 - lam), 0.9 + 0.1 * lam   # centre box grows from [0.1, 0.9] to [0, 1]
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       bounds=[(lo, hi)] * (2 * n) + [(0, None)] * n,
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+>>>>>>> REPLACE
+-----

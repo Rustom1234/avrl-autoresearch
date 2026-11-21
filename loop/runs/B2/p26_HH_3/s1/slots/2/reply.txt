@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+=======
+    c, r = best
+    step = 0
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle, or split a large one
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        if step % 2:   # split move: circle j from the 5 largest gives half its area to the removed slot i
+            j = rng.choice(np.argsort(-r2)[:5])
+            theta = rng.uniform(0, 2 * np.pi)
+            u = 0.5 * r2[j] * np.array([np.cos(theta), np.sin(theta)])
+            c2[j], c2[i] = c2[j] + u, c2[j] - u
+            r2[i] = r2[j] = 0.45 * r2[j]
+        else:
+            c2[i] = rng.uniform(0, 1, 2)
+            r2[i] = 0
+        step += 1
+>>>>>>> REPLACE
+-----

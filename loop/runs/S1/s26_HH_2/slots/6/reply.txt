@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def _template():
+=======
+def _best_spot(G, C, R):
+    """Feasible radius at each grid point G given existing centers C and radii R."""
+    wall = np.minimum(np.minimum(G[:, 0], G[:, 1]),
+                      np.minimum(1.0 - G[:, 0], 1.0 - G[:, 1]))
+    if C.shape[0] == 0:
+        return np.maximum(wall, 0.0)
+    d = np.sqrt(np.sum((G[:, None, :] - C[None, :, :]) ** 2, axis=-1))
+    feas = np.min(d - R[None, :], axis=1)
+    return np.maximum(np.minimum(wall, feas), 0.0)
+
+
+def _greedy_start(n=_N, grid=60, passes=300):
+    """Greedy insertion on a grid, then seeded remove-and-reinsert of a small circle."""
+    xs = np.linspace(0.0, 1.0, grid)
+    G = np.stack(np.meshgrid(xs, xs, indexing="ij"), axis=-1).reshape(-1, 2)
+    C = np.zeros((0, 2))
+    R = np.zeros(0)
+    for _ in range(n):
+        rad = _best_spot(G, C, R)
+        i = int(np.argmax(rad))
+        C = np.vstack([C, G[i]])
+        R = np.append(R, rad[i])
+    rng = np.random.RandomState(7)
+    for _ in range(passes):
+        order = np.argsort(R)[:3]
+        k = int(order[rng.randint(len(order))])
+        keepC = np.delete(C, k, axis=0)
+        keepR = np.delete(R, k)
+        rad = _best_spot(G, keepC, keepR)
+        j = int(np.argmax(rad))
+        if rad[j] > R[k] + 1e-12:
+            C = np.vstack([keepC, G[j]])
+            R = np.append(keepR, rad[j])
+    return C
+
+
+def _template():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_s, best_c, best_r = -1.0, None, None
+=======
+    g = _greedy_start()
+    _gr, gs = _score(g)
+    pool.append((gs, g.copy()))
+    pool.sort(key=lambda p: -p[0])
+    best_s, best_c, best_r = -1.0, None, None
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _halton(m, rng):
+    """m scrambled Halton points in 2D (bases 2 and 3), mapped into [INIT_LOW, 1 - INIT_LOW]."""
+    offset = rng.integers(1, 10000)
+    pts = np.zeros((m, 2))
+    for dim, base in enumerate((2, 3)):
+        perm = np.concatenate([[0], 1 + rng.permutation(base - 1)])
+        for i in range(m):
+            k, f, x = i + offset, 1.0, 0.0
+            while k > 0:
+                f /= base
+                x += f * perm[k % base]
+                k //= base
+            pts[i, dim] = x
+    return INIT_LOW + (1 - 2 * INIT_LOW) * pts
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+=======
+        pool = sorted((_relax(p.ravel(), n) for p in _halton(POOL * n, rng).reshape(POOL, n, 2)), key=lambda t: t[0])
+>>>>>>> REPLACE
+-----

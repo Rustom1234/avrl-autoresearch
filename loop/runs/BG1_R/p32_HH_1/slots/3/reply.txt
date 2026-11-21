@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _crossover(pa, pb, rng):
+    """Child start: circles left of a random cut from packing a, the rest from packing b; count fixed to n."""
+    ca, cb = pa[0], pb[0]
+    n = len(ca)
+    axis, cut = rng.integers(2), rng.uniform(0.3, 0.7)
+    child = np.vstack([ca[ca[:, axis] < cut], cb[cb[:, axis] >= cut]])
+    if len(child) > n:
+        child = child[rng.permutation(len(child))[:n]]
+    elif len(child) < n:
+        child = np.vstack([child, rng.uniform(0.1, 0.9, (n - len(child), 2))])
+    return child
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    other = None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        init = (_crossover(best, other, rng) if other is not None else best[0]) if guided else None
+        c, r = _solve_once(n, rng, init)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            best = (c, r)
+=======
+            other, best = best, (c, r)
+>>>>>>> REPLACE
+-----

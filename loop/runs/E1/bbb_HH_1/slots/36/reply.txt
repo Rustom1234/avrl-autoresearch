@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler, SplineTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    Dc_train = np.clip(D_train, lo, hi)
+    Dc_test = np.clip(D_test, lo, hi)
+    keep = Dc_train.std(axis=0) > 0
+    scaler = StandardScaler().fit(Dc_train[:, keep])
+    spline = SplineTransformer(n_knots=4, degree=3, knots="quantile", extrapolation="linear", include_bias=False)
+    S_train = spline.fit_transform(scaler.transform(Dc_train[:, keep]))
+    S_test = spline.transform(scaler.transform(Dc_test[:, keep]))
+    lr = LogisticRegression(C=0.1, max_iter=2000)
+    lr.fit(S_train, y)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    return (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1])
+            + scaled_rank(lr.predict_proba(S_test)[:, 1])) / 3.0
+>>>>>>> REPLACE
+-----

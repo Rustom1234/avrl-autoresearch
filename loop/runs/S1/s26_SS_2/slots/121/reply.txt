@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+=======
+        if rng.random() < 0.4:
+            kb = int(rng.integers(8, 11))
+            gp = np.array([(0.14 + 0.28 * a, 0.14 + 0.28 * b) for a in range(4) for b in range(4)])
+            sel = rng.choice(len(gp), kb, replace=False)
+            P = np.clip(gp[sel] + rng.normal(0, 0.03, (kb, 2)), 0.13, 0.87)
+            R = list(rng.uniform(0.12, 0.15, kb))
+            P = [p for p in P]
+            while len(P) < n:
+                S = rng.uniform(0, 1, (3000, 2))
+                cl = np.minimum(S.min(axis=1), (1 - S).min(axis=1))
+                Pa = np.array(P); Ra = np.array(R)
+                dd = np.sqrt(((S[:, None, :] - Pa[None, :, :]) ** 2).sum(-1)) - Ra[None, :]
+                cl = np.minimum(cl, dd.min(axis=1))
+                b = int(np.argmax(cl))
+                P.append(S[b]); R.append(max(0.8 * cl[b], 0.01))
+            Pa = np.array(P)
+            v = np.concatenate([Pa[:, 0], Pa[:, 1], np.minimum(np.array(R), 0.5)])
+        else:
+            v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+>>>>>>> REPLACE
+-----

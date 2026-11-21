@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _polish(c, r, ftol=1e-12, maxiter=300):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": 300, "ftol": 1e-12})
+=======
+                   options={"maxiter": maxiter, "ftol": ftol})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+        try:
+=======
+    rngs = [np.random.default_rng(s) for s in (12345, 1, 2, 3)]
+    sbest = [(-1, None)] * 4
+    k = 0
+    while time.time() - t0 < 135:
+        idx = k % 4
+        k += 1
+        rng = rngs[idx]
+        try:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+=======
+        s = r2.sum()
+        if s > sbest[idx][0]:
+            sbest[idx] = (s, (c2, r2))
+    best_s, best = -1, None
+    for s, cand in sbest:
+        if cand is None:
+            continue
+        if s > best_s:
+            best_s, best = s, cand
+        if time.time() - t0 < 170:
+            try:
+                c3 = np.clip(_polish(cand[0], cand[1], 1e-14, 500), 0, 1)
+                r3 = _lp_radii(c3)
+                if r3.sum() > best_s:
+                    best_s, best = r3.sum(), (c3, r3)
+            except Exception:
+                pass
+    c, r = best
+>>>>>>> REPLACE
+-----

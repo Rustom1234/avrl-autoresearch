@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+    dot = A @ B.T
+    na = (A * A).sum(axis=1)[:, None]
+    nb = (B * B).sum(axis=1)[None, :]
+    return dot / np.maximum(na + nb - dot, 1e-9)
+=======
+def tanimoto(A, B):
+    dot = A @ B.T
+    na = (A * A).sum(axis=1)[:, None]
+    nb = (B * B).sum(axis=1)[None, :]
+    return dot / np.maximum(na + nb - dot, 1e-9)
+
+
+def minmax_tanimoto(A, B):
+    # Count-vector Tanimoto (sum of mins / sum of maxes). min(a, b) = sum over thresholds t of [a >= t][b >= t].
+    mins = np.zeros((A.shape[0], B.shape[0]))
+    for t in range(1, int(max(A.max(), B.max())) + 1):
+        mins += (A >= t).astype(np.float32) @ (B >= t).astype(np.float32).T
+    na = A.sum(axis=1)[:, None]
+    nb = B.sum(axis=1)[None, :]
+    return mins / np.maximum(na + nb - mins, 1e-9)
+
+
+def multi_tanimoto(A, B):
+    # Sum of ECFP r1, ECFP r2 and atom-pair Tanimoto kernels, divided by 3 so the scale matches a single kernel.
+    t1 = tanimoto(A[:, :N_BITS], B[:, :N_BITS])
+    t2 = tanimoto(A[:, N_BITS:2 * N_BITS], B[:, N_BITS:2 * N_BITS])
+    t3 = minmax_tanimoto(A[:, 2 * N_BITS:], B[:, 2 * N_BITS:])
+    return (t1 + t2 + t3) / 3.0
+
+
+def kernel_features(smiles):
+    # Kernel inputs: ECFP radius 1 bits, ECFP radius 2 bits, atom-pair counts (capped at 10 to bound the threshold loop).
+    g1 = rdFingerprintGenerator.GetMorganGenerator(radius=1, fpSize=N_BITS)
+    g2 = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    gap = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        rows.append(np.concatenate([g1.GetFingerprintAsNumPy(mol), g2.GetFingerprintAsNumPy(mol),
+                                    np.minimum(gap.GetCountFingerprintAsNumPy(mol), 10)]))
+    return np.array(rows, dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ta, Ra = tanimoto(Fa, Fa), rbf(Za, Za)
+=======
+    Ta, Ra = multi_tanimoto(Fa, Fa), rbf(Za, Za)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+=======
+    p_krr = (multi_tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Tanimoto kernel uses the ECFP bits only (first N_BITS columns).
+    Ftr, Fte = Ftr[:, :N_BITS].astype(np.float64), Fte[:, :N_BITS].astype(np.float64)
+=======
+    # Kernel inputs (ECFP r1, ECFP r2, atom-pair counts) are computed separately from the model features.
+    Ftr, Fte = kernel_features(train_smiles), kernel_features(test_smiles)
+>>>>>>> REPLACE
+-----

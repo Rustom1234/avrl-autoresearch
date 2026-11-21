@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+def _local_opt(c0):
+=======
+def _aspect_detour(c0):
+    # Sweep the container from width 0.8 to 1.25 (height 1/w), warm-starting SLSQP
+    # with free radii at each stage; map the final centres back to the unit square.
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    c = np.clip(c0, 0.0, 1.0).copy()
+    r = _lp_radii(c)
+    w, h = 1.0, 1.0
+    for w in np.linspace(0.8, 1.25, 6):
+        h = 1.0 / w
+        z0 = np.concatenate([c[:, 0] * w, c[:, 1] * h, np.minimum(r, 0.5)])
+
+        def cons(z, w=w, h=h):
+            x = z[:n]
+            y = z[n:2 * n]
+            rr = z[2 * n:]
+            dx = x[I] - x[J]
+            dy = y[I] - y[J]
+            rs = rr[I] + rr[J]
+            pair = dx * dx + dy * dy - rs * rs
+            bnd = np.concatenate([x - rr, w - x - rr, y - rr, h - y - rr])
+            return np.concatenate([pair, bnd])
+
+        def obj_grad(z):
+            g = np.zeros_like(z)
+            g[2 * n:] = -1.0
+            return g
+
+        bounds = [(0.0, float(w))] * n + [(0.0, float(h))] * n + [(0.0, 0.5)] * n
+        try:
+            res = minimize(lambda z: -np.sum(z[2 * n:]), z0, jac=obj_grad, method="SLSQP",
+                           bounds=bounds, constraints=[{"type": "ineq", "fun": cons}],
+                           options={"maxiter": 100, "ftol": 1e-10})
+            z = res.x
+            c = np.stack([np.clip(z[:n], 0.0, w), np.clip(z[n:2 * n], 0.0, h)], axis=1)
+            r = np.maximum(z[2 * n:], 0.0)
+        except Exception:
+            pass
+    out = np.stack([c[:, 0] / w, c[:, 1] / h], axis=1)
+    return np.clip(out, 0.0, 1.0)
+
+
+def _local_opt(c0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    candidates = [c0.copy(), c_orig, _adam_soft(c_orig)]
+=======
+    candidates = [c0.copy(), c_orig, _adam_soft(c_orig), _aspect_detour(c_orig)]
+>>>>>>> REPLACE
+-----

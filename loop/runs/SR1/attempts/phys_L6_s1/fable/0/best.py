@@ -1,0 +1,2 @@
+def equation(t, x, v, params):
+    return -8.6*params[0] + 2.6*params[1]*t + 6.0*params[2]*np.exp(-1.4*params[3]*t) + 0.58*params[4]*np.cos(0.4*params[5]*t) + 2.84*params[6]*np.sin(0.4*params[5]*t) - 0.00767*params[7]*v*t**3 + 0.001*params[8]*x

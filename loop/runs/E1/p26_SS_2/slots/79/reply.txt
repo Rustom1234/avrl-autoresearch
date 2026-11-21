@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and time.process_time() - t0 > 0.3 * time_limit:
+            c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    base, sd, fails = None, 0.05, 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        perturb = best is not None and time.process_time() - t0 > 0.3 * time_limit and fails < 15
+        if perturb:
+            c, r = _solve_once(n, rng, base, sd)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        if perturb:
+            if r.sum() > base[1].sum():
+                base, fails = (c, r), 0
+            else:
+                fails += 1
+                sd *= 0.8
+                if sd < 0.004:
+                    sd = 0.05
+        elif best is not None and time.process_time() - t0 > 0.3 * time_limit:
+            base, fails, sd = (c, r), 0, 0.05   # stagnation: fresh restart becomes the new base
+        else:
+            base = best
+    return best
+>>>>>>> REPLACE
+-----

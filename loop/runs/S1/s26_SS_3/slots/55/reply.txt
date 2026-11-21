@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 10 in (0, 4):
+            d = rng.uniform(0.17, 0.21)
+            dyy = d * np.sqrt(3) / 2
+            kc = int(rng.integers(0, 8))
+            ys = []
+            yv = -0.5
+            while yv < 1.5:
+                ys.append(yv)
+                yv += dyy * (0.9 if len(ys) == kc else 1.0)
+            lp = []
+            offx = rng.random() * d
+            for ri, yv in enumerate(ys):
+                sh = (d / 2 if ri % 2 else 0.0) + rng.uniform(-0.1, 0.1) * d + offx
+                for xv in np.arange(-0.5, 1.5, d):
+                    lp.append([xv + sh, yv])
+            lp = np.array(lp) - 0.5
+            th = rng.uniform(0, np.pi / 2)
+            R = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
+            lp = lp @ R.T + 0.5 + rng.normal(0, 0.01, 2)
+            ok = np.all((lp >= 0.04) & (lp <= 0.96), axis=1)
+            lp = lp[ok]
+            if len(lp) > n:
+                wc = np.minimum(lp.min(1), (1 - lp).min(1))
+                lp = lp[np.argsort(-wc)[:n]]
+            while len(lp) < n:
+                P = rng.uniform(0.04, 0.96, (1500, 2))
+                if len(lp):
+                    cl = np.sqrt(((P[:, None, :] - lp[None]) ** 2).sum(2)).min(1)
+                else:
+                    cl = np.zeros(len(P))
+                lp = np.vstack([lp, P[np.argmax(cl)][None]])
+            c0 = np.clip(lp, 0.03, 0.97)
+            r0 = np.full(n, d / 2)
+>>>>>>> REPLACE
+-----

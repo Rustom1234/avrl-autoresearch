@@ -1,0 +1,162 @@
+<<<<<<< SEARCH
+        r = np.maximum(r - SHRINK, 0)
+    return np.maximum(r - SHRINK, 0)
+
+
+def solve(n, seed, time_limit):
+=======
+        r = np.maximum(r - SHRINK, 0)
+    return r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        # Local search: try to expand a random circle's radius
+        for _ in range(100): 
+            if time.process_time() - t0 > TIME_FRACTION * time_limit: break
+            idx = rng.integers(0, n)
+            old_r = r[idx]
+            # Perturb center slightly
+            c[idx] += rng.uniform(-0.005, 0.005, 2)
+            c[idx] = np.clip(c[idx], 0, 1)
+            # Try to grow radius
+            new_r = old_r + rng.uniform(0, 0.002)
+            # Check bounds
+            if new_r <= c[idx, 0] and new_r <= (1 - c[idx, 0]) and 
+               new_r <= c[idx, 1] and new_r <= (1 - c[idx, 1]):
+                # Check overlaps
+                dist_sq = np.sum((c - c[idx])**2, axis=1)
+                other_r_sum = r + r[idx] 
+                # The above is wrong because r includes r[idx] twice. 
+                # Let's do it cleanly:
+                dist_sq = np.sum((c - c[idx])**2, axis=1)
+                # Corrected radii sum logic
+                current_r = np.copy(r)
+                current_r[idx] = new_r
+                # Distance must be >= sum of radii
+                # Note: sum of radii is r_i + r_j. 
+                # For j != idx, it's r_j + new_r. For j == idx, it's 0 (ignore diagonal)
+                # We can use a mask or just handle the distance logic
+                r_sum = current_r + current_r
+                # Because the distance to itself is 0, we just need to check j != idx
+                # Simplified: check if dist > sum of radii for all j
+                # We only need to check if the new circle overlaps with others
+                valid = True
+                for j in range(n):
+                    if i != j:
+                        d = np.sqrt(dist_sq[j])
+                        if d < (new_r + r[j]):
+                            valid = False
+                            break
+                # Actually, the loop logic above has 'i' undefined. 
+                # Let's use a simpler valid check:
+                pass
+            # Correction: Let's just do a very simple expansion
+            # if it's valid, keep it. 
+            # To keep it simple for one slot, just try a tiny expansion
+            # and if it fails, keep old values.
+            # Resetting to a simpler approach to avoid complexity errors
+            c[idx] = c[idx] - (rng.uniform(-0.005, 0.005, 2) * 0)
+            r[idx] = old_r
+            break
+
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+-----
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        # Local search: try to expand a random circle's radius
+        for _ in range(50):
+            if time.process_time() - t0 > TIME_FRACTION * time_limit: break
+            i = rng.integers(0, n)
+            old_r = r[i]
+            # Try a small expansion
+            new_r = old_r + rng.uniform(0, 0.002)
+            # Check bounds
+            if new_r <= c[i, 0] and new_r <= (1 - c[i, 0]) and 
+               new_r <= c[i, 1] and new_r <= (1 - c[i, 1]):
+                # Check overlaps
+                dist_sq = np.sum((c - c[i])**2, axis=1)
+                # For j != i, dist must be >= new_r + r[j]
+                # For j == i, dist is 0, but we skip it
+                valid = True
+                for j in range(n):
+                    if i != j:
+                        if np.sqrt(dist_sq[j]) < (new_r + r[j]) - 1e-11:
+                            valid = False
+                            break
+                if valid:
+                    r[i] = new_r
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        # Local search: try to expand a random circle's radius
+        for _ in range(100):
+            if time.process_time() - t0 > TIME_FRACTION * time_limit: break
+            i = rng.integers(0, n)
+            old_r = r[i]
+            new_r = old_r + rng.uniform(0, 0.001)
+            
+            # Check bounds
+            if (new_r <= c[i, 0] and new_r <= 1 - c[i, 0] and 
+                new_r <= c[i, 1] and new_r <= 1 - c[i, 1]):
+                # Check overlaps
+                dist_sq = np.sum((c - c[i])**2, axis=1)
+                valid = True
+                for j in range(n):
+                    if i != j:
+                        if np.sqrt(dist_sq[j]) < (new_r + r[j]) - 1e-10:
+                            valid = False
+                            break
+                if valid:
+                    r[i] = new_r
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

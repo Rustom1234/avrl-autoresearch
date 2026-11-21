@@ -1,0 +1,88 @@
+<<<<<<< SEARCH
+# This part remains fixed (not evolved)
+=======
+def _auglag_polish(c, r, deadline):
+    # Augmented Lagrangian on joint (centres, radii): minimise -sum(r) subject to
+    # pair constraints dist^2 - (ri+rj)^2 >= 0 and border constraints >= 0.
+    # Inequality multipliers: P = (1/(2mu)) * sum(max(0, lam - mu*c)^2 - lam^2).
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    m = len(I)
+    E = np.eye(n)
+    Zm = np.zeros((n, n))
+    Jb = np.vstack([np.hstack([E, Zm, -E]), np.hstack([-E, Zm, -E]),
+                    np.hstack([Zm, E, -E]), np.hstack([Zm, -E, -E])])
+    z = np.concatenate([c[:, 0], c[:, 1], r])
+    lam = np.zeros(m + 4 * n)
+    mu = 10.0
+    k = np.arange(m)
+
+    def cons(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        rr = z[2 * n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        rs = rr[I] + rr[J]
+        pair = dx * dx + dy * dy - rs * rs
+        bnd = np.concatenate([x - rr, 1 - x - rr, y - rr, 1 - y - rr])
+        return np.concatenate([pair, bnd])
+
+    def jac(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        rr = z[2 * n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        rs = rr[I] + rr[J]
+        Jp = np.zeros((m, 3 * n))
+        Jp[k, I] = 2.0 * dx
+        Jp[k, J] = -2.0 * dx
+        Jp[k, n + I] = 2.0 * dy
+        Jp[k, n + J] = -2.0 * dy
+        Jp[k, 2 * n + I] = -2.0 * rs
+        Jp[k, 2 * n + J] = -2.0 * rs
+        return np.vstack([Jp, Jb])
+
+    def fg(z):
+        cv = cons(z)
+        Jc = jac(z)
+        t = np.maximum(0.0, lam - mu * cv)
+        f = -np.sum(z[2 * n:]) + (np.sum(t * t) - np.sum(lam * lam)) / (2.0 * mu)
+        g = -(t @ Jc)
+        g[2 * n:] -= 1.0
+        return f, g
+
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    best_c = np.array(c, dtype=float)
+    best_r = np.array(r, dtype=float)
+    best_s = float(np.sum(_lp_radii(best_c)))
+    for _ in range(8):
+        if time.perf_counter() > deadline:
+            break
+        try:
+            res = minimize(fg, z, jac=True, method="L-BFGS-B", bounds=bounds,
+                           options={"maxiter": 300})
+            z = res.x
+        except Exception:
+            break
+        cv = cons(z)
+        lam = np.maximum(0.0, lam - mu * cv)
+        mu = min(mu * 2.0, 1e4)
+        cand = np.clip(np.stack([z[:n], z[n:2 * n]], axis=1), 0.0, 1.0)
+        rr = _lp_radii(cand)
+        s = float(np.sum(rr))
+        if s > best_s + 1e-9 and _valid_packing(cand, rr):
+            best_c, best_r, best_s = cand, rr, s
+    return best_c, best_r
+
+
+# This part remains fixed (not evolved)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+=======
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 210.0)
+        best_c, best_r = _auglag_polish(best_c, best_r, t_start + 232.0)
+>>>>>>> REPLACE
+-----

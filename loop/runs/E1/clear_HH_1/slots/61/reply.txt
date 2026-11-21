@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+    return 0.7 * rankdata(svr_pred) / len(svr_pred) + 0.3 * rankdata(ard_pred) / len(ard_pred)
+=======
+    blend = 0.7 * rankdata(svr_pred) / len(svr_pred) + 0.3 * rankdata(ard_pred) / len(ard_pred)
+    from sklearn.cluster import KMeans
+    from sklearn.kernel_ridge import KernelRidge
+    from scipy.spatial.distance import pdist
+    km = KMeans(n_clusters=64, n_init=3, random_state=seed).fit(X)
+    anchors = []
+    for c in range(64):
+        idx = np.where(km.labels_ == c)[0]
+        if len(idx) == 0:
+            continue
+        T = tanimoto(X[idx], X[idx])
+        anchors.append(idx[np.argmax(T.sum(axis=1))])
+    A = X[anchors]
+    E = tanimoto(X, A)
+    Et = tanimoto(Xt, A)
+    mu_e, sd_e = E.mean(axis=0), E.std(axis=0) + 1e-9
+    E = (E - mu_e) / sd_e
+    Et = (Et - mu_e) / sd_e
+    sigma = np.median(pdist(E))
+    krr = KernelRidge(kernel="rbf", gamma=1.0 / (2.0 * sigma ** 2 + 1e-12), alpha=1.0)
+    krr.fit(E, y - y.mean())
+    krr_pred = krr.predict(Et)
+    rb = rankdata(blend) / len(blend)
+    rk = rankdata(krr_pred) / len(krr_pred)
+    return 0.75 * rb + 0.25 * rk
+>>>>>>> REPLACE
+-----

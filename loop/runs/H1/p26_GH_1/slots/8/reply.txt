@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _anneal(n, x, rng, steps=2000):
+    """Short simulated annealing on (centres, radii); returns the lowest-energy state found."""
+    c, r = x[:2 * n].reshape(n, 2).copy(), x[2 * n:].copy()
+
+    def energy(c, r):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        ov = np.maximum(r[:, None] + r[None] - d, 0)
+        np.fill_diagonal(ov, 0)
+        wall = np.maximum(r[:, None] - c, 0) + np.maximum(r[:, None] + c - 1, 0)
+        return -r.sum() + 50 * (ov.sum() + wall.sum())
+
+    E = energy(c, r)
+    best = (E, c.copy(), r.copy())
+    T0 = 0.05
+    for k in range(steps):
+        f = 1 - k / steps
+        T = T0 * f + 1e-6
+        i = rng.integers(n)
+        c2, r2 = c.copy(), r.copy()
+        c2[i] += rng.normal(0, 0.05 * f + 0.005, 2)
+        r2[i] = max(0.0, r2[i] + rng.normal(0, 0.01))
+        E2 = energy(c2, r2)
+        if E2 < E or rng.random() < np.exp(-(E2 - E) / T):
+            c, r, E = c2, r2, E2
+            if E < best[0]:
+                best = (E, c.copy(), r.copy())
+    return np.concatenate([best[1].ravel(), best[2]])
+
+
+def _solve_once(n, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+=======
+    x0 = _anneal(n, x0, rng)
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+-----

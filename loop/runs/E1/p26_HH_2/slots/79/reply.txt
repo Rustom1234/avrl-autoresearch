@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+EARLY_STOPS = 0  # debug: number of cap continuations that skipped to cap 1.0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+=======
+    def n_contacts(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        w = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        return int((np.abs(d) < 1e-6).sum() + (np.abs(w) < 1e-6).sum())
+
+    global EARLY_STOPS
+    caps = list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]
+    x, prev, i = x0, None, 0
+    while i < len(caps):
+        cap = caps[i]
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+        cur = (n_contacts(x), x[2 * n:].sum())
+        if prev is not None and cap < 1.0 and cur[0] == prev[0] and abs(cur[1] - prev[1]) < 1e-4:
+            EARLY_STOPS += 1
+            i, prev = len(caps) - 1, None   # skip remaining caps, go straight to cap 1.0
+            continue
+        prev = cur
+        i += 1
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

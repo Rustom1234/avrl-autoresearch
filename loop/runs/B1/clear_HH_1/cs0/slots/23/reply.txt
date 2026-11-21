@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    yz = (y - mu) / sd
+    model.fit(K_train, yz)
+    svr_pred = model.predict(K_test)
+    F = np.hstack([X, D])
+    Ft = np.hstack([Xt, Dt])
+    gbm_pred = np.zeros(len(Ft))
+    for k in range(5):
+        g = lgb.LGBMRegressor(n_estimators=400, learning_rate=0.03, num_leaves=15, subsample=0.7,
+                              subsample_freq=1, colsample_bytree=0.3, random_state=seed + k,
+                              n_jobs=8, verbose=-1)
+        g.fit(F, yz)
+        gbm_pred += g.predict(Ft) / 5
+    return 0.5 * svr_pred + 0.5 * gbm_pred
+>>>>>>> REPLACE
+-----

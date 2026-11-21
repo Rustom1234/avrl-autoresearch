@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+N_RULES = 15
+MAX_RULE_LEN = 3
+N_CUTS = 10
+MIN_COVER = 5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def rule_scores(x_tr, y_tr, x_te, seed):
+    rng = np.random.RandomState(seed)
+    conds = []
+    for j in range(x_tr.shape[1]):
+        for t in np.unique(np.quantile(x_tr[:, j], np.linspace(0.05, 0.95, N_CUTS))):
+            conds.append((j, t, True))
+            conds.append((j, t, False))
+    order = rng.permutation(len(conds))
+    conds = [conds[i] for i in order]
+    masks = np.array([(x_tr[:, j] > t) if up else (x_tr[:, j] <= t) for j, t, up in conds])
+    tmasks = np.array([(x_te[:, j] > t) if up else (x_te[:, j] <= t) for j, t, up in conds])
+    y_bool = y_tr.astype(bool)
+    uncovered = np.ones(len(y_tr), dtype=bool)
+    unmatched = np.ones(len(x_te), dtype=bool)
+    scores = np.full(len(x_te), float(y_tr.mean()))
+    for _ in range(N_RULES):
+        if uncovered.sum() < MIN_COVER:
+            break
+        cur_tr = uncovered.copy()
+        cur_te = np.ones(len(x_te), dtype=bool)
+        best = -1.0
+        for _depth in range(MAX_RULE_LEN):
+            m = masks & cur_tr
+            cover = m.sum(axis=1)
+            pos = (m & y_bool).sum(axis=1)
+            prec = (pos + 1.0) / (cover + 2.0)
+            prec[cover < MIN_COVER] = -1.0
+            k = int(np.argmax(prec))
+            if prec[k] <= best:
+                break
+            best = prec[k]
+            cur_tr = cur_tr & masks[k]
+            cur_te = cur_te & tmasks[k]
+        if best < 0:
+            break
+        hit = unmatched & cur_te
+        scores[hit] = best
+        unmatched &= ~cur_te
+        uncovered &= ~cur_tr
+    return scores
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+=======
+    rule_pred = rule_scores(featurize(train_smiles), y, featurize(test_smiles), seed)
+    total += rankdata(rule_pred)
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+>>>>>>> REPLACE
+-----

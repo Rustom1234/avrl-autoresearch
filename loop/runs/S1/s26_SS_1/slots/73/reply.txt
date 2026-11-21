@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+        try:
+=======
+    while time.time() - t0 < 100:
+        try:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    bc, br, bs = c.copy(), r.copy(), r.sum()
+    iu, ju = _IU
+    t1 = time.time()
+    while time.time() - t1 < 50:
+        try:
+            d = np.sqrt(((bc[iu] - bc[ju]) ** 2).sum(1))
+            gap = d - br[iu] - br[ju]
+            act = np.where(gap < 1e-7)[0]
+            if len(act) == 0:
+                break
+            k = act[rng.integers(len(act))]
+            a, b = iu[k], ju[k]
+            cc = bc.copy()
+            v = cc[a] - cc[b]
+            v = v / (np.linalg.norm(v) + 1e-12)
+            cc[a] += 0.01 * v
+            cc[b] -= 0.01 * v
+            if rng.random() < 0.3:
+                m = rng.choice([a, b])
+                P = rng.random((3000, 2))
+                oth = np.delete(np.arange(_N), m)
+                dd = np.sqrt(((P[:, None, :] - cc[oth][None]) ** 2).sum(2)) - br[oth][None]
+                clr = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+                cc[m] = P[clr.argmax()]
+            cc = np.clip(cc, 0.01, 0.99)
+            r0 = _lp_radii(cc)
+            c2 = np.clip(_polish(cc, r0), 0, 1)
+            r2 = _lp_radii(c2)
+            if r2.sum() > bs:
+                bc, br, bs = c2, r2, r2.sum()
+        except Exception:
+            continue
+    c, r = bc, br
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

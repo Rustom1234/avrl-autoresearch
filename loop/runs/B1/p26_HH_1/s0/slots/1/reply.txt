@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+=======
+TIME_FRACTION = 0.75
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, ftol=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    opts = {"maxiter": MAX_ITER} if ftol is None else {"maxiter": 1000, "ftol": ftol}
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options=opts)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+=======
+    c2, r2 = _solve_once(n, rng, np.concatenate([np.clip(best[0], 0, 1).ravel(), best[1]]), ftol=1e-13)
+    pc = np.clip(c2, 0, 1)
+    pr = _repair(pc, r2)
+    if pr.sum() > best[1].sum():
+        best = (pc, pr)
+    return best
+>>>>>>> REPLACE
+-----

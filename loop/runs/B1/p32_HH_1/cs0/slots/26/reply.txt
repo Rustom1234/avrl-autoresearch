@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    full = np.triu_indices(n, 1)
+
+    def near(v):
+        c = v[:2 * n].reshape(n, 2)
+        m = np.sqrt(((c[full[0]] - c[full[1]]) ** 2).sum(1)) < NEAR_DIST
+        return full[0][m], full[1][m]
+
+    def run(v0, iu, maxiter):
+        def cons(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        return minimize(lambda v: -v[2 * n:].sum(), v0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                        options={"maxiter": maxiter}).x
+
+    x = run(x0, near(x0), MAX_ITER)
+    x = run(x, near(x), MAX_ITER)
+    x = run(x, full, FINAL_ITER)
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+NEAR_DIST = 0.35
+FINAL_ITER = 50
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from catboost import CatBoostClassifier
+=======
+from catboost import CatBoostClassifier
+from rdkit.Chem import Crippen, rdMolDescriptors, Lipinski
+
+ACID = Chem.MolFromSmarts("C(=O)[OH,O-]")
+BASE = Chem.MolFromSmarts("[NX3;!$(N-C=O);!$(N-S=O);!$(N-a)]")
+QUAT = Chem.MolFromSmarts("[N+;!$(N=O);!$(N-[O-]);H0]")
+
+
+def physchem(m):
+    tpsa = rdMolDescriptors.CalcTPSA(m)
+    mw = Descriptors.MolWt(m)
+    return np.array([
+        tpsa, Crippen.MolLogP(m), mw, Lipinski.NumHDonors(m), Lipinski.NumHAcceptors(m),
+        Lipinski.NumRotatableBonds(m), len(m.GetSubstructMatches(ACID)),
+        len(m.GetSubstructMatches(BASE)), sum(a.GetFormalCharge() for a in m.GetAtoms()),
+        rdMolDescriptors.CalcFractionCSP3(m), tpsa / max(mw, 1.0),
+        len(m.GetSubstructMatches(QUAT)),
+    ], dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([desc, fp]))
+=======
+        rows.append(np.concatenate([desc, physchem(m), fp]))
+>>>>>>> REPLACE
+-----

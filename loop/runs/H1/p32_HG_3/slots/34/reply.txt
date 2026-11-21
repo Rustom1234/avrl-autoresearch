@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:] / SCALE
+=======
+    res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    curr_x = res.x
+    best_sum = -(curr_x[2 * n:] / SCALE).sum()
+    for _ in range(5):
+        res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), curr_x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})
+        new_sum = -(res.x[2 * n:] / SCALE).sum()
+        if new_sum - best_sum < 1e-7:
+            break
+        best_sum = new_sum
+        curr_x = res.x
+    return curr_x[:2 * n].reshape(n, 2), curr_x[2 * n:] / SCALE
+-----

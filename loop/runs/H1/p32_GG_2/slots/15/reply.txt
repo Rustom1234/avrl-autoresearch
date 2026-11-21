@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints Wings{"type": "ineq", "fun": cons},
+                   options{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Distance between centers
+        d_centers = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        # Overlap constraints
+        overlap = d_centers - r[iu[0]] - r[iu[1]]
+        # Boundary constraints
+        boundary = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        return np.concatenate([overlap, boundary])
+
+    # Optimization 1: Radii only (fixed centers)
+    # We use a penalty-like approach for radii to let them grow slightly larger than valid
+    # but the solver will try to maximize sum(r) subject to constraints.
+    x0_r = np.concatenate([x0[:2 * n], x0[2 * n:]])
+    # To optimize radii first, we can set centers as constants in the first pass if we wanted,
+    # but it's easier to just run a standard SLSQP and let it handle the coupling.
+    # Instead of complex staging, we refine the objective to prioritize radius sum.
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                    constraints Wings{"type": "ineq", "fun": cons},
+                    options{"maxiter": MAX_ITER, "ftol": 1e-8})\n    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+=======
+INIT_LOW = 0.05
+MAX_ITER = 500
+INIT_RADIUS = 0.02
+SHRINK = 1e-9
+>>>>>>> REPLACE
+-----

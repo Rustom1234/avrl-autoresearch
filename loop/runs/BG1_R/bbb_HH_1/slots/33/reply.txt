@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors, Descriptors, Crippen
+=======
+from rdkit.Chem import AllChem, rdFingerprintGenerator, rdMolDescriptors, Descriptors, Crippen
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def scaled_rank(p):
+=======
+_SHAPE_CACHE = {}
+
+
+def shape_features(smiles):
+    try:
+        mol = Chem.AddHs(Chem.MolFromSmiles(smiles))
+        ps = AllChem.ETKDGv3()
+        ps.randomSeed = 42
+        if AllChem.EmbedMolecule(mol, ps) != 0:
+            return [0.0] * 8
+        AllChem.MMFFOptimizeMolecule(mol, maxIters=200)
+        return [rdMolDescriptors.CalcPMI1(mol), rdMolDescriptors.CalcPMI2(mol), rdMolDescriptors.CalcPMI3(mol),
+                rdMolDescriptors.CalcNPR1(mol), rdMolDescriptors.CalcNPR2(mol), rdMolDescriptors.CalcPBF(mol),
+                rdMolDescriptors.CalcRadiusOfGyration(mol), rdMolDescriptors.CalcAsphericity(mol)]
+    except Exception:
+        return [0.0] * 8
+
+
+def shape_descriptors(smiles_list):
+    for s in smiles_list:
+        if s not in _SHAPE_CACHE:
+            _SHAPE_CACHE[s] = shape_features(s)
+    arr = np.array([_SHAPE_CACHE[s] for s in smiles_list], dtype=np.float64)
+    return np.nan_to_num(arr, nan=0.0, posinf=0.0, neginf=0.0)
+
+
+def scaled_rank(p):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    D_train = full_descriptors(train_smiles)
+    D_test = full_descriptors(test_smiles)
+=======
+    D_train = np.hstack([full_descriptors(train_smiles), shape_descriptors(train_smiles)])
+    D_test = np.hstack([full_descriptors(test_smiles), shape_descriptors(test_smiles)])
+>>>>>>> REPLACE
+-----

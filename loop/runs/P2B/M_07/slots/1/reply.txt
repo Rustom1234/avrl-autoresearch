@@ -1,0 +1,155 @@
+<<<<<<< SEARCH
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+EMBEMDING_LR = 0.6      # learning rate for token embeddings (Adam)
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+SCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+ADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2
+WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+
+<<<<<<< REPLACE
+TOTAL_BATCH_SIZE = 2**17 # ~128K tokens per optimizer step (start)
+EMBEMDING_LR = 0.6      # learning rate for token embeddings (Adam)
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+SCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+ADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2
+WARMUP_RATIO = 0.6      # fraction of time budget for batch ramping
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+
+# Target batch size after ramping
+TARGET_TOTAL_BATCH_SIZE = 2**19
+
+# Current batch size (tracks ramping)
+TOTAL_BATCH_SIZE = 2**17
+
+=======
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+EMBEMDING_LR = 0.6      # learning rate for token embeddings (Adam)
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+ATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+SCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+ADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2
+WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+EMBEMDING_LR = 0.6      # learning rate for token embeddings (Adam)
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+SCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+ADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2
+WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmup
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+=======
+# Batch size ramping configuration
+RAMP_START = 2**17      # Initial batch size
+RAMP_END = 2**19        # Final batch size
+RAMP_FACTOR = 0.6       # Time fraction over which to ramp (60%)
+RAMP_SCHEDULE和合作 = None  # Placeholder for dynamic calculation
+
+# Simpler, static ramp layout
+TOTAL_BATCH_SIZE = RAMP_START
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+t_start_training = time.time()
+smooth_train_loss = 0
+total_training_time = 0
+step = 0
+
+while True:
+    torch.cuda.synchronize()
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+t_start_training = time.time()
+smooth_train_loss = 0
+total_training_time = 0
+step = 0
+
+while True:
+    torch.cuda.synchronize()
+    t0 = time.time()
+    
+    # Dynamic batch size calculation
+    progress = min(total_training_time / TIME_BUDGET, RAMP_FACTOR)
+    if progress < RAMP_FACTOR:
+        current_batch_size = int(RAMP_START + (RAMP_END - RAMP_START) * progress / RAMP_FACTOR)
+    else:
+        current_batch_size = RAMP_END
+    
+    tokens_per_fwdbwd最短 = MIN(BATCH_SIZE * MAX_SEQ_LEN,
+                                (TOTAL_BATCH_SIZE - current_batch_size) % MAX_SEQ_LEN))
+    
+    tokens_per_fwdbwd = min(DMASK_SIZE * MAX_SEQ_LEN, matched.length())
+    grad_accum_steps = TOTAL_BATCH_SIZE // tokens_per_fwdbwd
+    
+    with torch.no_grad():
+        x, y, epoch = next(train_loader)
+        x = x.cuda(non_blocking=True)
+        y = y.cuda(non_blocking=True)
+        
+        current_batch_size = int(current_batch_size)
+        
+    with autocast_ctx:
+        loss = model(x, y)
+    train_loss = loss.detach()
+    loss = loss / grad_accum_steps
+    loss.backward()
+    x, y, epoch = next(train_loader)
+
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if step > 10:
+        total_training_time += dt
+=======
+    if step > 10:
+        total_training_time += dt
+>>>>>>> REPLACE
+-----
+[SEARCH/REPLACE: Define batch size ramping parameters]
+-----

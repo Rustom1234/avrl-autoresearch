@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The change only adds same-class mixup on the training fingerprints: each synthetic row mixes two training rows that share a label, weighted by Beta(0.4, 0.4), and keeps that label. It uses only the training rows and their labels (x_tr, y). The test inputs are only passed to predict_proba, and their labels are never touched.",
+  "No bug that makes the result meaningless. The randomness is seeded from seed + k, and because both mixed rows have the same class, y[i_idx] is the correct label. One point to check: the code assumes y is a numpy array. That is fine if the unchanged earlier code converts it (for example with np.asarray), and the job ran without crashing.",
+  "My z matches the harness's z. With noise sd 0.0049, one candidate run and the mean of 2 incumbent runs, the standard error is 0.0049*sqrt(1+1/2) = 0.0060. The candidate's loss is 0.0054 higher (0.0960 - 0.0906), so z is about -0.90 when a positive z means improvement. The harness reports -0.895, and the small gap comes from rounding the candidate value to 0.096.",
+  "The result supports rejecting: the candidate's loss is higher (worse) than the incumbent's, but by less than one standard error. Mixup roughly doubles the training size for each model, which adds runtime for no measured gain. Under the 'simpler is better' rule, it should not be kept."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -0.9
+ }
+}

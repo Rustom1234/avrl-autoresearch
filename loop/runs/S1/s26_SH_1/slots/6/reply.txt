@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _lloyd_seed(rng):
+    # random points relaxed by 20 Lloyd iterations on a grid approximation
+    n = _N
+    g = np.linspace(0.0, 1.0, 60)
+    GX, GY = np.meshgrid(g, g)
+    G = np.column_stack([GX.ravel(), GY.ravel()])
+    P = rng.uniform(0.05, 0.95, size=(n, 2))
+    for _ in range(20):
+        d2 = ((G[:, None, :] - P[None, :, :]) ** 2).sum(-1)
+        lab = np.argmin(d2, axis=1)
+        for k in range(n):
+            m = lab == k
+            if np.any(m):
+                P[k] = G[m].mean(axis=0)
+    D = np.sqrt(((P[:, None, :] - P[None, :, :]) ** 2).sum(-1))
+    np.fill_diagonal(D, np.inf)
+    r = 0.5 * D.min(axis=1)
+    r = np.minimum(r, np.min(np.column_stack([P, 1 - P]), axis=1))
+    r = np.maximum(r, 0.01)
+    return P[:, 0].copy(), P[:, 1].copy(), r
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0, y0, r0 = _seed(rng)
+=======
+        x0, y0, r0 = _lloyd_seed(rng)
+>>>>>>> REPLACE
+-----

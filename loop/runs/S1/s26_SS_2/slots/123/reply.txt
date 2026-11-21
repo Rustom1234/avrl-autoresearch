@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+        w[2 * n:] = np.minimum(w[2 * n:], 0.5) * 0.9
+=======
+        w[2 * n:] = np.minimum(w[2 * n:], 0.5) * 0.9
+        if rng.random() < 0.5:
+            for cap in (0.10, 0.13):
+                try:
+                    w[2 * n:] = np.minimum(w[2 * n:], cap)
+                    capb = [(0, 1)] * (2 * n) + [(0, cap)] * n
+                    rs = minimize(lambda z: -z[2 * n:].sum(), w, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                                  method="SLSQP", bounds=capb,
+                                  constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                                  options={"maxiter": 40, "ftol": 1e-10})
+                    if np.all(np.isfinite(rs.x)):
+                        w = rs.x
+                except Exception:
+                    pass
+>>>>>>> REPLACE
+-----

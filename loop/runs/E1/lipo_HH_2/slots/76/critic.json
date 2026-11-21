@@ -1,0 +1,15 @@
+{
+ "ok": false,
+ "issues": [
+  "Likely no-op: the edit builds rdfragcatalog.FragCatalog(FragCatParams(...)) but never fills it. Entries are only added by FragCatGenerator().AddFragsFromMol(mol, fcat), and the edit never calls that. An empty catalog gives GetFPLength() == 0 and empty fingerprints, so frag_fit keeps no columns and np.hstack adds 0 features. The model would be the incumbent, so the job would just re-measure the incumbent (noise sd about 0.0042) and waste a slot.",
+  "If the catalog is fixed by filling it, it must be filled from train_smiles only, inside fit_predict. The module-level _FCAT cache keeps the catalog across folds, so filling it from test molecules, or from earlier folds' molecules, would let fold information leak into later folds. Fill it per call, or key the cache by fold.",
+  "Reading RDConfig.RDDataDir/FunctionalGroups.txt is a file read, but the file is RDKit's own bundled data, not task data or labels, so it is not a way around the measurement. Worth noting given the rule against file access.",
+  "No guard for Chem.MolFromSmiles returning None in frag_bits; existing code makes the same assumption.",
+  "No use of test labels, no pasted answers, and the keep threshold (>=5 occurrences) is computed on the training fold only. The leakage check is clean.",
+  "No numbers yet (lint repair, not run), so z cannot be computed and there are no claims to check."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

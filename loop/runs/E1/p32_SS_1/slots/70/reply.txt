@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _contact_swap(pool, n, rng):
+    c, r = pool[rng.integers(len(pool))]
+    c, r = c.copy(), r.copy()
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1)) - r[:, None] - r[None]
+    np.fill_diagonal(d, 1)
+    k = (d < 1e-6).sum(1)
+    wall = (np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])) - r) < 1e-6
+    k = k + wall
+    low = np.argsort(k + rng.random(n) * 0.5)[:5]
+    i = rng.choice(low)
+    cand = np.where(np.abs(r - r[i]) > 0.01)[0]
+    if len(cand) == 0:
+        cand = np.array([j for j in range(n) if j != i])
+    j = rng.choice(cand)
+    c[[i, j]] = c[[j, i]]
+    return np.concatenate([c.ravel(), r])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        if len(pool) >= 3 and rng.random() < 0.3:
+            x0 = _contact_swap(pool, n, rng)
+        else:
+            x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+>>>>>>> REPLACE
+-----

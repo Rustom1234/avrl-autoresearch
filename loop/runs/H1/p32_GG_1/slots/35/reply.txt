@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+    
+    # Penalty method: objective = -sum(r) + rho * sum(violations^2)
+    # We use a large rho to approximate hard constraints while allowing transitions.
+    rho = 1000.0
+
+    def objective(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        
+        # Boundary violations
+        v_bound = np.sum(np.maximum(0, r - c[:, 0])**2) + 
+                   np.sum(np.maximum(0, r - (1 - c[:, 0]))**2) + 
+                   np.sum(np.maximum(0, r - c[:, 1])**2) + 
+                   np.sum(np.maximum(0, r - (1 - c[:, 1]))**2)
+        
+        # Overlap violations
+        dist_sq = np.sum((c[iu[0]] - c[iu[1]])**2, axis=1)
+        overlap_dist = r[iu[0]] + r[iu[1]] - np.sqrt(dist_sq)
+        v_over = np.sum(np.maximum(0, overlap_dist)**2)
+        
+        return -r.sum() + rho * (v_bound + v_over)
+
+    # We use fewer constraints but let the objective handle the 
+-----
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----

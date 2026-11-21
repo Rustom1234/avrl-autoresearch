@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best_val = -1.0
+    best_c = None
+    best_r = None
+    for start in range(4):
+        if start > 0 and time.time() - t0 > 150:
+            break
+        c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+        z = np.concatenate([c0[:, 0], c0[:, 1], np.full(n, 0.05)])
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+        # shrink-and-grow cycles
+        for cyc in range(8):
+            if time.time() - t0 > 180:
+                break
+            zs = cur.copy()
+            zs[2 * n:] *= 0.9
+            zs[:2 * n] = np.clip(zs[:2 * n] + rng.normal(0, 0.02, 2 * n), 0.0, 1.0)
+            zn = optimize(zs)
+            v = np.sum(zn[2 * n:])
+            if v > cur_val:
+                cur, cur_val = zn, v
+        if cur_val > best_val:
+            best_val = cur_val
+            best_c = np.stack([cur[:n], cur[n:2 * n]], axis=1)
+            best_r = cur[2 * n:].copy()
+=======
+    rng = np.random.default_rng(12345)
+    c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+    z = np.concatenate([c0[:, 0], c0[:, 1], np.full(n, 0.05)])
+    cur = optimize(z)
+    cur_val = np.sum(cur[2 * n:])
+    best, best_val = cur.copy(), cur_val
+    T = 0.002
+    # basin hopping: perturb, re-optimise, Metropolis accept
+    while time.time() - t0 < 200:
+        zs = cur.copy()
+        k = rng.integers(0, 3)
+        if k == 0:
+            zs[:2 * n] = np.clip(zs[:2 * n] + rng.normal(0, 0.01, 2 * n), 0.0, 1.0)
+        else:
+            idx = rng.choice(n, size=int(rng.integers(1, 4)), replace=False)
+            zs[idx] = rng.uniform(0.05, 0.95, size=len(idx))
+            zs[n + idx] = rng.uniform(0.05, 0.95, size=len(idx))
+            zs[2 * n + idx] = 0.02
+        zn = optimize(zs)
+        v = np.sum(zn[2 * n:])
+        if v > cur_val or rng.random() < np.exp((v - cur_val) / T):
+            cur, cur_val = zn, v
+        if cur_val > best_val:
+            best, best_val = cur.copy(), cur_val
+    best_c = np.stack([best[:n], best[n:2 * n]], axis=1)
+    best_r = best[2 * n:].copy()
+>>>>>>> REPLACE
+-----

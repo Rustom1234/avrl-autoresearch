@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None, sd=0.0):
+    if start is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    else:
+=======
+def _greedy_start(n, rng):
+    """Place circles one at a time at the candidate point with the largest clearance."""
+    c, r = np.zeros((n, 2)), np.zeros(n)
+    for k in range(n):
+        p = rng.uniform(0, 1, (400, 2))
+        clr = np.minimum(p, 1 - p).min(1)
+        if k > 0:
+            d = np.sqrt(((p[:, None] - c[None, :k]) ** 2).sum(-1)) - r[None, :k]
+            clr = np.minimum(clr, d.min(1))
+        j = np.argmax(clr)
+        c[k] = p[j]
+        r[k] = min(max(clr[j], 0), 0.15)
+    return c, r
+
+
+def _solve_once(n, rng, start=None, sd=0.0, greedy=False):
+    if greedy:
+        gc, gr = _greedy_start(n, rng)
+        x0 = np.concatenate([gc.ravel(), gr])
+    elif start is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    else:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        else:
+            c, r = _solve_once(n, rng)
+=======
+        else:
+            c, r = _solve_once(n, rng, greedy=rng.random() < 0.5)
+>>>>>>> REPLACE
+-----

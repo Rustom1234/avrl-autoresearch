@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Push circles apart using an SOR-inspired relaxation to resolve overlaps."""
+    n = len(r)
+    # First, ensure circles are inside the box
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    
+    omega = 1.1
+    for _ in range(100):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        
+        # Find circles with significant overlaps
+        mask = over > 0
+        if not np.any(mask):
+            break
+        
+        # Simple update: shrink circles involved in overlaps proportionally
+        # To keep it stable and avoid infinite loops, we use a small relaxation
+        indices = np.argwhere(mask)
+        # Average overlap for each circle
+        avg_over = np.zeros(n)
+        for i, j in zip(*indices):
+            avg_over[i] += over[i, j]
+            avg_over[j] += over[j, i]
+        
+        # Only update circles that have overlaps
+        r = np.where(mask.any(axis=1), r - avg_over * 0.1 * omega, r)
+        r = np.maximum(r, 0)
+        
+        # Boundary check again after push
+        r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+        r = np.maximum(r, 0)
+        
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----

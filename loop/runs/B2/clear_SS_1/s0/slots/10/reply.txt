@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    yr = np.asarray(train_y, dtype=np.float64)
+    if np.all(yr > 0):
+        ylog = np.log(np.maximum(yr, 1e-6))
+    else:
+        ylog = np.sign(yr) * np.log1p(np.abs(yr))
+    ylog = (ylog - ylog.mean()) / (ylog.std() + 1e-9)
+    svr_log = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr_log.fit(tanimoto(Xtr, Xtr), ylog)
+    p_log = svr_log.predict(tanimoto(Xte, Xtr))
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr) + rankdata(p_log) / len(p_log)
+>>>>>>> REPLACE
+-----

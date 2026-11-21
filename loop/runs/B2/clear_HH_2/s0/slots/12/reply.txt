@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    n = len(p_desc)
+    p = W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+
+    S = tanimoto(X_te, X_te)
+    np.fill_diagonal(S, 0.0)
+    S_knn = S.copy()
+    np.put_along_axis(S_knn, np.argsort(-S, axis=1)[:, 5:], 0.0, axis=1)
+    smoothed = 0.8 * p + 0.2 * (S_knn @ p) / np.maximum(S_knn.sum(1), 1e-9)
+    return rankdata(smoothed) / n
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, maxiter=MAX_ITER, jitter=0.02):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = np.clip(start[0] + rng.normal(0, 0.02, start[0].shape), 0.01, 0.99)
+=======
+        c0 = np.clip(start[0] + rng.normal(0, jitter, start[0].shape), 0.01, 0.99)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    cands = []
+    while time.process_time() - t0 < 0.25 * time_limit:   # stage 1: many short runs
+        c, r = _solve_once(n, rng, None, maxiter=60)
+        cands.append((r.sum(), c, r))
+    cands.sort(key=lambda t: -t[0])
+    for _, c0, r0 in cands[:max(1, len(cands) // 5)]:      # stage 2: full runs on the top 20%
+        if time.process_time() - t0 > TIME_FRACTION * time_limit:
+            break
+        c, r = _solve_once(n, rng, (c0, r0), maxiter=400, jitter=0.0)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    if best is None:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        best = (c, _repair(c, r))
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # refine until the time is used
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        late = best is not None and time.process_time() - t0 > 0.4 * time_limit
+        c, r = _solve_once(n, rng, best if late else None)
+=======
+        c, r = _solve_once(n, rng, best)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def tanimoto_k(A, B):
+    inter = A @ B.T
+    return inter / np.maximum(A.sum(1)[:, None] + B.sum(1)[None, :] - inter, 1e-9)
+
+
+def svr_predict(train_smiles, y, test_smiles):
+    from sklearn.svm import SVR
+    A = morgan_bits(train_smiles)
+    B = morgan_bits(test_smiles)
+    mu = y.mean()
+    m = SVR(kernel='precomputed', C=5, epsilon=0.1).fit(tanimoto_k(A, A), y - mu)
+    return m.predict(tanimoto_k(B, A)) + mu
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.75 * et + 0.25 * knn
+=======
+    svr = svr_predict(train_smiles, y, test_smiles)
+    return 0.55 * et + 0.25 * knn + 0.2 * svr
+>>>>>>> REPLACE
+-----

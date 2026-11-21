@@ -1,0 +1,137 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+Replace with new imports, constants, and featurize function.
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys, Descriptors
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            
+            # Calculate 2D descriptors
+            desc_vals = Descriptors.CalcMolDescriptors(mol)
+            # Filter out None and handle non-finite values
+            desc_vec = np.array([v if (v is not None and np.isfinite(v)) else                                   0.0 for v in desc_vals.values()], dtype=np.float32)
+            # Clip extreme values to avoid outliers affecting the trees
+            desc_vec = np.clip(desc_vec, -100, 100)
+            
+            combined = np.concatenate([morgan, np.array(maccs, dtype=np.float32), desc_vec])
+            feats.append(combined)
+    return np.array(feats, dtype=np.float32)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+ Bert_Descriptors = """
+>>>>>>> REPLACE
+<<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+-----

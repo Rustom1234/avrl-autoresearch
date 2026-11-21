@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, hist):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    f = lambda v: -v[2 * n:].sum()
+    con = {"type": "ineq", "fun": cons}
+    res = minimize(f, x0, method="SLSQP", constraints=con, options={"maxiter": CHUNK})
+    s = -res.fun
+    hist.append(s)
+    if len(hist) >= 5 and s < np.percentile(hist, 70):
+        return None
+    res = minimize(f, res.x, method="SLSQP", constraints=con, options={"maxiter": MAX_ITER - CHUNK})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+CHUNK = 50
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    hist = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        out = _solve_once(n, rng, hist)
+        if out is None:
+            continue
+        c, r = out
+>>>>>>> REPLACE
+-----

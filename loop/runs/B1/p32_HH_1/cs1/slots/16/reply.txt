@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+def _solve_once(n, rng, init=None, sd=0.03):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, sd, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    elite = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        init, sd = None, 0.03
+        if elite and time.process_time() - t0 > 0.4 * TIME_FRACTION * time_limit:
+            init = elite[rng.integers(len(elite))][0].copy()
+            if rng.random() < 0.5:
+                if rng.random() < 0.5:
+                    init = init[:, ::-1].copy()
+                if rng.random() < 0.5:
+                    init[:, 0] = 1 - init[:, 0]
+                if rng.random() < 0.5:
+                    init[:, 1] = 1 - init[:, 1]
+                sd = 0.005
+            else:
+                sd = [0.005, 0.015, 0.03][rng.integers(3)]
+        c, r = _solve_once(n, rng, init, sd)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        s = r.sum()
+        if best is None or s > best[1].sum():
+            best = (c, r)
+        if all(abs(s - e[1].sum()) > 1e-6 for e in elite):
+            if len(elite) < 5:
+                elite.append((c, r))
+            else:
+                w = min(range(5), key=lambda k: elite[k][1].sum())
+                if s > elite[w][1].sum():
+                    elite[w] = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

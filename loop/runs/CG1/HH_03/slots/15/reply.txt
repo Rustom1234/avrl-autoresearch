@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+class CifarLoader:
+=======
+@torch.compile()
+def batch_cutout(inputs, size: int):
+    B, C, H, W = inputs.shape
+    device = inputs.device
+    y0 = (torch.rand(B, device=device) * (H - size + 1)).long().view(B, 1, 1)
+    x0 = (torch.rand(B, device=device) * (W - size + 1)).long().view(B, 1, 1)
+    apply = (torch.rand(B, device=device) < 0.5).view(B, 1, 1)
+    ys = torch.arange(H, device=device).view(1, H, 1)
+    xs = torch.arange(W, device=device).view(1, 1, W)
+    hole = (ys >= y0) & (ys < y0 + size) & (xs >= x0) & (xs < x0 + size) & apply
+    return inputs * (~hole).unsqueeze(1).to(inputs.dtype)
+
+class CifarLoader:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        color_jitter_config = self.aug.get("color_jitter", {"enabled": False})
+=======
+        images = batch_cutout(images, 8)
+
+        color_jitter_config = self.aug.get("color_jitter", {"enabled": False})
+>>>>>>> REPLACE
+-----

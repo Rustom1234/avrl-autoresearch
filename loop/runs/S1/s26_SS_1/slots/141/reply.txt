@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 110:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    c, r = best
+    gx = (np.arange(60) + 0.5) / 60
+    g2 = np.stack(np.meshgrid(gx, gx), -1).reshape(-1, 2)
+    wallg = np.minimum(np.minimum(g2[:, 0], g2[:, 1]), np.minimum(1 - g2[:, 0], 1 - g2[:, 1]))
+    while time.time() - t0 < 170:
+        try:
+            k = int(rng.choice(np.argsort(r)[:8]))
+            m = np.ones(_N, bool)
+            m[k] = False
+            cc, rr = c[m], r[m]
+            d = np.sqrt(((g2[:, None, :] - cc[None, :, :]) ** 2).sum(2)) - rr[None, :]
+            clear = np.minimum(d.min(1), wallg)
+            top = np.argsort(-clear)[:8]
+            c0 = c.copy()
+            c0[k] = g2[int(rng.choice(top))]
+            c2 = np.clip(_polish(c0, _lp_radii(c0)), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        if r2.sum() > best_s:
+            best_s = r2.sum()
+            c, r = c2, r2
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def wmedian(vals, w):
+    o = np.argsort(vals)
+    cw = np.cumsum(w[o])
+    cw = cw / cw[-1]
+    return vals[o][np.searchsorted(cw, 0.5)]
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    Ztr = np.hstack([np.log1p(Xtr[:, :N_BITS]), ptr])
+    Zte = np.hstack([np.log1p(Xte[:, :N_BITS]), pte])
+    res = y - base_tr
+    rf = RandomForestRegressor(n_estimators=300, max_features=0.3, min_samples_leaf=5,
+                               random_state=seed, n_jobs=8).fit(Ztr, res)
+    Ltr = rf.apply(Ztr)
+    Lte = rf.apply(Zte)
+    W = np.zeros((len(Zte), len(Ztr)))
+    for t in range(Ltr.shape[1]):
+        ltr = Ltr[:, t]
+        sizes = np.bincount(ltr)
+        wt = 1.0 / sizes[ltr]
+        W += (Lte[:, t][:, None] == ltr[None, :]) * wt[None, :]
+    corr = np.array([wmedian(res, w) for w in W])
+    return base_te + corr
+>>>>>>> REPLACE
+-----

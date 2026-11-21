@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _poisson_start(rng):
+    # dart-throwing Poisson-disk samples; shrink min distance until 26 points fit
+    d = rng.uniform(0.12, 0.19)
+    pts = None
+    while d > 0.02 and pts is None:
+        cand = []
+        tries = 0
+        while len(cand) < _N and tries < 4000:
+            tries += 1
+            p = rng.uniform(0.05, 0.95, size=2)
+            if all(np.hypot(p[0] - q[0], p[1] - q[1]) >= d for q in cand):
+                cand.append(p)
+        if len(cand) == _N:
+            pts = np.array(cand)
+        else:
+            d *= 0.95
+    if pts is None:
+        pts = rng.uniform(0.05, 0.95, size=(_N, 2))
+    D = np.sqrt(((pts[:, None, :] - pts[None, :, :]) ** 2).sum(-1))
+    np.fill_diagonal(D, np.inf)
+    r = 0.5 * D.min(axis=1)
+    r = np.minimum(r, np.min(np.column_stack([pts, 1 - pts]), axis=1))
+    r = np.maximum(r, 0.01)
+    return pts[:, 0].copy(), pts[:, 1].copy(), r
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+        r0 = np.full(_N, 0.05)
+=======
+        if _k % 2 == 0:
+            x0, y0, r0 = _poisson_start(rng)
+        else:
+            P = rng.uniform(0.05, 0.95, size=(_N, 2))
+            x0 = P[:, 0].copy()
+            y0 = P[:, 1].copy()
+            r0 = np.full(_N, 0.05)
+>>>>>>> REPLACE
+-----

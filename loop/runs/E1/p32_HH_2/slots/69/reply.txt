@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+def _cma(n, rng, deadline, gens=4, lam=12, mu=4):
+    """Small CMA-ES-style search over the centres; fitness is the relaxed penalty energy."""
+    pool = [_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)]
+    m = min(pool, key=lambda t: t[0])[1]
+    sig = np.full(2 * n, 0.15)
+    w = np.arange(mu, 0, -1, dtype=float)
+    w /= w.sum()
+    best = min(pool, key=lambda t: t[0])
+    for _ in range(gens):
+        if time.process_time() > deadline:
+            break
+        X = np.clip(m + sig * rng.standard_normal((lam, 2 * n)), 0, 1)
+        res = sorted((_relax(x, n) for x in X), key=lambda t: t[0])
+        best = min(best, res[0], key=lambda t: t[0])
+        m = w @ np.array([p for _, p in res[:mu]])
+        sig *= 0.9
+    return best[1]
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    c, r = _solve_once(n, _cma(n, rng, t0 + 0.2 * TIME_FRACTION * time_limit))
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    best = (c, r)
+>>>>>>> REPLACE
+-----

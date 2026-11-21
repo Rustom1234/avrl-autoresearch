@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+    torch.cuda.synchronize()
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    torch.cuda.synchronize()
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        # Cauldron: cap per-token gradient max to 0.1x total norm
+        if step > 0:
+            g = [p.grad.clone() for p in model.parameters()]
+            with autocast_ctx:
+                g_sort = torch.cat([g.view(-1, 1) for g in g])
+                g_norm = torch.norm(g_sort, dim=-1, keepdim=True)
+                g_max = g_norm.max().clip_max(g_norm.max() * 0.1, g_norm.max())
+                g_max = g_max.repeat_interleave(g_sort.shape[0] * g_sort.shape[1] / g_sort.numel(), 0)
+                for i, p in enumerate(g):
+                    p *= g_max.view(g.shape)
+            model.apply_grads(g)
+        x, y, epoch = next(train_loader)
+>>>>>>> REPLACE
+-----

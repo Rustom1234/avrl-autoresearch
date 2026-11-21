@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of gaming the measurement. The diff adds no file or network access, pastes no coordinates and uses no outside answers. All randomness still comes from the seeded rng.",
+  "No bug that makes the result meaningless. The change turns the local-kick search into threshold acceptance: kicks now start from `cur`, which is accepted if it is within tau of the best sum, with tau falling linearly from 0.01 to 0. `best` is still updated only on strict improvement and is what gets returned. Every candidate still passes through clip and _repair, so the returned packing stays valid. Timing is unchanged: the loop is still bounded by TIME_FRACTION * time_limit.",
+  "Small point: `cur` never jumps back to `best`. Because tau is measured against best's sum and reaches 0 at the end of the time budget, the search effectively drifts back towards solutions near best, so this is acceptable.",
+  "The numbers support the decision. The candidate's loss of -2.6334 is worse than the incumbent's mean of -2.6349 by 0.0015. With sd 0.0023 and 1 vs 2 runs, the standard error is 0.0023*sqrt(1+1/2) \u2248 0.00282, so z \u2248 -0.53, where negative means worse. The harness's -0.514 matches up to rounding of the displayed means. Reject is consistent, though n=1 makes this weak evidence either way."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -0.53
+ }
+}

@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    S_tr, R_tr = tanimoto(X, X), rbf(D, D, gamma)
+    S_te, R_te = tanimoto(Xt, X), rbf(Dt, D, gamma)
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    yz = (y - mu) / sd
+    folds = list(KFold(n_splits=5, shuffle=True, random_state=seed).split(X))
+    best, best_score = (0.5, 5.0), -np.inf
+    for w in [0.25, 0.4, 0.5, 0.6, 0.75]:
+        K = w * S_tr + (1.0 - w) * R_tr
+        for C in [1.0, 3.0, 10.0, 30.0]:
+            sc = []
+            for tr, va in folds:
+                m = SVR(kernel="precomputed", C=C, epsilon=0.05)
+                m.fit(K[np.ix_(tr, tr)], yz[tr])
+                sc.append(spearmanr(m.predict(K[np.ix_(va, tr)]), y[va])[0])
+            s = np.nanmean(sc)
+            if s > best_score:
+                best, best_score = (w, C), s
+    w, C = best
+    model = SVR(kernel="precomputed", C=C, epsilon=0.05)
+    model.fit(w * S_tr + (1.0 - w) * R_tr, yz)
+    return model.predict(w * S_te + (1.0 - w) * R_te)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata, spearmanr
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+-----

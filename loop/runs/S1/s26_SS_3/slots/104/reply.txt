@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+def solve_packing(time_budget=200.0):
+=======
+def solve_packing(time_budget=200.0, n_circ=26):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    t0 = time.time()
+    n = 26
+=======
+    t0 = time.time()
+    n = n_circ
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    best = None
+    best_val = -1.0
+    it = 0
+    if n == 26:
+        try:
+            c27, r27 = solve_packing(0.2 * time_budget, 27)
+            if len(r27) == 27:
+                d27 = np.sqrt(((c27[:, None] - c27[None]) ** 2).sum(2))
+                pairs = [(i, j) for i in range(27) for j in range(i + 1, 27)
+                         if d27[i, j] - r27[i] - r27[j] < 1e-6]
+                rng.shuffle(pairs)
+                for (i, j) in pairs[:30]:
+                    keep = np.array([k for k in range(27) if k != i and k != j])
+                    w = r27[i] + r27[j]
+                    pm = (c27[i] * r27[i] + c27[j] * r27[j]) / w
+                    c0 = np.vstack([c27[keep], pm[None]])
+                    r0 = np.concatenate([r27[keep] * 0.97, [0.6 * w]])
+                    r0 = np.minimum(r0, 0.5)
+                    z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+                    try:
+                        res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                                       constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                                       options={"maxiter": 300, "ftol": 1e-11})
+                    except Exception:
+                        continue
+                    out = finalize(res.x)
+                    if out is None:
+                        continue
+                    if out[1].sum() > best_val:
+                        best_val = out[1].sum()
+                        best = out
+        except Exception:
+            pass
+>>>>>>> REPLACE
+-----

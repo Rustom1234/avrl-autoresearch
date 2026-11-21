@@ -1,0 +1,81 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 1000
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 1000
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        logp = Descriptors.MolLogP(mol)
+        features.append(np.concatenate([fp, [logp]]).astype(np.float32))
+    return np.array(features)
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 1000
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 1000
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        logp = Descriptors.MolLogP(mol)
+        features.append(np.concatenate([fp, [logp]]).astype(np.float32))
+    return np.array(features)
+>>>>>>> REPLACE
+-----

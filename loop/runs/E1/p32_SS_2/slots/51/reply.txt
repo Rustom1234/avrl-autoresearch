@@ -1,0 +1,84 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    R = int(rng.integers(5, 8))
+=======
+def _run(n, x0, maxiter):
+    iu = np.triu_indices(n, 1)
+    i, j = iu
+    P = len(i)
+    k = np.arange(P)
+    idx = np.arange(n)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[i] - c[j]) ** 2).sum(1)) - r[i] - r[j]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def jac(v):
+        c = v[:2 * n].reshape(n, 2)
+        diff = c[i] - c[j]
+        u = diff / (np.sqrt((diff ** 2).sum(1)) + 1e-12)[:, None]
+        J = np.zeros((P + 5 * n, 3 * n))
+        J[k, 2 * i], J[k, 2 * i + 1] = u[:, 0], u[:, 1]
+        J[k, 2 * j], J[k, 2 * j + 1] = -u[:, 0], -u[:, 1]
+        J[k, 2 * n + i] = -1
+        J[k, 2 * n + j] = -1
+        for b, (col, s) in enumerate([(0, 1), (1, 1), (0, -1), (1, -1)]):
+            J[P + b * n + idx, 2 * idx + col] = s
+            J[P + b * n + idx, 2 * n + idx] = -1
+        J[P + 4 * n + idx, 2 * n + idx] = 1
+        return J
+
+    def grad(v):
+        g = np.zeros(3 * n)
+        g[2 * n:] = -1
+        return g
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, jac=grad, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons, "jac": jac}, options={"maxiter": maxiter})
+    return res.x
+
+
+def _init(n, rng):
+    R = int(rng.integers(5, 8))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    return np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    states = []
+    while time.process_time() - t0 < 0.5 * time_limit:   # cheap screening runs
+        x = _run(n, _init(n, rng), 40)
+        states.append((x[2 * n:].sum(), x))
+    states.sort(key=lambda s: -s[0])
+    for _, x in states[:8]:
+        if best is not None and time.process_time() - t0 > TIME_FRACTION * time_limit:
+            break
+        x = _run(n, x, 300)
+        c = np.clip(x[:2 * n].reshape(n, 2), 0, 1)
+        r = _repair(c, x[2 * n:].copy())
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

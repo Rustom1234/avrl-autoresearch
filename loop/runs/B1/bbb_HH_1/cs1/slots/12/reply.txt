@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.linear_model import LogisticRegression
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_train = np.hstack([X_train, np.clip(D_train, lo, hi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+=======
+    Dc_train = np.clip(D_train, lo, hi)
+    Dc_test = np.clip(D_test, lo, hi)
+    X_train = np.hstack([X_train, Dc_train.astype(np.float32)])
+    X_test = np.hstack([X_test, Dc_test.astype(np.float32)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    lr = make_pipeline(QuantileTransformer(output_distribution='normal', n_quantiles=200, random_state=seed),
+                       LogisticRegression(C=0.1, max_iter=2000))
+    lr.fit(Dc_train, y)
+    return (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1])
+            + scaled_rank(lr.predict_proba(Dc_test)[:, 1])) / 3
+>>>>>>> REPLACE
+-----

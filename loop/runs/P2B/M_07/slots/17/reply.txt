@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+        self.c_q = nn.Linear(self.n_embd, self.n_head * self.head_dim, bias=False)
+        self.c_k = nn.Linear(self.n_embd, self.n_kv_head * self.head_dim, bias=False)
+        self.c_v = nn.Linear(self.n_embd, self.n_kv_head * self.head_dim, bias=False)
+=======
+        self.c_q = nn.Linear(self.n_embd, self.n_head * self.head_dim, bias=False)
+        owns_kv = layer_idx % 2 == 0  # odd layers reuse the previous layer's k and v
+        self.c_k = nn.Linear(self.n_embd, self.n_kv_head * self.head_dim, bias=False) if owns_kv else None
+        self.c_v = nn.Linear(self.n_embd, self.n_kv_head * self.head_dim, bias=False) if owns_kv else None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+=======
+    def forward(self, x, ve, cos_sin, window_size, kv_prev=None):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        if self.c_k is None:  # odd layer: reuse previous layer's keys and values
+            k, v = kv_prev
+        else:
+            k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+            v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+        kv = (k, v)  # passed to the next layer, before value embedding is mixed in
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        y = self.c_proj(y)
+        return y
+=======
+        y = self.c_proj(y)
+        return y, kv
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(norm(x))
+        return x
+=======
+    def forward(self, x, ve, cos_sin, window_size, kv_prev):
+        attn_out, kv = self.attn(norm(x), ve, cos_sin, window_size, kv_prev)
+        x = x + attn_out
+        x = x + self.mlp(norm(x))
+        return x, kv
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            torch.nn.init.uniform_(block.attn.c_k.weight, -s, s)
+            torch.nn.init.uniform_(block.attn.c_v.weight, -s, s)
+=======
+            if block.attn.c_k is not None:
+                torch.nn.init.uniform_(block.attn.c_k.weight, -s, s)
+                torch.nn.init.uniform_(block.attn.c_v.weight, -s, s)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+        x0 = x
+        kv = None
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x, kv = block(x, ve, cos_sin, self.window_sizes[i], kv)
+>>>>>>> REPLACE
+-----

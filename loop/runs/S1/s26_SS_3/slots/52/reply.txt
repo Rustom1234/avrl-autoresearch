@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    best = None
+    best_val = -1.0
+    it = 0
+    sit = 0
+    while time.time() - t0 < 0.2 * time_budget:
+        sit += 1
+        k, a = (13, 0) if sit % 2 else (10, 6)
+        nu = 3 * k + 2 * a
+        T = np.zeros((N3, nu))
+        bb = np.zeros(N3)
+        for i in range(k):
+            T[i, i] = 1
+            T[k + i, i] = -1
+            bb[k + i] = 1
+            T[n + i, k + i] = 1
+            T[n + k + i, k + i] = 1
+            T[2 * n + i, 2 * k + i] = 1
+            T[2 * n + k + i, 2 * k + i] = 1
+        for j in range(a):
+            q = 2 * k + j
+            bb[q] = 0.5
+            T[n + q, 3 * k + j] = 1
+            T[2 * n + q, 3 * k + a + j] = 1
+        rb = [(0, 0.5)] * k + [(0, 1)] * k + [(0, 0.5)] * k + [(0, 1)] * a + [(0, 0.5)] * a
+        u0 = np.concatenate([rng.random(k) * 0.45 + 0.05, rng.random(k) * 0.9 + 0.05,
+                             0.05 + rng.random(k) * 0.03, rng.random(a) * 0.9 + 0.05,
+                             0.05 + rng.random(a) * 0.03])
+        gu = T.T @ g
+        try:
+            res = minimize(lambda u: g @ (T @ u + bb), u0, jac=lambda u: gu,
+                           method="SLSQP", bounds=rb,
+                           constraints=[{"type": "ineq", "fun": lambda u: cons(T @ u + bb),
+                                         "jac": lambda u: jac(T @ u + bb) @ T}],
+                           options={"maxiter": 200, "ftol": 1e-11})
+            z = T @ res.x + bb
+            z0 = z.copy()
+            z0[:2 * n] = np.clip(z0[:2 * n] + rng.normal(0, 0.002, 2 * n), 0.01, 0.99)
+            z0[2 * n:] *= 0.98
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is None:
+            continue
+        if out[1].sum() > best_val:
+            best_val = out[1].sum()
+            best = out
+>>>>>>> REPLACE
+-----

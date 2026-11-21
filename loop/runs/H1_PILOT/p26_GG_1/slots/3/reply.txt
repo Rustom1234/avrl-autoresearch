@@ -1,0 +1,80 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})\n    c = res.x[:2 * n].reshape(n, 2)\n    r = res.x[2 * n:]\n\n    # Coordinate descent on radii with fixed centers\n    for _ in range(10):\n        for i in range(n):\n            old_r = r[i]\n            # Find max possible r[i] given c[i] and other fixed c, r\n            # 1. Bound by box\n            r[i] = min(r[i], c[i, 0], 1 - c[i, 0], c[i, 1], 1 - c[i, 1])\n            # 2. Bound by other circles\n            for j in range(n):\n                if i == j: continue\n                dist = np.linalg.norm(c[i] - c[j])\n                r[i] = min(r[i], dist - r[j])\n            r[i] = max(r[i], 0)\n    return c, r
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw={
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c_pre, r_pre = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+    # Coordinate descent on radii with fixed centers
+    # Maximize sum(r) s.t. r_i + r_j <= dist_ij and r_i <= boundary_dist_i
+    r = r_pre.copy()
+    for _ in range(40):
+        changed = False
+        for i in range(n):
+            # Constraint: r_i <= min(c_i1, c_i2, 1-c_i1, 1-c_i2)
+            bound_r = np.minimum(np.minimum(c_pre[i, 0], c_pre[i, 1]), 
+                                   np.minimum(1 - c_pre[i, 0], 1 - c_pre[i, 1]))
+            # Constraint: r_i + r_j <= d_ij  =>  r_i <= d_ij - r_j
+            dists = np.linalg.norm(c_pre - c_pre[i], axis=1)
+            other_rs = r - r[i]
+            max_ri = np.minimum(bound_r, np.minimum(dists - other_rs, dists[i] + 0.0000001))
+            
+            # We want to maximize r_i, but only if it doesn't violate other constraints
+            # The coordinate descent step tries to push r_i to its local upper bound
+            new_ri = np.min(max_ri)
+            if new_ri > r[i] + 1e-9:
+                r[i] = new_ri
+                changed = True
+        if not changed: break
+
+    return c_pre, r
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----

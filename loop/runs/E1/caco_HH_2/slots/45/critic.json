@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of gaming the measurement. The diff only replaces the CatBoost residual model with an LGBMRegressor. It adds no file or network access, pastes in no answers and never uses test labels. The linear baseline is still fit on training data only, and the seed is passed through to the model.",
+  "No bug that makes the result meaningless. The bad loss of 0.819 against the incumbent's 0.3711 most likely comes from the model choices themselves, so it is a real measurement of a weak model. One likely cause: linear_tree=True fits linear models in each leaf over unscaled, high-dimensional features (fingerprint bits plus descriptors) with only linear_lambda=1.0 regularisation, and those can extrapolate wildly on unseen scaffolds. The other: the objective changed from MAE to L2 ('regression'), while the scoring uses MAE.",
+  "Recomputed z: (0.3711 - 0.819) / (0.0037 * sqrt(1/1 + 1/2)) = -0.4479 / 0.004532 \u2248 -98.8. The harness reports -98.208. The small gap is probably rounding of the displayed values or a slightly different noise sd (about 0.00372). Either way the decision is the same.",
+  "Rejecting is clearly right: the candidate is about 0.45 worse in MAE, which is more than 100 times the per-job noise sd."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -98.8
+ }
+}

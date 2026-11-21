@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _grid_start(n, rng):
+    """Jittered 6x6 grid over [0.1, 0.9]^2 with 4 random sites dropped and 4 uniform points added (n = 32)."""
+    g = np.linspace(0.1, 0.9, 6)
+    grid = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    c = np.vstack([grid[rng.permutation(len(grid))[:n - 4]], rng.uniform(INIT_LOW, 1 - INIT_LOW, (4, 2))])
+    return np.clip(c + rng.normal(0, 0.02, c.shape), 0, 1).ravel()
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+=======
+        starts = [rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n) for _ in range(POOL)] + [_grid_start(n, rng) for _ in range(4)]
+        pool = sorted((_relax(p0, n) for p0 in starts), key=lambda t: t[0])
+>>>>>>> REPLACE
+-----

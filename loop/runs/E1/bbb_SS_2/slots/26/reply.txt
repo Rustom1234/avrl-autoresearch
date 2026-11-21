@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors, AllChem, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def extra_feats(mol):
+    mqn = list(rdMolDescriptors.MQNs_(mol))
+    try:
+        AllChem.ComputeGasteigerCharges(mol)
+        q = np.nan_to_num(np.array([a.GetDoubleProp("_GasteigerCharge") for a in mol.GetAtoms()],
+                                   dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+        stats = [q.max(), q.min(), np.abs(q).sum()]
+    except Exception:
+        stats = [0.0, 0.0, 0.0]
+    return mqn + stats
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rows = [[f(m) for _, f in Descriptors.descList] for m in mols]
+=======
+    rows = [[f(m) for _, f in Descriptors.descList] + extra_feats(m) for m in mols]
+>>>>>>> REPLACE
+-----

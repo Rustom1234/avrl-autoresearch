@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+        c0 = np.clip(start[0] + rng.normal(0, 0.02, start[0].shape), 0.01, 0.99)
+=======
+        c0 = np.clip(start[0] + rng.normal(0, 0.03, start[0].shape), 0.01, 0.99)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        late = best is not None and time.process_time() - t0 > 0.4 * time_limit
+        c, r = _solve_once(n, rng, best if late else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    cur, it = None, 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        late = best is not None and time.process_time() - t0 > 0.4 * time_limit
+        if late:
+            it += 1
+            if cur is None or it % 15 == 0:
+                cur = best
+        c, r = _solve_once(n, rng, cur if late else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if late and (r.sum() >= cur[1].sum() or rng.random() < np.exp((r.sum() - cur[1].sum()) / 0.002)):
+            cur = (c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

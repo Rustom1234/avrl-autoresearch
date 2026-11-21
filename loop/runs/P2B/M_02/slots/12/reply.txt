@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+        if group['kind'] == 'adamw':
+            self._step_adamw(group)
+        elif group['kind'] == 'muon':
+            self._step_muon(group)
+
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            if group['kind'] == 'adamw':
+                self._step_adamw(group)
+            elif group['kind'] == 'muon':
+                self._step_muon(group)
+=======
+        if group['kind'] == 'adamw':
+            self._step_adamw(group)
+        elif group['kind'] == 'muon':
+            self._step_muon(group)
+
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            if group['kind'] == 'adamw':
+                # Warmup for Adam groups (embedding, lm_head, scalars)
+                # Linear ramp from 10% to 100% over first 200 steps
+                warmup_lr = group['lr'] * (0.1 + 0.9 * min(1.0, self._adamw_step_t / 200.0))
+                group['lr'] = warmup_lr
+                self._step_adamw(group)
+            elif group['kind'] == 'muon':
+                self._step_muon(group)
+-----
+<<<<<<< SEARCH
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            if group['kind'] == 'adamw':
+                self._step_adamw(group)
+            elif group['kind'] == 'muon':
+                self._step_muon(group)
+
+# ---------------------------------------------------------------------------
+# Hyperparameters (edit these directly, no CLI flags needed)
+# ---------------------------------------------------------------------------
+=======
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            if group['kind'] == 'adamw':
+                # Warmup for Adam groups (embedding, lm_head, scalars)
+                # Linear ramp from 10% to 100% over first 200 steps
+                warmup_lr = group['lr'] * (0.1 + 0.9 * min(1.0, self._adamw_step_t / 200.0))
+                group['lr'] = warmup_lr
+                self._step_adamw(group)
+            elif group['kind'] == 'muon':
+                self._step_muon(group)
+
+# ---------------------------------------------------------------------------
+# Hyperparameters (edit these directly, no CLI flags needed)
+# ---------------------------------------------------------------------------
+>>>>>>> REPLACE
+-----

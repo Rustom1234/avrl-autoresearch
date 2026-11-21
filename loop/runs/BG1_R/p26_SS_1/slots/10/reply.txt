@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, maxiter=MAX_ITER, polish=False):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if rng.random() < 0.5:
+            k = rng.integers(2, 4)
+=======
+        if polish:
+            pass
+        elif rng.random() < 0.5:
+            k = rng.integers(2, 4)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and time.process_time() - t0 > 0.3 * TIME_FRACTION * time_limit:
+            c, r = _solve_once(n, rng, best)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    cands = []
+    while time.process_time() - t0 < 0.6 * time_limit or not cands:   # screening with short SLSQP runs
+        c, r = _solve_once(n, rng, maxiter=60)
+        c = np.clip(c, 0, 1)
+        cands.append((c, _repair(c, r)))
+        cands.sort(key=lambda p: -p[1].sum())
+        cands = cands[:5]
+    best = cands[0]
+    for cc, rr in list(cands):   # polish the top candidates
+        if time.process_time() - t0 > TIME_FRACTION * time_limit:
+            break
+        c, r = _solve_once(n, rng, (cc, rr), maxiter=500, polish=True)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

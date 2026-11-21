@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "(1) Measurement integrity: none found. The diff only changes the MLP block, replacing ReLU\u00b2 with SwiGLU using fused gate and up projections. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing, and the harness raised no integrity flags.",
+  "(2) Bugs: none that would make the result meaningless. hidden = ceil(8n/3 / 64)*64, so c_fc outputs 2*hidden, chunk(2) splits it into gate and up, and c_proj maps hidden back to n. The shapes match. The parameter count is about 8n\u00b2, the same as the old 4x MLP (2\u00b74n\u00b7n), so this is a fair architecture-only comparison at roughly equal size.",
+  "Minor note (not a veto): if Muon is used on c_fc, it now orthogonalizes the fused [gate; up] matrix as one block instead of the two separately. This is a known small subtlety, not a correctness bug. Any custom init for c_fc or c_proj in train.py still applies to the new shapes.",
+  "(3) Claims vs numbers: the diff comes with no claims to check. The candidate's mean is 0.0035 lower (1.0825 vs 1.0860), but there is only one candidate run, and z = 0.515 is far below significance. The provisional reject decision is consistent with the numbers. A replicate run would be needed to show a real gain.",
+  "z cannot be recomputed independently: the variance of the individual incumbent runs is not given. The reported z = 0.515 implies a pooled SD of about 0.0068 (0.0035 / 0.515), which is plausible for this setup."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

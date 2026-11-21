@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+def physchem(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Crippen.MolLogP(m), rdMolDescriptors.CalcTPSA(m)])
+    return np.array(rows, dtype=np.float64)
+=======
+_PHYS_CACHE = {}
+
+
+def physchem(smiles):
+    rows = []
+    for s in smiles:
+        if s not in _PHYS_CACHE:
+            m = Chem.MolFromSmiles(s)
+            _PHYS_CACHE[s] = [Crippen.MolLogP(m), m.GetNumHeavyAtoms(), rdMolDescriptors.CalcNumAromaticRings(m),
+                              Descriptors.NumRotatableBonds(m)]
+        rows.append(_PHYS_CACHE[s])
+    return np.array(rows, dtype=np.float64)
+>>>>>>> REPLACE
+-----

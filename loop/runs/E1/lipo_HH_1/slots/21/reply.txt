@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    mu = ya.mean()
+    w = np.linalg.solve(tanimoto(Fa, Fa) + np.eye(len(ya)), ya - mu)
+    p_krr = tanimoto(Fb, Fa) @ w + mu
+=======
+    mu = ya.mean()
+    # Descriptor block is the last columns of X (already clipped to 1st-99th percentiles on the full train set).
+    Za = Xa[:, 2 * N_BITS:].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:].astype(np.float64)
+    zm, zs = Za.mean(axis=0), Za.std(axis=0) + 1e-9
+    Za, Zb = (Za - zm) / zs, (Zb - zm) / zs
+    gamma = 1.0 / (2 * Za.shape[1])
+
+    def rbf(A, B):
+        d2 = (A * A).sum(axis=1)[:, None] + (B * B).sum(axis=1)[None, :] - 2 * A @ B.T
+        return np.exp(-gamma * np.maximum(d2, 0))
+
+    K = tanimoto(Fa, Fa) + rbf(Za, Za)
+    w = np.linalg.solve(K + 0.5 * np.eye(len(ya)), ya - mu)
+    p_krr = (tanimoto(Fb, Fa) + rbf(Zb, Za)) @ w + mu
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+    if best is None:
+        c = np.stack([np.linspace(0.05, 0.95, n), np.full(n, 0.5)], axis=1)
+=======
+    if best is not None:
+        try:
+            from scipy.optimize import linprog
+            c_b, r_b = best
+            cands = [c_b]
+            z0 = np.concatenate([c_b[:, 0], c_b[:, 1], r_b + 2e-9])
+            try:
+                res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                               constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                               options={"maxiter": 1000, "ftol": 1e-15})
+                cands.append(np.clip(np.stack([res.x[:n], res.x[n:2 * n]], axis=1), 0, 1))
+            except Exception:
+                pass
+            for cc in cands:
+                x = cc[:, 0]
+                y = cc[:, 1]
+                d = np.sqrt((x[iu] - x[ju]) ** 2 + (y[iu] - y[ju]) ** 2)
+                A = np.zeros((m, n))
+                A[ar, iu] = 1.0
+                A[ar, ju] = 1.0
+                wall = np.minimum.reduce([x, y, 1 - x, 1 - y])
+                lp = linprog(-np.ones(n), A_ub=A, b_ub=d * (1 - 1e-13),
+                             bounds=[(0, w) for w in wall], method="highs")
+                if lp.status != 0:
+                    continue
+                r = np.maximum(lp.x - 1e-12, 0.0)
+                ok = (np.all(r >= 0) and np.all(x - r >= 0) and np.all(x + r <= 1)
+                      and np.all(y - r >= 0) and np.all(y + r <= 1)
+                      and np.all(r[iu] + r[ju] <= d))
+                if ok and r.sum() > best[1].sum():
+                    best = (cc.copy(), r)
+        except Exception:
+            pass
+    if best is None:
+        c = np.stack([np.linspace(0.05, 0.95, n), np.full(n, 0.5)], axis=1)
+>>>>>>> REPLACE
+-----

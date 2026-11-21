@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/RR_03/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.840940267249712
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the raw shuffle with a filter for clean, intact, in-domain (WikiText-style) documents, de-duplicated, in seeded random order.\n\n1. Dedup: keep the first occurrence of each doc, keyed by whitespace-normalised lowercase text, and also by its first 300 characters to catch near-duplicates.\n\n2. Word-order / domain score: lowercase and whitespace-split. Build the set B of all word bigrams in target_sample. For each pool doc, score s = fraction of the bigrams in its first 1500 words that are in B. Shuffled-word articles, spam and web text should score far below intact wiki text.\n\n3. Threshold calibration without labels: build bigrams from 100 of the target docs, score the other 100, then swap the halves. Take tau = 0.8 x the 5th percentile of those held-out scores. Since B from all 200 docs is larger, real scores sit slightly higher, so this is conservative. Keep docs with s >= tau.\n\n4. Cheap junk guards. Drop a doc if any of these hold:\n   - fewer than 200 characters;\n   - it does not start with '= ' (target articles all start with a '= Title =' header);\n   - more than 5% of its characters are non-ASCII letters (homoglyph damage);\n   - it matches spam patterns ('discount code', 'coupon', 'free shipping', 'best price guaranteed');\n   - its most frequent 5-word shingle makes up more than 5% of its shingles (repetition junk).\n\n5. Output: the kept indices, shuffled with random.Random(CURATE_SEED). If they total fewer than T tokens (estimate tokens as len(text)/4, or use tiktoken if time allows), let the trainer cycle the list rather than padding with rejected docs.\n\nPrint the kept count and kept token estimate for diagnosis.",
+   "outcome": "dev 1.8409 against 1.9635 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Implement a 'density' check that rejects documents where the ratio of unique words to total words is below a certain threshold (e.g., < 0.5) or where the word count is extremely low.",
+   "outcome": "dev 1.8407 against 1.8409 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Score the whole document in windows instead of only its first 1500 words, so partly damaged articles are rejected. Split each doc's lowercased words into consecutive 300-word windows over the full length, merging a final window shorter than 100 words into the previous one. For each window, compute the fraction of its word bigrams that are in B. Calibrate a window threshold the same two-fold way as now: build B from 100 target docs, score every window of the other 100, swap, and set tau_w = 0.8 x the 1st percentile of those held-out window scores. Reject a doc if its minimum window score is below tau_w. Keep the existing whole-prefix tau test, but compute it over all words rather than the first 1500. Also apply the non-ASCII-letter check per window: reject if any window has more than 5% of its characters as non-ASCII letters. Run the repetition check on the full word list as now. Leave everything else unchanged (header rule, spam patterns, dedup, seeded shuffle). Print how many docs the new window rule drops.",
+   "outcome": "dev 3.6818 against 1.8409 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Make the selection fill the token budget T exactly, adaptively, instead of returning whatever the filter keeps. Count tokens per document with tiktoken gpt2 (encode_ordinary_batch) for all docs that pass the non-header guards. Tier 1 = the docs kept now (all current rules, unchanged). Tier 2 = docs that fail ONLY the '= ' header rule but pass every other rule (length, non-ASCII, spam patterns, bigram score >= tau on the first 1500 words, repetition check, dedup against tier 1 and against each other). Also reject from both tiers any doc where under 60% of whitespace-split words are purely alphabetic or punctuation tokens of length <= 20 (base64 or blob junk). Case A, tier 1 tokens >= T: sort tier 1 by bigram score descending, keep the highest-scoring docs until the token sum just reaches T, drop the rest, then shuffle with the seed. Case B, tier 1 tokens < T: keep all of tier 1 and add tier 2 docs in descending bigram-score order until the total reaches T (or tier 2 runs out), then shuffle the union with the seed so the extra docs are interleaved. Never add rejected spam, shuffled or junk docs. Print tier 1 tokens, tier 2 tokens available, tier 2 tokens used, and which case fired.",
+   "outcome": "FAILED to run (ive-audit/curation/runs/C1/RR_03/cand/s04_1.py\", line 88, in _is_blob_junk if len(w) <= 20 and (w.isalpha() or w.punctuation): ^^^^^^^^^^^^^ AttributeError: 'str' object has no attribute 'punctuation')"
+  },
+  {
+   "slot": 5,
+   "idea": "Refine the 'Tier' selection logic from experiment 4: Implement the logic to fill the budget T by prioritising Tier 1 (all current rules) then Tier 2 (all rules except header rule), but fix the 'blob junk' check to use `string.punctuation` and ensure the selection is sorted by bigram score descending before picking to maximize quality density. If Tier 1 + Tier 2 is still under T, include Tier 3 (all rules except bigram score and header rules).",
+   "outcome": "dev 1.9334 against 1.8409 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Implement a diversity-based sampling strategy instead of simple sorted selection. After identifying Tier 1 and Tier 2 documents, group them into buckets based on their bigram score quantiles. Sample documents from each quantile such that no single score range dominates the training set, while still filling the budget T, and then shuffle the final selection using the seeded random number generator.",
+   "outcome": "dev 1.8838 against 1.8409 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Implement an 'Information Density' filter that rejects documents where the ratio of unique words to total words is below 0.45, combined with a 'Zipf' style check that rejects documents with a high concentration of single-character words (e.g., > 10% of tokens), while keeping the existing bigram score, spam, header, and repetition guards.",
+   "outcome": "dev 1.9585 against 1.8409 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Keep every current rule and add two conservative whole-document damage checks, applied only to docs that already pass all current rules (before dedup, so a clean copy can still win). \n\n(a) Tail score: besides the existing bigram score on the first 1500 words, compute the same score (same B, same tau, no new calibration) on the LAST 1500 words of the doc. For docs longer than 3000 words, also score the middle 1500 words. Reject if any of these is below tau.\n\n(b) Tokenizer density: with tiktoken gpt2 encode_ordinary_batch, compute r = tokens / characters over the full text for each target_sample doc and each surviving pool doc. Let lo = 0.9 x min target r and hi = 1.1 x max target r. Reject pool docs with r outside [lo, hi]. This catches character-level scrambling, homoglyphs or blob junk anywhere in the doc.\n\nSafety guard: if the two new checks together remove more than 40% of the tokens the current filter keeps, disable them and return exactly the current selection.\n\nDedup and the seeded shuffle stay unchanged, and there is no budget filling or score sorting. Print the docs dropped by (a) and by (b), the kept tokens before and after, and whether the guard fired.",
+   "outcome": "dev 1.8511 against 1.8409 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Implement a 'quality-weighted' selection that categorizes docs into Tiers based on how many 'gold' rules they pass. Tier 1: passes all current rules (including header, bigram score, and spam). Tier 2: passes all rules except the '= ' header rule. Tier 3: passes all rules except the bigram score and the header rule. Calculate total tokens for all valid docs, then select docs to fill exactly T tokens by prioritizing Tier 1 (sorted by bigram score descending), then Tier 2 (sorted by bigram score descending), then Tier 3 (sorted by bigram score descending), finally shuffling the resulting list with the seeded random generator.",
+   "outcome": "FAILED to run (uns/C1/RR_03/cand/s09_1.py\", line 158, in get_tok_count counts += len(enc.encode_ordinary_batch([doc_str]))[0] ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^ TypeError: 'int' object is not subscriptable)"
+  },
+  {
+   "slot": 10,
+   "idea": "Keep every current rule and the current tier-1 selection unchanged, but rescue in-domain articles that fail ONLY the '= ' header rule, using a strict WikiText-format test instead of the loose tau that let web text in during experiments 5 and 6.\n\n1. Format statistic: for a text, split on whitespace and compute p = (number of tokens that are exactly ',' or '.') / (total number of ',' and '.' characters in the text), with p = 0 if there are none. WikiText has spaced punctuation (' , ', ' . ', ' @-@ '), so p is near 1; ordinary web or Q&A text has p near 0.\n\n2. Calibration: compute p for each target_sample doc and set p_min = 0.9 x the 5th percentile. Also take s_q25 = the 25th percentile (not scaled by 0.8) of the two-fold held-out target bigram scores already computed in _calibrate_tau.\n\n3. Rescue tier: a doc that does not start with '= ' is accepted only if all of these hold: p >= p_min; bigram score on its first 1500 words >= s_q25; it passes the existing length, non-ASCII, spam-pattern and repetition checks; it is not a duplicate (same full-text and 300-character-prefix dedup, checked against tier 1 first and then against other rescued docs).\n\n4. Output: union of tier 1 and rescued docs, shuffled once with random.Random(CURATE_SEED). No score sorting, no budget filling, no truncation to T.\n\n5. Safety: if the rescued docs add more than 50% to the tier-1 token estimate, disable the rescue and return exactly the current selection.\n\nPrint the number of rescued docs, their token estimate, p_min, s_q25 and whether the safety guard fired.",
+   "outcome": "dev 1.8938 against 1.8409 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Implement 'Semantic Integrity' checks: 1) Reject documents where the number of unique words exceeds 80% of the total words (detecting random character noise/scrambling). 2) Reject documents where the length of the longest word is greater than 30 characters (detecting URLs or base64 strings). 3) Keep the current tiering: Tier 1 is docs passing all rules; Tier 2 is docs passing all rules except the '= ' header rule. Select the best docs from Tier 1 (by bigram score) and then Tier 2 (by bigram score) to fill the budget T exactly, then shuffle. 4) Use the existing bigram score calibration and spam/repetition filters.",
+   "outcome": "dev 1.8573 against 1.8409 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Implement a 'Length-normalized Bigram Score' and 'Target-Similarity' filtering: Instead of the first 1500 words, calculate the bigram score over the entire document (prioritizing the first 1500). Additionally, calculate the 'Vocabulary Overlap' (Jaccard similarity of the set of words in the doc vs. the set of words in the target_sample) and require a minimum overlap of 0.01. Keep the existing spam/repetition/header guards and the Tier 1/Tier 2 logic: Tier 1 passes all (including header), Tier 2 passes all except header. Select documents to fill the budget T by prioritizing Tier 1 (sorted by bigram score descending) then Tier 2 (sorted by bigram score descending), then shuffle.",
+   "outcome": "dev 1.8593 against 1.8409 for the best at the time, rejected"
+  }
+ ],
+ "usd": 2.0317362500000002,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.2798756,
+   "dev": 1.840940267249712,
+   "inc": 1.9634569608044874,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.861642382985888,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.20229109999999995,
+   "dev": 1.8406537874872886,
+   "inc": 1.840940267249712,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.861642382985888,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.13669379999999998,
+   "dev": 3.681810904809225,
+   "inc": 1.840940267249712,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.861642382985888,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.15313440000000011,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 1,
+   "n_accept": 1,
+   "gain_sd": 16.861642382985888,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.26606684999999997,
+   "dev": 1.933371825536238,
+   "inc": 1.840940267249712,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.861642382985888,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002274150000000086,
+   "dev": 1.883765365405909,
+   "inc": 1.840940267249712,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.861642382985888,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0022204500000000404,
+   "dev": 1.9585404343875932,
+   "inc": 1.840940267249712,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.861642382985888,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.18912345000000008,
+   "dev": 1.8510894606561048,
+   "inc": 1.840940267249712,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.861642382985888,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.004463850000000047,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 1,
+   "n_accept": 1,
+   "gain_sd": 16.861642382985888,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.21905215,
+   "dev": 1.8938307330597717,
+   "inc": 1.840940267249712,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.861642382985888,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.26371805000000004,
+   "dev": 1.8572785288667089,
+   "inc": 1.840940267249712,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.861642382985888,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.31282239999999994,
+   "dev": 1.859252236143085,
+   "inc": 1.840940267249712,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9634569608044874,
+ "inc_slot": 1
+}

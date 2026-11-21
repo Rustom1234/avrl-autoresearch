@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import Ridge
+from scipy import sparse
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+=======
+def leaf_kernel(La, Lb):
+    # Random-forest proximity: fraction of trees in which two rows share a leaf.
+    rows_a, cols_a, rows_b, cols_b = [], [], [], []
+    off = 0
+    for t in range(La.shape[1]):
+        uniq, inv = np.unique(La[:, t], return_inverse=True)
+        pos = np.minimum(np.searchsorted(uniq, Lb[:, t]), len(uniq) - 1)
+        hit = uniq[pos] == Lb[:, t]
+        rows_a.append(np.arange(len(La)))
+        cols_a.append(off + inv.ravel())
+        rows_b.append(np.nonzero(hit)[0])
+        cols_b.append(off + pos[hit])
+        off += len(uniq)
+    T = La.shape[1]
+    Ma = sparse.csr_matrix((np.ones(sum(len(r) for r in rows_a)), (np.concatenate(rows_a), np.concatenate(cols_a))), shape=(len(La), off))
+    Mb = sparse.csr_matrix((np.ones(sum(len(r) for r in rows_b)), (np.concatenate(rows_b), np.concatenate(cols_b))), shape=(len(Lb), off))
+    return (Ma @ Ma.T).toarray() / T, (Mb @ Ma.T).toarray() / T
+
+
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([p_rf, p_lgb, p_krr])
+=======
+    rf2 = RandomForestRegressor(n_estimators=200, max_features=0.3, min_samples_leaf=5, n_jobs=8, random_state=seed)
+    rf2.fit(Xa, ya)
+    K_tr, K_te = leaf_kernel(rf2.apply(Xa), rf2.apply(Xb))
+    alpha_rf = np.linalg.solve(K_tr + 0.5 * np.eye(len(ya)), ya - mu)
+    p_rfk = K_te @ alpha_rf + mu
+    return np.column_stack([p_rf, p_lgb, p_krr, p_rfk])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    oof = np.zeros((len(y), 4))
+>>>>>>> REPLACE
+-----

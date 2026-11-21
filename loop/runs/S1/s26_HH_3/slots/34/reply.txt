@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _cascade_start(rng):
+    """Recursive corner-gap filling: largest circle in a random corner, then repeatedly
+    place the circle with the largest free radius (tangent to walls/circles) at a grid
+    point, with seeded noise on the score, until 26 placed or no gap above 0.03."""
+    n = 26
+    cs = []
+    rs = []
+    cx = int(rng.integers(2))
+    cy = int(rng.integers(2))
+    r0 = float(rng.uniform(0.15, 0.3))
+    cs.append([r0 if cx == 0 else 1 - r0, r0 if cy == 0 else 1 - r0])
+    rs.append(r0)
+    g = np.linspace(0.0, 1.0, 51)
+    gx, gy = np.meshgrid(g, g)
+    grid = np.column_stack([gx.ravel(), gy.ravel()])
+    wall = np.minimum(np.minimum(grid[:, 0], grid[:, 1]),
+                      np.minimum(1 - grid[:, 0], 1 - grid[:, 1]))
+    while len(rs) < n:
+        C = np.array(cs)
+        R = np.array(rs)
+        d = np.hypot(grid[:, None, 0] - C[None, :, 0], grid[:, None, 1] - C[None, :, 1])
+        free = np.minimum(wall, np.min(d - R[None, :], axis=1))
+        score = free * rng.uniform(0.85, 1.0, size=free.shape)
+        k = int(np.argmax(score))
+        if free[k] < 0.03:
+            break
+        cs.append(grid[k].tolist())
+        rs.append(float(free[k]) * 0.999)
+    while len(rs) < n:
+        cs.append(rng.uniform(0.05, 0.95, size=2).tolist())
+        rs.append(0.01)
+    return np.array(cs), np.array(rs)
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+=======
+    # Recursive corner-cascade starts: greedy corner-gap packing, then joint SLSQP and repair.
+    for _ in range(4):
+        if time.time() - t0 > 170:
+            break
+        try:
+            c0, r0 = _cascade_start(rng)
+            c, r = _optimize(c0, r0)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+>>>>>>> REPLACE
+-----

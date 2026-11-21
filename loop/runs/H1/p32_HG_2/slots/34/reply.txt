@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+            if rng.random() < 0.5:
+                c_new = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+=======
+            prob = rng.random()
+            if prob < 0.33:
+                c_new = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            elif prob < 0.66:
+                c_new = c_curr.copy()
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+                c_new = c_new.copy()[:num_to_move]
+            else:
+                # Affine strain perturbation
+                c_new = c_curr.copy()
+                A = rng.uniform(-0.15, 0.15, (2, 2))
+                A += np.eye(2)
+                # Apply transform about center (0.5, 0.5)
+                c_new = (c_new - 0.5) @ A.T + 0.5
+                # Rescale to fit with margin
+                min_c, max_c = c_new.min(axis=0), c_new.max(axis=0)
+                scale = (1 - 2 * INIT_LOW) / np.maximum(max_c - min_c, 1e-6)
+                c_new = 0.5 + (c_new - 0.5) * scale
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+>>>>>>> REPLACE
+-----

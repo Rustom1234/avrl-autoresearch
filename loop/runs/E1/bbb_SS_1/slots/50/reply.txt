@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+=======
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+
+    # Pseudo-label self-training: refit RF and LightGBM with confident test molecules
+    ens = np.mean(preds, axis=0)
+    k = int(0.15 * len(Xt))
+    if k > 0:
+        order = np.argsort(ens)
+        sel = np.concatenate([order[:k], order[-k:]])
+        yp = np.concatenate([np.zeros(k, dtype=np.int64), np.ones(k, dtype=np.int64)])
+        Xa = np.vstack([X, Xt[sel]])
+        ya = np.concatenate([y, yp])
+        for i in (0, 1):
+            models[i].fit(Xa, ya)
+            preds[i] = rankdata(models[i].predict_proba(Xt)[:, 1]) / len(Xt)
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+SEARCH_FRACTION = 0.75
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _polish(n, c, r):
+    """One tight-tolerance SLSQP run from a raw (unrepaired) packing."""
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c_, r_ = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_[iu[0]] - c_[iu[1]]) ** 2).sum(1)) - r_[iu[0]] - r_[iu[1]]
+        return np.concatenate([d, c_[:, 0] - r_, c_[:, 1] - r_, 1 - c_[:, 0] - r_, 1 - c_[:, 1] - r_, r_])
+
+    x0 = np.concatenate([c.ravel(), r])
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": 1000, "ftol": 1e-13})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and time.process_time() - t0 > 0.3 * TIME_FRACTION * time_limit:
+            c, r = _solve_once(n, rng, best)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best, raw = np.random.default_rng(seed), time.process_time(), None, None
+    while time.process_time() - t0 < SEARCH_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and time.process_time() - t0 > 0.3 * TIME_FRACTION * time_limit:
+            c, r = _solve_once(n, rng, best)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        rep = _repair(c, r)
+        if best is None or rep.sum() > best[1].sum():
+            best = (c, rep)
+            raw = (c, r)   # unrepaired optimum of the best restart
+    if raw is not None and time_limit - (time.process_time() - t0) >= 4:
+        c, r = _polish(n, *raw)
+        c = np.clip(c, 0, 1)
+        rep = _repair(c, r)
+        if rep.sum() > best[1].sum():
+            best = (c, rep)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from catboost import CatBoostRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    X_test = featurize(test_smiles)
+    per_tree = np.stack([tree.predict(X_test) for tree in model.estimators_])
+    return np.median(per_tree, axis=0)
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_test = featurize(test_smiles)
+
+    rf = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                               n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    per_tree = np.stack([tree.predict(X_test) for tree in rf.estimators_])
+    p_rf = np.median(per_tree, axis=0)
+
+    xgb = XGBRegressor(n_estimators=N_TREES, learning_rate=0.05, max_depth=6, colsample_bynode=MAX_FEATURES,
+                       n_jobs=8, random_state=seed)
+    xgb.fit(X_train, y_train)
+    p_xgb = xgb.predict(X_test)
+
+    cb = CatBoostRegressor(iterations=500, depth=6, learning_rate=0.05, random_seed=seed, verbose=0, thread_count=8)
+    cb.fit(X_train, y_train)
+    p_cb = cb.predict(X_test)
+
+    return (p_rf + p_xgb + p_cb) / 3.0
+>>>>>>> REPLACE
+-----

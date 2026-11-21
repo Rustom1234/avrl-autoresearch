@@ -1,0 +1,68 @@
+<<<<<<< SEARCH
+from sklearn.model_selection import GroupKFold
+=======
+from sklearn.model_selection import GroupKFold
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Dtr = np.nan_to_num(np.array([desc_vector(s) for s in train_smiles]), nan=0.0, posinf=0.0, neginf=0.0)
+    Dte = np.nan_to_num(np.array([desc_vector(s) for s in test_smiles]), nan=0.0, posinf=0.0, neginf=0.0)
+    lo, hi = np.percentile(Dtr, 1, axis=0), np.percentile(Dtr, 99, axis=0)
+    Xtr = np.hstack([featurize(train_smiles), np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([featurize(test_smiles), np.clip(Dte, lo, hi).astype(np.float32)])
+    y = np.asarray(train_y, dtype=np.float64)
+    groups = np.array([MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles])
+    rng = np.random.RandomState(seed)
+    configs = [LGB_GRID[i] for i in rng.choice(len(LGB_GRID), N_CONFIGS, replace=False)]
+    best_cfg, best_score = None, np.inf
+    for cfg in configs:
+        errs = []
+        for tr, va in GroupKFold(n_splits=4).split(Xtr, y, groups):
+            m = lgb.train(lgb_params(cfg, seed), lgb.Dataset(Xtr[tr], y[tr]), num_boost_round=N_ROUNDS)
+            errs.append(np.mean(np.abs(m.predict(Xtr[va]) - y[va])))
+        score = np.mean(errs)
+        if score < best_score:
+            best_score, best_cfg = score, cfg
+    model = lgb.train(lgb_params(best_cfg, seed), lgb.Dataset(Xtr, y), num_boost_round=N_ROUNDS)
+    return model.predict(Xte)
+=======
+def tanimoto(A, B):
+    dot = A @ B.T
+    na = (A * A).sum(axis=1)[:, None]
+    nb = (B * B).sum(axis=1)[None, :]
+    return dot / np.maximum(na + nb - dot, 1e-9)
+
+
+def base_predict(Xa, Fa, ya, Xb, Fb, seed):
+    # Three base learners; returns their predictions on Xb as columns.
+    rf = RandomForestRegressor(n_estimators=200, max_features=0.3, n_jobs=8, random_state=seed)
+    p_rf = rf.fit(Xa, ya).predict(Xb)
+    m = lgb.train(lgb_params((31, 10, 0.2), seed), lgb.Dataset(Xa, ya), num_boost_round=N_ROUNDS)
+    p_lgb = m.predict(Xb)
+    mu = ya.mean()
+    w = np.linalg.solve(tanimoto(Fa, Fa) + np.eye(len(ya)), ya - mu)
+    p_krr = tanimoto(Fb, Fa) @ w + mu
+    return np.column_stack([p_rf, p_lgb, p_krr])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Dtr = np.nan_to_num(np.array([desc_vector(s) for s in train_smiles]), nan=0.0, posinf=0.0, neginf=0.0)
+    Dte = np.nan_to_num(np.array([desc_vector(s) for s in test_smiles]), nan=0.0, posinf=0.0, neginf=0.0)
+    lo, hi = np.percentile(Dtr, 1, axis=0), np.percentile(Dtr, 99, axis=0)
+    Ftr, Fte = featurize(train_smiles), featurize(test_smiles)
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32)])
+    # Tanimoto kernel uses the ECFP bits only (first N_BITS columns).
+    Ftr, Fte = Ftr[:, :N_BITS].astype(np.float64), Fte[:, :N_BITS].astype(np.float64)
+    y = np.asarray(train_y, dtype=np.float64)
+    groups = np.array([MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles])
+    oof = np.zeros((len(y), 3))
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], seed)
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, seed)
+    return meta.predict(base_te)
+>>>>>>> REPLACE
+-----

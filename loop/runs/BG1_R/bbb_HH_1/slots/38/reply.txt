@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    # Difficulty = out-of-bag probability of each molecule's own label
+    diff = RandomForestClassifier(n_estimators=100, max_features=MAX_FEATURES, oob_score=True,
+                                  n_jobs=-1, random_state=seed)
+    diff.fit(X_train, y)
+    oob = diff.oob_decision_function_[:, 1]
+    oob = np.where(np.isnan(oob), 0.5, oob)
+    own = np.where(y == 1, oob, 1.0 - oob)
+    hard = own <= np.quantile(own, 0.4)
+
+    def row_weights(t):
+        w = np.ones(len(y))
+        w[hard] = min(1.0, t / 150.0)
+        return w
+
+    dtrain = lgb.Dataset(X_train, label=y, weight=row_weights(0), free_raw_data=False)
+    params = dict(objective="binary", learning_rate=0.05, num_leaves=15, feature_fraction=0.3,
+                  seed=seed, num_threads=8, verbose=-1)
+
+    def ramp(env):
+        env.model.train_set.set_weight(row_weights(env.iteration + 1))
+
+    booster = lgb.train(params, dtrain, num_boost_round=300, callbacks=[ramp])
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(booster.predict(X_test)))
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+import lightgbm as lgb
+>>>>>>> REPLACE
+-----

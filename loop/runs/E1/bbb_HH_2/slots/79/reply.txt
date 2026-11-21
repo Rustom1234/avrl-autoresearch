@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+from xgboost import XGBClassifier
+=======
+from sklearn.svm import SVC
+from xgboost import XGBClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+WL_BUCKETS = 4096
+WL_ITERS = 3
+
+
+def wl_counts(smiles):
+    """Weisfeiler-Lehman subtree count vectors (initial labels plus WL_ITERS refinements)."""
+    x = np.zeros((len(smiles), WL_BUCKETS))
+    for i, s in enumerate(smiles):
+        m = Chem.MolFromSmiles(s)
+        atoms = list(m.GetAtoms())
+        nbrs = [[n.GetIdx() for n in a.GetNeighbors()] for a in atoms]
+        labels = [hash((a.GetAtomicNum(), a.GetDegree(), a.GetFormalCharge(), int(a.GetIsAromatic()),
+                        a.GetTotalNumHs())) for a in atoms]
+        for it in range(WL_ITERS + 1):
+            for lab in labels:
+                x[i, lab % WL_BUCKETS] += 1
+            labels = [hash((labels[k], tuple(sorted(labels[j] for j in nbrs[k])))) for k in range(len(atoms))]
+    return x
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+=======
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    # Weisfeiler-Lehman subtree kernel SVM member (cosine-normalised linear kernel)
+    wl_tr = wl_counts(train_smiles)
+    wl_te = wl_counts(test_smiles)
+    wl_tr = wl_tr / (np.linalg.norm(wl_tr, axis=1, keepdims=True) + 1e-12)
+    wl_te = wl_te / (np.linalg.norm(wl_te, axis=1, keepdims=True) + 1e-12)
+    svc = SVC(kernel='precomputed', C=1.0)
+    svc.fit(wl_tr @ wl_tr.T, y)
+    total += rankdata(svc.decision_function(wl_te @ wl_tr.T))
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+>>>>>>> REPLACE
+-----

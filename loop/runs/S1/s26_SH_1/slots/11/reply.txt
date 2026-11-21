@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def _optimize(x0, y0, r0):
+    z = np.concatenate([x0, y0, r0])
+=======
+def _barrier_stage(z, t):
+    # minimise -sum(r) - t*sum(log slack) with L-BFGS-B; slack = _cons_fun(z) > 0
+    def f(zz):
+        c = _cons_fun(zz)
+        if np.any(c <= 0):
+            return 1e12, np.zeros_like(zz)
+        val = -np.sum(zz[2 * _N:]) - t * np.sum(np.log(c))
+        Jm = _cons_jac(zz)
+        g = _obj_grad(zz) - t * (Jm.T @ (1.0 / c))
+        return val, g
+    bnds = [(None, None)] * (2 * _N) + [(0.0, None)] * _N
+    try:
+        res = minimize(f, z, jac=True, method="L-BFGS-B", bounds=bnds,
+                       options={"maxiter": 500})
+        z_new = res.x
+        if np.all(np.isfinite(z_new)) and np.all(_cons_fun(z_new) > 0):
+            return z_new
+    except Exception:
+        pass
+    return z
+
+
+def _optimize(x0, y0, r0):
+    # strictly feasible start from LP radii (halved for margin)
+    rl = _lp_radii(x0, y0)
+    if rl is None:
+        rl = np.full(_N, 1e-4)
+    z = np.concatenate([x0, y0, np.maximum(0.5 * rl, 1e-4)])
+    if np.any(_cons_fun(z) <= 0):
+        z = np.concatenate([x0, y0, np.full(_N, 1e-6)])
+    # interior-point style annealing of the barrier weight
+    for t in (1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8):
+        z = _barrier_stage(z, t)
+>>>>>>> REPLACE
+-----

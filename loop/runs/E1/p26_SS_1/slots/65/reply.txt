@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _lp_radii(c):
+    """Best radii for fixed centres: maximise the sum of radii under pair and wall constraints."""
+    n = len(c)
+    i, j = np.triu_indices(n, 1)
+    d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+    A = np.zeros((len(i), n))
+    A[np.arange(len(i)), i] = 1
+    A[np.arange(len(i)), j] = 1
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=list(zip(np.zeros(n), np.maximum(wall, 0))), method="highs")
+    return np.maximum(res.x, 0) if res.status == 0 else None
+
+
+def _solve_once(n, rng, start=None, init=None, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+=======
+    if init is not None:
+        x0 = init
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is not None and time.process_time() - t0 > 0.3 * TIME_FRACTION * time_limit:
+            c, r = _solve_once(n, rng, best)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+=======
+        polish = best is not None and time.process_time() - t0 > 0.3 * TIME_FRACTION * time_limit
+        if polish:
+            c, r = _solve_once(n, rng, best)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if polish and r.sum() > best[1].sum() - 0.003:
+            for _ in range(3):
+                r0 = _lp_radii(c)
+                if r0 is None:
+                    break
+                c2, r2 = _solve_once(n, rng, init=np.concatenate([c.ravel(), r0]), maxiter=30)
+                c2 = np.clip(c2, 0, 1)
+                r2 = _repair(c2, r2)
+                if r2.sum() > r.sum():
+                    c, r = c2, r2
+>>>>>>> REPLACE
+-----

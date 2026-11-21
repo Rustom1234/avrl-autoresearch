@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _subset_once(c0, r0, rng):
+    """Re-optimise a random third of the circles with the rest frozen; returns unrepaired (c, r)."""
+    n = len(r0)
+    k = max(1, n // 6)
+    order = np.argsort(-r0)
+    idx = np.concatenate([order[:k], rng.choice(order[k:], n // 6, replace=False)])
+    free = np.zeros(n, bool)
+    free[idx] = True
+    fc, fr = c0[~free], r0[~free]
+    m = len(idx)
+    x0 = np.concatenate([c0[idx].ravel(), r0[idx]])
+    iu = np.triu_indices(m, 1)
+
+    def cons(v):
+        c, r = v[:2 * m].reshape(m, 2), v[2 * m:]
+        d_ss = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        d_sf = np.sqrt(((c[:, None] - fc[None]) ** 2).sum(-1)) - r[:, None] - fr[None]
+        return np.concatenate([d_ss, d_sf.ravel(), c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * m:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c, r = c0.copy(), r0.copy()
+    c[idx] = res.x[:2 * m].reshape(m, 2)
+    r[idx] = res.x[2 * m:]
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        late = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit
+        if late and rng.random() < 0.5:
+            c, r = _subset_once(best[0], best[1], rng)
+        else:
+            guided = late and rng.random() < 0.5
+            c, r = _solve_once(n, rng, best[0] if guided else None)
+>>>>>>> REPLACE
+-----

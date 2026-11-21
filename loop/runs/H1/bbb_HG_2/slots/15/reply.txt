@@ -1,0 +1,133 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+Dos <<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVC
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            # Get count fingerprints
+            fp = gen.GetCountFingerprintAsNumPy(mol)
+            feats.append(fp)
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    
+    # Compute Tanimoto (MinMax) Kernel
+    # K(a,b) = sum(min(a,b)) / sum(max(a,b))
+    def tanimoto_kernel(A, B):
+        # A is (N x D), B is (M x D)
+        # We use the formula for count vectors: 
+        # 	(A ⋅ B) / (||A||^2 + ||B||^2 - A ⋅ B)
+        # But the prompt specifies sum(min)/sum(max)
+        # For a fast implementation, we use the dot product approach for bit-like counts
+        dot = np.dot(A, B.T)
+        sum_sq_A = np.sum(A**2, axis=1).reshape(-1, 1)
+        sum_sq_B = np.sum(B**2, axis=1).reshape(1, -1)
+        return dot / (sum_sq_A + sum_sq_B - dot + 1e-8)
+
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_train, X_test)
+    
+    model = SVC(kernel='precomputed', C=1.0, probability=True, random_state=seed)
+    model.fit(K_train, np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(K_test)[:, 1]
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+指导
+-----

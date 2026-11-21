@@ -1,0 +1,2 @@
+def equation(t, x, v, params):
+    return params[0] + params[1]*np.cos(params[2]*t) + params[3]*np.sin(params[2]*t) + params[4]*v + params[5]*x*v + params[6]*x + params[7]*x**2 + params[8]*x**3 + params[9]*v**2

@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+import time
+=======
+import time
+from collections import deque
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    kick, hist = 1.0, deque(maxlen=20)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+=======
+            p, R = rng.uniform(0, 1, 2), np.clip(rng.uniform(0.15, 0.35) * kick, 0.05, 0.5)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None:
+            best = (c, r)
+        else:
+            win = bool(r.sum() > best[1].sum())
+            hist.append(win)
+            if win:
+                best = (c, r)
+            if len(hist) == hist.maxlen:
+                rate = sum(hist) / len(hist)
+                if rate < 0.1:
+                    kick = min(kick * 1.25, 3.0)
+                elif rate > 0.3:
+                    kick = max(kick / 1.25, 1 / 3)
+    return best
+>>>>>>> REPLACE
+-----

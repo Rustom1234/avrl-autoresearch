@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/UA_01/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.8224844162030833
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random whole-pool order with a filter that keeps only clean, in-domain (WikiText-style) documents, deduplicated.\n\n1. **Exact dedupe:** lowercase and collapse whitespace, hash the text, and keep the first occurrence. Also drop any document whose first 300 normalised characters match an already kept one.\n\n2. **Junk filter:** drop documents that\n   - have fewer than 200 characters;\n   - have a unique-line ratio below 0.5 (repeated boilerplate lines such as the \"Click here to subscribe\" document);\n   - have a zlib compression ratio (compressed/raw) below 0.2;\n   - have less than 80% of characters that are ASCII letters or spaces.\n\n3. **Domain filter:** keep only documents that look like the target format: the first line matches `^= .+ =$`, or the document has at least 2 WikiText tokenisation markers (`' @-@ '`, `' @,@ '`, `' @.@ '`, `' , '`, `' . '`) per 1000 characters.\n\n4. **Shuffled-word filter:** build a set of lowercase whitespace-word bigrams from the first 100 documents of `target_sample`. Define a document's hit rate as the fraction of its bigrams (first 2000 words) that are in the set. Compute the hit rate on the other 100 target documents and set the threshold to 0.85 \u00d7 their 2nd percentile. Drop pool documents below it; this catches the word-scrambled wiki articles such as \"Pulaski Skyway\" and \"U-37\".\n\n5. **Output:** shuffle the kept indices with `CURATE_SEED`. Count tokens with tiktoken gpt2, or estimate as characters/4 if that is too slow. If the kept set holds fewer than T tokens, append further independently reshuffled passes of the kept set until the list reaches at least T tokens. Do not pad with off-domain text.",
+   "outcome": "dev 1.8225 against 1.9632 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace the fixed 'MIN_MARKERS_PER_1000' and '_HEADING_RE' domain filter with a denser token-distribution check that calculates the ratio of punctuation marks to words, targeting the high density of punctuation in WikiText.",
+   "outcome": "dev 2.4456 against 1.8225 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Implement a 'quality score' based on the average word length and the entropy of the vocabulary (number of unique words / total words) and use a high percentile (e.g., 90th) to select the top-tier documents from the already filtered candidate pool.",
+   "outcome": "dev 2.1310 against 1.8225 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Implement a frequency-based 'quality score' that favors documents with a higher ratio of unique words to total words (vocabulary richness) and a higher average word length, selecting the top 80% of documents after the existing filters.",
+   "outcome": "dev 1.8387 against 1.8225 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Implement a 'short-document' penalty by weighting the kept documents by their token count and selecting the top-tier documents by a weighted score, while ensuring the output still meets the T token requirement.",
+   "outcome": "dev 1.8294 against 1.8225 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the 'shuffled-word' bigram hit rate with a 'semantic overlap' filter using the first 50 documents of target_sample to build a 'common words' set (excluding stop words), then filter documents based on the Jaccard similarity of their first 100 words compared to the average 'common words' set of the target sample.",
+   "outcome": "dev 1.9363 against 1.8225 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Implement a 'document length' filter that removes very short documents (under 400 characters) even if they pass the junk filter, as short documents often lack enough context or provide poor signal for the model.",
+   "outcome": "dev 1.8206 against 1.8225 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Refine the 'shuffled-word' filter by using a larger bigram set (from all 200 target documents) and lowering the threshold (e.g., 0.75 * 2nd percentile) to capture documents with moderate semantic overlap while still filtering out high-entropy gibberish.",
+   "outcome": "dev 3.4372 against 1.8225 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Replace the 'shuffled-word' bigram filter with a 'n-gram diversity' score: for each document, calculate the ratio of unique words to total words in the first 300 words; keep only documents that fall within the 40th to 95th percentile of this ratio across the entire pool.",
+   "outcome": "dev 1.9688 against 1.8225 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Combine the existing junk filter and domain filter with a new 'information density' metric that calculates the ratio of unique words to total words (vocabulary richness) and keeps only the top 80% of documents that pass the initial filters.",
+   "outcome": "dev 1.8456 against 1.8225 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Modify the domain filter to also require that a document has a minimum of 100 characters of meaningful content after the initial heading or first 100 characters, and replace the bigram hit rate threshold with a more conservative 0.90 * 2nd percentile.",
+   "outcome": "dev 1.8232 against 1.8225 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Implement a 'quality score' based on the average word length and vocabulary richness (unique words / total words) and select the top 75% of documents that pass all current filters.",
+   "outcome": "dev 1.8478 against 1.8225 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.32649215,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.3018596,
+   "dev": 1.8224844162030833,
+   "inc": 1.9631727726052814,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 19.36255937272201,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0020995500000000056,
+   "dev": 2.4455937316120893,
+   "inc": 1.8224844162030833,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 19.36255937272201,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002252099999999979,
+   "dev": 2.1309549337727027,
+   "inc": 1.8224844162030833,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 19.36255937272201,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0022583999999999937,
+   "dev": 1.8387383842397653,
+   "inc": 1.8224844162030833,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 19.36255937272201,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0021301499999999973,
+   "dev": 1.829360498766634,
+   "inc": 1.8224844162030833,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 19.36255937272201,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0019667999999999908,
+   "dev": 1.9362680707027584,
+   "inc": 1.8224844162030833,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 19.36255937272201,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002303400000000011,
+   "dev": 1.820577203906438,
+   "inc": 1.8224844162030833,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 19.36255937272201,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0023244000000000042,
+   "dev": 3.437218539216802,
+   "inc": 1.8224844162030833,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 19.36255937272201,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002149499999999971,
+   "dev": 1.9687734191862836,
+   "inc": 1.8224844162030833,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 19.36255937272201,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002325899999999992,
+   "dev": 1.8455625669932363,
+   "inc": 1.8224844162030833,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 19.36255937272201,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0023335500000000176,
+   "dev": 1.823211039975151,
+   "inc": 1.8224844162030833,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 19.36255937272201,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0024888000000000132,
+   "dev": 1.8478273054413328,
+   "inc": 1.8224844162030833,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9631727726052814,
+ "inc_slot": 1
+}

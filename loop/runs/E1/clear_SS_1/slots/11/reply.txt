@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+=======
+    Ftr, Fte = xgb_features(train_smiles), xgb_features(test_smiles)
+    model.fit(Ftr, y)
+    p_rf = model.predict(Fte)
+    nd = len(Descriptors.descList)
+    sc = StandardScaler().fit(Ftr[:, :nd])
+    Dtr = np.clip(sc.transform(Ftr[:, :nd]), -5, 5)
+    Dte = np.clip(sc.transform(Fte[:, :nd]), -5, 5)
+    p_ridge = Ridge(alpha=10.0).fit(Dtr, y).predict(Dte)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    base = (rankdata(p_rf) + rankdata(p_svr)) / (2 * len(p_rf))
+    return 0.7 * base + 0.3 * rankdata(p_ridge) / len(p_ridge)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.linear_model import Ridge
+from sklearn.preprocessing import StandardScaler
+>>>>>>> REPLACE
+-----

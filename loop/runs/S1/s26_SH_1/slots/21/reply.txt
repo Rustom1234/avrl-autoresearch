@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+=======
+def _graded_start(rng):
+    # 4 corner circles at r~0.10; 22 centres from a jittered 5x5 grid;
+    # initial radii 0.12 near the centre falling to 0.06 near the edges
+    corners = np.array([[0.1, 0.1], [0.9, 0.1], [0.1, 0.9], [0.9, 0.9]])
+    g = np.linspace(0.25, 0.75, 5)
+    GX, GY = np.meshgrid(g, g)
+    G = np.column_stack([GX.ravel(), GY.ravel()])
+    G = G[rng.permutation(len(G))[:_N - 4]]
+    G = G + rng.uniform(-0.04, 0.04, size=G.shape)
+    P = np.vstack([corners, G])
+    P = np.clip(P, 0.02, 0.98)
+    t = np.clip(np.max(np.abs(P - 0.5), axis=1) * 2.0, 0.0, 1.0)
+    r0 = 0.12 - 0.06 * t
+    r0[:4] = 0.10
+    return P, r0
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+        r0 = np.full(_N, 0.05)
+=======
+        P, r0 = _graded_start(rng)
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+>>>>>>> REPLACE
+-----

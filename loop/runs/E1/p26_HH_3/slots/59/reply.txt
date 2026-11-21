@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def _optimise(n, x0):
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _optimise(n, x0):
+    iu = np.triu_indices(n, 1)
+
+    def cons(v, pi, pj):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[pi] - c[pj]) ** 2).sum(1)) - r[pi] - r[pj]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    c0 = x0[:2 * n].reshape(n, 2)
+    far = np.sqrt(((c0[iu[0]] - c0[iu[1]]) ** 2).sum(1)) > 0.5
+    near = (iu[0][~far], iu[1][~far])
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP",
+                   constraints={"type": "ineq", "fun": lambda v: cons(v, *near)},
+                   options={"maxiter": 60, "ftol": 1e-4})
+    res = minimize(lambda v: -v[2 * n:].sum(), res.x, method="SLSQP",
+                   constraints={"type": "ineq", "fun": lambda v: cons(v, *iu)},
+                   options={"maxiter": 200, "ftol": 1e-10})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

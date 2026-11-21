@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/SS_04/cand/s02_0.py",
+ "inc_scores": {
+  "11": 1.9104963449319672,
+  "12": 1.9088500188626283
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Train a domain classifier and select the most target-like documents. Steps: (1) Exact-dedupe the pool (hash of whitespace-normalised text; also drop near-duplicates sharing the same first 200 chars). (2) Fit TfidfVectorizer(analyzer='char_wb', ngram_range=(1,4), sublinear_tf=True, max_features=200k, lowercase=False) on the first 3000 chars of each doc; train LogisticRegression (C=1, class_weight='balanced') with positives = 200 target_sample docs and negatives = a seeded random 4000 pool docs; score all pool docs. (3) Self-training round: retrain with positives = target_sample + top 1500 scored pool docs, negatives = bottom 6000 scored docs; rescore. (4) Add a cheap heuristic bonus for WikiText formatting (doc starts with '= ' and contains ' @-@ ' or ' , ' / ' . ' spaced punctuation) and a penalty for junk (low fraction of common-English-word tokens, e.g. scrambled-letter docs, code, coupon spam). (5) Sort by score descending, count tokens with tiktoken gpt2 (or estimate len/4 if time is tight), keep top docs until ~T tokens are reached (if the clearly-target-like set, score > 0.5, has fewer than T tokens, keep just that set plus the next best docs up to at least 0.6T and let it cycle). (6) Shuffle the selected indices with the CURATE_SEED-seeded RNG and return.",
+   "outcome": "dev 1.9334 against 1.9399 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Add a whole-document damage filter on top of the current pipeline; dedupe, classifier, self-training and final shuffle stay as they are. The classifier only sees char n-grams of the first 3000 chars, so it cannot catch word-shuffled, mid-document-corrupted or internally repetitive wiki-looking docs.\n\n(a) Reference bigram set: build a set of lowercase word bigrams (whitespace split) from the 200 target_sample docs plus the 1500 highest-scored pool docs.\n\n(b) Bigram coverage per candidate: for each pool doc with classifier score > 0.3, take three 1500-char windows (head, middle, tail). For each window compute the fraction of its word bigrams found in the reference set; for the pool docs that contributed to the set, subtract their own contribution by requiring a bigram count of at least 2 across reference docs. Keep the minimum over the three windows as cov_min.\n\n(c) Repetition per candidate: compute zlib compression ratio len(zlib.compress(doc)) / len(doc) on the full doc.\n\n(d) Calibrate on target_sample: compute the same two statistics for the target docs using leave-one-out bigram counts. Set cov_thr = the 2nd percentile of target cov_min minus 0.03, and zr_lo / zr_hi = the 1st / 99th percentile of target compression ratio, widened by 0.03 each side.\n\n(e) Apply: subtract 1.0 from the final score (effectively dropping the doc) if cov_min < cov_thr or the compression ratio falls outside [zr_lo, zr_hi]. Then select top docs up to ~T tokens as before. If the surviving set with score > 0.5 holds fewer than T tokens, let it cycle rather than back-filling with damaged docs.",
+   "outcome": "dev 1.9105 against 1.9334 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 3,
+   "idea": "Strengthen the damage filter (step 4b) in two ways; leave dedupe, classifier, self-training, selection and shuffle unchanged.\n\n(1) Purify the reference with a second pass. After the current first pass marks damaged docs, rebuild the bigram document-count table from target_sample plus the top 3000 scored pool docs that were NOT flagged in pass 1. Then build one set, ref2 = bigrams with document count >= 2, and use it for every candidate, contributor or not. This replaces the current rule where non-contributors are checked against the raw count table, which accepts any bigram seen once, including bigrams from shuffled docs that got into the reference.\n\n(2) Scan the whole document instead of only head, middle and tail. For each candidate with score > 0.3, split the full lowercase word list into consecutive non-overlapping chunks of 250 words (merge a tail shorter than 80 words into the previous chunk). Compute the bigram coverage of each chunk against ref2. Keep two statistics per doc: cov_min (minimum over chunks) and cov_mean (mean over chunks).\n\nCalibrate both on target_sample with the same procedure; the count >= 2 rule gives leave-one-out for targets. Set thr_min = 3rd percentile of target cov_min minus 0.02, and thr_mean = 3rd percentile of target cov_mean minus 0.01. Flag a doc as damaged if cov_min < thr_min, or cov_mean < thr_mean, or the zlib ratio is outside the existing band.\n\nFor reference docs in pass 2, use the full text up to 40000 chars. Keep the time guards: if time passes t_start + 138 s, fall back to the pass-1 flags. Damaged docs are never selected and the survivors are cycled as now.",
+   "outcome": "dev 1.9106 against 1.9105 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Make deduplication quality-aware and stop back-filling with low-scored docs. Classifier, self-training, heuristics, damage filter and shuffle stay unchanged.\n\n(1) In step 1, keep only the exact dedupe (hash of whitespace-normalised full text). Remove the 'same first 200 chars' drop, so every distinct variant of an article gets scored and damage-checked.\n\n(2) After the damage filter, group the surviving docs by near-duplicate key and keep one representative per group. Use two keys and merge groups with union-find: (a) the first 200 chars of the whitespace-normalised text, for docs of at least 200 chars; (b) the title line, for docs whose first line matches '^= [^=].* =$', using that line lowercased. Within each group choose the representative in this order: not damaged, then classifier score > 0.5, then longest text, then highest final score. Mark every other member as dropped, treated like damaged and never selected. This stops a truncated or corrupted copy that happens to come first in the pool from displacing the clean full copy, and stops several variants of one article from all being selected.\n\n(3) In step 5, remove the min_tokens = 0.6*T back-fill. Stop selecting as soon as final <= 0.5 or T*1.01 tokens are reached, and let the trainer cycle a shorter list. Keep a safety floor: only if the selected set holds fewer than 0.1*T tokens, continue down the ranking to 0.1*T.\n\nKeep all time guards. If the classifier prefix calibration has to shrink because more docs are now vectorised, that is acceptable.",
+   "outcome": "dev 1.9221 against 1.9105 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace cycling with a clean-prose back-fill placed at the start of the order. Dedupe, classifier, self-training, heuristics and the damage filter stay unchanged.\n\n(1) Core set: all undamaged docs with final > 0.5, taken in score order up to T*1.01 tokens, as now. If the core alone reaches T, return it shuffled exactly as now (no change).\n\n(2) If the core holds fewer than T tokens, do not cycle and do not use the 0.6*T rule. Fill the remaining budget, up to T*1.01 in total, with the highest-final remaining docs that pass a generic clean-English test:\n- not flagged as damaged;\n- _common_frac of the first 3000 chars >= 0.8 * the 5th percentile of the target values;\n- _alpha_frac of the first 1000 chars >= af_thr;\n- zlib ratio of the full doc inside [zr_lo - 0.05, zr_hi + 0.08], which rejects templated coupon spam and random-character junk;\n- _cov_min against the raw bigram count table `cnt` >= 0.6 * cov_thr, which rejects word-shuffled text. Keep `cnt` alive until this step.\nRun these checks lazily in descending final order, also for docs with score <= 0.3 that the damage filter skipped. Stop when the budget is filled or at t_start + 160 s. Count tokens with tiktoken while time allows, then with the char-ratio estimate.\n\n(3) Order: back-fill docs first (seeded shuffle among themselves), then core docs (seeded shuffle among themselves). The last part of training is then purely in-domain and the off-domain text only serves as early general-English warm-up.\n\n(4) Safety: if no back-fill doc passes, return the shuffled core and let it cycle as now.",
+   "outcome": "dev 1.9208 against 1.9105 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Build the full T-token training order explicitly so the trainer never cycles the mixed list: low-scored back-fill docs are seen once, early, and the rest of the budget is in-domain repeats. Dedupe, classifier, self-training, heuristics and damage filter stay unchanged.\n\n(1) Split the current selection in two. core = selected undamaged docs with final > 0.5, in score order, capped at T*1.01 tokens. backfill = the docs the existing min_tokens = 0.6*T rule adds after the core (final <= 0.5, undamaged), exactly as chosen now. Keep per-doc token counts from the existing tiktoken / char-ratio counting.\n\n(2) If the core alone holds >= T tokens, or the backfill is empty, return the seeded-shuffled selection exactly as now.\n\n(3) Otherwise build the order explicitly:\n- Pass 1: core + backfill, seeded shuffle together (this is the current list, about 0.6*T tokens).\n- Pass 2, 3, ...: core only, with a fresh seeded shuffle each pass, appended until the running total reaches T*1.01 tokens. The last pass may be cut short.\nReturn the concatenation. Indices repeat, which is allowed.\n\n(4) Safety: if the core holds fewer than 0.05*T tokens, fall back to the current behaviour. Keep all time guards; the extra work is list operations only.",
+   "outcome": "dev 1.9067 against 1.9105 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Re-apply the explicit T-token order from experiment 6 (it scored 1.9067, the lowest so far) and add a quality gate on the back-fill docs. Dedupe, classifier, self-training, heuristics and the core damage filter stay unchanged.\n\n(1) Core = undamaged docs with final > 0.5, in score order, capped at T*1.01 tokens. If the core alone holds >= T tokens, return it shuffled exactly as now.\n\n(2) Back-fill candidates = remaining docs in descending final order, added until core + back-fill reaches 0.6*T tokens, as now. Each candidate must first pass a lazy clean-text check. This check also runs for docs with classifier score <= 0.3, which the current damage filter never examines. Keep `cnt`, `ref2`, `cov_thr`, `zr_lo` and `zr_hi` alive for it. A candidate passes if:\n- it is not flagged as damaged;\n- its full-doc zlib ratio is inside [zr_lo - 0.03, zr_hi + 0.06];\n- its _cov_min against the raw bigram count table `cnt` is >= 0.6 * cov_thr, which rejects word-shuffled and letter-scrambled text;\n- _common_frac of its first 3000 chars is >= 0.8 * the 5th percentile of the target values;\n- _alpha_frac of its first 1000 chars is >= af_thr.\nSkip docs that fail and continue down the ranking. Stop at 0.6*T tokens or at t_start + 158 s. If the damage-filter statistics are unavailable, use only the common_frac and alpha_frac tests.\n\n(3) Build the order:\n- Pass 1: core + accepted back-fill, seeded shuffle together.\n- Pass 2, 3, ...: core only, with a fresh seeded shuffle each pass, appended until the running total reaches T*1.01 tokens. Use the per-doc token counts already computed.\nThe trainer then never cycles the mixed list: back-fill is seen once, early, and the rest of the budget is in-domain.\n\n(4) Safety: if the core holds fewer than 0.05*T tokens, fall back to the current behaviour. Keep all time guards.",
+   "outcome": "dev 1.8993 against 1.9105 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Build on the explicit T-token order with gated back-fill from experiment 7 (the lowest dev so far, 1.8993), and change where the back-fill sits: front-load it so the last part of training is purely in-domain. Dedupe, classifier, self-training, heuristics and the damage filter stay unchanged.\n\n(1) Core = undamaged docs with final > 0.5, in score order, capped at T*1.01 tokens, with per-doc token counts from the existing tiktoken / char-ratio counting. If the core alone holds >= T tokens, return it shuffled exactly as now.\n\n(2) Back-fill = remaining docs in descending final order, added until core + back-fill reaches 0.6*T tokens. Each candidate must pass the lazy clean-text check of experiment 7, which also runs for docs with classifier score <= 0.3. Keep `cnt`, `cov_thr`, `zr_lo` and `zr_hi` alive for it. A candidate passes if:\n- it is not flagged as damaged;\n- its full-doc zlib ratio is inside [zr_lo - 0.03, zr_hi + 0.06];\n- its _cov_min against the raw count table `cnt` is >= 0.6 * cov_thr;\n- _common_frac of its first 3000 chars is >= 0.8 * the 5th percentile of the target values;\n- _alpha_frac of its first 1000 chars is >= af_thr.\nSkip docs that fail and continue down the ranking. Stop at 0.6*T tokens or at t_start + 158 s. If the damage-filter statistics are unavailable, use only the common_frac and alpha_frac tests.\n\n(3) Build the order (this is the new part):\n- Seeded-shuffle the core and split it into two halves, H1 and H2, by token count.\n- Segment A: all back-fill docs + H1, seeded shuffle together.\n- Segment B: H2, shuffled.\n- Segments C, D, ...: the full core with a fresh seeded shuffle each pass, appended until the running total reaches T*1.01 tokens. The last pass may be cut short.\nReturn A + B + C + ... The trainer then never cycles. Every back-fill doc is seen once, inside the earliest part of the stream (about the first 0.6*T - core/2 tokens), still mixed with in-domain text. Everything after that is in-domain only.\n\n(4) Safety: if the core holds fewer than 0.05*T tokens, or no back-fill doc is accepted, fall back to the current behaviour (shuffled selection, cycled). Keep all time guards.",
+   "outcome": "dev 1.9118 against 1.9105 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Re-use the explicit T-token order with gated back-fill from experiment 7 (lowest dev so far, 1.8993), but make it cheaper and safer in time, and spread the back-fill differently. I do not know why experiments 6 and 7 were rejected despite lower dev bpb than the best; this proposal assumes the cause was the time limit or run-to-run noise, so it is a variant, not a repeat. Dedupe, classifier, self-training, heuristics and the damage filter stay unchanged.\n\n(1) Core = undamaged docs with final > 0.5, in score order, capped at T*1.01 tokens, with per-doc token counts. If the core alone holds >= T tokens, return it shuffled exactly as now.\n\n(2) Back-fill = remaining docs in descending final order, added until core + back-fill reaches 0.6*T tokens. Each candidate must pass the clean-text check of experiment 7:\n- not flagged as damaged;\n- full-doc zlib ratio inside [zr_lo - 0.03, zr_hi + 0.06];\n- _cov_min against the raw count table `cnt` >= 0.6 * cov_thr;\n- _common_frac of the first 3000 chars >= 0.8 * the 5th percentile of the target values;\n- _alpha_frac of the first 1000 chars >= af_thr.\nKeep `cnt`, `cov_thr`, `zr_lo` and `zr_hi` alive for this. The check also runs for docs with classifier score <= 0.3.\n\n(3) Time guards, tighter than experiment 7:\n- end the damage filter at t_start + 130 s;\n- stop exact tiktoken counting at t_start + 140 s and use the char-ratio estimate after that;\n- stop the back-fill gate at t_start + 150 s. After that, accept only docs that pass the cheap common_frac and alpha_frac tests;\n- select() must return before t_start + 160 s.\n\n(4) Order (the new part). Let K = the number of core passes needed to reach T*1.01 tokens in total: K = ceil((T*1.01 - backfill_tokens) / core_tokens), with the last pass cut short. Split the back-fill docs at random (seeded) into K-1 equal groups, or one group if K is 1. Pass k, for k = 1..K-1, is the full core plus back-fill group k, seeded shuffle together. The last pass K is core only, freshly shuffled. Return the concatenation. Each back-fill doc is still seen exactly once and the stream never cycles. The off-domain text is spread evenly over all passes except the last, instead of being concentrated in pass 1, and the final stretch is pure in-domain.\n\n(5) Safety: if the core holds fewer than 0.05*T tokens, or no back-fill doc is accepted, return the current shuffled selection.",
+   "outcome": "dev 1.9022 against 1.9105 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Use the explicit T-token order with gated back-fill from experiment 7 (lowest dev so far, 1.8993), and halve the amount of back-fill. I do not know why experiments 6, 7 and 9 were rejected despite lower dev bpb than the best; this is a variant that tests the back-fill share, not a repeat. Dedupe, classifier, self-training, heuristics and the damage filter stay unchanged.\n\n(1) Core = undamaged docs with final > 0.5, in score order, capped at T*1.01 tokens, with per-doc token counts. If the core alone holds >= T tokens, return it shuffled exactly as now.\n\n(2) Back-fill budget = 0.5 * max(0, 0.6*T - core_tokens). Experiment 7 used the full gap up to 0.6*T. Fill it with the remaining docs in descending final order. Each candidate must pass the clean-text check of experiment 7, which also runs for docs with classifier score <= 0.3:\n- not flagged as damaged;\n- full-doc zlib ratio inside [zr_lo - 0.03, zr_hi + 0.06];\n- _cov_min against the raw count table `cnt` >= 0.6 * cov_thr;\n- _common_frac of the first 3000 chars >= 0.8 * the 5th percentile of the target values;\n- _alpha_frac of the first 1000 chars >= af_thr.\nKeep `cnt`, `cov_thr`, `zr_lo` and `zr_hi` alive for this. If the damage-filter statistics are unavailable, use only the common_frac and alpha_frac tests.\n\n(3) Order:\n- Pass 1: core + accepted back-fill, seeded shuffle together.\n- Pass 2, 3, ...: core only, with a fresh seeded shuffle each pass, appended until the running total reaches T*1.01 tokens. The last pass may be cut short.\nThe trainer never cycles. Each back-fill doc is seen once and the rest of the budget is in-domain.\n\n(4) Time guards, as in experiment 9:\n- end the damage filter at t_start + 130 s;\n- stop exact tiktoken counting at t_start + 140 s and use the char-ratio estimate after that;\n- stop the back-fill gate at t_start + 150 s, then accept only docs that pass the cheap common_frac and alpha_frac tests;\n- return before t_start + 160 s.\n\n(5) Safety: if the core holds fewer than 0.05*T tokens, or no back-fill doc is accepted, return the current shuffled selection.",
+   "outcome": "dev 1.9012 against 1.9105 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Add the back-fill quality gate from experiment 7 to the current best, but do NOT build an explicit repeated order: return each index at most once and let the trainer cycle the list as it does now. I do not know why experiments 6, 7, 9 and 10 were rejected despite lower dev bpb; the feature they all share is an explicit T-token order with repeated indices and extra late work, so this proposal isolates the gate without either. Dedupe, classifier, self-training, heuristics, core damage filter and final single shuffle stay unchanged.\n\n(1) Core = undamaged docs with final > 0.5, in score order, capped at T*1.01 tokens, as now. If the core reaches T tokens, return it shuffled as now.\n\n(2) Back-fill = the docs the existing min_tokens = 0.6*T rule adds after the core (final <= 0.5). Walk them in descending final order. Each candidate must pass a lazy clean-text check, which also runs for docs with classifier score <= 0.3 that the damage filter never examined. Keep `cnt`, `cov_thr`, `zr_lo` and `zr_hi` alive for it. A candidate passes if:\n- it is not flagged as damaged;\n- its full-doc zlib ratio is inside [zr_lo - 0.03, zr_hi + 0.06];\n- its _cov_min against the raw bigram count table `cnt` is >= 0.6 * cov_thr;\n- _common_frac of its first 3000 chars is >= 0.8 * the 5th percentile of the target values;\n- _alpha_frac of its first 1000 chars is >= af_thr.\nSkip docs that fail and continue down the ranking until core + accepted back-fill reaches 0.6*T tokens. If the damage-filter statistics are unavailable, use only the common_frac and alpha_frac tests.\n\n(3) Output: core + accepted back-fill, one seeded shuffle, no repeated indices. The trainer cycles this list of about 0.6*T tokens exactly as it does for the current best.\n\n(4) Time guards, tighter than now so the run stays well inside 180 s on a slower machine:\n- classifier vectorisation budget 60 s instead of 70 s;\n- end the damage filter at t_start + 120 s;\n- stop exact tiktoken counting at t_start + 135 s and use the char-ratio estimate after that;\n- stop the back-fill gate at t_start + 145 s, then accept only docs that pass the cheap common_frac and alpha_frac tests;\n- return before t_start + 150 s.\n\n(5) Safety: if no back-fill doc passes, return the shuffled core and let it cycle.",
+   "outcome": "dev 1.9027 against 1.9105 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Use the explicit T-token order with gated back-fill from experiment 7 (lowest dev so far, 1.8993) and test the back-fill share in the other direction: raise the unique-token target from 0.6*T to 0.75*T. Experiment 10 halved the back-fill and scored slightly higher (1.9012), so this is a variant, not a repeat. Dedupe, classifier, self-training, heuristics and the core damage filter stay unchanged.\n\n(1) Core = undamaged docs with final > 0.5, in score order, capped at T*1.01 tokens, with per-doc token counts from the existing tiktoken / char-ratio counting. If the core alone holds >= T tokens, return it shuffled exactly as now.\n\n(2) Back-fill = remaining docs in descending final order, added until core + back-fill reaches 0.75*T tokens (experiment 7 used 0.6*T). Each candidate must pass the lazy clean-text check of experiment 7, which also runs for docs with classifier score <= 0.3. Keep `cnt`, `cov_thr`, `zr_lo` and `zr_hi` alive for it. A candidate passes if:\n- it is not flagged as damaged;\n- its full-doc zlib ratio is inside [zr_lo - 0.03, zr_hi + 0.06];\n- its _cov_min against the raw bigram count table `cnt` is >= 0.6 * cov_thr;\n- _common_frac of its first 3000 chars is >= 0.8 * the 5th percentile of the target values;\n- _alpha_frac of its first 1000 chars is >= af_thr.\nSkip docs that fail and continue down the ranking. If the damage-filter statistics are unavailable, use only the common_frac and alpha_frac tests.\n\n(3) Order, as in experiment 7:\n- Pass 1: core + accepted back-fill, one seeded shuffle together.\n- Pass 2, 3, ...: core only, with a fresh seeded shuffle each pass, appended until the running total reaches T*1.01 tokens. The last pass may be cut short.\nThe trainer never cycles the mixed list. Each back-fill doc is seen once and the rest of the budget is in-domain repeats.\n\n(4) Time guards, as in experiment 9:\n- end the damage filter at t_start + 130 s;\n- stop exact tiktoken counting at t_start + 140 s and use the char-ratio estimate after that;\n- stop the back-fill gate at t_start + 150 s, then accept only docs that pass the cheap common_frac and alpha_frac tests;\n- return before t_start + 160 s.\n\n(5) Safety: if the core holds fewer than 0.05*T tokens, or no back-fill doc is accepted, return the current shuffled selection and let it cycle.",
+   "outcome": "dev 1.9052 against 1.9105 for the best at the time, rejected"
+  }
+ ],
+ "usd": 8.5450592,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.3619316,
+   "dev": 1.9334473808794532,
+   "inc": 1.9399202780721674,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 0.8908473978411995,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.6543316,
+   "dev": 1.9104963449319672,
+   "inc": 1.9334473808794532,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.049536628158574,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7142516000000001,
+   "dev": 1.9105539605185684,
+   "inc": 1.9104963449319672,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.049536628158574,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6054836000000001,
+   "dev": 1.9221453418851546,
+   "inc": 1.9104963449319672,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.049536628158574,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7606995999999997,
+   "dev": 1.9208373682726523,
+   "inc": 1.9104963449319672,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.049536628158574,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6858596000000001,
+   "dev": 1.9067107260595948,
+   "inc": 1.9104963449319672,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.049536628158574,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7317556000000001,
+   "dev": 1.899271536008001,
+   "inc": 1.9104963449319672,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.049536628158574,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7546916000000001,
+   "dev": 1.9117764904303645,
+   "inc": 1.9104963449319672,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.049536628158574,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.8159715999999992,
+   "dev": 1.9022346136154333,
+   "inc": 1.9104963449319672,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.049536628158574,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.8063716000000003,
+   "dev": 1.9012208677088065,
+   "inc": 1.9104963449319672,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.049536628158574,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7579396000000003,
+   "dev": 1.9026983023098134,
+   "inc": 1.9104963449319672,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.049536628158574,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.8957716000000007,
+   "dev": 1.90515924599876,
+   "inc": 1.9104963449319672,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9399202780721674,
+ "inc_slot": 2
+}

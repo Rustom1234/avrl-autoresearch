@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+    if start is None:
+=======
+    iu = iu_all = np.triu_indices(n, 1)
+    if start is None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = np.concatenate([np.clip(y[:2 * n], 0.01, 0.99), np.full(n, max(y[-1], 0.01))])
+=======
+        x0 = np.concatenate([np.clip(y[:2 * n], 0.01, 0.99), np.full(n, max(y[-1], 0.01))])
+        cc = x0[:2 * n].reshape(n, 2)
+        keep = np.sqrt(((cc[iu[0]] - cc[iu[1]]) ** 2).sum(1)) < 0.35
+        iu = (iu[0][keep], iu[1][keep])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+                   options={"maxiter": MAX_ITER})
+    if start is None:
+        cr, rr = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+        dd = np.sqrt(((cr[iu_all[0]] - cr[iu_all[1]]) ** 2).sum(1)) - rr[iu_all[0]] - rr[iu_all[1]]
+        if (dd < -1e-9).any():
+            iu = iu_all
+            res = minimize(lambda v: -v[2 * n:].sum(), res.x, method="SLSQP",
+                           constraints={"type": "ineq", "fun": cons}, options={"maxiter": 50})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

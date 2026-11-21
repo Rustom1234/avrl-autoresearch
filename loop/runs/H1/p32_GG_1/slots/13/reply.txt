@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    # Use a jittered grid for better coverage than pure random
+    grid_size = int(np.ceil(np.sqrt(n)))
+    x = np.linspace(0, 1, grid_size)
+    xx, yy = np.meshgrid(x, x)
+    pts = np.stack([xx.ravel(), yy.ravel()], axis=-1).reshape(-1, 2)
+    pts = pts[:n] # Take first n points
+    
+    # Jitter the points and keep them within bounds
+    jitter = rng.uniform(-0.05, 0.05, pts.shape)
+    pts = np.clip(pts + jitter, INIT_LOW, 1 - INIT_LOW)
+    
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    # Greedy placement: place circles one by one as large as possible
+    centers = np.zeros((n, 2))
+    radii = np.zeros(n)
+    for i in range(n):
+        # Try a few random spots to find the best local spot for the i-th circle
+        best_r = -1
+        best_pos = np.zeros(2)
+        for _ in range(20):
+            pos = rng.uniform(INIT_LOW, 1 - INIT_LOW, 2)
+            r_limit = min(pos[0], 1 - pos[0], pos[1], 1 - pos[1])
+            for j in range(i):
+                dist = np.linalg.norm(pos - centers[j])
+                r_limit = min(r_limit, dist - radii[j])
+            if r_limit > best_r:
+                best_r = r_limit
+                best_pos = pos
+        centers[i] = best_pos
+        radii[i] = max(best_r, 0.01)
+
+    x0 = np.concatenate([centers.flatten(), radii])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

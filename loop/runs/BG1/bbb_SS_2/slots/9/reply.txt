@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+    inter = A @ B.T
+    return inter / (A.sum(1)[:, None] + B.sum(1)[None, :] - inter + 1e-9)
+=======
+def count_fp(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def minmax(A, B, chunk=25):
+    sa, sb = A.sum(1), B.sum(1)
+    K = np.empty((len(A), len(B)), dtype=np.float64)
+    for i in range(0, len(A), chunk):
+        d = np.abs(A[i:i + chunk, None, :] - B[None, :, :]).sum(2)
+        tot = sa[i:i + chunk, None] + sb[None, :]
+        K[i:i + chunk] = (tot - d) / (tot + d + 1e-9)
+    return K
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svm.fit(tanimoto(Ftr, Ftr), y)
+    preds.append(svm.decision_function(tanimoto(Fte, Ftr)))
+=======
+    Ctr, Cte = count_fp(train_smiles), count_fp(test_smiles)
+    svm.fit(minmax(Ctr, Ctr), y)
+    preds.append(svm.decision_function(minmax(Cte, Ctr)))
+>>>>>>> REPLACE
+-----

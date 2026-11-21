@@ -1,0 +1,71 @@
+<<<<<<< SEARCH
+def _optimize(x0, y0, r0):
+=======
+def _optimize(x0, y0, r0, maxiter=300):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                           options={"maxiter": 300, "ftol": 1e-12})
+=======
+                           options={"maxiter": maxiter, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    t0 = time.time()
+    budget = 220.0
+
+    def _eval(x0, y0, r0, maxiter):
+        x, y = _optimize(x0, y0, r0, maxiter=maxiter)
+        r = _lp_radii(x, y)
+        if r is None:
+            return None
+        return (float(np.sum(r)), x, y, r)
+
+    # Phase 1: 300 coarse SLSQP runs (maxiter=40) from random starts
+    coarse = []
+    for _k in range(300):
+        if time.time() - t0 > 0.45 * budget:
+            break
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        out = _eval(P[:, 0].copy(), P[:, 1].copy(), np.full(_N, 0.05), 40)
+        if out is not None:
+            coarse.append(out)
+    coarse.sort(key=lambda t: -t[0])
+
+    # Phase 2: full convergence (maxiter=1000) on the top 10 coarse results
+    fine = []
+    for s, x, y, r in coarse[:10]:
+        if time.time() - t0 > 0.75 * budget:
+            break
+        out = _eval(x.copy(), y.copy(), np.minimum(r, 0.08), 1000)
+        if out is not None:
+            fine.append(out)
+
+    # Phase 3: basin hopping on the top 3 candidates
+    pool = sorted(coarse + fine, key=lambda t: -t[0])
+    hop = 0
+    while pool and time.time() - t0 < 0.9 * budget:
+        idx = hop % min(3, len(pool))
+        s, x, y, r = pool[idx]
+        xp = np.clip(x + rng.normal(0.0, 0.02, _N), 0.0, 1.0)
+        yp = np.clip(y + rng.normal(0.0, 0.02, _N), 0.0, 1.0)
+        out = _eval(xp, yp, np.minimum(r, 0.08), 300)
+        if out is not None and out[0] > s:
+            pool[idx] = out
+        pool.sort(key=lambda t: -t[0])
+        hop += 1
+
+    if not pool:
+        centers = np.column_stack(_seed(rng)[:2])
+        radii = np.zeros(_N)
+        return centers, radii
+    s, x, y, r = max(pool, key=lambda t: t[0])
+    centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+    return centers, r
+
+
+def _old_construct_packing():
+>>>>>>> REPLACE
+-----

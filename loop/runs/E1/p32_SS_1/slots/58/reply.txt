@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _fresh(n, rng, R=0.09):
+    c = rng.uniform(0.02, 0.98, (n, 2))
+    k = np.flatnonzero(rng.random(n) < 0.4)
+    side = rng.integers(0, 4, len(k))
+    t = rng.uniform(0, 0.1, len(k))
+    c[k, side % 2] = np.where(side < 2, t, 1 - t)
+
+    def energy(v):
+        p = v.reshape(n, 2)
+        diff = p[:, None] - p[None]
+        d = np.sqrt((diff ** 2).sum(-1)) + np.eye(n)
+        ov = np.maximum(2 * R - d, 0)
+        np.fill_diagonal(ov, 0)
+        lo, hi = np.maximum(R - p, 0), np.maximum(p - (1 - R), 0)
+        e = 0.5 * (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum()
+        g = (-2 * ov / d)[:, :, None] * diff
+        return e, (g.sum(1) - 2 * lo + 2 * hi).ravel()
+
+    res = minimize(energy, c.ravel(), jac=True, method="L-BFGS-B", options={"maxiter": 100})
+    return np.clip(res.x, 0.02, 0.98).reshape(n, 2)
+
+
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([_fresh(n, rng).ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+=======
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        if rng.random() < 0.5:
+            g = (np.arange(200) + 0.5) / 200
+            GX, GY = np.meshgrid(g, g)
+            G = np.stack([GX.ravel(), GY.ravel()], 1)
+            P = rng.uniform(0.05, 0.95, (n, 2))
+            wt = rng.uniform(0, 0.01, n)
+            for _ in range(6):
+                D = ((G[:, None, :] - P[None, :, :]) ** 2).sum(2) - wt[None, :]
+                lab = D.argmin(1)
+                for k in range(n):
+                    msk = lab == k
+                    if msk.any():
+                        P[k] = G[msk].mean(0)
+            P = np.clip(P + rng.normal(0, 0.005, P.shape), 0.02, 0.98)
+            v = np.concatenate([P[:, 0], P[:, 1], np.full(n, 0.05)])
+>>>>>>> REPLACE
+-----

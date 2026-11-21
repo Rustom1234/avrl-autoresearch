@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from catboost import CatBoostRegressor
+from scipy.stats import spearmanr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def top_desc(D, r, k=6):
+    rho = np.nan_to_num(np.array([spearmanr(D[:, j], r)[0] for j in range(D.shape[1])]))
+    return np.argsort(-np.abs(rho))[:k]
+
+
+def pair_features(D, idx):
+    cols = []
+    for i in range(len(idx)):
+        for j in range(i + 1, len(idx)):
+            a, b = D[:, idx[i]], D[:, idx[j]]
+            cols.append(a * b)
+            cols.append(a / (b + 1e-3))
+    return np.column_stack(cols)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    resid = y - A_tr @ coef
+    X_tr = featurize(train_smiles)
+    X_te = featurize(test_smiles)
+    top = top_desc(X_tr[:, N_BITS:], resid)
+    X_tr = np.c_[X_tr, pair_features(X_tr[:, N_BITS:], top)]
+    X_te = np.c_[X_te, pair_features(X_te[:, N_BITS:], top)]
+    model.fit(X_tr, resid)
+    return model.predict(X_te) + A_te @ coef
+>>>>>>> REPLACE
+-----

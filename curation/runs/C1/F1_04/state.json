@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/F1_04/cand/s04_0.py",
+ "inc_scores": {
+  "11": 1.9263916605413802
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace random order with a target-similarity filter. (1) Exact-dedupe docs by normalized text hash (keep first). (2) Fit a TfidfVectorizer on character n-grams (analyzer='char_wb', ngram_range=(1,4), sublinear_tf=True, max_features=200k, each doc truncated to its first 3000 chars) on target_sample + a seeded 6000-doc random pool subset; train LogisticRegression (C=1, class_weight='balanced') with target_sample as positives and the random pool subset as negatives; score every pool doc by decision_function. (3) Add cheap junk guards: drop docs with <200 chars, or with unique-word ratio <0.2, or non-ASCII/non-alpha-space char fraction >0.4. (4) Sort surviving docs by score descending, estimate tokens as len(text)/4 (or tiktoken gpt2 if within time), and take top-scoring docs until about 1.0 T tokens are accumulated (if fewer than 0.5 T have score > 0, still fill up to 1.0 T by score order). (5) Shuffle the selected indices with random.Random(CURATE_SEED) and return them.",
+   "outcome": "dev 1.9503 against 1.9607 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Switch from LogisticRegression to a MultinomialNB model and increase the number of negative samples to 12,000. Also, increase the TRUNCATION length from 3000 to 5000 (where budget allows) to capture more structural context for the n-grams.",
+   "outcome": "dev 2.0476 against 1.9503 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Replace the standard TfidfVectorizer with a custom Weighting scheme that increases the weight of the target_sample's specific word-level n-grams while keeping char_wb n-grams, and replace LogisticRegression with a MaxEnt-like approach using a larger learning rate or more iterations.",
+   "outcome": "dev 2.0537 against 1.9503 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Increase the robustness of the junk guards by significantly tightening the unique-word ratio (e.g., to 0.3) and the bad_frac threshold (e.g., to 0.3), while also implementing a 'short-doc' filter that removes any document under 300 characters unless it is very high-scoring.",
+   "outcome": "dev 1.9264 against 1.9503 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the LogisticRegression model with a simpler but more robust Pointwise Ranking approach: calculate the average cosine similarity between the character n-gram vectors of the pool documents and the centroid of the target_sample vectors (using a shared TfidfVectorizer).",
+   "outcome": "FAILED to run (ay raise TypeError( TypeError: np.matrix is not supported. Please convert to a numpy array with np.asarray. For more information see: https://numpy.org/doc/stable/reference/generated/numpy.matrix.html)"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the LogisticRegression with a Pointwise Ranking approach by calculating the cosine similarity between each document's TF-IDF vector and the centroid of the target_sample vectors (converting the resulting matrix to a numpy array using np.asarray).",
+   "outcome": "FAILED to run (/active-audit/curation/runs/C1/F1_04/cand/s06_1.py', '/homes/rdubash/active-audit/data/curation/pool_v2', '/homes/rdubash/active-audit/data/curation/tmpmw71ps94.json']' died with <Signals.SIGKILL: 9>.)"
+  },
+  {
+   "slot": 7,
+   "idea": "Replace the LogisticRegression model with a Pointwise Ranking approach using cosine similarity (the centroid-based method from experiment 6), but optimize for memory and speed by using a smaller subset of the pool for the centroid calculation and ensuring the matrix conversion is handled correctly. Specifically, calculate the mean vector of the target_sample and use dot products to score the pool.",
+   "outcome": "FAILED to run (active-audit/.venv/lib/python3.12/site-packages/scipy/sparse/_base.py\", line 955, in _matmul_dispatch raise ValueError( ValueError: matmul: dimension mismatch with signature (n,k=20000),(k=1,m)->(n,m))"
+  },
+  {
+   "slot": 8,
+   "idea": "Refine the 'selection' logic to use a two-stage filtering approach: first, include all pool documents that have a score above a dynamic threshold (calculated to target ~80% of T tokens), and then fill the remaining 20% of the token budget with the highest-scoring documents that were excluded by the 'short-doc' rule, regardless of their length or score.",
+   "outcome": "dev 2.0355 against 1.9264 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Replace LogisticRegression with a simpler, memory-efficient Pointwise Ranking using cosine similarity to the target sample centroid. To ensure stability, use `scipy.sparse.csr_matrix` for the TF-IDF vectors and compute the centroid as the mean of target vectors, then score the pool via a dot product with the target mean vector. Use a smaller `max_features` (e.g., 50,000) to stay within memory limits.",
+   "outcome": "FAILED to run (active-audit/.venv/lib/python3.12/site-packages/scipy/sparse/_base.py\", line 911, in _matmul_dispatch raise ValueError( ValueError: matmul: dimension mismatch with signature (n,k=41920),(k=1,m)->(n,m))"
+  },
+  {
+   "slot": 10,
+   "idea": "Replace the LogisticRegression classifier with a simpler and more robust 'Nearest Centroid' scoring method: 1. Fit a TfidfVectorizer on the target_sample and a random subset of the pool. 2. Compute the mean TF-IDF vector (centroid) of the target_sample. 3. Score every document in the pool by its cosine similarity to this centroid. 4. Use these similarity scores for the sorting/filtering logic instead of the classifier's decision function.",
+   "outcome": "dev 1.9279 against 1.9264 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Replace LogisticRegression with a custom K-Nearest Neighbors (KNN) style scoring: for each document in a sample of the pool, find the 3 most similar documents in the target_sample using cosine similarity on char_wb TF-IDF vectors, and use the average similarity as the score; use this to rank and select documents, maintaining the existing junk guards and token budget logic.",
+   "outcome": "dev 1.9895 against 1.9264 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Refine the LogisticRegression approach by using a weighted 'Quality Score' that combines the model's decision_function score with a length-normalized diversity score. Specifically, instead of a hard threshold, calculate a final score for each doc as (score * 0.8 + (log(len(doc)) / max_log_len) * 0.2) where score is the logistic regression output, then select the top documents until the token budget T is reached, while maintaining the strict junk guards.",
+   "outcome": "dev 1.9459 against 1.9264 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.33884399999999987,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.3062676,
+   "dev": 1.9503370609640258,
+   "inc": 1.9607040903170148,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.4267863133758525,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002290499999999973,
+   "dev": 2.047617310638637,
+   "inc": 1.9503370609640258,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.4267863133758525,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0020491499999999996,
+   "dev": 2.0537025739428914,
+   "inc": 1.9503370609640258,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.4267863133758525,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0026480999999999866,
+   "dev": 1.9263916605413802,
+   "inc": 1.9503370609640258,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.722327246853087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.0034705500000000167,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 1,
+   "n_accept": 2,
+   "gain_sd": 4.722327246853087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.003218099999999946,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 2,
+   "n_accept": 2,
+   "gain_sd": 4.722327246853087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.0032898000000000094,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 3,
+   "n_accept": 2,
+   "gain_sd": 4.722327246853087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0030061499999999852,
+   "dev": 2.035484670151419,
+   "inc": 1.9263916605413802,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.722327246853087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.003781950000000034,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 5,
+   "fails": 1,
+   "n_accept": 2,
+   "gain_sd": 4.722327246853087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0035668499999999548,
+   "dev": 1.9278855720994739,
+   "inc": 1.9263916605413802,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.722327246853087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002707499999999974,
+   "dev": 1.9894564899498983,
+   "inc": 1.9263916605413802,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.722327246853087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0025477500000000153,
+   "dev": 1.9459395220755518,
+   "inc": 1.9263916605413802,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9607040903170148,
+ "inc_slot": 4
+}

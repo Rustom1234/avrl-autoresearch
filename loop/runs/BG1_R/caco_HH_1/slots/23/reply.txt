@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - base_tr)
+    return base_te + model.predict(featurize(test_smiles))
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    model.fit(Xtr, y - base_tr)
+    lgb = LGBMRegressor(objective='l1', learning_rate=0.03, n_estimators=600, num_leaves=31,
+                        subsample=0.8, subsample_freq=1, colsample_bytree=0.3, min_child_samples=10,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    lgb.fit(Xtr, y - base_tr)
+    resid = 0.5 * (model.predict(Xte) + lgb.predict(Xte))
+    return base_te + resid
+>>>>>>> REPLACE
+-----

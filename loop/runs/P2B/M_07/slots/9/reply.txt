@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+=======
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        self.mtp_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        torch.nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.001)
+=======
+        torch.nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.001)
+        torch.nn.init.normal_(self.mtp_head.weight, mean=0.0, std=0.001)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        lm_head_params = list(self.lm_head.parameters())
+=======
+        lm_head_params = list(self.lm_head.parameters()) + list(self.mtp_head.parameters())
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+=======
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            if self.training and reduction == 'mean':
+                logits2 = softcap * torch.tanh(self.mtp_head(x).float() / softcap)
+                y2 = F.pad(targets[:, 1:], (0, 1), value=-1)
+                loss = loss + 0.1 * F.cross_entropy(logits2.view(-1, logits2.size(-1)), y2.reshape(-1),
+                                                    ignore_index=-1)
+            return loss
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+=======
+DEVICE_BATCH_SIZE = 32  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+>>>>>>> REPLACE
+-----

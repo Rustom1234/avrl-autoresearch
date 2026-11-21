@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+}
+
+def _repair(c, r):
+=======
+    # First pass: entropy regularized to keep radii from collapsing early
+    lam = 0.01
+    res1 = minimize(lambda v: -v[2 * n:].sum() - lam * np.sum(np.log(v[2 * n:] + 1e-6)), x0, method="SLSQP", 
+                     constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER * 0.8})
+    
+    # Second pass: pure radius sum from the result of the first pass
+    res2 = minimize(lambda v: -v[2 * n:].sum(), res1.x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                     options={"maxiter": MAX_ITER * 0.5})\n    return res2.x[:2 * n].reshape(n, 2), res2.x[2 * n:]
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints是一位{"type": "ineq", "fun": cons},
+                   options="{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    # First pass: entropy regularized to keep radii from collapsing early
+    lam = 0.01
+    res1 = minimize(lambda v: -v[2 * n:].sum() - lam * np.sum(np.log(v[2 * n:] + 1e-6)), x0, method="SLSQP",
+                     constraints={"type": "ineq", "fun": cons}, options={"maxiter": int(MAX_ITER * 0.8)})
+    
+    # Second pass: pure radius sum from the result of the first pass
+    res2 = minimize(lambda v: -v[2 * n:].sum(), res1.x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                     options={"maxiter": int(MAX_ITER * 0.5)})
+    return res2.x[:2 * n].reshape(n, 2), res2.x[2 * n:]
+>>>>>>> REPLACE
+-----

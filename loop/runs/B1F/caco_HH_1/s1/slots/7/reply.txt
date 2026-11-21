@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def bits_one(smi):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(smi)).astype(np.float32)
+
+
+def tanimoto(A, B):
+    inter = A @ B.T
+    na = A.sum(axis=1)
+    nb = B.sum(axis=1)
+    return inter / (na[:, None] + nb[None, :] - inter + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    p = base_te + stage2.predict(Xte)
+    Btr = np.array([bits_one(s) for s in train_smiles])
+    Bte = np.array([bits_one(s) for s in test_smiles])
+    mu = y.mean()
+    krr = KernelRidge(kernel='precomputed', alpha=0.3).fit(tanimoto(Btr, Btr), y - mu)
+    p_sim = krr.predict(tanimoto(Bte, Btr)) + mu
+    return 0.7 * p + 0.3 * p_sim
+>>>>>>> REPLACE
+-----

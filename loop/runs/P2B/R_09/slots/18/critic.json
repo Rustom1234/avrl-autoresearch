@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: no problems. The diff changes one line, TOTAL_BATCH_SIZE from 2**19 to 2**17. It does not touch the val_bpb measurement, the data, the seed lines, the evaluation call or the prepare.py import line.",
+  "Bugs: none that would make the result meaningless. With DEVICE_BATCH_SIZE 64, 2**17 equals 64*2048 if the sequence length is the usual 2048, which gives a gradient-accumulation factor of 1. That is a valid setting, and the usual divisibility assert still passes. The change means about 4x more optimizer steps within the fixed 300 s, which is a plausible reason for the gain. The learning rates were not retuned for the smaller batch, but that does not invalidate the result.",
+  "Claims: the numbers agree with each other. The candidate mean is 1.06095 (1.0616 and 1.0603) against an incumbent mean of 1.0821, a difference of about 0.0212 in the direction of improvement. The candidate sample SD is about 0.00092.",
+  "I could not recompute z independently because the two incumbent run values (or their SD) are not given. The reported z = 3.869 implies a standard error of about 0.00547 on the difference. That is plausible only if the incumbent runs varied much more than the candidate runs; I can't check it from these numbers. Each side has only n=2 runs, so the significance estimate is weak, though the 0.021 gap is large compared with the spread within the candidate runs."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.06095,
+  "incumbent_mean": 1.0821,
+  "delta": -0.02115,
+  "implied_se_from_reported_z": 0.00547
+ }
+}

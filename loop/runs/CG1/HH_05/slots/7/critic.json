@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of gaming the measurement. The diff adds no carry-over between runs, no seeding, no use of test images and no file access. It also adds no data-dependent work to the untimed first call. Compiling both input shapes (28 and 32) during the warm-up call is allowed, because only compiled code carries over.",
+  "No bug found that makes the result meaningless. The edit randomly crops training batches to 28x28 for the first half of the steps, which works like progressive resizing. predict() still sees full 32x32 images. This assumes batch_crop is already defined in train.py and that the network accepts 28x28 input. The job completed and was scored, which suggests both hold. If the head pools to a fixed size that only matches 32x32, the job would have crashed.",
+  "With dynamic=False, torch.compile builds a separate specialised graph for each input shape. The warm-up call uses the same step schedule, so both graphs should be built before any timed run. If the warm-up does not reach the second shape, a recompile would fall inside a timed run and make the candidate look slower, not faster. Either way the result is not inflated.",
+  "The evidence is thin. There is only 1 candidate run (-0.0768) against 15 incumbent runs. My recomputed z, using the stated job noise sd of 0.026, is 0.0768 / (0.026 * sqrt(1 + 1/15)) \u2248 2.86. Without the incumbent-mean correction it is 0.0768 / 0.026 \u2248 2.95. Both agree with the harness value of 2.884 within rounding or a slightly different sd estimate. Acceptance is reasonable, but one replicate would confirm it.",
+  "The diff does not claim anything that conflicts with the numbers."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 2.86
+ }
+}

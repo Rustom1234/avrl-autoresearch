@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _inflate(c, r, rng, sweeps=5):
+    """Greedily grow each radius to the largest value that keeps it inside the square and clear of neighbours."""
+    r = r.copy()
+    for _ in range(sweeps):
+        changed = False
+        for i in rng.permutation(len(r)):
+            d = np.sqrt(((c - c[i]) ** 2).sum(1))
+            d[i] = np.inf
+            wall = min(c[i].min(), (1 - c[i]).min())
+            new = max(min(wall, (d - r).min()) - SHRINK, 0)
+            if new > r[i] + 1e-15:
+                r[i], changed = new, True
+        if not changed:
+            break
+    return r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best = (c, _repair(c, r))
+=======
+    best = (c, _inflate(c, _repair(c, r), rng))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+=======
+        r = _inflate(c, _repair(c, r), rng)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,96 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+    num_overlaps = n * (n - 1) // 2
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        # Relax overlap: d >= -s, where s is a slack variable
+        # However, to keep the shape simple, we'll use a penalty approach 
+        # by allowing d to be slightly negative but penalizing it.
+        # To strictly follow the prompt's 'slack variable' suggestion:
+        # v = [c, r, s] where s is length num_overlaps
+        pass
+
+    # Simplified Slack Implementation: 
+    # Let v = [c, r, s] where s is the slack for overlaps.
+    # s_i >= 0, d_i >= -s_i
+    # This keeps the constraint dimensions manageable.
+    x0_relaxed = np.concatenate([x0, np.zeros(num_overlaps)])
+    
+    def cons_relaxed(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:4 * n]
+        s = v[4 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d + s, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r, s])
+
+    def obj(v):
+        # Minimize -sum(r) + Penalty * sum(s)
+        # Penalty should be large enough to keep s small
+        return -v[2 * n:4 * n].sum() + 1000 * v[4 * n:].sum()
+
+    res = minimize(obj, x0_relaxed, method="SLSQP", 
+                     constraintsMASS={'type': 'ineq', 'fun': cons_relaxed}, 
+                     options={"maxiter": MAX_ITER})\n    
+    # Extract c and r, the rest are slack or part of r depending on indexing
+    # Based on v = [c, r, s], c is 0:2n, r is 2n:4n, s is 4n:
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:4 * n]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+    num_overlaps = n * (n - 1) // 2
+
+    x0_relaxed = np.concatenate([x0, np.zeros(num_overlaps)])
+
+    def cons_relaxed(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:4 * n]
+        s = v[4 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d + s, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r, s])
+
+    def obj(v):
+        return -v[2 * n:4 * n].sum() + 500 * v[4 * n:].sum()
+
+    res = minimize(obj, x0_relaxed, method="SLSQP", 
+                    constraints={"type": "ineq", "fun": cons_relaxed},
+                    options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:4 * n]
+-----

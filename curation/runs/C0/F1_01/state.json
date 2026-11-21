@@ -1,0 +1,255 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C0/F1_01/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.8376177490352144,
+  "12": 1.831492284258597
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random-order baseline with a filter-then-shuffle pipeline that keeps only clean, in-domain, unique documents.\n\n1. Exact/near-duplicate removal: normalise each doc (lowercase, collapse whitespace), hash the first 2000 characters, keep the first occurrence only.\n\n2. Junk filter: drop docs with fewer than 200 characters, docs whose zlib compression ratio (compressed/raw bytes) is below 0.2 (repeated boilerplate), and docs where fewer than 70% of characters are ASCII letters or spaces.\n\n3. Domain filter: train a word-level TF-IDF (1-2 grams, whitespace tokeniser so tokens like '@-@', ' , ', ' . ', '=' survive, max_features 200k, sublinear_tf) LogisticRegression with target_sample as positives and 3000 seeded-random pool docs as negatives (PU style, class_weight='balanced'). Score every pool doc on its first 3000 characters. Keep docs with probability above 0.5. Also require the wikitext surface form: the doc starts with '= ' or contains at least 3 occurrences of ' , ' and ' . ' per 1000 characters.\n\n4. Shuffled-word damage filter: build the set of word bigrams from target_sample. For each doc compute (a) the fraction of its first 400 word bigrams found in that set and (b) the rate of the bigrams 'of the', 'in the', ', and', '. The' per 100 words. Take the median of (a) over docs passing step 3, and drop docs with (a) below 0.5 times that median or (b) below 1.0 per 100 words. This catches docs like the scrambled 'Pulaski Skyway' one.\n\n5. Output: seeded shuffle (CURATE_SEED) of the survivors. Count tokens with tiktoken gpt2. If survivors total less than 0.5 T, top up with the highest-classifier-score remaining docs that are deduplicated and pass steps 2 and 4, until 0.5 T is reached. Otherwise return the survivors only and let the trainer cycle them.",
+   "outcome": "dev 1.8376 against 1.9592 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace the logistic regression classifier with a simpler, faster, and more robust heuristic: a 'Wikitext-density' score that weights the frequency of specific structural tokens (like ':', '-', '(', ')' and double-quotes) and a content-similarity score using Jaccard similarity between the doc's first 200 words and the target_sample.",
+   "outcome": "dev 1.8796 against 1.8376 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Replace the LogisticRegression classifier with a Pointwise Ranking approach: instead of a binary classification, compute a score for each document based on the average cosine similarity of its first 50 words to all 200 documents in the target_sample (using a TF-IDF vectorizer), then keep the top 20% of documents that also pass the surface and damage filters.",
+   "outcome": "dev 1.9454 against 1.8376 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Refine the domain filter by replacing the LogisticRegression classifier with a more granular 'Top-K' similarity score: for each document, calculate its TF-IDF cosine similarity to the centroid of the target_sample's TF-IDF vectors (1-grams only) and keep documents with a similarity score above the 70th percentile of the pool.",
+   "outcome": "FAILED to run (ay raise TypeError( TypeError: np.matrix is not supported. Please convert to a numpy array with np.asarray. For more information see: https://numpy.org/doc/stable/reference/generated/numpy.matrix.html)"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the LogisticRegression classifier with a Centroid-based Cosine Similarity score: calculate the TF-IDF centroid (mean vector) of the target_sample, then score each pool document by its cosine similarity to this centroid, keeping documents above the 60th percentile.",
+   "outcome": "FAILED to run (active-audit/.venv/lib/python3.12/site-packages/scipy/sparse/_base.py\", line 955, in _matmul_dispatch raise ValueError( ValueError: matmul: dimension mismatch with signature (n,k=81502),(k=1,m)->(n,m))"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the LogisticRegression classifier with a dense representation similarity score: Use the TF-IDF vectorizer to transform the target_sample and a random subset of the pool into a shared space, then calculate the cosine similarity of every pool document to the mean vector (centroid) of the target_sample. Keep documents whose similarity is above the 70th percentile of the pool, while maintaining the existing surface and damage filters.",
+   "outcome": "FAILED to run (ay raise TypeError( TypeError: np.matrix is not supported. Please convert to a numpy array with np.asarray. For more information see: https://numpy.org/doc/stable/reference/generated/numpy.matrix.html)"
+  },
+  {
+   "slot": 7,
+   "idea": "Replace the LogisticRegression classifier with a 'Positive-Only' TF-IDF score: Compute the TF-IDF centroid of the target_sample and calculate the cosine similarity of each pool document to this centroid, keeping the top 30% of the pool by score (ensuring they also pass the surface and damage filters).",
+   "outcome": "FAILED to run (/active-audit/curation/runs/C0/F1_01/cand/s07_1.py', '/homes/rdubash/active-audit/data/curation/pool_v2', '/homes/rdubash/active-audit/data/curation/tmpl91de0ko.json']' died with <Signals.SIGKILL: 9>.)"
+  },
+  {
+   "slot": 8,
+   "idea": "Replace the LogisticRegression classifier and all similarity-based scores with a multi-stage 'Hard Filters' approach: 1) A high-precision 'Wikitext-Structure' score (penalizing docs lacking ' , ', ' . ', or '='); 2) A 'Junk-Density' check (filtering low ASCII-letter fractions and high zlib-compression ratios); 3) A 'Damage Detection' filter that keeps only docs where the ratio of target-sample bigrams to total bigrams exceeds the median of the filtered pool; 4) Finally, use a simple frequency-based ranking to select the top 40% of the remaining pool to fill the token budget.",
+   "outcome": "dev 1.9305 against 1.8376 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Replace the LogisticRegression classifier with a more robust and scalable 'Positive-Only' scoring mechanism: compute the TF-IDF vectors for the target_sample, calculate the mean vector (centroid), and then score each document in the pool by its cosine similarity to this centroid. Use a percentile-based cutoff (e.g., top 40%) combined with the existing surface and damage filters, ensuring that 'np.matrix' errors are avoided by using 'np.asarray' and standard 'np.dot' for the similarity calculation.",
+   "outcome": "FAILED to run (active-audit/.venv/lib/python3.12/site-packages/scipy/sparse/_base.py\", line 955, in _matmul_dispatch raise ValueError( ValueError: matmul: dimension mismatch with signature (n,k=81502),(k=1,m)->(n,m))"
+  },
+  {
+   "slot": 10,
+   "idea": "Replace the LogisticRegression classifier with a 'Weighted Keyword' overlap score: calculate the set of words in the target_sample that appear with a frequency > 1% in the target_sample, then score pool documents by the ratio of these specific 'target keywords' found in their first 3000 characters, keeping those in the top 30% while maintaining the existing surface and damage filters.",
+   "outcome": "dev 1.8375 against 1.8376 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Implement a 'Dynamic Thresholding' for the LogisticRegression classifier: instead of a fixed 0.5 probability, sort the pool documents by their classifier probability and select the top K documents such that they satisfy the token budget (up to 0.5 T), while still strictly enforcing the surface and damage filters. If fewer than 0.5 T tokens are met this way, fill the remaining budget with the next highest-scoring documents that pass the damage/surface filters.",
+   "outcome": "dev 1.8333 against 1.8376 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Refine the LogisticRegression classifier by using a smaller, fixed-vocabulary (e.g., 20k) of high-frequency tokens from the target_sample to reduce noise and improve the classification of the pool documents, and adjust the LogisticRegression C parameter to 5.0 to enforce tighter regularization, while keeping the dynamic thresholding and damage filters.",
+   "outcome": "dev 1.8250 against 1.8376 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.4785591999999999,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.4396036,
+   "dev": 1.8376177490352144,
+   "inc": 1.9591887194719975,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002606849999999994,
+   "dev": 1.8796356090270319,
+   "inc": 1.8376177490352144,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0026887500000000175,
+   "dev": 1.945357002476705,
+   "inc": 1.8376177490352144,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.004562699999999975,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 1,
+   "n_accept": 1,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.004442999999999975,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 2,
+   "n_accept": 1,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.004621949999999986,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 3,
+   "n_accept": 1,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.004322999999999966,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 4,
+   "n_accept": 1,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0024144000000000387,
+   "dev": 1.930516577413624,
+   "inc": 1.8376177490352144,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.004824749999999989,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 1,
+   "n_accept": 1,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002738699999999983,
+   "dev": 1.8374887607213255,
+   "inc": 1.8376177490352144,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0028032000000000057,
+   "dev": 1.8332874716239718,
+   "inc": 1.8376177490352144,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002928299999999995,
+   "dev": 1.825048241975942,
+   "inc": 1.8376177490352144,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "inc_slot": 1
+}

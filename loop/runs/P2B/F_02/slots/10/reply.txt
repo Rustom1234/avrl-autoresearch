@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+        self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=False)
+        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=False)
+=======
+        hidden = ((8 * config.n_embd // 3 + 32) // 64) * 64  # ~8/3*dim, multiple of 64; matches 4x ReLU² param count
+        self.c_gate = nn.Linear(config.n_embd, hidden, bias=False)
+        self.c_fc = nn.Linear(config.n_embd, hidden, bias=False)
+        self.c_proj = nn.Linear(hidden, config.n_embd, bias=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x = self.c_fc(x)
+        x = F.relu(x).square()
+=======
+        x = F.silu(self.c_gate(x)) * self.c_fc(x)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            torch.nn.init.uniform_(block.mlp.c_fc.weight, -s, s)
+=======
+            torch.nn.init.uniform_(block.mlp.c_fc.weight, -s, s)
+            torch.nn.init.uniform_(block.mlp.c_gate.weight, -s, s)
+>>>>>>> REPLACE
+-----

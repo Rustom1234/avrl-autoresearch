@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _rattlers(c, r):
+    """Circles with fewer than two near-contacts (gap below 1e-4) to other circles or walls."""
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    gap = d - r[:, None] - r[None]
+    np.fill_diagonal(gap, np.inf)
+    wall = np.stack([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r], 1)
+    contacts = (gap < 1e-4).sum(1) + (wall < 1e-4).sum(1)
+    return contacts < 2
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    c, r = best
+    while time.process_time() - t0 < 0.95 * time_limit:   # relocate rattlers, keep improvements
+        ratt = _rattlers(c, r)
+        if not ratt.any():
+            break
+        x0 = np.concatenate([c.ravel(), r])
+        for i in np.flatnonzero(ratt):
+            x0[2 * i:2 * i + 2] = rng.uniform(INIT_LOW, 1 - INIT_LOW, 2)
+        c2, r2 = _solve_once(n, rng, x0)
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+>>>>>>> REPLACE
+-----

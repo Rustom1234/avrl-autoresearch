@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    X_tr = featurize(train_smiles)
+    rng = np.random.default_rng(seed)
+    X_aug = X_tr.copy()
+    sd = X_tr[:, N_BITS:].std(axis=0)
+    X_aug[:, N_BITS:] += rng.normal(size=(len(y), sd.size)) * (0.05 * sd)
+    resid = y - A_tr @ coef
+    model.fit(np.vstack([X_tr, X_aug]), np.concatenate([resid, resid]))
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+>>>>>>> REPLACE
+-----

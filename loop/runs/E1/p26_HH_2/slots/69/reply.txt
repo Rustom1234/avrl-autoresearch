@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _quasi_centres(n, rng):
+    """Quasi-periodic start: a 2D Kronecker point set with random irrational slopes, the n points nearest the centre."""
+    a = rng.uniform(0.2, 0.8, 2)
+    o = rng.uniform(0, 1, 2)
+    k = np.arange(1, 2001)[:, None]
+    pts = (k * a + o) % 1.0
+    sel = pts[np.argsort(np.hypot(pts[:, 0] - 0.5, pts[:, 1] - 0.5))[:n]]
+    lo, hi = sel.min(0), sel.max(0)
+    c = 0.1 + 0.8 * (sel - lo) / (hi - lo)
+    return c + rng.normal(0, 0.01, c.shape)
+
+
+def _solve_once(n, rng):
+    if rng.random() < 0.5:
+        c0 = _quasi_centres(n, rng)
+    else:
+        c0 = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    x0 = np.concatenate([c0.ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+=======
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        if group['kind'] == 'adamw' and ('embedding' in group.get('params', []) or 'lm_head' in group.get('params', [])):
+            # Keep embedding/lm_head constant through warmdown by ignoring lrm if it's in the warmdown phase
+            if not (progress > (1.0 - WARMDOWN_RATIO)):
+                group["lr"] = group["initial_lr"] * lrm
+            else:
+                group["lr"] = group["initial_lr"]
+        else:
+            group["lr"] = group["initial_lr"] * lrm
+            if group['kind'] == 'muon':
+                group["momentum"] = muon_momentum
+                group["weight_decay"] = muon_weight_decay
+>>>>>>> REPLACE
+-----

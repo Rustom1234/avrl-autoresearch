@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    p_fp = np.mean([
+        MLPRegressor(hidden_layer_sizes=(256, 128), alpha=1e-1, early_stopping=True,
+                     max_iter=300, random_state=seed + 100 + k).fit(Mtr, y).predict(Mte)
+        for k in range(3)], axis=0)
+=======
+    rng = np.random.RandomState(seed + 999)
+    nd = Dtr.shape[1]
+    copies = [Mtr]
+    for _ in range(2):
+        A = Mtr.copy()
+        A[:, :-nd] *= (rng.rand(A.shape[0], A.shape[1] - nd) >= 0.1)
+        A[:, -nd:] += rng.normal(0, 0.1, size=(A.shape[0], nd))
+        copies.append(A)
+    Maug = np.vstack(copies)
+    yaug = np.tile(y, 3)
+    p_fp = np.mean([
+        MLPRegressor(hidden_layer_sizes=(256, 128), alpha=1e-1, early_stopping=True,
+                     max_iter=150, random_state=seed + 100 + k).fit(Maug, yaug).predict(Mte)
+        for k in range(3)], axis=0)
+>>>>>>> REPLACE
+-----

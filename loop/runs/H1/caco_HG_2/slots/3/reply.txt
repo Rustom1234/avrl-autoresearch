@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 1024
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Atom-pair fingerprints
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    ap_fps = np.array([ap_gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # Topological-torsion count fingerprints
+    tr_gen = rdFingerprintGenerator.GetTopologicalTorsionCountGenerator(fpSize=N_BITS)
+    tr_fps = np.array([tr_gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    
+    return np.hstack([ap_fps, tr_fps, desc])
+=======
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from rdkit.Chem import rdFingerprintGenerator
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 1024
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Atom-pair fingerprints
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    ap_fps = np.array([ap_gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # Topological-torsion count fingerprints
+    tr_gen = rdFingerprintGenerator.GetTopologicalTorsionCountGenerator(fpSize=N_BITS)
+    tr_fps = np.array([tr_gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    
+    return np.hstack([ap_fps, tr_fps, desc])
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from xgboost import XGBRegressor
+
+# Settings
+=======
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from rdkit.Chem import rdFingerprintGenerator
+from xgboost import XGBRegressor
+
+# Settings
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+RELAX_STARTS = 8
+RELAX_TARGET = 0.09
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _energy(v, n):
+    c = v.reshape(n, 2)
+    iu = np.triu_indices(n, 1)
+    diff = c[iu[0]] - c[iu[1]]
+    d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+    ov = np.maximum(0, 2 * RELAX_TARGET - d)
+    lo = np.maximum(0, RELAX_TARGET - c)
+    hi = np.maximum(0, c - (1 - RELAX_TARGET))
+    f = (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum()
+    coef = (-2 * ov / d)[:, None] * diff
+    g = np.zeros((n, 2))
+    np.add.at(g, iu[0], coef)
+    np.add.at(g, iu[1], -coef)
+    g += -2 * lo + 2 * hi
+    return f, g.ravel()
+
+
+def _relax_start(n, rng):
+    x0 = rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n)
+    res = minimize(_energy, x0, args=(n,), jac=True, method="L-BFGS-B", options={"maxiter": 100})
+    return res.fun, res.x
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+        if x0 is None:
+            best_e, best_x = min((_relax_start(n, rng) for _ in range(RELAX_STARTS)), key=lambda t: t[0])
+            x0 = np.concatenate([best_x, np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+-----

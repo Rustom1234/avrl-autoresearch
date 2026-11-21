@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def scaled_rank(p):
+=======
+_PATS = [Chem.MolFromSmarts(s) for s in ["C(=O)N", "C(=O)O[#6]", "S(=O)(=O)", "[F,Cl,Br,I]"]]
+
+
+def extra_counts(smiles_list):
+    out = []
+    for s in smiles_list:
+        mol = Chem.MolFromSmiles(s)
+        row = [len(Chem.FindMolChiralCenters(mol, includeUnassigned=True, useLegacyImplementation=False)),
+               sum(b.GetStereo() != Chem.BondStereo.STEREONONE for b in mol.GetBonds()),
+               sum(b.GetBondType() == Chem.BondType.TRIPLE for b in mol.GetBonds())]
+        row += [len(mol.GetSubstructMatches(p)) for p in _PATS]
+        out.append(row)
+    return np.array(out, dtype=np.float64)
+
+
+def scaled_rank(p):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    D_test = full_descriptors(test_smiles)
+=======
+    D_train = np.hstack([D_train, extra_counts(train_smiles)])
+    D_test = np.hstack([full_descriptors(test_smiles), extra_counts(test_smiles)])
+>>>>>>> REPLACE
+-----

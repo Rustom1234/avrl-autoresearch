@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < RESTART_FRACTION * budget or best is None:   # short random-restart phase
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+=======
+    pool = []
+    while time.process_time() - t0 < RESTART_FRACTION * budget or not pool:   # short random-restart phase
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((c, r))
+    pool.sort(key=lambda p: -p[1].sum())
+    elites = []
+    for c, r in pool:   # top 3 distinct packings by sum
+        if all(abs(r.sum() - e[1].sum()) > 1e-9 for e in elites):
+            elites.append([c, r])
+        if len(elites) == 3:
+            break
+    k = 0
+    while time.process_time() - t0 < budget:   # round-robin remove-and-reinsert over the elites
+        e = elites[k % len(elites)]
+        k += 1
+        c, r = e
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            e[0], e[1] = c2, r2
+    best_e = max(elites, key=lambda e: e[1].sum())
+    return best_e[0], best_e[1]
+>>>>>>> REPLACE
+-----

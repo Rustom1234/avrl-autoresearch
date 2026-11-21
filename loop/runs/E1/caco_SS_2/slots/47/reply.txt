@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.metrics.pairwise import rbf_kernel
+
+_GEN = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+
+
+def morgan_counts(smiles):
+    return np.array([_GEN.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def minmax_kernel(A, B):
+    K = np.empty((len(A), len(B)), dtype=np.float64)
+    for i, a in enumerate(A):
+        K[i] = np.minimum(a, B).sum(1) / np.maximum(np.maximum(a, B).sum(1), 1e-9)
+    return K
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    gamma = 1.0 / (Str.shape[1] * Str.var())
+    Mtr, Mte = morgan_counts(train_smiles), morgan_counts(test_smiles)
+    Ktr = 0.6 * rbf_kernel(Str, Str, gamma=gamma) + 0.4 * minmax_kernel(Mtr, Mtr)
+    Kte = 0.6 * rbf_kernel(Ste, Str, gamma=gamma) + 0.4 * minmax_kernel(Mte, Mtr)
+    svr = SVR(kernel='precomputed', C=3, epsilon=0.1).fit(Ktr, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Kte)
+>>>>>>> REPLACE
+-----

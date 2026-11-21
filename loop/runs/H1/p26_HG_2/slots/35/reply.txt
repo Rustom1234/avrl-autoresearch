@@ -1,0 +1,117 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+<<<<<<< REPLACE
+def _grow(c, r, rng):
+    n = len(r)
+    indices = rng.permutation(n)
+    for _ in range(2):
+        for i in indices:
+            # Distance to boundaries
+            max_r = min(c[i, 0], c[i, 1], 1 - c[i, 0], 1 - c[i, 1])
+            # Distance to other circles
+            dists = np.linalg.norm(c - c[i], axis=1)
+            # Only consider circles other than i
+            mask = np.arange(n) != i
+            dists = dists[mask]
+            r_others = r[mask]
+            max_r = min(max_r, np.min(dists - r_others))
+            r[i] = max(r[i], max_r)
+    return r
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        r = _grow(c, r, rng)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+-----
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _grow(c, r, rng):
+    n = len(r)
+    indices = rng.permutation(n)
+    for _ in range(2):
+        for i in indices:
+            max_r = min(c[i, 0], c[i, 1], 1 - c[i, 0], 1 - c[i, 1])
+            dists = np.linalg.norm(c - c[i], axis=1)
+            mask = np.arange(n) != i
+            dists = dists[mask]
+            r_others = r[mask]
+            max_r = min(max_r, np.min(dists - r_others))
+            r[i] = max(r[i], max_r)
+    return r
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        r = _grow(c, r, rng)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+-----
+<<<<<<< SEARCH
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=
+
+def _grow(c, r, rng):
+    n = len(r)
+    indices = rng.permutation(n)
+    for _ in range(2):
+        for i in indices:
+            # Max radius allowed by the unit square boundaries
+            max_r = min(c[i, 0], c[i, 1], 1 - c[i, 0], 1 - c[i, 1])
+            # Max radius allowed by distances to all other circles
+            dists = np.linalg.norm(c - c[i], axis=1)
+            mask = np.arange(n) != i
+            d_others = dists[mask]
+            r_others = r[mask]
+            max_r = min(max_r, np.min(d_others - r_others))
+            r[i] = max(r[i], max_r)
+    return r
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        r = _grow(c, r, rng)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,67 @@
+<<<<<<< SEARCH
+def _local_opt(c0):
+=======
+def _power_homotopy(c0):
+    # Five SLSQP solves maximising sum(r^q), q = 0.5 .. 1.0, warm-started from the previous step.
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    r_init = np.maximum(_lp_radii(c0), 1e-6)
+    z = np.concatenate([c0[:, 0], c0[:, 1], r_init])
+    bounds = [(0.0, 1.0)] * (2 * n) + [(1e-6, 0.5)] * n
+
+    def cons(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        rs = r[I] + r[J]
+        pair = dx * dx + dy * dy - rs * rs
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    for q in np.linspace(0.5, 1.0, 5):
+        def obj(z, q=q):
+            return -np.sum(np.maximum(z[2 * n:], 1e-6) ** q)
+
+        def obj_grad(z, q=q):
+            g = np.zeros_like(z)
+            r = np.maximum(z[2 * n:], 1e-6)
+            g[2 * n:] = -q * r ** (q - 1.0)
+            return g
+
+        try:
+            res = minimize(obj, z, jac=obj_grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons}],
+                           options={"maxiter": 200, "ftol": 1e-12})
+            if np.all(np.isfinite(res.x)):
+                z = res.x
+        except Exception:
+            pass
+    return np.clip(np.stack([z[:n], z[n:2 * n]], axis=1), 0.0, 1.0)
+
+
+def _local_opt(c0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c_orig = c0.copy()
+    c0 = _equal_opt(c0)
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    r0 = _lp_radii(c0)
+    z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+    c_orig = c0.copy()
+    c0 = _equal_opt(c0)
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    c_pow = _power_homotopy(c0)
+    r0 = _lp_radii(c_pow)
+    z0 = np.concatenate([c_pow[:, 0], c_pow[:, 1], r0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    candidates = [c0.copy(), c_orig, _adam_soft(c_orig)]
+=======
+    candidates = [c0.copy(), c_orig, _adam_soft(c_orig), c_pow.copy()]
+>>>>>>> REPLACE
+-----

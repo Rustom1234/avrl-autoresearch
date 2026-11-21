@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+=======
+TIME_FRACTION = 0.72
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, maxiter=MAX_ITER, ftol=1e-6):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": maxiter, "ftol": ftol})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+=======
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]), 80)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    if 0.9 * time_limit - (time.process_time() - t0) >= 3:
+        pc, pr = _solve_once(n, rng, np.concatenate([best[0].ravel(), best[1]]), 500, 1e-13)
+        pc = np.clip(pc, 0, 1)
+        pr = _repair(pc, pr)
+        if pr.sum() > best[1].sum():
+            best = (pc, pr)
+    return best
+>>>>>>> REPLACE
+-----

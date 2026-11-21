@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    total = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < 0.5 * total:   # random restarts for half of the time
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    t1 = time.process_time()
+    span = max(total - (t1 - t0), 1e-9)
+    while time.process_time() - t0 < total:   # basin hopping from the best packing, perturbation decays linearly
+        frac = min((time.process_time() - t1) / span, 1.0)
+        scale = 0.1 + (0.005 - 0.1) * frac
+        c, r = best
+        c0 = np.clip(c + scale * rng.standard_normal(c.shape), 0, 1)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    total = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < total:
+        if best is None:   # first SLSQP local solve from a random start
+            c, r = _solve_once(n, rng)
+        else:              # basin hopping: perturb 1-3 circles of the best packing and re-solve
+            c, r = best[0].copy(), best[1].copy()
+            idx = rng.choice(n, rng.integers(1, 4), replace=False)
+            c[idx] = rng.uniform(0, 1, (len(idx), 2))
+            r[idx] = INIT_RADIUS
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

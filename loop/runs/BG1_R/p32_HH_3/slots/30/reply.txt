@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+WALL_MARGIN = 0.02
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def make_cons(m):
+        def cons(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r - m, c[:, 1] - r - m, 1 - c[:, 0] - r - m, 1 - c[:, 1] - r - m, r])
+        return cons
+
+    x = x0
+    for m in (WALL_MARGIN, 0.0):   # tightened walls first, then relax the margin to zero
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", constraints={"type": "ineq", "fun": make_cons(m)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

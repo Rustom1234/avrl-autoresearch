@@ -1,0 +1,128 @@
+<<<<<<< SEARCH
+# EVOLVE-BLOCK-END
+=======
+import time
+from scipy.optimize import linprog, minimize
+
+_N = 26
+_IU = np.triu_indices(_N, 1)
+
+
+def _lp_radii(c):
+    n = _N
+    i, j = _IU
+    d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+    m = len(i)
+    A = np.zeros((m, n))
+    A[np.arange(m), i] = 1
+    A[np.arange(m), j] = 1
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    wall = np.maximum(wall, 0)
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=[(0, w) for w in wall], method="highs")
+    if res.status != 0:
+        return np.zeros(n)
+    return res.x
+
+
+def _physics(rng):
+    n = _N
+    c = rng.uniform(0.05, 0.95, (n, 2))
+    i, j = _IU
+    iters = 400
+    for t in range(iters):
+        frac = t / iters
+        r = 0.04 + 0.07 * frac
+        step = 0.5 * (1 - frac) + 0.05
+        diff = c[i] - c[j]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        ov = 2 * r - d
+        mask = ov > 0
+        if mask.any():
+            push = (diff[mask] / d[mask, None]) * (ov[mask, None] * 0.5 * step)
+            np.add.at(c, i[mask], push)
+            np.add.at(c, j[mask], -push)
+        c += rng.normal(0, 0.003 * (1 - frac), c.shape)
+        c = np.clip(c, r, 1 - r)
+    return c
+
+
+def _polish(c, r):
+    n = _N
+    i, j = _IU
+    m = len(i)
+    x0 = np.concatenate([c[:, 0], c[:, 1], r])
+
+    def obj(x):
+        return -x[2 * n:].sum()
+
+    def objg(x):
+        g = np.zeros(3 * n)
+        g[2 * n:] = -1
+        return g
+
+    def cons(x):
+        X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+        dx = X[i] - X[j]
+        dy = Y[i] - Y[j]
+        pair = dx * dx + dy * dy - (R[i] + R[j]) ** 2
+        return np.concatenate([pair, X - R, 1 - X - R, Y - R, 1 - Y - R])
+
+    I = np.eye(n)
+    Z = np.zeros((n, n))
+    wj = np.vstack([
+        np.hstack([I, Z, -I]),
+        np.hstack([-I, Z, -I]),
+        np.hstack([Z, I, -I]),
+        np.hstack([Z, -I, -I]),
+    ])
+
+    def consj(x):
+        X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+        dx = X[i] - X[j]
+        dy = Y[i] - Y[j]
+        s = R[i] + R[j]
+        J = np.zeros((m, 3 * n))
+        k = np.arange(m)
+        J[k, i] = 2 * dx
+        J[k, j] = -2 * dx
+        J[k, n + i] = 2 * dy
+        J[k, n + j] = -2 * dy
+        J[k, 2 * n + i] = -2 * s
+        J[k, 2 * n + j] = -2 * s
+        return np.vstack([J, wj])
+
+    res = minimize(obj, x0, jac=objg, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": consj}],
+                   bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n,
+                   options={"maxiter": 300, "ftol": 1e-12})
+    x = res.x
+    return np.stack([x[:n], x[n:2 * n]], 1)
+
+
+def optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+        try:
+            c = _physics(rng)
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+# EVOLVE-BLOCK-END
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    centers, radii = construct_packing()
+=======
+    centers, radii = optimized_packing()
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+from xgboost import XGBClassifier
+=======
+from xgboost import XGBClassifier
+from sklearn.neural_network import MLPRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def autoencoder_features(all_smiles, seed):
+    # Unsupervised: no labels. Fit an autoencoder on Morgan + MACCS bits, return the 32-unit bottleneck.
+    mols = [Chem.MolFromSmiles(s) for s in all_smiles]
+    morgan = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    x = np.array([np.concatenate([morgan.GetFingerprintAsNumPy(m), np.array(list(MACCSkeys.GenMACCSKeys(m)))])
+                  for m in mols], dtype=np.float32)
+    ae = MLPRegressor(hidden_layer_sizes=(256, 32, 256), activation='relu', max_iter=200, random_state=seed)
+    ae.fit(x, x)
+    h = x
+    for i in range(2):  # encoder: input -> 256 -> 32, ReLU
+        h = np.maximum(h @ ae.coefs_[i] + ae.intercepts_[i], 0)
+    return h
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+=======
+    test_sets = fingerprints(test_smiles)
+    # Transductive autoencoder member: test features enter only the unsupervised autoencoder fit.
+    all_smiles = list(train_smiles) + list(test_smiles)
+    n_tr = len(train_smiles)
+    x_ae = np.hstack([autoencoder_features(all_smiles, seed), featurize(all_smiles)])
+    train_sets.append(x_ae[:n_tr])
+    test_sets.append(x_ae[n_tr:])
+    total = np.zeros(len(test_smiles))
+>>>>>>> REPLACE
+-----

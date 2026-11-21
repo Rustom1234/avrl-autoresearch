@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        explore = time.process_time() - t0 < 0.3 * TIME_FRACTION * time_limit or best is None
+        c, r = _solve_once(n, rng, None if explore else best)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    budget = TIME_FRACTION * time_limit
+
+    def run(start):
+        c, r = _solve_once(n, rng, start)
+        c = np.clip(c, 0, 1)
+        return c, _repair(c, r)
+
+    pool = []
+    while time.process_time() - t0 < 0.3 * budget or not pool:
+        pool.append(run(None))
+    pool.sort(key=lambda p: -p[1].sum())
+    best = pool[0]
+    second = next((p for p in pool[1:] if abs(p[1].sum() - best[1].sum()) > 1e-6), None)
+    walkers = [best, second if second is not None else run(None)]
+    fails = [0, 0]
+    k = 0
+    while time.process_time() - t0 < budget:
+        w = k % 2
+        k += 1
+        cand = run(walkers[w])
+        if cand[1].sum() > best[1].sum():
+            best = cand
+        if cand[1].sum() > walkers[w][1].sum():
+            walkers[w], fails[w] = cand, 0
+        else:
+            fails[w] += 1
+            if fails[w] >= 25:
+                walkers[w], fails[w] = run(None), 0
+                if walkers[w][1].sum() > best[1].sum():
+                    best = walkers[w]
+    return best
+>>>>>>> REPLACE
+-----

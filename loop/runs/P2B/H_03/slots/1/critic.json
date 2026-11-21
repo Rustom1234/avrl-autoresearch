@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing in the diff touches how val_bpb is measured, the data, the seed lines, the prepare.py import line or the evaluation call. The only change is one hyperparameter, TOTAL_BATCH_SIZE, going from 2**19 to 2**17.",
+  "Bug check: with DEVICE_BATCH_SIZE 64, 2**17 tokens is exactly one forward/backward pass if the sequence length is 2048 (64*2048 = 131072). Gradient accumulation then drops to 1 step and the divisibility check still passes. If the sequence length were longer than 2048, the existing divisibility assertion would crash the run instead of giving a meaningless result. The two candidate runs finished, so the configuration is valid.",
+  "Size of the gain: the candidate mean is 1.05105 against an incumbent mean of 1.1145, a drop of about 0.0635 bpb. That is large, but it fits the change. A batch 4x smaller gives about 4x more optimizer steps in the same 300 s. The learning rates were not retuned for the smaller batch, so more gain may be available.",
+  "I can't recompute z exactly because the incumbent's standard deviation and the z formula aren't given. The reported z = 15.457 implies an effective sd of about 0.0041, which is plausible. Both candidate runs (1.0517 and 1.0504) are far below the incumbent mean. That supports the provisional accept."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

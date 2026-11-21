@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+from catboost import CatBoostClassifier
+=======
+from catboost import CatBoostClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import QuantileTransformer
+
+ND = len(Descriptors.descList)
+
+
+def knn_tanimoto(A, ya, B, k=10):
+    A = (A > 0).astype(np.float32)
+    B = (B > 0).astype(np.float32)
+    inter = B @ A.T
+    union = B.sum(1)[:, None] + A.sum(1)[None, :] - inter
+    sim = inter / np.maximum(union, 1e-9)
+    idx = np.argsort(-sim, axis=1)[:, :k]
+    w = np.take_along_axis(sim, idx, axis=1) + 1e-6
+    return (w * ya[idx]).sum(1) / w.sum(1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+=======
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    preds.append(rankdata(knn_tanimoto(X[:, ND:], y, Xt[:, ND:])) / len(Xt))
+    qt = QuantileTransformer(n_quantiles=min(1000, len(X)), output_distribution="normal", random_state=seed)
+    Zs = qt.fit_transform(X[:, :ND])
+    Zt = qt.transform(Xt[:, :ND])
+    mlp = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True,
+                        max_iter=300, random_state=seed)
+    mlp.fit(Zs, y)
+    preds.append(rankdata(mlp.predict_proba(Zt)[:, 1]) / len(Xt))
+>>>>>>> REPLACE
+-----

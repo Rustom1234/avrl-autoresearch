@@ -1,0 +1,60 @@
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    try:
+        n = _N
+        i, j = _IU
+        d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+        pa = [(int(a), int(b)) for a, b, s in zip(i, j, d - r[i] - r[j]) if s < 1e-7]
+        wl = []
+        for k in range(n):
+            if c[k, 0] - r[k] < 1e-7: wl.append((0, k))
+            if 1 - c[k, 0] - r[k] < 1e-7: wl.append((1, k))
+            if c[k, 1] - r[k] < 1e-7: wl.append((2, k))
+            if 1 - c[k, 1] - r[k] < 1e-7: wl.append((3, k))
+        x = np.concatenate([c[:, 0], c[:, 1], r])
+        for _ in range(6):
+            F = []
+            J = []
+            for a, b in pa:
+                dx = x[a] - x[b]
+                dy = x[n + a] - x[n + b]
+                dd = max(np.hypot(dx, dy), 1e-12)
+                row = np.zeros(3 * n)
+                row[a] = dx / dd
+                row[b] = -dx / dd
+                row[n + a] = dy / dd
+                row[n + b] = -dy / dd
+                row[2 * n + a] = -1
+                row[2 * n + b] = -1
+                F.append(dd - x[2 * n + a] - x[2 * n + b])
+                J.append(row)
+            for t, k in wl:
+                row = np.zeros(3 * n)
+                row[2 * n + k] = -1
+                if t == 0:
+                    row[k] = 1; f = x[k] - x[2 * n + k]
+                elif t == 1:
+                    row[k] = -1; f = 1 - x[k] - x[2 * n + k]
+                elif t == 2:
+                    row[n + k] = 1; f = x[n + k] - x[2 * n + k]
+                else:
+                    row[n + k] = -1; f = 1 - x[n + k] - x[2 * n + k]
+                F.append(f)
+                J.append(row)
+            step = np.linalg.lstsq(np.array(J), -np.array(F), rcond=None)[0]
+            x = x + step
+        c2 = np.clip(np.stack([x[:n], x[n:2 * n]], 1), 0, 1)
+        if np.all(np.isfinite(c2)):
+            r2 = _lp_radii(c2)
+            if r2.sum() > r.sum():
+                c, r = c2, r2
+    except Exception:
+        pass
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

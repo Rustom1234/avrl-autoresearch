@@ -1,0 +1,71 @@
+<<<<<<< SEARCH
+def run_packing():
+    """Run the circle packing search under a ~200 s wall-time budget, keeping the best valid packing"""
+=======
+def _island_init(seed_idx):
+    # One island: a seeded start (LS growth or jittered lattice), locally optimised, with its own schedule state.
+    rng = np.random.default_rng(12345 + 7919 * seed_idx)
+    if seed_idx % 4 == 0:
+        c = _ls_growth(rng)
+    else:
+        c = _lattice_start(np.random.default_rng(999 + seed_idx), 0.01 + 0.09 * (seed_idx % 4) / 3.0)
+    bc, br = _local_opt(c)
+    return {"rng": rng, "c": bc, "r": br, "s": float(np.sum(br)), "k": 0, "K": 20}
+
+
+def _island_run(st, deadline):
+    # Advance one island's jitter-anneal schedule until its K steps are done or the deadline passes.
+    n = 26
+    while st["k"] < st["K"] and time.perf_counter() < deadline:
+        frac = st["k"] / (st["K"] - 1)
+        sigma = 0.1 * (0.002 / 0.1) ** frac
+        cand = np.clip(st["c"] + st["rng"].normal(0.0, sigma, (n, 2)), 0.0, 1.0)
+        cc, rr = _local_opt(cand)
+        s = float(np.sum(rr))
+        if s > st["s"]:
+            st["c"], st["r"], st["s"] = cc, rr, s
+        st["k"] += 1
+
+
+def run_packing():
+    """Island model: four seeded islands with ring migration in ~12 s rounds, then reinsert polish on the global best"""
+    t_start = time.perf_counter()
+    stop_at = t_start + 190.0
+    n_isl = 4
+    round_len = 12.0
+    islands = [_island_init(i) for i in range(n_isl)]
+    next_seed = n_isl
+    best_c, best_r, best_s = None, None, -1.0
+    for st in islands:
+        if st["s"] > best_s and _valid_packing(st["c"], st["r"]):
+            best_c, best_r, best_s = st["c"].copy(), st["r"].copy(), st["s"]
+    while time.perf_counter() < stop_at - 2.0:
+        slice_len = round_len / n_isl
+        for idx in range(n_isl):
+            if islands[idx]["k"] >= islands[idx]["K"]:
+                islands[idx] = _island_init(next_seed)
+                next_seed += 1
+            _island_run(islands[idx], min(time.perf_counter() + slice_len, stop_at))
+        # Ring migration: island i receives the best of island i-1 if it is strictly larger.
+        snap = [(st["c"].copy(), st["r"].copy(), st["s"]) for st in islands]
+        for i in range(n_isl):
+            mc, mr, ms = snap[(i - 1) % n_isl]
+            if ms > islands[i]["s"] + 1e-12:
+                islands[i]["c"], islands[i]["r"], islands[i]["s"] = mc.copy(), mr.copy(), ms
+        for st in islands:
+            if st["s"] > best_s and _valid_packing(st["c"], st["r"]):
+                best_c, best_r, best_s = st["c"].copy(), st["r"].copy(), st["s"]
+    if best_c is None:
+        # Last-resort valid output (all radii zero).
+        best_c = np.full((26, 2), 0.5)
+        best_r = np.zeros(26)
+    else:
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+    sum_radii = float(np.sum(best_r))
+    return best_c, best_r, sum_radii
+
+
+def _unused_restart_packing():
+    """Former restart loop, kept for reference and no longer called."""
+>>>>>>> REPLACE
+-----

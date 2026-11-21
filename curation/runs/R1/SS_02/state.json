@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/SS_02/cand/s06_0.py",
+ "inc_scores": {
+  "11": 1.8011874343523255
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random order with a filter that keeps only clean, target-like (WikiText-style) documents, in three steps.\n\n1. **Word-order score.** Build the set of adjacent lowercase word bigrams (whitespace split) from the 200 target_sample documents. For each pool document, compute h = the fraction of its first ~400 word bigrams that are in that set. Shuffled-word articles and \"discount code\" spam should score far lower than intact prose.\n\n2. **Domain score.** Fit a TfidfVectorizer (word 1-2 grams, sublinear_tf, max_features 200k, first 3000 characters of each document) and a LogisticRegression. Positives are the target_sample documents; negatives are 3000 seeded-random pool documents. Compute p = P(target) for every pool document.\n\n3. **Select.** Drop exact duplicates and near-duplicates (same normalised first 300 characters), and documents under 200 characters. Set the h threshold at the valley of the bimodal h distribution among documents starting with \"= \": take the 5th percentile of h over the target_sample documents themselves (each scored leave-one-out against bigrams from the other 199), times 0.9. Keep documents with h above that threshold and p >= 0.5.\n\nCount tokens with tiktoken gpt2. If the kept documents total less than T, do not add junk: return the kept set in seeded-shuffled order and let the trainer cycle it. If they total more than T, keep the highest-p documents up to T tokens, then shuffle with CURATE_SEED.",
+   "outcome": "dev 1.8830 against 1.9402 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Add one self-training round to the domain classifier to fix the contaminated negatives; leave everything else unchanged. After computing h and the first-pass p as now, build a second training set. Positives: the 200 target_sample documents plus up to 3000 seeded-random pool documents that pass the current filter (h > h_thr and p >= 0.5, after dedup). Negatives: 4000 seeded-random pool documents that confidently fail (h <= h_thr or p < 0.2), so no target-like document sits in the negatives. Refit the same TfidfVectorizer and LogisticRegression (class_weight balanced, C=10) on the first 3000 characters, and recompute p2 for every pool document. Final selection: h > h_thr and p2 >= 0.5, with the same MIN_CHARS, dedup, token cap (rank by p2), cycling and seeded shuffle as now.",
+   "outcome": "dev 1.8187 against 1.8830 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 3,
+   "idea": "Make the word-order score cover the whole document instead of only the first ~400 bigrams, so documents that are damaged after the head are dropped. Keep everything else (both classifier passes, dedup, MIN_CHARS, cap by p2, cycling, seeded shuffle) unchanged.\n\n1. For each pool document, split its full lowercase whitespace-word sequence into consecutive windows of 400 bigrams. Merge a final window shorter than 200 bigrams into the previous one.\n2. Compute the fraction of bigrams in the target bigram set for each window, and define h_min as the minimum over the document's windows.\n3. Calibrate the new threshold the same way as the current one: compute the leave-one-out h_min for each target_sample document over all its windows (a bigram counts only if df >= 2), and set h_min_thr = 0.9 * the 5th percentile of those values.\n4. In the final selection only, add the requirement h_min > h_min_thr to the existing h > h_thr and p2 >= 0.5. Leave the self-training positive and negative sets defined as they are now.\n5. Implement the scan with plain set lookups in a single pass per document to stay within the time limit.",
+   "outcome": "dev 1.8132 against 1.8187 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Add a case-sensitive, whole-document \"surface format\" filter to the final selection only; leave h, both classifier passes, dedup, the cap by p2, cycling and the seeded shuffle unchanged. The current features are all lowercase word features on the document head, so they cannot see case damage, punctuation-spacing differences (the target uses WikiText tokenisation such as \" , \", \" . \", \" @-@ \") or character-level corruption later in the document.\n\n1. Build V = the set of case-sensitive whitespace tokens in target_sample, and df_tok = the number of target documents each token occurs in.\n2. For every document that already passes h > h_thr and p2 >= 0.5, compute four statistics over the FULL text in one pass:\n   (a) cov = fraction of whitespace tokens that are in V;\n   (b) up = uppercase letters / all letters;\n   (c) punct = fraction of ',' and '.' characters that appear as stand-alone whitespace tokens (count tokens equal to ',' or '.' divided by the total count of those characters);\n   (d) odd = fraction of characters that are neither ASCII alphanumerics, whitespace, nor any character seen in target_sample.\n3. Calibrate on target_sample, with cov computed leave-one-out (a token counts only if df_tok >= 2):\n   - require cov > 0.9 * the 5th percentile of target cov;\n   - require up < 1.5 * the 99th percentile of target up;\n   - require punct > 0.9 * the 2nd percentile of target punct;\n   - require odd <= max(0.005, 2 * the 99th percentile of target odd).\n4. Drop documents failing any of the four tests before dedup, so a damaged copy cannot shadow its clean twin. If fewer than 50 documents survive, fall back to the current selection.",
+   "outcome": "dev 1.8139 against 1.8187 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Apply both whole-document damage filters together in the final selection, since each one alone lowered dev bpb slightly (1.8132 and 1.8139 against 1.8187) but not by enough to be kept. Leave h, both classifier passes, the self-training sets, MIN_CHARS, the cap by p2, cycling and the seeded shuffle unchanged.\n\n1. Windowed word-order score. Split each candidate's full lowercase whitespace-word sequence into consecutive windows of 400 bigrams, merging a final window shorter than 200 into the previous one. h_min is the minimum over windows of the fraction of bigrams in the target bigram set. Calibrate leave-one-out on target_sample (a bigram counts only if df >= 2) and require h_min > 0.9 * the 5th percentile of target h_min.\n\n2. Case-sensitive surface statistics over the full text. Build V, the set of case-sensitive whitespace tokens in target_sample, with df_tok the number of target documents each occurs in. Compute:\n   (a) cov = fraction of whitespace tokens in V (leave-one-out on the target, df_tok >= 2); require cov > 0.9 * the 5th percentile of target cov.\n   (b) up = uppercase letters / all letters; require up < 1.5 * the 99th percentile of target up.\n   (c) punct = (tokens equal to ',' or '.') / (count of ',' and '.' characters); require punct > 0.9 * the 2nd percentile of target punct.\n   (d) odd = fraction of characters that are not ASCII alphanumerics, whitespace, or any character seen in target_sample; require odd <= max(0.005, 2 * the 99th percentile of target odd).\n\n3. Compute these only for documents that already pass h > h_thr and p2 >= 0.5. Drop any document failing any test before dedup, so a damaged copy cannot shadow its clean twin.\n\n4. If fewer than 50 documents survive, fall back to the current selection.",
+   "outcome": "dev 1.8105 against 1.8187 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Gate the final selection on whole-document WikiText format and intactness, and relax the classifier threshold to raise recall. Keep h, both classifier passes, the self-training sets, MIN_CHARS, the dedup rule and the seeded shuffle unchanged.\n\n1. Candidates: documents with h > h_thr and p2 >= 0.1 (was 0.5), and len >= MIN_CHARS.\n\n2. For each candidate compute these over the FULL text, each calibrated on target_sample:\n   (a) h_min: split the lowercase whitespace-word sequence into consecutive windows of 400 bigrams, merging a final window shorter than 200 into the previous one. h_min is the minimum over windows of the fraction of bigrams in the target bigram set. Require h_min > 0.9 * the 5th percentile of the target's leave-one-out h_min (a bigram counts only if df >= 2).\n   (b) cov: fraction of case-sensitive whitespace tokens that are in the target token set. Require cov > 0.9 * the 5th percentile of the target's leave-one-out cov (a token counts only if df_tok >= 2).\n   (c) up: uppercase letters / all letters. Require up < 1.5 * the 99th percentile of target up.\n   (d) punct: (tokens equal to ',' or '.') / (count of ',' and '.' characters). Require punct > 0.9 * the 2nd percentile of target punct.\n   (e) odd: fraction of characters that are not ASCII alphanumerics, whitespace, or any character seen in target_sample. Require odd <= max(0.005, 2 * the 99th percentile of target odd).\n\n3. Keep candidates that pass all five tests. Apply the existing dedup after these tests, so a damaged copy cannot shadow its clean twin.\n\n4. Build the output explicitly to about T tokens instead of relying on blind cycling:\n   - Define quality q = p2 + h_min + cov.\n   - If the survivors exceed T tokens, keep the highest-q documents up to T.\n   - If they fall short, include every survivor once, then add second copies of survivors in descending q until T tokens are reached. Repeat further passes if needed.\n   - Shuffle the final list with CURATE_SEED.\n\n5. If fewer than 50 documents survive, fall back to the current selection.",
+   "outcome": "dev 1.8012 against 1.8187 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 7,
+   "idea": "Add two finer-grained, whole-document local-damage tests to the existing gate, so documents with short damaged spans (an inserted spam or boilerplate sentence, a locally shuffled paragraph, repeated blocks) are dropped. Everything else stays unchanged: h, both classifier passes, the five current tests, dedup after the tests, quality q, the build to T tokens and the seeded shuffle.\n\n1. Fine-window word-order score h_fine. Reuse the per-document bigram hit flags already computed for h_min. Slide a window of 100 bigrams with stride 50 using a cumulative sum; if the document has fewer than 100 bigrams, use the whole document as one window. h_fine is the minimum hit fraction over the windows. Calibrate leave-one-out on target_sample (a bigram counts only if df >= 2) and require h_fine > 0.85 * the 2nd percentile of target h_fine.\n\n2. Fine-window token coverage cov_fine. Do the same over the case-sensitive whitespace-token flags (token in the target token set), with a window of 100 tokens and stride 50. Calibrate leave-one-out (df_tok >= 2) and require cov_fine > 0.85 * the 2nd percentile of target cov_fine.\n\n3. Internal repetition rep. Split the document into non-empty lines of at least 40 characters. rep is the fraction of those lines whose stripped text already appeared earlier in the same document. Require rep <= max(0.02, 2 * the 99th percentile of target rep).\n\n4. Apply the three tests to candidates after the existing five and before dedup. Keep q = p2 + h_min + cov and the MIN_SURVIVORS fallback as they are.",
+   "outcome": "dev 1.8012 against 1.8012 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Add three cheap whole-document tests to the existing gate, calibrated on target_sample, to catch damage the current one-sided tests cannot see. Everything else stays unchanged: h, both classifier passes, the five current tests, q, the build to T tokens, the fallback and the seeded shuffle.\n\n1. Lower bound on case. Besides up < up_thr, require up > 0.7 * the 1st percentile of target up. This drops lowercased copies, which the current upper-only test passes.\n\n2. GPT-2 tokens per character (tpc). Count tokens with tiktoken for every document that passes the five current tests, before dedup, and reuse those counts for the build step. Set tpc = n_tokens / len(text). Compute tpc for each target document and require 0.93 * the 1st percentile of target tpc <= tpc <= 1.07 * the 99th percentile of target tpc. Text with typos, character swaps, missing spaces, wrong case or detokenised punctuation splits into more tokens per character. Repetitive or boilerplate text splits into fewer.\n\n3. Digit fraction. dig = ASCII digits / all characters. Require dig <= max(0.02, 1.5 * the 99th percentile of target dig). This drops table and number dumps.\n\nApply the three tests before dedup, so a damaged copy cannot shadow its clean twin. Keep the MIN_SURVIVORS fallback as it is.",
+   "outcome": "dev 1.8066 against 1.8012 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Raise recall again by removing the classifier and head-score gates from the final candidate step, so the five whole-document tests alone decide who survives. Everything else stays unchanged: h, both classifier passes, the self-training sets, the five tests and their thresholds, dedup after the tests, q = p2 + h_min + cov, the build to T tokens, the fallback and the seeded shuffle.\n\n1. Candidates: every document with len >= MIN_CHARS. Drop the conditions `h > h_thr` and `p2 >= P_CAND` in step 5. p2 is still computed and still used in q, so low-p2 documents rank last if the survivors exceed T and are copied last if they fall short.\n\n2. Run the five tests on all candidates in the current cheap-first order with early exit (up, odd, punct, cov, then h_min) to stay within the time limit. Compute `d.split()` once per document. Compute the lowercase split for h_min only for documents that pass the first four tests.\n\n3. Dedup tie-break: among survivors sharing a dedup key, keep the one with the most characters rather than the first by index, so a truncated copy cannot shadow its full twin. Implement by sorting the passed indices by (-len(docs[i]), i) before calling _dedup.\n\n4. Print or log the number of survivors, their total tokens as a fraction of T, and how many survivors have p2 < 0.1, so the next step can be chosen from data.",
+   "outcome": "dev 1.7982 against 1.8012 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Combine the recall change from experiment 9 (dev 1.7982, the lowest so far) with a quality-ordered curriculum, so the last training steps see only the most target-like text. Keep h, both classifier passes, the self-training sets, the five tests and their thresholds, q = p2 + h_min + cov, the fallback and the build to T tokens unchanged.\n\n1. Candidates: every document with len >= MIN_CHARS. Drop the `h > h_thr and p2 >= P_CAND` condition in step 5. Run the five tests cheap-first with early exit (up, odd, punct, cov, then h_min), computing `d.split()` once and the lowercase split only for documents that pass the first four.\n\n2. Dedup tie-break: sort the passed indices by (-len(docs[i]), i) before calling _dedup, so the longest copy is kept.\n\n3. Build the multiset of output documents to about T tokens exactly as now: top-q up to T if the survivors exceed T, otherwise every survivor once plus extra copies in descending q.\n\n4. Replace the single global shuffle with a two-block order:\n   - Block A (read first): the lowest-q output documents, taken in ascending q until they make up 35% of the output tokens. This must include every survivor with p2 < 0.5 that fits. Shuffle within the block using CURATE_SEED.\n   - Block B (read last): all remaining output documents, including the extra copies, shuffled with CURATE_SEED.\n   - If a document has two copies, put one in each block where possible, so repeats are far apart.\n   - Return A + B.\n\n5. Log the number of survivors, their tokens as a fraction of T, and the number with p2 < 0.1.",
+   "outcome": "dev 1.8077 against 1.8012 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Re-apply the recall change from experiment 9 (dev 1.7982, the lowest so far) and add content-based dedup plus epoch-structured repetition. Keep h, both classifier passes, the self-training sets, the five tests and their thresholds, q = p2 + h_min + cov and the fallback unchanged.\n\n1. Candidates: every document with len >= MIN_CHARS. Drop the `h > h_thr and p2 >= P_CAND` condition in step 5. Run the five tests cheap-first with early exit (up, odd, punct, cov, then h_min). Compute `d.split()` once per document, and the lowercase split only for documents that pass the first four tests.\n\n2. Content-based dedup, replacing the prefix-only dedup for survivors:\n   - Sort the passed documents by (-len(docs[i]), i), so the longest copy is seen first.\n   - For each document, take its lowercase whitespace words and form 8-word shingles starting at every 8th word (non-overlapping). Hash each shingle.\n   - Drop the document if it has at least 5 shingles and more than 50% of them are already in the global seen-shingle set built from kept documents. Otherwise keep it and add its shingles to the set.\n   - Also keep the existing exact-hash and 300-character prefix-key checks.\n   - This removes duplicates and truncated or partial copies whose heads differ, so they do not take token budget or count as silent extra repeats.\n\n3. Build to about T tokens:\n   - If the survivors exceed T tokens, keep the highest-q documents up to T and shuffle once with CURATE_SEED.\n   - If they fall short, output whole epochs. Epoch 1 is every survivor in seeded-shuffled order. Epoch 2 is every survivor in a different seeded shuffle, and so on.\n   - The last, partial epoch contains only the highest-q survivors needed to reach T, shuffled.\n   - Concatenate the epochs. Copies of a document are then always about one epoch apart instead of possibly adjacent.\n\n4. Log the number of survivors before and after the shingle dedup, the survivor tokens as a fraction of T, and the number with p2 < 0.1.",
+   "outcome": "dev 1.8061 against 1.8012 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Add one pool-vocabulary \"rare token\" test to the existing gate to catch lightly typo-damaged WikiText articles (e.g. \"Sate Parks\", \"Jededah\") that the 200-document target vocabulary is too small to detect. Everything else stays unchanged: h, both classifier passes, candidates (h > h_thr, p2 >= 0.1), the five tests and thresholds, the fallback, the build to T tokens and the seeded shuffle.\n\n1. After the five tests and before dedup, take the passed documents. Collapse exact duplicates by hash(text), so identical copies cannot validate each other's typos.\n2. Build pool_df: for each case-sensitive whitespace token, the number of distinct passed documents containing it (use set(d.split()) per document).\n3. For each passed document compute rare = fraction of its whitespace tokens with pool_df <= 1, i.e. tokens found in no other passed document. Corrupted words are almost always unique; real rare words are few.\n4. Calibrate on target_sample, which is not in the pool: rare_t = fraction of a target document's tokens with pool_df == 0. This is the same quantity (\"in no other document\"). Set rare_thr = max(0.01, 1.5 * the 95th percentile of rare_t).\n5. Drop passed documents with rare > rare_thr. Then run the existing dedup, so a damaged copy cannot shadow its clean twin.\n6. Change quality to q = p2 + h_min + cov - 5 * rare, so the cleanest documents are kept first if survivors exceed T and copied first if they fall short.\n7. If fewer than MIN_SURVIVORS documents remain after the new test, skip the test and use the five-test survivors.\n8. Log the number dropped by the new test and the survivor tokens as a fraction of T.",
+   "outcome": "dev 1.8092 against 1.8012 for the best at the time, rejected"
+  }
+ ],
+ "usd": 7.145643199999999,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.26018759999999996,
+   "dev": 1.8829742564826126,
+   "inc": 1.9401819516914989,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 7.873340931583574,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.33100359999999995,
+   "dev": 1.8186817015935273,
+   "inc": 1.8829742564826126,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 16.721752009079495,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.4312035999999999,
+   "dev": 1.8132454277760106,
+   "inc": 1.8186817015935273,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 16.721752009079495,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5361076000000002,
+   "dev": 1.8138773626566929,
+   "inc": 1.8186817015935273,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 16.721752009079495,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5917876,
+   "dev": 1.8104536268291918,
+   "inc": 1.8186817015935273,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 16.721752009079495,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.6470676000000002,
+   "dev": 1.8011874343523255,
+   "inc": 1.8186817015935273,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 19.129440866938253,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7146916000000001,
+   "dev": 1.8012457239582134,
+   "inc": 1.8011874343523255,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 19.129440866938253,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6857715999999994,
+   "dev": 1.8065724879290284,
+   "inc": 1.8011874343523255,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 19.129440866938253,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7162835999999997,
+   "dev": 1.7981791870027903,
+   "inc": 1.8011874343523255,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 19.129440866938253,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7468595999999996,
+   "dev": 1.8077378960125374,
+   "inc": 1.8011874343523255,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 19.129440866938253,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7311316000000003,
+   "dev": 1.8061475318313178,
+   "inc": 1.8011874343523255,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 19.129440866938253,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7535476000000001,
+   "dev": 1.8092176452689233,
+   "inc": 1.8011874343523255,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9401819516914989,
+ "inc_slot": 6
+}

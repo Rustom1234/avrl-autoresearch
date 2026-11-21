@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/DH_04/cand/s04_0.py",
+ "inc_scores": {
+  "11": 1.8289908408099138
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace random order with a target-similarity filter. (1) Fit a TfidfVectorizer on character n-grams (analyzer='char_wb', ngram_range=(1,3), sublinear_tf=True, max_features ~50k, each doc truncated to its first 3000 chars for speed) over target_sample + pool docs. Train a LogisticRegression (C=1, class_weight='balanced') with the 200 target_sample docs as positives and a seeded random sample of 3000 pool docs as negatives; score every pool doc with decision_function. (2) Drop junk before ranking: exact duplicates (hash of whitespace-normalised text, keep first), docs under 200 chars, docs whose fraction of alphabetic+space characters is below 0.7, and docs with zlib compression ratio (compressed/raw bytes) below 0.2 (repetitive spam templates like 'Looking for X? Click here to order'). (3) Sort the surviving docs by score descending, count tokens with tiktoken gpt2 (encode_ordinary_batch), and take the top-scoring docs until the cumulative total reaches about 1.0 T; if the docs whose score exceeds the 5th-percentile score of target_sample (scored by the same model) amount to less than T tokens, still fill up to T with the next best-scoring docs rather than cycling. (4) Shuffle the selected indices with random.Random(CURATE_SEED) and return them.",
+   "outcome": "dev 1.9371 against 1.9629 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Stop padding the budget with off-domain filler when the in-domain set is small; repeat in-domain docs instead. (1) Keep the current junk/dedup filters and classifier, but get an honest in-domain threshold: compute 5-fold cross-validated decision scores for the 200 target_sample docs (each fold trained on the other targets plus the same 3000 seeded negatives) and set thr = the 5th percentile of those held-out target scores. (2) Let D = surviving pool docs with score >= thr; count their gpt2 tokens, tok(D). (3) If tok(D) >= T, behave as now (top-scoring docs up to T, shuffled). (4) Otherwise build the list as k = min(3, ceil(T / tok(D))) copies of D, each copy shuffled independently with a seeded RNG and concatenated, truncated at about T tokens. Only if 3 * tok(D) < T, add the next-best-scoring surviving docs below thr to cover the remaining tokens, and shuffle that filler uniformly into the whole list with the seeded RNG. Return the list.",
+   "outcome": "dev 1.9309 against 1.9371 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 3,
+   "idea": "Add a damage filter and near-duplicate removal for in-domain docs that carry character-level corruption (e.g. 'Brazilian reams', 'jzz', 'Augst' in the pool sample), which the char n-gram classifier still scores as in-domain. Apply both before thresholding and repetition; leave the rest of the pipeline unchanged.\n\n(1) Build a reference vocabulary. Tokenise every surviving pool doc and every target_sample doc with the regex [A-Za-z]+, lowercased, using the first 20000 chars. Compute the pool document frequency of each word. A word is 'known' if it occurs in target_sample or has pool document frequency >= 5.\n\n(2) For each doc compute oov = (alphabetic word tokens of length >= 3 that are not known) / (alphabetic word tokens of length >= 3). Compute the same rate for the 200 target_sample docs, using the pool-document-frequency criterion only for those, so a target doc's own words do not count as known. Set oov_thr = max(95th percentile of target oov rates * 1.5, 0.02). Drop pool docs with oov > oov_thr. Also drop docs containing mojibake markers: more than 3 occurrences of '\u00e2\u20ac' or '\u00c3' or '\u00c2' per 10000 chars.\n\n(3) Remove near-duplicates. Group surviving docs by a key made of the normalised first line (lowercased, alphabetic characters only) and also by a set of 8 hashed word 5-gram shingles taken from the min-hash of the first 2000 chars. Within any group of docs that share the title key or at least 4 of the 8 min-hash values, keep only the doc with the lowest oov rate, breaking ties by longer length.\n\n(4) Continue as now: CV threshold, D = docs with score >= thr, up to 3 shuffled copies, filler only if 3 * tok(D) < T.",
+   "outcome": "dev 1.9460 against 1.9309 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Add a word-order damage filter, applied in _survivors before scoring and thresholding; leave everything else unchanged (no OOV filter, no near-duplicate removal). The pool contains wiki-style articles with words shuffled inside sentences (e.g. 'Simpsons fourteenth of fifth \" \" episode ...') and words with scrambled letters, which the char n-gram classifier still scores as in-domain.\n\n(1) Tokenise each doc by lowercasing and whitespace-splitting its first 20000 chars. Let V be the 3000 most frequent tokens in target_sample, punctuation tokens included.\n\n(2) Let B be the set of adjacent token pairs (a, b), both in V, that occur in target_sample. For a doc, hit = (adjacent pairs with both tokens in V and the pair in B) / (adjacent pairs with both tokens in V). If a doc has fewer than 30 such pairs, set hit = 0 when under 15% of its tokens are in V (letter-scrambled text), otherwise leave the doc unfiltered.\n\n(3) Calibrate honestly with 5-fold CV over the 200 target docs: build B from 4 folds (V stays fixed) and compute hit on the held-out fold. Set hit_thr = 0.85 * (2nd percentile of held-out target hit rates).\n\n(4) Drop every pool doc with hit < hit_thr. Then proceed exactly as now: char-TF-IDF logistic-regression score, CV 5th-percentile threshold, D = docs with score >= thr, up to 3 shuffled copies, filler only if 3 * tok(D) < T. Draw the 3000 classifier negatives from the whole pool as before.",
+   "outcome": "dev 1.8290 against 1.9309 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Add a second, stricter cleanliness gate that applies only to in-domain candidates (docs with classifier score >= thr), to catch partially damaged wiki-style docs that pass the current lenient word-order filter. Leave everything else unchanged, including the existing _survivors filter, the classifier, thr, the up-to-3 shuffled copies and the filler logic.\n\n(1) In _order_model, during the existing 5-fold CV over target docs, also record for each held-out target doc its in-vocab share = (tokens in V) / (tokens). For this, rebuild V per fold from the 4 training folds (top 3000 tokens), so a target doc's own words do not count. Keep the existing held-out bigram hit rates.\n\n(2) Compute two strict thresholds: inv_thr = 0.9 * (5th percentile of held-out target in-vocab shares) and strict_hit_thr = 5th percentile of held-out target hit rates, with no 0.85 margin.\n\n(3) For every pool doc, store its hit rate and its in-vocab share, computed with the full-target V and table on the first 20000 chars as now.\n\n(4) In select, after computing scores and thr, define D = survivors with score >= thr AND in-vocab share >= inv_thr AND (hit is None or hit >= strict_hit_thr). Docs with score >= thr that fail the strict gate are discarded entirely: they go neither into D nor into the filler. Docs with score < thr stay eligible as filler exactly as now.\n\n(5) Have the function expose (for example in a module-level dict) how many docs and tokens the strict gate removed and tok(D)/T.",
+   "outcome": "dev 1.8286 against 1.8290 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Make the training stream purely in-domain: remove the MAX_COPIES=3 cap and the below-threshold filler (Case 3). Keep _survivors, the classifier, the CV 5th-percentile thr and Case 1 (tok(D) >= T: top-scoring docs up to about T, shuffled) exactly as now. When 0 < tok(D) < T, build the list as k = ceil(T / tok(D)) copies of D with no upper limit on k, each copy shuffled independently with the seeded RNG, concatenated and truncated at about T tokens. No doc with score < thr is ever emitted. Safety fallback only: if tok(D) < 0.05 * T, lower thr to the score that gives the top-scoring survivors totalling 0.05 * T tokens and repeat that set instead. Also record in a module-level dict (e.g. STATS) the values tok(D)/T, the number of docs in D, k, and the number of filler tokens the old logic would have added, so the next experiment knows which regime the pool is in.",
+   "outcome": "dev 1.8304 against 1.8290 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Add one round of self-training to the classifier so that clean in-domain pool docs stop being used as negatives and more distinct in-domain docs clear the threshold. Leave _survivors, the junk and word-order filters, and the Case 1/2/3 list building unchanged.\n\n(1) Stage 1 is the current model: TF-IDF matrix, 3000 seeded negatives from the whole pool, scores s1, and the CV 5th-percentile threshold thr1.\n\n(2) Build the stage-2 training set, reusing the same TF-IDF matrix (no re-vectorising):\n- Positives: the 200 target docs, plus pseudo-positives = surviving pool docs with s1 >= thr1. If there are more than 3000, take a seeded random sample of 3000.\n- Negatives: a seeded sample of 3000 pool docs drawn only from docs with s1 < thr1 that are not pseudo-positives. Docs with s1 >= thr1 that failed the survivor filters (damaged in-domain docs) go in neither class.\n- Fit LogisticRegression(C=1, class_weight='balanced', max_iter=1000) and compute s2 for every pool doc.\n\n(3) Stage-2 threshold thr2: 5-fold CV over the 200 target docs. Each fold trains on the other targets plus all pseudo-positives plus the stage-2 negatives and scores the held-out targets. thr2 = 5th percentile of those held-out scores.\n\n(4) Use s2 and thr2 in place of scores and thr in select: D = survivors with s2 >= thr2, ranked by s2. If no pseudo-positives exist, fall back to s1 and thr1.\n\n(5) Record in a module-level STATS dict: tok(D)/T and the number of docs in D under stage 1 and under stage 2, the number of pseudo-positives, and which case (1, 2 or 3) was used.",
+   "outcome": "dev 1.8249 against 1.8290 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Turn the stream into a two-phase curriculum when in-domain text is scarce: near-domain clean filler first, pure in-domain afterwards. Leave _survivors, the classifier, thr and Case 1 (tok(D) >= T) exactly as now. Change only the list building when 0 < tok(D) < T.\n\n(1) Filler budget F = max(min(0.25*T, T - tok(D)), T - 3*tok(D), 0). The first term replaces part of the repeated copy with fresh text but guarantees every D doc still fits at least once. The second term keeps the existing cap of 3 copies.\n\n(2) Filler docs = the best-scoring surviving docs with score < thr (already past the dedup, junk and word-order filters), taken in descending score order until they total about F tokens. Shuffle them with the seeded RNG and put them at the START of the list as one contiguous block, not mixed uniformly.\n\n(3) After the filler block, emit in-domain docs totalling about T - F tokens, as independently shuffled copies of D. Arrange them so the LAST segment of the stream is one complete shuffled copy of D, and any partial copy comes right after the filler. That is: partial copy (a seeded random subset of D covering the leftover tokens) -> full copies -> final full copy.\n\n(4) Return filler + in-domain part. If no below-thr survivors exist, fall back to the current behaviour.",
+   "outcome": "dev 1.9146 against 1.8290 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Add a calibrated rare-word (typo) filter for lightly character-corrupted docs (e.g. 'Augst', 'jzz', 'reams'), which the word-order filter and the char n-gram classifier let through. No near-duplicate removal, no title grouping. Everything else stays unchanged: dedup, junk and word-order filters, classifier, CV thr, up to 3 shuffled copies, filler logic.\n\n(1) After the existing _survivors filters, tokenise the first 20000 chars of every surviving pool doc and every target doc with the regex [A-Za-z]+, lowercased, keeping tokens of length >= 3. Compute pool_df[w] = number of surviving pool docs containing w, and target_df[w] = number of target docs containing w.\n\n(2) For a pool doc, a word type is 'unknown' if pool_df[w] <= 2 and target_df[w] == 0. Define rare = (number of distinct unknown word types in the doc) / (number of tokens of length >= 3 in the doc). Leave docs with fewer than 50 such tokens unfiltered.\n\n(3) Calibrate on the 200 target docs, leave-one-out: for a target doc, a word type is unknown if pool_df[w] <= 2 and target_df[w] <= 1, so the doc's own words do not count as known. Set rare_thr = max(1.5 * 98th percentile of target rare rates, 0.01).\n\n(4) Drop surviving pool docs with rare > rare_thr before ranking and thresholding. These docs go neither into D nor into the filler. Keep drawing the classifier negatives from the whole pool.\n\n(5) Record in a module-level STATS dict: rare_thr, the number of docs and tokens removed by this filter, how many of the removed docs had score >= thr, tok(D)/T before and after, and which case (1, 2 or 3) was used.",
+   "outcome": "dev 1.8337 against 1.8290 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Add a calibrated surface-statistics gate for damage types that the current filters cannot see. Both the word-order filter and the TF-IDF classifier lowercase the text, so in-domain docs with damaged casing pass untouched; damaged spacing, punctuation and repetition are also only weakly covered. Leave everything else unchanged: dedup, junk and word-order filters, classifier, CV thr, up to 3 shuffled copies, filler logic.\n\n(1) For each doc, compute these statistics on the first 20000 chars, case-sensitively:\n- a. uppercase letters / all letters\n- b. share of whitespace-split tokens with length >= 2 that are fully uppercase\n- c. share of alphabetic tokens that start with an uppercase letter\n- d. whitespace chars / all chars\n- e. mean length of whitespace-split tokens\n- f. digit chars / all chars\n- g. punctuation (non-alphanumeric, non-space) chars / all chars\n- h. non-ASCII chars / all chars\n- i. zlib compressed/raw byte ratio\n- j. share of tokens that equal the previous token\n\n(2) Compute the same 10 statistics for the 200 target_sample docs. For each statistic, set lo = p1 - 0.5*(p50 - p1) and hi = p99 + 0.5*(p99 - p50), where p1, p50 and p99 are the target percentiles. This band is deliberately wider than the target range.\n\n(3) In _survivors, after the existing filters, drop any pool doc of at least 500 chars for which any statistic falls outside [lo, hi]. Dropped docs go neither into D nor into the filler. Classifier negatives are still drawn from the whole pool.\n\n(4) Record in a module-level STATS dict: per-statistic removal counts, total docs and tokens removed, how many removed docs had score >= thr, tok(D)/T before and after, and which case (1, 2 or 3) was used.",
+   "outcome": "dev 1.8294 against 1.8290 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Raise recall of clean in-domain docs, so that D holds more distinct text and needs fewer repeated copies. Leave _survivors (dedup, junk and word-order filters) and the Case 1/2/3 list building unchanged. Change only how D is defined.\n\n(1) Stage 1 as now: TF-IDF matrix, 3000 seeded negatives from the whole pool, scores s1, 5-fold CV held-out target scores cv1, thr1 = 5th percentile of cv1. Also compute thr_lo = min(cv1), the lowest held-out target score.\n\n(2) Calibrated header rule. Test each target_sample doc against the regex ^= [^=\\n]+ =\\s*\\n (a first line of the form '= Title ='). If at least 90% of the target docs match, the rule is active. Then header(d) is True for a pool doc whose first line matches the same regex. If under 90% match, the rule is off and header(d) is False for all docs.\n\n(3) One round of self-training on the same TF-IDF matrix, as in experiment 7 (dev 1.8249):\n- Positives: the 200 targets plus pseudo-positives = survivors with s1 >= thr1, or with header(d) and s1 >= thr_lo. Seeded sample of at most 3000.\n- Negatives: 3000 seeded pool docs with s1 < thr1 and header(d) False.\n- Docs with s1 >= thr1 or header(d) True that failed _survivors go in neither class.\n- Fit LogisticRegression(C=1, class_weight='balanced', max_iter=1000) to get s2.\n- thr2 = 5th percentile of 5-fold CV held-out target scores. Each fold trains on the other targets plus all pseudo-positives plus the stage-2 negatives.\n- If there are no pseudo-positives, skip stage 2.\n\n(4) D = survivors with (s1 >= thr1) OR (s2 >= thr2) OR (header(d) and s1 >= thr_lo). Rank D by max(s1 - thr1, s2 - thr2), descending; header-only docs come after the others, ordered by s1. Docs outside D stay eligible as filler, ranked by s1. Then build the list exactly as now: Case 1 if tok(D) >= T, else up to 3 shuffled copies, filler only if 3 * tok(D) < T.\n\n(5) Record in a module-level STATS dict: whether the header rule is active, docs and tokens in D under stage 1 only, added by stage 2, and added by the header rule, final tok(D)/T, and the case used.",
+   "outcome": "dev 1.8281 against 1.8290 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Add a whole-document, window-level consistency gate for in-domain candidates, to catch docs that are only locally damaged or that drift off-domain after their opening. Today the word-order filter averages one hit rate over the first 20000 chars and the classifier sees only the first 3000 chars, so a long doc with a shuffled section or a spliced off-domain tail passes. Leave everything else unchanged: dedup, junk and existing word-order filters, classifier, thr, up to 3 shuffled copies, filler logic.\n\n(1) Windowed word-order statistic. Tokenise the FULL doc (no 20000-char cap) by lowercasing and whitespace-splitting. Cut it into consecutive non-overlapping windows of 250 tokens; merge a final window shorter than 125 tokens into the previous one. For each window compute the existing bigram hit rate with the same V and table. Ignore windows with fewer than 30 in-vocab pairs. min_hit(doc) = the minimum over its valid windows, or None if there are none.\n\n(2) Calibrate on the same statistic. In the existing 5-fold CV over target docs (table built from the other 4 folds), compute min_hit for each held-out target doc. Set win_thr = 0.9 * (2nd percentile of held-out target min_hit values).\n\n(3) Windowed classifier statistic, computed only for survivors with score >= thr. Using the already fitted TfidfVectorizer and final LogisticRegression, score up to 3 extra 3000-char slices of each such doc: the middle slice, the last slice, and one slice at a seeded random offset. Skip slices that overlap the first 3000 chars, which happens for docs under 6000 chars. min_score(doc) = the minimum over the head score and these slice scores. Calibrate the same way: for each target doc, in the existing CV folds, compute the held-out min over head + middle + last + random slice. Set slice_thr = 2nd percentile of those held-out target min scores.\n\n(4) In select, D = survivors with score >= thr AND (min_hit is None or min_hit >= win_thr) AND min_score >= slice_thr. Docs with score >= thr that fail either new test are discarded entirely, from both D and the filler. Docs with score < thr stay eligible as filler as now.\n\n(5) Record in a module-level STATS dict: win_thr, slice_thr, docs and tokens removed by each of the two tests, tok(D)/T before and after, and the case used.",
+   "outcome": "dev 1.8280 against 1.8290 for the best at the time, rejected"
+  }
+ ],
+ "usd": 8.1872272,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.22037959999999998,
+   "dev": 1.9371154442621303,
+   "inc": 1.9628921182238632,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.5475741758509343,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.35155559999999997,
+   "dev": 1.9308983169568117,
+   "inc": 1.9371154442621303,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.403220653323911,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6597716,
+   "dev": 1.9459905047317259,
+   "inc": 1.9308983169568117,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.403220653323911,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.5040436000000001,
+   "dev": 1.8289908408099138,
+   "inc": 1.9308983169568117,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 18.42847198100047,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7055395999999998,
+   "dev": 1.8286453856725506,
+   "inc": 1.8289908408099138,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 18.42847198100047,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6869555999999997,
+   "dev": 1.8303534962787542,
+   "inc": 1.8289908408099138,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 18.42847198100047,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7352756,
+   "dev": 1.8249405041444853,
+   "inc": 1.8289908408099138,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 18.42847198100047,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7288516,
+   "dev": 1.914554565631853,
+   "inc": 1.8289908408099138,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 18.42847198100047,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.8426995999999995,
+   "dev": 1.833651412566575,
+   "inc": 1.8289908408099138,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 18.42847198100047,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.9183476000000006,
+   "dev": 1.8293585534488392,
+   "inc": 1.8289908408099138,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 18.42847198100047,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7671076000000001,
+   "dev": 1.8280821633090572,
+   "inc": 1.8289908408099138,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 18.42847198100047,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.0666996000000006,
+   "dev": 1.827973846639833,
+   "inc": 1.8289908408099138,
+   "harmed": true,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9628921182238632,
+ "inc_slot": 4
+}

@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from rdkit import DataStructs
+try:
+    from rdkit.Avalon import pyAvalonTools
+    HAS_AVALON = True
+except Exception:
+    HAS_AVALON = False
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def avalon(smiles):
+    rows = []
+    for s in smiles:
+        fp = pyAvalonTools.GetAvalonFP(Chem.MolFromSmiles(s), nBits=1024)
+        arr = np.zeros((1024,), dtype=np.float64)
+        DataStructs.ConvertToNumpyArray(fp, arr)
+        rows.append(arr)
+    return np.array(rows, dtype=np.float64)
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    if HAS_AVALON:
+        A = avalon(train_smiles)
+        At = avalon(test_smiles)
+        K_train = (tanimoto(X, X) + tanimoto(A, A) + rbf(D, D, gamma)) / 3.0
+        K_test = (tanimoto(Xt, X) + tanimoto(At, A) + rbf(Dt, D, gamma)) / 3.0
+    else:
+        K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+        K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+>>>>>>> REPLACE
+-----

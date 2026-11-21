@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMRegressor
+=======
+from lightgbm import LGBMRegressor
+from sklearn.svm import SVR
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+>>>>>>> REPLACE
+-----

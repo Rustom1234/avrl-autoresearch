@@ -1,0 +1,224 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                           max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                           objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                           max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                           objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                           max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                           objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+Dos
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                           max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                           objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from xgboost import XGBRegressor
+import numpy as np
+
+# Settings
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Extract all RDKit 2D descriptors
+    # Note: We use a fixed set of descriptors to ensure consistent column ordering
+    desc_list = [
+        Descriptors.MolWt, Descriptors.MolLogP, Descriptors.NumHDonors, 
+        Descriptors.NumHAcceptors, Descriptors.TPSA, Descriptors.HeavyAtomCount, 
+        Descriptors.ImplicitNumberOfHydrogens, Descriptors.NumRotatableBonds, 
+        Descriptors.NumAtoms, Descriptors.fractionCSP3, Descriptors.HallArea, 
+        Descriptors.XLogP3, Descriptors.MaxPartialCharges
+    ]
+    
+    data = []
+    for m in mols:
+        if m is None: # Handle invalid smiles
+            data.append([0.0] * len(desc_list))
+            continue
+        row = []
+        for d in desc_list:
+            try:
+                val = d(m)
+                row.append(val if np.isfinite(val) else 0.0)
+            except:
+                row.append(0.0)
+        data.append(row)
+    
+    data = np.array(data, dtype=np.float32)
+    
+    # Remove constant features (zero variance)
+    mask = np.any(np.var(data, axis=0) > 1e-6)
+    return data[:, mask]
+
+# Shared descriptors for test set
+DESC_LIST = [
+    Descriptors.MolWt, Descriptors.MolLogP, Descriptors.NumHDonors, 
+    Descriptors.NumHAcceptors, Descriptors.TPSA, Descriptors.HeavyAtomCount, 
+    Descriptors.ImplicitNumberOfHydrogens, Descriptors.NumRotatableBonds, 
+    Descriptors.NumAtoms, Descriptors.fractionCSP3, Descriptors.HallArea, 
+    Descriptors.XLogP3, Descriptors.MaxPartialCharges
+]
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    # Pre-calculate descriptors for both sets to identify constant columns
+    train_mols = [Chem.MolFromSmiles(s) for s in train_smiles]
+    test_mols = [Chem.MolFromSmiles(s) for s in test_smiles]
+    
+    def get_raw_desc(mols):
+        data = []
+        for m in mols:
+            if m is None: data.append([0.0] * len(DESC_LIST))
+            else:
+                row = []
+                for d in DESC_LIST:
+                    try: val = d(m); row.append(val if np.isfinite(val) else 0.0)
+                    except: row.append(0.0)
+                data.append(row)
+        return np.array(data, dtype=np.float32)
+
+    train_data = get_raw_desc(train_mols)
+    test_data = get_raw_desc(test_mols)
+    
+    # Combine to find variance across all data
+    combined = np.vstack([train_data, test_data])
+    mask = np.any(np.var(combined, axis=0) > 1e-6)
+    
+    X_train = train_data[:, mask]
+    X_test = test_data[:, mask]
+    
+    model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                           max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                           objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    model.fit(X_train, np.asarray(train_y, dtype=np.float64))
+    return model.predict(X_test)
+>>>>>>> REPLACE
+-----

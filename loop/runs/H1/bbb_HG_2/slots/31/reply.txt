@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            
+            # Scaffold-invariant descriptors
+            atoms = mol.GetAtoms()
+            heavy_counts = np.array([sum(1 for a in atoms if a.GetSymbol() == sym) for sym in ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'P']], dtype=np.float32)
+            
+            aromatic_count = sum(1 for a in atoms if a.GetIsAromatic())
+            aliphatic_count = sum(1 for a in atoms if not a.GetIsAromatic())
+            
+            hbd = sum(1 for a in atoms if a.GetTotalNumHs() > 0 and (a.GetSymbol() == 'N' or a.GetSymbol() == 'O'))
+            hba = sum(1 for a in atoms if (a.GetSymbol() == 'N' or a.GetSymbol() == 'O') and (a.GetTotalNumHs() == 0 or (a.GetSymbol() == 'N' and a.GetTotalNumHs() > 0 and a.GetNeighborsCount() == 3)))
+            
+            # Specific functional groups
+            amines = sum(1 for match in mol.GetSubstructMatches('[NX3;H2,H1,H0;!$(NC=O);!$(N-a);!$(N-S(=O)=O)]') for _ in [1])
+            acids = sum(1 for match in mol.GetSubstructMatches('[C;H1,H2,H3;(=O)[O,OH])') for _ in [1])
+            quat_n = sum(1 for match in mol.GetSubstructMatches('[NX3;H0;!$(NC=O);!$(N-a);!$(N-S(=O)=O)]') for _ in [1])
+            
+            sp3_c = sum(1 for a in atoms if a.GetSymbol() == 'C' and a.GetHybridization() == rdkit.Chem.rdMolDescriptors.RDmolDescriptors.SP3) or 0
+            
+            desc = np.array([*heavy_counts, aromatic_count, aliphatic_count, hbd, hba, amines, acids, quat_n, sp3_c], dtype=np.float32)
+            
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32), desc]))
+    return np.array(feats, dtype=np.float32)
+>>>>>>> REPLACE
+-----

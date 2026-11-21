@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+    def optimize(z0):
+=======
+    def optimize(z0, mi=300):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                       method="SLSQP", options={"maxiter": 300, "ftol": 1e-12})
+=======
+                       method="SLSQP", options={"maxiter": mi, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+=======
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+        # remove-and-reinsert: move the smallest circles to the largest gaps
+        order = np.argsort(cur[2 * n:])
+        for k in order[:10]:
+            if time.time() - t0 > 170:
+                break
+            k = int(k)
+            c_cur = np.stack([cur[:n], cur[n:2 * n]], axis=1)
+            r_cur = cur[2 * n:]
+            gx = np.linspace(0.0, 1.0, 40)
+            G = np.array([[x, y] for x in gx for y in gx])
+            clear = np.minimum(np.minimum(G[:, 0], G[:, 1]), np.minimum(1 - G[:, 0], 1 - G[:, 1]))
+            for i in range(n):
+                if i == k:
+                    continue
+                dg = np.sqrt(np.sum((G - c_cur[i]) ** 2, axis=1)) - r_cur[i]
+                clear = np.minimum(clear, dg)
+            c_new = c_cur.copy()
+            c_new[k] = G[int(np.argmax(clear))]
+            zr = optimize(np.concatenate([c_new[:, 0], c_new[:, 1], lp_radii(c_new)]), 150)
+            v = np.sum(zr[2 * n:])
+            if v > cur_val:
+                cur, cur_val = zr, v
+>>>>>>> REPLACE
+-----

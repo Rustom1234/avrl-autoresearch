@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        # Quick polish step: if we found a good one, try to perturb and refine it
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            # Use best as a seed for a tiny extra refinement
+            c_poly = best[0] + rng.normal(0, 0.001, (n, 2))
+            r_poly = best[1]
+            c_poly = np.clip(c_poly, 0, 1)
+            r_poly = _repair(c_poly, r_poly)
+            if r_poly.sum() > best[1].sum():
+                best = (c_poly, r_poly)
+                
+    return best
+>>>>>>> REPLACE
+-----

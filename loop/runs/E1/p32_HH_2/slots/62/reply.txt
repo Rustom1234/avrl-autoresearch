@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, centers0, lam=0.0, radii0=None):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS) if radii0 is None else radii0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+=======
+    res = minimize(lambda v: -v[2 * n:].sum() - lam * (v[2 * n:] * ((v[:2 * n].reshape(n, 2) - 0.5) ** 2).sum(1)).sum(),
+                   x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for _, p in pool[:KEEP]:
+            c, r = _solve_once(n, p)
+=======
+        for _, p in pool[:KEEP]:
+            c, r = p.reshape(n, 2), None
+            for lam in (0.05, 0.025, 0.0):   # penalty-weight homotopy
+                c, r = _solve_once(n, c.ravel(), lam, r)
+>>>>>>> REPLACE
+-----

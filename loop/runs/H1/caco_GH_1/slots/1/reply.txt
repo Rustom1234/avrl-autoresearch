@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    rf = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                               n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    xgb = XGBRegressor(n_estimators=300, learning_rate=0.05, max_depth=6, subsample=0.8, colsample_bytree=0.5,
+                       n_jobs=8, random_state=seed)
+    xgb.fit(X_train, y)
+    return 0.5 * (rf.predict(X_test) + xgb.predict(X_test))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+def optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+=======
+def _grow(t0, rng):
+    global _N, _IU
+    pool = []
+    _N = 25
+    _IU = np.triu_indices(25, 1)
+    try:
+        while time.time() - t0 < 40:
+            try:
+                u = rng.random()
+                c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+                r = _lp_radii(c)
+                c2 = np.clip(_polish(c, r), 0, 1)
+                r2 = _lp_radii(c2)
+            except Exception:
+                continue
+            pool.append((r2.sum(), c2, r2))
+    finally:
+        _N = 26
+        _IU = np.triu_indices(26, 1)
+    pool.sort(key=lambda t: -t[0])
+    out = []
+    w = np.minimum(np.minimum(_GRID[:, 0], _GRID[:, 1]),
+                   np.minimum(1 - _GRID[:, 0], 1 - _GRID[:, 1]))
+    for s, c, r in pool[:5]:
+        try:
+            d = np.sqrt(((_GRID[:, None, :] - c[None]) ** 2).sum(2)) - r[None]
+            cl = np.minimum(d.min(1), w)
+            c26 = np.vstack([c, _GRID[cl.argmax()]])
+            r26 = _lp_radii(c26)
+            c3 = np.clip(_polish(c26, r26), 0, 1)
+            r3 = _lp_radii(c3)
+        except Exception:
+            continue
+        out.append((r3.sum(), c3, r3))
+    return out
+
+
+def optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    try:
+        for s_, c_, r_ in _grow(t0, np.random.default_rng(999)):
+            if s_ > best_s:
+                best_s, best = s_, (c_, r_)
+    except Exception:
+        pass
+    while time.time() - t0 < 150:
+>>>>>>> REPLACE
+-----

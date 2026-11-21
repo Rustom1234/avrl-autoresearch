@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def count_features(smiles):
+=======
+def physchem(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Crippen.MolLogP(m), rdMolDescriptors.CalcTPSA(m)])
+    return np.array(rows, dtype=np.float64)
+
+
+def count_features(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+=======
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    A_tr = np.column_stack([np.ones(len(train_smiles)), physchem(train_smiles)])
+    A_te = np.column_stack([np.ones(len(test_smiles)), physchem(test_smiles)])
+    beta = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+    base_tr, base_te = A_tr @ beta, A_te @ beta
+    r = y - base_tr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lgbm.fit(desc_features(train_smiles), y)
+    p_desc = lgbm.predict(desc_features(test_smiles))
+=======
+    lgbm.fit(desc_features(train_smiles), r)
+    p_desc = lgbm.predict(desc_features(test_smiles)) + base_te
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+=======
+    s2 = choose_sigma2(K_tr, r, train_smiles)
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+>>>>>>> REPLACE
+-----

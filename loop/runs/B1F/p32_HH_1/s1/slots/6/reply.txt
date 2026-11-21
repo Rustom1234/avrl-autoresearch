@@ -1,0 +1,73 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, init=None, init_r=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    rad = np.full(n, INIT_RADIUS) if init_r is None else init_r
+    x0 = np.concatenate([base.ravel(), rad])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+ELITES = 4
+
+
+def _sym(c, k):
+    """Apply one of the 8 symmetries of the unit square to the centres."""
+    x, y = c[:, 0], c[:, 1]
+    if k & 1:
+        x = 1 - x
+    if k & 2:
+        y = 1 - y
+    if k & 4:
+        x, y = y, x
+    return np.stack([x, y], 1)
+
+
+def _child(a, b, n, rng):
+    """Cut-and-splice crossover of two elites (centres, radii); returns starts with radii at 0.85x."""
+    cb = _sym(b[0], rng.integers(8))
+    axis, cut = rng.integers(2), rng.uniform(0.35, 0.65)
+    ka, kb = a[0][:, axis] < cut, cb[:, axis] >= cut
+    c = np.concatenate([a[0][ka], cb[kb]])
+    r = np.concatenate([a[1][ka], b[1][kb]])
+    if len(r) > n:
+        keep = np.argsort(-r)[:n]
+        c, r = c[keep], r[keep]
+    while len(r) < n:
+        cand = rng.uniform(0, 1, (200, 2))
+        clearance = np.sqrt(((cand[:, None] - c[None]) ** 2).sum(-1)).min(1)
+        c = np.vstack([c, cand[np.argmax(clearance)]])
+        r = np.append(r, 0.01)
+    return c, 0.85 * r
+
+
+def solve(n, seed, time_limit):
+    rng, t0, elites = np.random.default_rng(seed), time.process_time(), []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        late = time.process_time() - t0 > 0.4 * TIME_FRACTION * time_limit
+        if late and len(elites) >= 2 and rng.random() < 0.5:
+            i, j = rng.choice(len(elites), 2, replace=False)
+            c0, r0 = _child(elites[i], elites[j], n, rng)
+            c, r = _solve_once(n, rng, c0, r0)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        s = r.sum()
+        if all(abs(s - e[1].sum()) > 1e-7 for e in elites) and (len(elites) < ELITES or s > elites[-1][1].sum()):
+            elites = sorted(elites + [(c, r)], key=lambda e: -e[1].sum())[:ELITES]
+    return elites[0]
+>>>>>>> REPLACE
+-----

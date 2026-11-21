@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of gaming the measurement. There is no file or network access and no hardcoded answers. Test labels are never used. The test SMILES are used only for unsupervised features (Tanimoto similarity to training molecules, transform() of a QuantileTransformer fitted on train, descriptor scaling with train mean and sd), which is legitimate.",
+  "The inner GroupKFold used to choose alpha for KernelRidge uses only training data and scaffold groups. No leakage.",
+  "Unverified assumption: the code takes descriptor columns as X[:, :nd] and fingerprint columns as X[:, nd:]. The diff does not show the concatenation order in featurize; fp is computed before desc in the loop. If the order is actually [fp, desc], the kernel and kNN members get the wrong blocks. That would hurt performance but would not make the measured loss invalid. Please check.",
+  "Recomputed z: candidate mean (0.0873 + 0.0822) / 2 = 0.08475. Difference from the incumbent = 0.00945. SE = 0.0049 * sqrt(1/2 + 1/1) = 0.0060, so z \u2248 1.57. This matches the harness's 1.566; the small gap is from rounding.",
+  "Borderline evidence: the incumbent has only 1 run and z \u2248 1.57. One more incumbent or candidate replicate would make the decision firmer.",
+  "The diff bundles several changes: standardization/uncharging (which changes the features of every existing model), kNN, MLP, and KernelRidge with a scaffold-CV alpha search. The gains can't be attributed to any one part, and about 60 lines is a lot of code under the 'simpler is better' rule. An ablation is worth doing later.",
+  "Runtime risk: minmax_tanimoto loops over rows with 2048-dim count vectors (O(n^2 * 2048) per fit), plus the MLP and an inner CV across 15 fits. The job finished, but it is likely close to the 10-minute limit. Wall time is not reported.",
+  "standardize() returns None for unparseable SMILES, the same as before. Behaviour is unchanged."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 1.57
+ }
+}

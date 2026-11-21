@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _sca(c, r, iters=60, delta=0.05):
+    """Successive convex approximation: linearise each distance (a lower bound by convexity), solve an LP, keep improving steps."""
+    n = len(r)
+    I, J = np.triu_indices(n, 1)
+    m = len(I)
+    k = np.arange(m)
+    w = m + 4 * np.arange(n)
+    xi, yi, ri = 2 * np.arange(n), 2 * np.arange(n) + 1, 2 * n + np.arange(n)
+    best_c, best_r = c, _repair(c, r)
+    best = best_r.sum()
+    cost = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+    for _ in range(iters):
+        diff = best_c[I] - best_c[J]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        u = diff / d[:, None]
+        A = np.zeros((m + 4 * n, 3 * n))
+        b = np.zeros(m + 4 * n)
+        A[k, 2 * I] = -u[:, 0]
+        A[k, 2 * I + 1] = -u[:, 1]
+        A[k, 2 * J] = u[:, 0]
+        A[k, 2 * J + 1] = u[:, 1]
+        A[k, 2 * n + I] = 1
+        A[k, 2 * n + J] = 1
+        A[w, xi] = -1
+        A[w, ri] = 1
+        A[w + 1, yi] = -1
+        A[w + 1, ri] = 1
+        A[w + 2, xi] = 1
+        A[w + 2, ri] = 1
+        b[w + 2] = 1
+        A[w + 3, yi] = 1
+        A[w + 3, ri] = 1
+        b[w + 3] = 1
+        lo = np.concatenate([np.maximum(0, best_c.ravel() - delta), np.zeros(n)])
+        hi = np.concatenate([np.minimum(1, best_c.ravel() + delta), np.full(n, 0.5)])
+        res = linprog(cost, A_ub=A, b_ub=b, bounds=list(zip(lo, hi)), method="highs")
+        if res.status != 0:
+            break
+        cn = np.clip(res.x[:2 * n].reshape(n, 2), 0, 1)
+        rn = _repair(cn, res.x[2 * n:])
+        if rn.sum() > best:
+            best, best_c, best_r = rn.sum(), cn, rn
+            delta = min(2 * delta, 0.1)
+        else:
+            delta *= 0.5
+            if delta < 1e-7:
+                break
+    return best_c, best_r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+=======
+        r = _repair(c, r)
+        c, r = _sca(c, r)
+        if best is None or r.sum() > best[1].sum():
+>>>>>>> REPLACE
+-----

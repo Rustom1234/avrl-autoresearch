@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity check: I found no integrity problems. The diff only changes the attention forward pass. It leaves the val_bpb measurement, the data, the seed lines, the prepare.py import and the evaluation call untouched.",
+  "Correctness check: the change is causal. F.pad(q, (0,0,0,0,2,0)) adds two positions to the front of the time dimension (dim 1, assuming q is laid out as (B, T, H, D)). That makes qp[:,1:-1] equal to q[t-1] and qp[:,:-2] equal to q[t-2], so no future tokens leak in. The weights add up to 1.75, so dividing by 1.75 keeps the scale the same. The mixing happens before rotary embeddings are applied, so it isn't a bug, but it does mean neighbouring queries are blended without their position phases.",
+  "z = 0.020 can't be recomputed. There is one candidate run (1.0941) and one incumbent run (1.0943), so neither side has a variance estimate. The raw difference is 0.0002 in the candidate's favour, which is far smaller than normal run-to-run noise. The z the harness reports agrees with that, and so does its provisional reject.",
+  "Claims check: the diff makes no claims that conflict with the numbers. The one comment only describes what the code does.",
+  "Simplicity: this adds code for a gain that can't be told apart from zero. Under the simplicity rule it isn't worth keeping unless replicate runs show a real effect."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

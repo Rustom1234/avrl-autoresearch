@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    rng = np.random.RandomState(seed)
+    ug = np.unique(gtr)
+    hold = rng.choice(ug, size=max(1, int(0.15 * len(ug))), replace=False)
+    es = np.isin(gtr, hold)
+    probe = lgb.LGBMRegressor(objective="l1", n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE,
+                              colsample_bytree=0.3, n_jobs=8, random_state=seed, verbose=-1)
+    probe.fit(Xtr[~es], ytr[~es], eval_set=[(Xtr[es], ytr[es])], eval_metric="l1",
+              callbacks=[lgb.early_stopping(100, verbose=False)])
+    n_rounds = max(50, int(1.1 * (probe.best_iteration_ or N_ESTIMATORS)))
+=======
+    n_rounds = N_ESTIMATORS
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(X):
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed, g[tr])
+    meta = LinearRegression(positive=True).fit(oof, y)
+    return meta.predict(base_predict(X, y, Xte, seed, g)) + a + b * Lte
+=======
+    return np.mean(base_predict(X, y, Xte, seed, g), axis=1) + a + b * Lte
+>>>>>>> REPLACE
+-----

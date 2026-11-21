@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/RR_04/cand/s07_0.py",
+ "inc_scores": {
+  "11": 1.8687186943670608
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Use a simple heuristic to filter out obvious junk (e.g., documents containing 'Click here to order' or 'free shipping') and prioritize documents that share more linguistic structure with the target_sample by checking for common punctuation or length.",
+   "outcome": "dev 1.9625 against 1.9601 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Train a discriminative domain classifier and select only the top-scoring, deduplicated documents. Steps: (1) Build TF-IDF features (word 1-2 grams, sublinear_tf, min_df=2, max_features ~200k, lowercase=False so WikiText tokens like ' @-@ ', ' , ', ' . ', '= Title =' survive; use token_pattern r'\\S+'). (2) Positives = the 200 target_sample docs split into ~1000-char chunks; negatives = a seeded random sample of ~4000 pool docs (truncated to first 3000 chars). Fit LogisticRegression(C=10, class_weight='balanced'). (3) Score every pool doc (first 3000 chars); then do a second self-training round: refit with positives = target chunks + top 1500 scored pool docs, negatives = bottom 6000 scored pool docs, and rescore. (4) Remove exact/near duplicates: keep only the first doc per hash of the whitespace-normalised first 200 chars, and drop docs whose zlib compression ratio is < 0.2 (repetitive junk) or which have < 200 chars. (5) Rank remaining docs by score, count tokens with tiktoken gpt2 (encode_ordinary_batch), and take docs from the top down until the cumulative token count reaches 1.0*T, but stop early if the classifier probability falls below 0.5 (the trainer will then cycle the smaller clean set). (6) Shuffle the selected indices with the CURATE_SEED-seeded RNG and return them.",
+   "outcome": "dev 2.0002 against 1.9601 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Replace the classifier with conservative rule-based tiers, and always return at least 1.05*T tokens so nothing is cycled (experiment 2 may have lost by cycling a small set or by favouring damaged look-alike docs; neither cause was isolated).\n\n1. Features per doc.\n   - wiki = text starts with '= ' and the density of WikiText markers (' , ', ' . ', ' @-@ ', ' @,@ ', ' ( ') is at least 1 per 100 chars.\n   - rare-word rate = share of the doc's alphabetic lowercase tokens whose pool document frequency is <= 2 and which are not in the target_sample vocabulary. This catches typo and character damage such as 'jzz' or 'Augst'.\n   - stopword-bigram rate = share of adjacent word pairs that appear in the target_sample bigram set. This catches word-shuffled text.\n   - zlib compression ratio.\n   - non-ASCII and mojibake rate (count of '\u00c3', '\u00e2\u20ac', '\u00c2').\n\n2. Dedupe. Drop exact duplicates by hash of the whitespace-normalised full text. Drop near duplicates by hash of the first 300 chars.\n\n3. Tiers.\n   - Tier A: wiki docs with rare-word rate below the pool wiki median + 2 MAD, bigram rate above the wiki median - 2 MAD, and zlib ratio above 0.25.\n   - Tier B: the remaining wiki docs (damaged), sorted by rare-word rate ascending.\n   - Tier C: non-wiki docs with zlib ratio above 0.3, no mojibake, no spam or boilerplate patterns ('Click here', 'best price', ' | ' menus), sorted by bigram rate descending.\n\n4. Selection. Count tokens with tiktoken gpt2. Take all of A, then B, then C in that order until the cumulative count reaches 1.05*T. Never stop early.\n\n5. Order. Shuffle the selected indices with the CURATE_SEED-seeded RNG and return them.",
+   "outcome": "dev 2.0104 against 1.9601 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Damage-only filtering with absolute thresholds and no domain preference, to separate the effect of removing junk from the effect of selecting Wikipedia-like text (experiments 2 and 3 mixed the two and both lost).\n\nKeep a document only if it passes all of these checks:\n\n1. Letter-scramble check. Build V, the set of lowercased alphabetic words in target_sample. For each doc take its alphabetic tokens of length >= 4, lowercased, and compute the share that are in V. Drop the doc if the share is below 0.5 and it has at least 20 such tokens. This catches anagrammed text such as 'aemT uilgiBdn'.\n\n2. Word-shuffle check, on tokens from a whitespace split.\n   - (a) Among occurrences of 'the', compute the share whose previous token is one of of, in, to, on, and, at, for, by, from, with, as, that, was, is. Drop the doc if it has at least 10 'the' and the share is below 0.25.\n   - (b) Among tokens that are '.' or end in '.' and are not the last token, compute the share whose next token starts with a lowercase letter. Drop the doc if it has at least 8 such cases and the share is above 0.4.\n   - (c) Drop the doc if adjacent identical function-word pairs ('the the', 'of of', 'a the', 'the a', 'the of the the') make up more than 0.5% of its tokens.\n\n3. Spam and template check. Drop the doc if any of these holds:\n   - len(zlib.compress(text)) / len(text) is below 0.30;\n   - it matches, case-insensitively, any of 'click here to order', 'buy now', 'free shipping', 'discount code', 'coupon', 'for sale |', 'limited offer', 'best price';\n   - it has fewer than 200 characters.\n\n4. Dedupe. Keep the first doc per hash of the whitespace-normalised full text, and also per hash of the first 300 normalised characters.\n\nReturn all surviving indices in an order shuffled by the CURATE_SEED-seeded RNG. Apply no ranking, no wiki priority and no truncation; if the survivors hold fewer than T tokens, let the trainer cycle them.",
+   "outcome": "dev 1.8909 against 1.9601 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Keep every filter and the dedupe of the current best exactly as they are, and change only how the survivors fill the T-token budget.\n\n1. Count tokens for each survivor with tiktoken gpt2 (`encode_ordinary_batch`).\n2. Mark a survivor as wiki if its text starts with '= ' and it has at least 1 WikiText marker (' , ', ' . ', ' @-@ ', ' @,@ ', ' @.@ ') per 100 characters.\n3. Score each non-wiki survivor by the mean log-probability of its lowercased whitespace tokens under an add-one-smoothed unigram model built from target_sample. Use the first 2000 tokens of the doc; higher means closer to the target.\n4. Build the selection:\n   - Take all wiki survivors.\n   - If their tokens are below T, add non-wiki survivors in descending score order until the total reaches T, and drop the rest.\n   - If all survivors together are still below T, append a second copy of the wiki survivors (seeded-shuffled) to fill the gap up to T, so the trainer does not cycle the whole list.\n   - If the wiki survivors alone exceed T, take a seeded random subset of them up to T.\n5. Shuffle the final list with the CURATE_SEED-seeded RNG and return it.\n\nLog the survivor token total, the wiki token total and which branch was taken.",
+   "outcome": "FAILED to run (ges/tiktoken/core.py\", line 123, in encode if match := _special_token_regex(disallowed_special).search(text): ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TypeError: expected string or buffer)"
+  },
+  {
+   "slot": 6,
+   "idea": "Refine the current best (Experiment 4) by adding a 'High-Quality' priority: Score survivors by the ratio of common English words (from the target_sample vocabulary) to total tokens. Sort all survivors by this score descending, then select indices until the total token count reaches T. If the total count is still less than T, cycle the selected list (which the trainer already does automatically).",
+   "outcome": "dev 1.9103 against 1.8909 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Modify the selection process to prioritize documents that have a high 'WikiText' density (starting with '= ' and containing markers like ' , ', ' . ', ' @-@ ') while maintaining the existing filters (scramble, shuffle, spam, dedupe). Specifically, calculate a 'Wiki score' (number of markers / length) for survivors, sort survivors by this score descending, and select the top documents until the cumulative token count reaches T. If the total count is less than T, allow the trainer to cycle the list.",
+   "outcome": "dev 1.8687 against 1.8909 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 8,
+   "idea": "Refine the selection process by prioritizing survivors that have a high overlap with the target_sample vocabulary. Specifically, for each survivor, calculate a 'Vocabulary Similarity Score' as the ratio of tokens (from the first 500 tokens) that appear in the lowercased set of words from the target_sample. Sort survivors primarily by their 'Wiki score' (from Experiment 7) and secondarily by this 'Vocabulary Similarity Score' descending, then select until the cumulative token count reaches T.",
+   "outcome": "dev 1.8686 against 1.8687 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Modify the selection logic to prioritize 'Wiki-like' documents using a more robust score: instead of just count/length, calculate the 'Wiki-density' as (count of markers / length) and filter for documents where this density is above the median of all survivors. Then, sort survivors primarily by this density (descending) and secondarily by the 'Vocabulary Similarity Score' (ratio of first 500 tokens appearing in the target_sample vocabulary). Select until cumulative token count reaches T.",
+   "outcome": "dev 1.8692 against 1.8687 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Refine the 'Wiki score' from experiment 7 to be more robust by weighting specific WikiText markers (' , ', ' . ', ' @-@ ', ' @,@ ', ' @.@ ', ' ( ') higher, and calculate the similarity score by using a weighted unigram approach (higher weight for words that appear in the target sample but are less frequent in the general pool, estimated by a simple local frequency check). Sort survivors primarily by this weighted Wiki-density and secondarily by the weighted similarity score. Select until cumulative count reaches T.",
+   "outcome": "dev 1.9471 against 1.8687 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Refine the Wiki score by calculating a 'Weighted Wiki Density' that gives higher weight to the specific markers used in the target_sample (e.g., ' , ', ' . ', ' @-@ ') and then use a 'Vocabulary Overlap Score' (ratio of tokens in the first 300 chars that exist in the target_sample vocabulary) as a tie-breaker. Sort survivors primarily by Weighted Wiki Density (descending) and secondarily by Vocabulary Overlap Score (descending), then select the top documents until the total token count reaches T.",
+   "outcome": "dev 1.8859 against 1.8687 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Modify the selection logic to prioritize documents that are 'Short-but-Dense' and 'Wiki-like'. Instead of just the Wiki score (markers/length), use a score defined as (Wiki markers * 2 + Vocabulary Overlap * 1.5) / (log10(length)). Sort by this score descending and select until reaching T, allowing the trainer to cycle if needed.",
+   "outcome": "dev 1.8669 against 1.8687 for the best at the time, rejected"
+  }
+ ],
+ "usd": 1.5229404999999998,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.22283669999999997,
+   "dev": 1.9624709357765284,
+   "inc": 1.9600702074563388,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.24197159999999998,
+   "dev": 2.0002423308941597,
+   "inc": 1.9600702074563388,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.1270538,
+   "dev": 2.0104285672745936,
+   "inc": 1.9600702074563388,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.18752039999999992,
+   "dev": 1.8909073036629256,
+   "inc": 1.9600702074563388,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 9.518704072861707,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.14732605,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 1,
+   "n_accept": 1,
+   "gain_sd": 9.518704072861707,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.15982160000000012,
+   "dev": 1.9102582070565626,
+   "inc": 1.8909073036629256,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 9.518704072861707,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.002301449999999816,
+   "dev": 1.8687186943670608,
+   "inc": 1.8909073036629256,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 12.57246257766005,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0020757000000000136,
+   "dev": 1.868629080236853,
+   "inc": 1.8687186943670608,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 12.57246257766005,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.19072899999999993,
+   "dev": 1.8691755718100733,
+   "inc": 1.8687186943670608,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 12.57246257766005,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.2369485,
+   "dev": 1.9470717525371215,
+   "inc": 1.8687186943670608,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 12.57246257766005,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0021946500000000757,
+   "dev": 1.8859090104643736,
+   "inc": 1.8687186943670608,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 12.57246257766005,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0021610499999999977,
+   "dev": 1.8668821504968827,
+   "inc": 1.8687186943670608,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9600702074563388,
+ "inc_slot": 7
+}

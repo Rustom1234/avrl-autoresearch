@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+=======
+TIME_FRACTION = 0.85
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, start=None, maxiter=MAX_ITER, ftol=1e-6):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+=======
+    if start is not None:
+        x0 = start
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter, "ftol": ftol})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    raws = []  # (repaired sum, raw c, raw r)
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        rc, rr = c.copy(), r.copy()
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        raws.append((r.sum(), rc, rr))
+        raws.sort(key=lambda t: -t[0])
+        raws = raws[:3]
+    for _, rc, rr in raws:
+        if time.process_time() - t0 > 0.97 * time_limit:
+            break
+        c, r = _solve_once(n, rng, np.concatenate([rc.ravel(), rr]), 1000, 1e-12)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,150 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+SLP_ITER = 100
+SLP_DELTA = 0.05
+
+
+def _slp(c, r):
+    """Sequential LP with a trust region: linearise the constraints and maximise sum(r) over bounded steps."""
+    n = len(r)
+    I, J = np.triu_indices(n, 1)
+    m = len(I)
+    ar = np.arange(n)
+    k = np.arange(m)
+    delta = SLP_DELTA
+    r = _repair(c, r)
+    cur_sum = r.sum()
+    cost = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+    for _ in range(SLP_ITER):
+        if delta < 1e-7:
+            break
+        diff = c[I] - c[J]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        g = diff / d[:, None]
+        A = np.zeros((m + 4 * n, 3 * n))
+        b = np.empty(m + 4 * n)
+        A[k, 2 * I] = -g[:, 0]
+        A[k, 2 * I + 1] = -g[:, 1]
+        A[k, 2 * J] = g[:, 0]
+        A[k, 2 * J + 1] = g[:, 1]
+        A[k, 2 * n + I] = 1
+        A[k, 2 * n + J] = 1
+        b[:m] = d - r[I] - r[J]
+        walls = [(0, -1, c[:, 0] - r), (1, -1, c[:, 1] - r), (0, 1, 1 - c[:, 0] - r), (1, 1, 1 - c[:, 1] - r)]
+        for q, (col, sgn, rhs) in enumerate(walls):
+            rows = m + q * n + ar
+            A[rows, 2 * ar + col] = sgn
+            A[rows, 2 * n + ar] = 1
+            b[rows] = rhs
+        lo = np.concatenate([np.full(2 * n, -delta), np.maximum(-delta, -r)])
+        bounds = np.column_stack([lo, np.full(3 * n, delta)])
+        res = linprog(cost, A_ub=A, b_ub=b, bounds=bounds, method="highs")
+        if res.status != 0:
+            delta *= 0.5
+            continue
+        nc = np.clip(c + res.x[:2 * n].reshape(n, 2), 0, 1)
+        cand = _repair(nc, np.maximum(r + res.x[2 * n:], 0))
+        if cand.sum() > cur_sum + 1e-12:
+            c, r, cur_sum = nc, cand, cand.sum()
+            delta = min(1.5 * delta, 0.2)
+        else:
+            delta *= 0.5
+    return c, r
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    # Phase 1
+=======
+    # Phase 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Phase 2: release the radii and run the full free-radius SLSQP
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    # Phase 2: sequential LP with a trust region replaces the free-radius SLSQP
+    return _slp(x2[:2 * n].reshape(n, 2), x2[2 * n:])
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+SLP_ITER = 100
+SLP_DELTA = 0.05
+
+
+def _slp(c, r):
+    """Sequential LP with a trust region: linearise the constraints and maximise sum(r) over bounded steps."""
+    n = len(r)
+    I, J = np.triu_indices(n, 1)
+    m = len(I)
+    ar = np.arange(n)
+    k = np.arange(m)
+    delta = SLP_DELTA
+    r = _repair(c, r)
+    cur_sum = r.sum()
+    cost = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+    for _ in range(SLP_ITER):
+        if delta < 1e-7:
+            break
+        diff = c[I] - c[J]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        g = diff / d[:, None]
+        A = np.zeros((m + 4 * n, 3 * n))
+        b = np.empty(m + 4 * n)
+        A[k, 2 * I] = -g[:, 0]
+        A[k, 2 * I + 1] = -g[:, 1]
+        A[k, 2 * J] = g[:, 0]
+        A[k, 2 * J + 1] = g[:, 1]
+        A[k, 2 * n + I] = 1
+        A[k, 2 * n + J] = 1
+        b[:m] = d - r[I] - r[J]
+        walls = [(0, -1, c[:, 0] - r), (1, -1, c[:, 1] - r), (0, 1, 1 - c[:, 0] - r), (1, 1, 1 - c[:, 1] - r)]
+        for q, (col, sgn, rhs) in enumerate(walls):
+            rows = m + q * n + ar
+            A[rows, 2 * ar + col] = sgn
+            A[rows, 2 * n + ar] = 1
+            b[rows] = rhs
+        lo = np.concatenate([np.full(2 * n, -delta), np.maximum(-delta, -r)])
+        bounds = np.column_stack([lo, np.full(3 * n, delta)])
+        res = linprog(cost, A_ub=A, b_ub=b, bounds=bounds, method="highs")
+        if res.status != 0:
+            delta *= 0.5
+            continue
+        nc = np.clip(c + res.x[:2 * n].reshape(n, 2), 0, 1)
+        cand = _repair(nc, np.maximum(r + res.x[2 * n:], 0))
+        if cand.sum() > cur_sum + 1e-12:
+            c, r, cur_sum = nc, cand, cand.sum()
+            delta = min(1.5 * delta, 0.2)
+        else:
+            delta *= 0.5
+    return c, r
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Phase 2: release the radii and run the full free-radius SLSQP
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    # Phase 2: sequential LP with a trust region replaces the free-radius SLSQP
+    return _slp(x2[:2 * n].reshape(n, 2), x2[2 * n:])
+>>>>>>> REPLACE
+-----

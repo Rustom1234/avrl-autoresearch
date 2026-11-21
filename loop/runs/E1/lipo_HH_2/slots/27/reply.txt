@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def base_predict(Xtr, ytr, Xte, seed):
+=======
+def minmax_kernel(C, kmax=8):
+    # MinMax similarity sum(min)/sum(max) on count vectors (counts clipped at kmax).
+    # sum(min(a,b)) = sum_k [a>=k][b>=k], so it reduces to binary matmuls (fast BLAS).
+    C = np.minimum(C, kmax)
+    S = C.sum(1)
+    mn = np.zeros((len(C), len(C)), dtype=np.float32)
+    for k in range(1, kmax + 1):
+        B = (C >= k).astype(np.float32)
+        mn += B @ B.T
+    mx = S[:, None] + S[None, :] - mn
+    return mn / np.maximum(mx, 1e-9)
+
+
+def base_predict(Xtr, ytr, Xte, seed, Ktr, Kte):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS]))])
+=======
+    mm = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    mm.fit(Ktr, ytr)
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS])),
+                            mm.predict(Kte)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(X):
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed)
+    meta = LinearRegression(positive=True).fit(oof, y)
+    return meta.predict(base_predict(X, y, Xte, seed)) + a + b * Lte
+=======
+    c0 = N_BITS + len(SMARTS_PATS)
+    G = minmax_kernel(np.vstack([X[:, c0:c0 + 4096], Xte[:, c0:c0 + 4096]]))
+    n = len(y)
+    Gtr, Gte = G[:n, :n], G[n:, :n]
+    oof = np.zeros((n, 4))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(X):
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed, Gtr[np.ix_(tr, tr)], Gtr[np.ix_(va, tr)])
+    meta = LinearRegression(positive=True).fit(oof, y)
+    return meta.predict(base_predict(X, y, Xte, seed, Gtr, Gte)) + a + b * Lte
+>>>>>>> REPLACE
+-----

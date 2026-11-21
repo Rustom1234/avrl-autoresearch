@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+    iu = np.triu_indices(n, 1)
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    r0 = np.full(n, INIT_RADIUS)
+    if init is None:   # equal-radius pre-stage: shared radius R, maximised first
+        def eq_cons(v):
+            c, R = v[:2 * n].reshape(n, 2), v[2 * n]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * R
+            return np.concatenate([d, c[:, 0] - R, c[:, 1] - R, 1 - c[:, 0] - R, 1 - c[:, 1] - R])
+        pre = minimize(lambda v: -v[-1], np.concatenate([base.ravel(), [0.03]]), method="SLSQP",
+                       constraints={"type": "ineq", "fun": eq_cons}, options={"maxiter": 100})
+        base = np.clip(pre.x[:2 * n].reshape(n, 2), 0, 1)
+        r0 = np.full(n, max(pre.x[-1], 0))
+    x0 = np.concatenate([base.ravel(), r0])
+>>>>>>> REPLACE
+-----

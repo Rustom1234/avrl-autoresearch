@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+ENV_MIN_DF = 5
+_ENV_CACHE = {}
+
+
+def env_counts_one(smi):
+    # Unfolded (collision-free) Morgan environment ids -> counts. Radius 0..3 (radius 0 is not filtered out).
+    if smi not in _ENV_CACHE:
+        gen = rdFingerprintGenerator.GetMorganGenerator(radius=3)
+        _ENV_CACHE[smi] = gen.GetSparseCountFingerprint(Chem.MolFromSmiles(smi)).GetNonzeroElements()
+    return _ENV_CACHE[smi]
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+=======
+    env_tr = [env_counts_one(s) for s in train_smiles]
+    env_te = [env_counts_one(s) for s in test_smiles]
+    df = {}
+    for d in env_tr:
+        for k in d:
+            df[k] = df.get(k, 0) + 1
+    vocab = {k: i for i, k in enumerate(k for k, c in df.items() if c >= ENV_MIN_DF)}
+
+    def to_mat(envs):
+        M = np.zeros((len(envs), len(vocab)), dtype=np.float32)
+        for r, d in enumerate(envs):
+            for k, c in d.items():
+                j = vocab.get(k)
+                if j is not None:
+                    M[r, j] = c
+        return M
+
+    Xtr = np.hstack([to_mat(env_tr), featurize(train_smiles)[:, N_BITS:]])
+    Xte = np.hstack([to_mat(env_te), featurize(test_smiles)[:, N_BITS:]])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,302 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None or hops_since_improvement > 15:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            hops_since_improvement = 0
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+=======
+    # Try a greedy insertion strategy once to get a high-quality starting point
+    # We solve for n-1 circles first
+    c_prev, r_prev = _solve_once(n - 1, rng)
+    c_prev = np.clip(c_prev, 0, 1)
+    r_prev = _repair(c_prev, r_prev)
+    
+    # Find best place to insert the n-th circle
+    best_r_new = -1
+    best_pos_new = np.array([0.5, 0.5])
+    
+    # Sample a grid to find the largest hole
+    grid_res = 10
+    for gx in np.linspace(0, 1, grid_res):
+        for gy in np.linspace(0, 1, grid_res):
+            # Distance to walls
+            dist_wall = min(gx, 1-gx, gy, 1-gy)
+            # Distance to existing circles
+            dist_circles = np.sqrt((c_prev - np.array([gx, gy]))**2).sum(1)**0.5 - r_prev
+            dist_circles = np.maximum(dist_circles, 0)
+            
+            min_dist = min(dist_wall, np.min(dist_circles))
+            if min_dist > best_r_new:
+                best_r_new = min_dist
+                best_pos_new = np.array([gx, gy])
+    
+    # Construct warm start for n circles
+    c_warm = np.vstack([c_prev, best_pos_new])
+    r_warm = np.append(r_prev, best_r_new)
+    
+    # Refine the warm start
+    c_warm = np.clip(c_warm, 0, 1)
+    x0 = np.concatenate([c_warm.ravel(), r_warm])
+    c, r = _solve_once(n, rng, x0=x0)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    best = (c, r)
+
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if hops_since_improvement > 15:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            hops_since_improvement = 0
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+-----
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None or hops_since_improvement > 15:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            hops_since_improvement = 0
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+=======
+    # Greedy insertion: solve for n-1, find best hole, then refine n
+    c_prev, r_prev = _solve_once(n - 1, rng)
+    c_prev = np.clip(c_prev, 0, 1)
+    r_prev = _repair(c_prev, r_prev)
+    
+    best_r_new = -1.0
+    best_pos_new = np.array([0.5, 0.5])
+    grid_res = 12
+    for gx in np.linspace(0, 1, grid_res):
+        for gy in np.linspace(0, 1, grid_res):
+            dist_wall = min(gx, 1 - gx, gy, 1 - gy)
+            dist_circles = np.sqrt(((c_prev - np.array([gx, gy]))**2).sum(1)) - r_prev
+            min_dist = min(dist_wall, np.min(dist_circles))
+            if min_dist > best_r_new:
+                best_r_new = min_dist
+                best_pos_new = np.array([gx, gy])
+    
+    c_warm = np.vstack([c_prev, best_pos_new])
+    r_warm = np.append(r_prev, best_r_new)
+    
+    x0 = np.concatenate([c_warm.ravel(), r_warm])
+    c, r = _solve_once(n, rng, x0=x0)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    best = (c, r)
+    
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if hops_since_improvement > 15:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            hops_since_improvement = 0
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+-----
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None or hops_since_improvement > 15:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            hops_since_improvement = 0
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+=======
+    # Greedy insertion to find a high-quality starting point
+    c_prev, r_prev = _solve_once(n - 1, rng)
+    c_prev = np.clip(c_prev, 0, 1)
+    r_prev = _repair(c_prev, r_prev)
+    
+    best_r_new = -1.0
+    best_pos_new = np.array([0.5, 0.5])
+    grid_res = 10
+    for gx in np.linspace(0, 1, grid_res):
+        for gy in np.linspace(0, 1, grid_res):
+            dist_wall = min(gx, 1 - gx, gy, 1 - gy)
+            dist_circles = np.sqrt(((c_prev - np.array([gx, gy]))**2).sum(1)) - r_prev
+            min_dist = min(dist_wall, np.min(dist_circles))
+            if min_dist > best_r_new:
+                best_r_new = min_dist
+                best_pos_new = np.array([gx, gy])
+    
+    c_warm = np.vstack([c_prev, best_pos_new])
+    r_warm = np.append(r_prev, best_r_new)
+    
+    x0 = np.concatenate([c_warm.ravel(), r_warm])
+    c, r = _solve_once(n, rng, x0=x0)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    best = (c, r)
+    
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if hops_since_improvement > 15:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            hops_since_improvement = 0
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+-----

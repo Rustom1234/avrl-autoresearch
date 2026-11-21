@@ -1,0 +1,67 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+        if -res.fun < best_val - 0.02:
+            continue
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        d0 = np.sqrt(((c0[iu] - c0[ju]) ** 2).sum(1))
+        sel = np.where(d0 < 0.45)[0]
+        iu_s, ju_s = iu[sel], ju[sel]
+        ms = len(sel)
+        ars = np.arange(ms)
+
+        def cons_s(z, iu_s=iu_s, ju_s=ju_s):
+            x = z[:n]
+            y = z[n:2 * n]
+            r = z[2 * n:]
+            dx = x[iu_s] - x[ju_s]
+            dy = y[iu_s] - y[ju_s]
+            s = r[iu_s] + r[ju_s]
+            return np.concatenate([
+                dx * dx + dy * dy - s * s,
+                x - r, 1 - x - r, y - r, 1 - y - r])
+
+        def jac_s(z, iu_s=iu_s, ju_s=ju_s, ms=ms, ars=ars):
+            x = z[:n]
+            y = z[n:2 * n]
+            r = z[2 * n:]
+            dx = x[iu_s] - x[ju_s]
+            dy = y[iu_s] - y[ju_s]
+            s = r[iu_s] + r[ju_s]
+            J = np.zeros((ms, N3))
+            J[ars, iu_s] = 2 * dx
+            J[ars, ju_s] = -2 * dx
+            J[ars, n + iu_s] = 2 * dy
+            J[ars, n + ju_s] = -2 * dy
+            J[ars, 2 * n + iu_s] = -2 * s
+            J[ars, 2 * n + ju_s] = -2 * s
+            return np.vstack([J, Jw])
+
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons_s, "jac": jac_s}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+        if -res.fun < best_val - 0.02:
+            continue
+        if -res.fun >= best_val - 0.01:
+            try:
+                res2 = minimize(obj, z, jac=grad, method="SLSQP", bounds=bounds,
+                                constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                                options={"maxiter": 150, "ftol": 1e-11})
+                z = res2.x
+            except Exception:
+                pass
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import dual_annealing, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+RESTART_FRACTION = 0.3
+=======
+RESTART_FRACTION = 0.3
+DA_FRACTION = 0.7   # dual annealing runs until this fraction of the budget
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _energy(v, n):
+    """Negative sum of greedily repaired radii for the centres v (flattened)."""
+    return -_repair(v.reshape(n, 2), np.ones(n)).sum()
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+=======
+    c, r = best
+    da_end = t0 + DA_FRACTION * budget   # dual annealing over the centres, time-limited by callback
+    res = dual_annealing(_energy, bounds=[(0, 1)] * (2 * n), args=(n,), seed=int(rng.integers(2 ** 31)),
+                         maxiter=100, callback=lambda x, f, ctx: time.process_time() > da_end)
+    cd = res.x.reshape(n, 2)
+    c2, r2 = _optimise(n, np.concatenate([cd.ravel(), _repair(cd, np.ones(n))]))
+    c2 = np.clip(c2, 0, 1)
+    r2 = _repair(c2, r2)
+    if r2.sum() > r.sum():
+        c, r = c2, r2
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+>>>>>>> REPLACE
+-----

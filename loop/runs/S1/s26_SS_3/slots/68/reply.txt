@@ -1,0 +1,74 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(0)
+=======
+    rng = np.random.default_rng(12345)
+    pool = []
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.time() - t0 < 0.7 * time_budget:
+        it += 1
+=======
+    while time.time() - t0 < 0.5 * time_budget:
+        it += 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+        if -res.fun < best_val - 0.02:
+            continue
+        out = finalize(z)
+        if out is None:
+            continue
+        c, r = out
+        v = r.sum()
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+    while best is not None and time.time() - t0 < time_budget:
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 40, "ftol": 1e-6})
+        except Exception:
+            continue
+        z = res.x
+        out = finalize(z)
+        if out is None:
+            continue
+        c, r = out
+        v = r.sum()
+        pool.append((v, z.copy()))
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+    pool.sort(key=lambda t: -t[0])
+    for _, zp in pool[:12]:
+        if time.time() - t0 > 0.75 * time_budget:
+            break
+        try:
+            res = minimize(obj, zp, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 400, "ftol": 1e-12})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is None:
+            continue
+        c, r = out
+        v = r.sum()
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+    while best is not None and time.time() - t0 < time_budget:
+>>>>>>> REPLACE
+-----

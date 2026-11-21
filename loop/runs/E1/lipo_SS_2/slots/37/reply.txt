@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        fp = gen.GetFingerprintAsNumPy(m).astype(np.float32)
+=======
+    ap = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=1024)
+    tt = rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=1024)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        fp = gen.GetFingerprintAsNumPy(m).astype(np.float32)
+        extra = np.concatenate([ap.GetCountFingerprintAsNumPy(m), tt.GetCountFingerprintAsNumPy(m)]).astype(np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([fp, desc, grp]))
+=======
+        rows.append(np.concatenate([fp, desc, grp, extra]))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    et = ExtraTreesRegressor(n_estimators=n_trees, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                             n_jobs=-1, random_state=seed).fit(Xtr, ytr)
+=======
+    et = ExtraTreesRegressor(n_estimators=n_trees, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                             n_jobs=-1, random_state=seed).fit(Xtr[:, :-2048], ytr)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr))])
+=======
+    return np.column_stack([et.predict(Xte[:, :-2048]), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr))])
+>>>>>>> REPLACE
+-----

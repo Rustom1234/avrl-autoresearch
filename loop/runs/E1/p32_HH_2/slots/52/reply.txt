@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _quadrant_start(n, rng):
+    """Solve each quadrant as its own small packing, scale it into place, and return flat centres for a full solve."""
+    sizes = [n // 4 + (i < n % 4) for i in range(4)]
+    offsets = [(0, 0), (0, 0.5), (0.5, 0), (0.5, 0.5)]
+    cs = []
+    for k, (ox, oy) in zip(sizes, offsets):
+        if k == 0:
+            continue
+        _, p = _relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * k), k)
+        c, _ = _solve_once(k, p)
+        cs.append(np.clip(c, 0, 1) * 0.5 + np.array([ox, oy]))
+    return np.concatenate(cs).ravel()
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for _, p in pool[:KEEP]:
+=======
+        starts = [p for _, p in pool[:KEEP]] + [_quadrant_start(n, rng)]
+        for p in starts:
+>>>>>>> REPLACE
+-----

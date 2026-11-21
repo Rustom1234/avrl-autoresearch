@@ -1,0 +1,76 @@
+<<<<<<< SEARCH
+        P = rng.random((3000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:10]
+        p = P[rng.choice(top)]
+        c0 = np.vstack([cc, p[None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, [0.03]])
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is None:
+            continue
+        c2, r2 = out
+        if r2.sum() > best_val:
+            best_val = r2.sum()
+            best = (c2, r2)
+=======
+        from scipy.spatial import Delaunay
+        M = np.vstack([cc, cc * [-1, 1], cc * [-1, 1] + [2, 0],
+                       cc * [1, -1], cc * [1, -1] + [0, 2]])
+        try:
+            T = Delaunay(M).simplices
+            A = M[T[:, 0]]
+            B = M[T[:, 1]]
+            C = M[T[:, 2]]
+            d_ = 2 * (A[:, 0] * (B[:, 1] - C[:, 1]) + B[:, 0] * (C[:, 1] - A[:, 1])
+                      + C[:, 0] * (A[:, 1] - B[:, 1]))
+            d_ = np.where(np.abs(d_) < 1e-14, 1e-14, d_)
+            a2 = (A ** 2).sum(1)
+            b2 = (B ** 2).sum(1)
+            c2s = (C ** 2).sum(1)
+            ux = (a2 * (B[:, 1] - C[:, 1]) + b2 * (C[:, 1] - A[:, 1]) + c2s * (A[:, 1] - B[:, 1])) / d_
+            uy = (a2 * (C[:, 0] - B[:, 0]) + b2 * (A[:, 0] - C[:, 0]) + c2s * (B[:, 0] - A[:, 0])) / d_
+            P = np.stack([ux, uy], axis=1)
+            P = P[(P.min(1) > 0) & (P.max(1) < 1)]
+        except Exception:
+            continue
+        if len(P) == 0:
+            continue
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        order = np.argsort(-clear)
+        chosen = []
+        for q in order:
+            if all(np.hypot(*(P[q] - P[w])) > 0.03 for w in chosen):
+                chosen.append(q)
+            if len(chosen) == 3:
+                break
+        for q in chosen:
+            p = P[q]
+            c0 = np.vstack([cc, p[None]])
+            c0 = np.clip(c0 + rng.normal(0, 0.002, c0.shape), 0.01, 0.99)
+            r0 = np.concatenate([rr * 0.97, [max(clear[q], 0.01)]])
+            z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+            try:
+                res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                               constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                               options={"maxiter": 300, "ftol": 1e-11})
+            except Exception:
+                continue
+            out = finalize(res.x)
+            if out is None:
+                continue
+            c2, r2 = out
+            if r2.sum() > best_val:
+                best_val = r2.sum()
+                best = (c2, r2)
+>>>>>>> REPLACE
+-----

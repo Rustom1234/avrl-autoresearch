@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+        def cons_eq(v):
+            c, r = v[:2 * n].reshape(n, 2), v[-1]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * r
+            return np.concatenate([d, (c - r).ravel(), (1 - c - r).ravel()])
+
+        y0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), [INIT_RADIUS]])
+        y = minimize(lambda v: -v[-1], y0, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                     options={"maxiter": 50}).x
+        x0 = np.concatenate([np.clip(y[:2 * n], 0.01, 0.99), np.full(n, max(y[-1], 0.01))])
+=======
+        i, j = iu
+        c = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+
+        def gaps(c, r):
+            d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+            return d, d - 2 * r, c - r, 1 - c - r
+
+        d, _, _, _ = gaps(c, 0)
+        r = min(0.06, 0.45 * d.min(), 0.9 * min(c.min(), (1 - c).min()))
+        r = max(r, 1e-3)
+        for _ in range(30):
+            d, gp, gl, gh = gaps(c, r)
+            u = (c[i] - c[j]) / d[:, None] / gp[:, None]
+            g = np.zeros((n, 2))
+            np.add.at(g, i, -u)
+            np.add.at(g, j, u)
+            g += -1 / gl + 1 / gh
+            s = 0.02 / max(np.linalg.norm(g, axis=1).max(), 1e-12)
+            for _ in range(30):
+                cn = c - s * g
+                _, gp2, gl2, gh2 = gaps(cn, r)
+                if gp2.min() > 0 and gl2.min() > 0 and gh2.min() > 0:
+                    c = cn
+                    break
+                s *= 0.5
+        x0 = np.concatenate([np.clip(c.ravel(), 0.01, 0.99), np.full(n, max(r, 0.01))])
+>>>>>>> REPLACE
+-----

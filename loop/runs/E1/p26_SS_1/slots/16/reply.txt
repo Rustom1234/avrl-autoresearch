@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, init=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+=======
+    if init is not None:
+        x0 = np.concatenate([init[0].ravel(), init[1]])
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+    rng, t0, best, it = np.random.default_rng(seed), time.process_time(), None, 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is not None and time.process_time() - t0 > 0.3 * TIME_FRACTION * time_limit:
+            c, r = _solve_once(n, rng, best)
+        else:
+=======
+        if best is not None and time.process_time() - t0 > 0.4 * TIME_FRACTION * time_limit:
+            c0, r0 = best[0].copy(), best[1].copy()
+            i = np.argsort(r0)[it % 2]
+            it += 1
+            m = np.arange(n) != i
+            P = rng.random((20000, 2))
+            d = np.sqrt(((P[:, None] - c0[m][None]) ** 2).sum(-1)) - r0[m]
+            s = np.minimum(d.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+            k = np.argmax(s)
+            c0[i], r0[i] = P[k], max(s[k], 1e-3)
+            c, r = _solve_once(n, rng, init=(c0, r0))
+        else:
+>>>>>>> REPLACE
+-----

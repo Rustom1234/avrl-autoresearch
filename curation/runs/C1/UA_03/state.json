@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/UA_03/cand/s10_0.py",
+ "inc_scores": {
+  "11": 1.8227558435404505
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace random order with a target-similarity filter plus dedup. Steps: (1) Fit a TfidfVectorizer on character n-grams (analyzer='char_wb', ngram_range=(1,3), sublinear_tf=True, max_features ~50k, on the first ~3000 chars of each doc) over target_sample (label 1) and a seeded random 3000-doc subsample of the pool (label 0); train LogisticRegression (C=1, max_iter=200) and score every pool doc with decision_function. (2) Add cheap WikiText-format features to rule out junk: hard-drop docs that do not start with '= ' (title line), docs shorter than 200 chars, and docs with a spam signature (contain 'discount code', 'coupon', 'free shipping', 'Click here to order'). (3) Detect word-shuffled docs (same Wikipedia vocabulary but scrambled order): build a set of word bigrams from target_sample, and for each pool doc compute the fraction of its first 400 word bigrams found in that set; also compute the fraction of ' , ' / ' . ' tokens that directly follow another punctuation token or start a line. Drop docs whose bigram-hit fraction falls below a threshold set at the 5th percentile of the same statistic measured leave-one-out on target_sample docs (each target doc scored against bigrams from the other 199). (4) Exact/near dedup: keep only the first doc per hash of the whitespace-normalised first 500 chars. (5) Rank survivors by classifier score, keep the top docs until their gpt2 token count (tiktoken encode_ordinary_batch, or estimated as len(chars)/4.3 if time is short) reaches about 1.0 T; if survivors total less than T, keep them all and let the trainer cycle. (6) Shuffle the kept indices with random.Random(int(os.environ.get('CURATE_SEED',0))) and return.",
+   "outcome": "dev 1.8379 against 1.9630 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace the TfidfVectorizer character n-gram features with a Word2Vec-style approach or a higher-quality set of features, specifically by including document length and the presence of Wikipedia-style formatting (headers, lists, and specific punctuation patterns) as additional features for the LogisticRegression classifier.",
+   "outcome": "dev 1.8403 against 1.8379 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Replace the char_wb (1, 3) TfidfVectorizer with a combination of word-level n-grams (1, 2) and character-level n-grams (3, 5) while increasing the max_features to 75,000 and using a higher C value (C=10.0) for the LogisticRegression.",
+   "outcome": "dev 1.8390 against 1.8379 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the LogisticRegression classifier with a simpler but more robust approach for this specific dataset: calculate the cosine similarity of the TF-IDF vectors of the pool documents against the centroid of the target_sample TF-IDF vectors.",
+   "outcome": "dev 1.8384 against 1.8379 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the LogisticRegression classifier with a MaxEntropy (MultinomialNB) or a simplified SVM/LinearSVC approach, and increase the importance of the word-shuffle detection by making it a hard filter (dropping docs below the 10th percentile) rather than just a soft ranker, while also expanding the dedup window to the first 1000 characters.",
+   "outcome": "dev 1.8250 against 1.8379 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Instead of using the LogisticRegression decision_function as a pure ranker, implement a multi-stage filter: first, drop any document with a score below the 25th percentile of the pool; second, sort the remaining documents by score and select the top N such that their cumulative token count is ~1.05T; finally, apply a 'diversity' boost by ensuring that no more than 20% of the selected indices come from the top 10% of the ranked scores.",
+   "outcome": "dev 1.8460 against 1.8379 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Implement a 'density of high-quality markers' score: instead of just checking for the '= ' prefix, calculate a score based on the presence of Wikipedia-style structural elements (e.g., lines starting with '==', '===', or '---', and lines containing 'See also', 'References', or 'Categories') within the first 2000 characters, and use this as a secondary boosting feature in the LogisticRegression or as a hard threshold for documents that don't have a high classifier score.",
+   "outcome": "dev 1.8373 against 1.8379 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Refine the 'word-shuffle' detection and 'junk' filter by creating a 'quality score' for each document. This score will sum (1) the fraction of word bigrams matching the target sample's bigram set, (2) a penalty for common stop-word/punctuation 'bad' patterns, and (3) a bonus for the presence of specific Wikipedia-style structural markers (e.g., '==', '---', 'See also', 'References') in the first 2000 characters. Use this score as a weight for the LogisticRegression classifier or as a hard-filtering threshold at the 10th percentile.",
+   "outcome": "dev 1.8250 against 1.8379 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Replace the TfidfVectorizer character n-grams (1,3) with a more robust set of features: include character n-grams (2,4) and word n-grams (1,2), and add a binary feature for 'structural integrity' (presence of section headers like '==', '---', or '---' vs. junk artifacts like '@-@' or '!!!'). Use a LinearSVC instead of LogisticRegression to better handle the high-dimensional, sparse feature space and optimize for a harder margin.",
+   "outcome": "dev 1.8317 against 1.8379 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Replace the current TfidfVectorizer-based LogisticRegression with a two-stage ranking system: first, use a 'Quality Score' as a hard filter (top 50% of scores) where the score is a weighted sum of bigram hit rate, a penalty for 'bad' punctuation, and a bonus for Wikipedia-style structural markers (e.g., '==', '---', 'See also'); second, use the LogisticRegression decision_function to rank the remaining candidates, and select the top docs until reaching the token budget.",
+   "outcome": "dev 1.8228 against 1.8379 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 11,
+   "idea": "Replace the standard TfidfVectorizer (char_wb, 1, 3) with a more targeted approach: use the current TfidfVectorizer to select the top 10,000 'discriminative' terms (those with high variance in usage between target_sample and a random pool subsample) and then retrain the LogisticRegression using only these terms plus a high-weight binary feature for 'clean punctuation' (absence of '@-@', '!!!', or repeated punctuation like '...').",
+   "outcome": "dev 1.8325 against 1.8228 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Implement a 'Negative Sampling' improvement by constructing the negative set using a stratified approach: instead of a pure random sample, select 30% of the negatives from documents that pass the structural/spam filters but have low bigram overlap with the target sample, and 70% from completely random documents. Additionally, increase the LogisticRegression C parameter to 20.0 to encourage a harder margin on the high-quality subset.",
+   "outcome": "dev 1.8314 against 1.8228 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.38899174999999997,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.3581636,
+   "dev": 1.8378876407344853,
+   "inc": 1.9630311080085883,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.223158171497793,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0028078500000000006,
+   "dev": 1.8403151858948192,
+   "inc": 1.8378876407344853,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.223158171497793,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002711999999999992,
+   "dev": 1.838994574135438,
+   "inc": 1.8378876407344853,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.223158171497793,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002689649999999988,
+   "dev": 1.8384381894582693,
+   "inc": 1.8378876407344853,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.223158171497793,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002549699999999988,
+   "dev": 1.8249735428298592,
+   "inc": 1.8378876407344853,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.223158171497793,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003173550000000025,
+   "dev": 1.8459849097592012,
+   "inc": 1.8378876407344853,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.223158171497793,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002893800000000002,
+   "dev": 1.8372552010035863,
+   "inc": 1.8378876407344853,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.223158171497793,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00266909999999998,
+   "dev": 1.825036337476828,
+   "inc": 1.8378876407344853,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.223158171497793,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002867249999999988,
+   "dev": 1.831692078439884,
+   "inc": 1.8378876407344853,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.223158171497793,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.00271439999999995,
+   "dev": 1.8227558435404505,
+   "inc": 1.8378876407344853,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 19.305706643013732,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002849849999999987,
+   "dev": 1.8325358124576752,
+   "inc": 1.8227558435404505,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 19.305706643013732,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0029010000000000424,
+   "dev": 1.8313866159703924,
+   "inc": 1.8227558435404505,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9630311080085883,
+ "inc_slot": 10
+}

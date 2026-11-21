@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    stage2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400, **params)
+    stage2.fit(Xtr, y - base_tr, xgb_model=stage1.get_booster())
+=======
+    rng = np.random.default_rng(seed)
+    Xaug = []
+    for _ in range(3):
+        Xc = Xtr.copy()
+        Xc[:, :N_BITS][rng.random((len(Xtr), N_BITS)) < 0.2] = 0
+        Xaug.append(Xc)
+    Xaug = np.vstack(Xaug)
+    raug = np.tile(y - base_tr, 3)
+    stage2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400, **params)
+    stage2.fit(Xaug, raug, xgb_model=stage1.get_booster())
+>>>>>>> REPLACE
+-----

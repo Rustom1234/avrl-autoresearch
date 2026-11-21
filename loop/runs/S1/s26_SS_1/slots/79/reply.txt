@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    second = None
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+=======
+        if s > best_s:
+            if best is not None and best_s < s - 1e-6:
+                second = (best_s, best)
+            best_s, best = s, (c2, r2)
+        elif s < best_s - 1e-6 and (second is None or s > second[0]):
+            second = (s, (c2, r2))
+    while time.time() - t0 < 180:
+        try:
+            if second is not None and rng.random() < 0.2:
+                bc, br = second[1]
+            else:
+                bc, br = best
+            sig = rng.uniform(0.01, 0.03)
+            c = np.clip(bc + rng.normal(0, sig, bc.shape), 0.01, 0.99)
+            r = br * np.exp(rng.normal(0, 0.15, br.shape))
+            r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]),
+                                         np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+            c2 = np.clip(_polish(c, r), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            if s > best_s + 1e-6:
+                second = (best_s, best)
+            best_s, best = s, (c2, r2)
+    c, r = best
+>>>>>>> REPLACE
+-----

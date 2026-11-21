@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+=======
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle, or slide a wall circle
+        c2, r2 = c.copy(), r.copy()
+        wall = np.where(np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])) < 0.02)[0]
+        if rng.random() < 0.5 and len(wall) > 0:
+            i = rng.choice(wall)
+            ax = 1 if min(c2[i, 0], 1 - c2[i, 0]) < min(c2[i, 1], 1 - c2[i, 1]) else 0   # tangent axis of nearest wall
+            c2[i, ax] += rng.uniform(-0.1, 0.1)
+            c2[i] = np.clip(c2[i], 0, 1)
+        else:
+            i = np.argmin(r2)
+            c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+>>>>>>> REPLACE
+-----

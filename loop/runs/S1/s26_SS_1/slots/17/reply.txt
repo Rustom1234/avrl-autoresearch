@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 110:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    c, r = best
+    n = _N
+    pi, pj = _IU
+    t1 = time.time()
+    while time.time() - t1 < 40:
+        try:
+            d = np.sqrt(((c[pi] - c[pj]) ** 2).sum(1))
+            rows = []
+            for k in np.where(d - r[pi] - r[pj] < 1e-6)[0]:
+                a, b = pi[k], pj[k]
+                u = (c[a] - c[b]) / max(d[k], 1e-12)
+                v = np.zeros(3 * n)
+                v[a], v[b] = u[0], -u[0]
+                v[n + a], v[n + b] = u[1], -u[1]
+                v[2 * n + a] = v[2 * n + b] = -1
+                rows.append(v)
+            for a in range(n):
+                for dim in range(2):
+                    for sgn, val in ((1, c[a, dim]), (-1, 1 - c[a, dim])):
+                        if val - r[a] < 1e-6:
+                            v = np.zeros(3 * n)
+                            v[dim * n + a] = sgn
+                            v[2 * n + a] = -1
+                            rows.append(v)
+            J = np.array(rows)
+            _, sv, Vt = np.linalg.svd(J, full_matrices=True)
+            rank = int((sv > 1e-6).sum())
+            ns = Vt[rank:]
+            k = min(len(ns), 3 * n)
+            coef = rng.normal(size=len(ns))
+            step = coef @ ns
+            step = step[:2 * n]
+            step *= 0.02 * np.sqrt(n) / max(np.linalg.norm(step), 1e-12) * rng.uniform(0.3, 1.0)
+            cn = np.clip(c + np.stack([step[:n], step[n:]], 1), 0.01, 0.99)
+            rn = _lp_radii(cn)
+            c2 = np.clip(_polish(cn, rn), 0, 1)
+            r2 = _lp_radii(c2)
+            if r2.sum() > r.sum():
+                c, r = c2, r2
+        except Exception:
+            continue
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                          colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+    keep = Xtr.std(axis=0) > 0
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    # Feature selection: rank descriptors by LightGBM gain importance, keep top 80
+    sel = LGBMRegressor(n_estimators=200, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                        colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    sel.fit(Xtr, y)
+    top = np.argsort(-sel.booster_.feature_importance(importance_type='gain'))[:80]
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                          colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    model.fit(Xtr[:, top], y)
+    p_lgb = model.predict(Xte[:, top])
+    keep = np.zeros(Xtr.shape[1], dtype=bool)
+    keep[top] = True
+    keep &= Xtr.std(axis=0) > 0
+>>>>>>> REPLACE
+-----

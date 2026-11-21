@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+def _sig(u):
+=======
+def _equal_bisect(c0):
+    # Phase 1 (alternative): bisection on a shared radius s. For each trial s, L-BFGS-B
+    # minimises a squared-overlap penalty over the centres, warm-started from the last
+    # feasible centres. Returns the centres at the largest feasible s.
+    n = 26
+    I, J = np.triu_indices(n, 1)
+
+    def pen(zc, s):
+        x = zc[:n]
+        y = zc[n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        ov = np.maximum(0.0, 4.0 * s * s - dx * dx - dy * dy)
+        a = np.maximum(0.0, s - x)
+        b = np.maximum(0.0, x + s - 1.0)
+        c = np.maximum(0.0, s - y)
+        d = np.maximum(0.0, y + s - 1.0)
+        val = float(np.sum(ov * ov) + np.sum(a * a + b * b + c * c + d * d))
+        gx = np.zeros(n)
+        gy = np.zeros(n)
+        cI = -4.0 * ov * dx
+        cJ = -4.0 * ov * dy
+        np.add.at(gx, I, cI)
+        np.add.at(gx, J, -cI)
+        np.add.at(gy, I, cJ)
+        np.add.at(gy, J, -cJ)
+        gx += -2.0 * a + 2.0 * b
+        gy += -2.0 * c + 2.0 * d
+        return val, np.concatenate([gx, gy])
+
+    zc = np.concatenate([np.clip(c0[:, 0], 0.0, 1.0), np.clip(c0[:, 1], 0.0, 1.0)])
+    lo, hi = 0.05, 0.11
+    best = None
+    try:
+        for _ in range(25):
+            mid = 0.5 * (lo + hi)
+            res = minimize(pen, zc, args=(mid,), jac=True, method="L-BFGS-B",
+                           bounds=[(0.0, 1.0)] * (2 * n), options={"maxiter": 500})
+            if res.fun < 1e-14:
+                lo = mid
+                zc = res.x
+                best = res.x.copy()
+            else:
+                hi = mid
+        if best is None:
+            return c0
+        return np.clip(np.stack([best[:n], best[n:]], axis=1), 0.0, 1.0)
+    except Exception:
+        return c0
+
+
+def _sig(u):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c0 = _equal_opt(c0)
+=======
+    c0 = _equal_bisect(c0)
+>>>>>>> REPLACE
+-----

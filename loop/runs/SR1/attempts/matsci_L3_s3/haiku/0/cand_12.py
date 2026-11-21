@@ -1,0 +1,2 @@
+def equation(eps, T, params):
+    return params[0] + params[1]*T + params[2]*T**2 + params[3]*np.log(T) + params[4]*np.exp(-1/T) + (params[5]*eps**2/T) + params[6]*eps*np.exp(1/T) + params[7]*np.exp(-eps/2)*T**2 + params[8]*eps**params[9]

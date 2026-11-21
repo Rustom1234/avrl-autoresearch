@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def construct_packing():
+    T0 = _time.time()
+=======
+def _kmeans(X, k, rng, iters=15):
+    cen = X[rng.choice(X.shape[0], k, replace=False)].copy()
+    lab = np.zeros(X.shape[0], dtype=int)
+    for _ in range(iters):
+        d = ((X[:, None, :] - cen[None, :, :]) ** 2).sum(-1)
+        lab = np.argmin(d, axis=1)
+        for q in range(k):
+            m = lab == q
+            if m.any():
+                cen[q] = X[m].mean(axis=0)
+    return lab
+
+
+def _cluster_move(c, rng):
+    k = rng.randint(3, 6)
+    lab = _kmeans(c, k, rng)
+    out = c.copy()
+    for q in range(k):
+        m = np.where(lab == q)[0]
+        if m.size == 0:
+            continue
+        g = c[m].mean(axis=0)
+        th = rng.uniform(-np.pi / 18, np.pi / 18)
+        R = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
+        t = rng.uniform(-0.03, 0.03, size=2)
+        out[m] = (c[m] - g) @ R.T + g + t
+    return np.clip(out, 0.0, 1.0)
+
+
+def construct_packing():
+    T0 = _time.time()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        else:
+            k = rng.randint(2, 5)
+=======
+        elif rng.rand() < 0.5:
+            c = _cluster_move(c, rng)
+        else:
+            k = rng.randint(2, 5)
+>>>>>>> REPLACE
+-----

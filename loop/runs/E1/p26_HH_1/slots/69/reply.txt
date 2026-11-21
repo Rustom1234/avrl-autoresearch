@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _local_solve(c, r, free):
+    """SLSQP over the free circles only; frozen circles keep their centres and radii."""
+    f = np.where(free)[0]
+    k = len(f)
+    I, J = np.triu_indices(len(r), 1)
+    sel = free[I] | free[J]
+    I, J = I[sel], J[sel]
+
+    def unpack(v):
+        cc, rr = c.copy(), r.copy()
+        cc[f] = v[:2 * k].reshape(k, 2)
+        rr[f] = v[2 * k:]
+        return cc, rr
+
+    def cons(v):
+        cc, rr = unpack(v)
+        d = np.sqrt(((cc[I] - cc[J]) ** 2).sum(1)) - rr[I] - rr[J]
+        cf, rf = cc[f], rr[f]
+        return np.concatenate([d, cf[:, 0] - rf, cf[:, 1] - rf, 1 - cf[:, 0] - rf, 1 - cf[:, 1] - rf, rf])
+
+    v0 = np.concatenate([c[f].ravel(), r[f]])
+    res = minimize(lambda v: -v[2 * k:].sum(), v0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return unpack(res.x)
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+=======
+            r[m] = 0
+            free = m | (np.hypot(*(c - p).T) < R + 2 * best[1].mean())
+            c, r = _local_solve(c, r, free)
+            if r.sum() > best[1].sum():
+                c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+>>>>>>> REPLACE
+-----

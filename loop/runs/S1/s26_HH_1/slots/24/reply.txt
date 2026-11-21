@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def jitter_anneal_search(seed=12345, budget=150.0, start=None):
+=======
+def _halton_start(rng):
+    # Seeded, digit-scrambled van der Corput points in bases 2 and 3, mapped into [0.05, 0.95]^2.
+    # Digit 0 stays fixed so leading zeros do not contribute.
+    def vdc(idx, base, perm):
+        out = np.zeros(len(idx))
+        f = 1.0 / base
+        k = idx.copy()
+        while np.any(k > 0):
+            out += f * perm[k % base]
+            k //= base
+            f /= base
+        return out
+
+    idx = np.arange(1, 27)
+    p2 = np.array([0, 1])
+    p3 = np.concatenate([[0], 1 + rng.permutation(2)])
+    p2 = np.concatenate([[0], 1 + rng.permutation(1)]) if False else p2
+    u = vdc(idx, 2, p2)
+    v = vdc(idx, 3, p3)
+    return np.clip(np.stack([0.05 + 0.9 * u, 0.05 + 0.9 * v], axis=1), 0.0, 1.0)
+
+
+def jitter_anneal_search(seed=12345, budget=150.0, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c = _ls_growth(rng) if start is None else start
+    best_c, best_r = _local_opt(c)
+    best_s = float(np.sum(best_r))
+=======
+    c = _ls_growth(rng) if start is None else start
+    best_c, best_r = _local_opt(c)
+    best_s = float(np.sum(best_r))
+    hc, hr = _local_opt(_halton_start(rng))
+    if float(np.sum(hr)) > best_s:
+        best_c, best_r, best_s = hc, hr, float(np.sum(hr))
+>>>>>>> REPLACE
+-----

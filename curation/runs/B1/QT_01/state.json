@@ -1,0 +1,71 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/task/curate.py",
+ "inc_scores": {
+  "11": 1.9591196818350403
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Prioritize documents from the target domain (target_sample) as the first ~20% of the sequence, ensuring these concise, high-quality articles are seen before random sampling from the noisy pool.",
+   "outcome": "FAILED to run (ation/runs/B1/QT_01/cand/s01_1.py\", line 40, in select total_elements_needed = max((length_needed + (file_length - 1) * n_total) // n_total, 1) ^^^^^^^^^^^ NameError: name 'file_length' is not defined)"
+  },
+  {
+   "slot": 2,
+   "idea": "In the tokens generated, temporarily inject characteristic n-gram statistics from the target_sample documents to nudge the auto-regressive model's attention weights toward the target domain vocabulary, using simple character counts to estimate these statistics without accessing the documents.",
+   "outcome": "dev 2.0884 against 1.9591 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Sort the noisy pool documents by their entropy (calculated from character counts) to filter out and prioritize higher-quality documents over the willful gibberish at the beginning of the list.",
+   "outcome": "FAILED to run (on/runs/B1/QT_01/cand/s03_1.py\", line 15, in <module> from common import get_encoding ImportError: cannot import name 'get_encoding' from 'common' (/homes/rdubash/active-audit/curation/task/common.py))"
+  },
+  {
+   "slot": 4,
+   "idea": "Sort the documents by their length descending to expose more complete sentences and remove jarring start-of-file artifacts (like copyright headers) early in the training sequence, thereby improving sentence structure quality.",
+   "outcome": "FAILED to run (gacy_seeding File \"numpy/random/_mt19937.pyx\", line 188, in numpy.random._mt19937.MT19937._legacy_seeding TypeError: Cannot cast scalar from dtype('<U2') to dtype('int64') according to the rule 'safe')"
+  },
+  {
+   "slot": 5,
+   "idea": "Calculate the frequency of the target domain's specific vocabulary (including only words present in target_sample and appearing in at least 50 docs of the pool) and insert slices from target_sample documents whenever a threshold proportion (trained dynamically) of these valuable words appear in the current document's first 50 tokens.",
+   "outcome": "FAILED to run (/rdubash/active-audit/curation/runs/B1/QT_01/cand/s05_1.py\", line 9, in tokenize return [token.text for token in TOKENIZER.encode(text)] ^^^^^^^^^^ AttributeError: 'int' object has no attribute 'text')"
+  },
+  {
+   "slot": 6,
+   "idea": "Calculate the similarity (cosine similarity of character n-gram histograms) between each document in the noisy pool and every document in target_sample, then sort the pool indices descending by this target similarity and prepend the target_sample indices to form the final sequence.",
+   "outcome": "FAILED to run (es/rdubash/active-audit/curation/runs/B1/QT_01/cand/s06_1.py\", line 141, in select total_squares = sum(sum(c**2 for c in counts)) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TypeError: 'int' object is not iterable)"
+  },
+  {
+   "slot": 7,
+   "idea": "Prioritize long documents that are likely to contain complete sentences or full paragraphs from the pool before sorting them randomly and cycling the list.",
+   "outcome": "dev 2.0711 against 1.9591 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Randomize the starting offset of the split point within each document to expose complete sentences and paragraphs rather than mid-sentence fragments.",
+   "outcome": "dev 2.0604 against 1.9591 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Sort the noisy pool documents by the ratio of target_sample words (counted via limited vocabulary lookup) to total word count, and assign each document a boost factor based on this ratio to bias random sampling toward documents containing more target domain vocabulary.",
+   "outcome": "FAILED to run (SyntaxError: 'continue' not properly in loop (line 96))"
+  },
+  {
+   "slot": 10,
+   "idea": "Prioritize extremely short documents (under 100 tokens) early in the sequence to learn start-of-sequence tokens and basic grammar on clean data, then sort the remaining pool by entropy to reach high-quality document coverage, and finally randomize the rest to avoid memory-based repetition while ensuring a diverse vocabulary",
+   "outcome": "FAILED to run (curate.py must define select(docs, target_sample) at module level)"
+  },
+  {
+   "slot": 11,
+   "idea": "Instead of fully randomizing the noise, group the noisy pool documents into small chunks of 4-8 and shuffle only those groups internally to disrupt the repetitive gibberish vector while preserving document heterogeneity, then inject the target_sample documents periodically within the shuffled noise stream to maintain domain signal.",
+   "outcome": "FAILED to run (SyntaxError: invalid syntax (line 98))"
+  },
+  {
+   "slot": 12,
+   "idea": "Calculate the locality similarity (cosine similarity of character n-gram vectors) between each noisy pool document and the target_sample documents, sort the pool inversely by this similarity so that documents most similar to the target domain appear earlier, and then deterministically cycle the remaining pool to ensure all clean pool documents are seen before cycling to noisy ones.",
+   "outcome": "FAILED to run (en/core.py\", line 119, in encode disallowed_special = self.special_tokens_set - allowed_special ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~ TypeError: unsupported operand type(s) for -: 'set' and 'list')"
+  }
+ ],
+ "usd": 0.010482300000000002,
+ "status": "done"
+}

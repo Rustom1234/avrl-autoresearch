@@ -1,0 +1,75 @@
+<<<<<<< SEARCH
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+    cur_c = centers.copy()
+=======
+def _island_step(cur_c, cur_s, cur_r, rng):
+    """One basin-hopping proposal from cur_c; returns (centers, valid radii or None, sum)."""
+    c = cur_c.copy()
+    if rng.rand() < 0.5:
+        i0 = rng.randint(_N)
+        g = np.linspace(0.02, 0.98, 49)
+        G = np.array(np.meshgrid(g, g)).reshape(2, -1).T
+        others = np.delete(c, i0, axis=0)
+        dd = np.sqrt(((G[:, None, :] - others[None, :, :]) ** 2).sum(-1)).min(axis=1)
+        wall = np.minimum(np.minimum(G[:, 0], G[:, 1]), np.minimum(1 - G[:, 0], 1 - G[:, 1]))
+        hole = np.minimum(dd, 2.0 * wall)
+        c[i0] = G[np.argmax(hole)] + rng.normal(0.0, 0.003, size=2)
+        c = np.clip(c, 0.0, 1.0)
+    else:
+        k = rng.randint(2, 5)
+        idx = rng.choice(_N, k, replace=False)
+        scale = rng.uniform(0.05, 0.15)
+        c[idx] += rng.normal(0.0, scale, size=(k, 2))
+        c = np.clip(c, 0.0, 1.0)
+    c, rr = _relax(c, np.full(_N, 0.005), 200, 0.05, 0.01, 0.5, cur_c)
+    c, rr = _slsqp_refine(c, rr, 80)
+    rv, s = _score(c)
+    return c, rv, s
+
+
+def construct_packing():
+    """Island model: three basin-hopping chains with periodic migration of the best state."""
+    T0 = _time.time()
+    centers, radii = _two_phase()
+    base_r = np.asarray(radii, dtype=float).copy()
+    base_s = float(base_r.sum())
+    seeds = [7, 11, 19]
+    rngs = [np.random.RandomState(sd) for sd in seeds]
+    chains = [{"c": centers.copy(), "r": base_r.copy(), "s": base_s} for _ in seeds]
+    best = {"c": centers.copy(), "r": base_r.copy(), "s": base_s}
+    T = 0.002
+    rnd = 0
+    done = False
+    while not done:
+        for k in range(len(chains)):
+            if _time.time() - T0 >= 215:
+                done = True
+                break
+            ch = chains[k]
+            rng = rngs[k]
+            c, rv, s = _island_step(ch["c"], ch["s"], ch["r"], rng)
+            if rv is None:
+                continue
+            if s > ch["s"] or rng.rand() < np.exp((s - ch["s"]) / T):
+                ch["c"], ch["r"], ch["s"] = c.copy(), rv.copy(), s
+                if s > best["s"]:
+                    best = {"c": c.copy(), "r": rv.copy(), "s": s}
+        rnd += 1
+        if not done and rnd % 40 == 0:
+            bi = max(range(len(chains)), key=lambda q: chains[q]["s"])
+            wi = min(range(len(chains)), key=lambda q: chains[q]["s"])
+            if bi != wi:
+                chains[wi] = {"c": chains[bi]["c"].copy(),
+                              "r": chains[bi]["r"].copy(),
+                              "s": chains[bi]["s"]}
+    return best["c"], _make_valid(best["c"], best["r"])
+
+
+def _single_chain_unused():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+    cur_c = centers.copy()
+>>>>>>> REPLACE
+-----

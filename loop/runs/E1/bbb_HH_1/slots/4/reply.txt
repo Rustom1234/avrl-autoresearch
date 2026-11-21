@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+def tanimoto(A, B):
+    dot = A @ B.T
+    na = A.sum(axis=1)[:, None]
+    nb = B.sum(axis=1)[None, :]
+    return dot / np.maximum(na + nb - dot, 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    X_train = np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in train_smiles], dtype=np.float64)
+    X_test = np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in test_smiles], dtype=np.float64)
+    y = np.asarray(train_y, dtype=np.int64)
+    svc = SVC(kernel="precomputed", C=1.0, probability=True, random_state=seed)
+    svc.fit(tanimoto(X_train, X_train), y)
+    return svc.predict_proba(tanimoto(X_test, X_train))[:, 1]
+>>>>>>> REPLACE
+-----

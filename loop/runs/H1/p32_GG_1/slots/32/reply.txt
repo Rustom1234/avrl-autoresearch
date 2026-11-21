@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+=======
+    t_start = time.process_time()
+    def callback(xk):
+        if time.process_time() - t_start > 15.0:
+            raise TimeoutException()
+
+    try:
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                         constraints={"type": "ineq", "fun": cons},
+                         options={"maxiter": MAX_ITER, "callback": callback})
+        return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+    except (TimeoutException, RuntimeError):
+        # Fallback: return current state (partially optimized) for repair
+        # Since we can't easily get xk from a raised exception in scipy's minimize 
+        # without more complex handling, we'll just treat the timeout as a failed run 
+        # and let the loop continue to the next restart.
+        return np.full((n, 2), 0.5), np.full(n, 0.01)
+
+
+class TimeoutException(Exception): pass
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+-----

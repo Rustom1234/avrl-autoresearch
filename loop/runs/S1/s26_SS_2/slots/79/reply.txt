@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+            v = minimize(pen, v, args=(mu,), jac=True, method="L-BFGS-B",
+                         bounds=bounds, options={"maxiter": 400}).x
+=======
+        gs = (np.arange(60) + 0.5) / 60
+        S = np.stack(np.meshgrid(gs, gs), -1).reshape(-1, 2)
+        P = rng.uniform(0.05, 0.95, (n, 2))
+        for _ in range(15):
+            dd = ((S[:, None, :] - P[None, :, :]) ** 2).sum(-1)
+            lab = dd.argmin(1)
+            for q in range(n):
+                msk = lab == q
+                if msk.any():
+                    P[q] = S[msk].mean(0)
+        P = np.clip(P + rng.normal(0, 0.01, P.shape), 0.01, 0.99)
+        D = np.sqrt(((P[:, None, :] - P[None, :, :]) ** 2).sum(-1)) + np.eye(n) * 10
+        r0 = np.minimum(0.5 * D.min(1), 0.5)
+        v = np.concatenate([P[:, 0], P[:, 1], r0])
+>>>>>>> REPLACE
+-----

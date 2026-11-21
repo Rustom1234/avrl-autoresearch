@@ -1,0 +1,86 @@
+<<<<<<< SEARCH
+        v = r.sum()
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+=======
+        v = r.sum()
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+        if all(abs(v - p[0]) > 1e-6 for p in pool) and (len(pool) < 8 or v > pool[-1][0]):
+            pool.append((v, c, r))
+            pool.sort(key=lambda p: -p[0])
+            pool = pool[:8]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    best = None
+    best_val = -1.0
+    pool = []
+    it = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = best
+        k = rng.choice(np.argsort(r)[:4])
+        keep = np.arange(n) != k
+        cc = c[keep]
+        rr = r[keep]
+        P = rng.random((3000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:10]
+        p = P[rng.choice(top)]
+        c0 = np.vstack([cc, p[None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, [0.03]])
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        if not pool:
+            pool.append((best_val, best[0], best[1]))
+        _, c, r = pool[rng.integers(len(pool))]
+        c0 = c.copy()
+        r0 = r * 0.95
+        mv = rng.integers(3)
+        if mv == 0:
+            c0 = c0 + rng.normal(0, 0.02, c0.shape)
+        elif mv == 1:
+            i = rng.integers(n)
+            dist = np.sqrt(((c - c[i]) ** 2).sum(1))
+            dist[i] = 9
+            nb = [j for j in np.argsort(dist)[:5] if abs(r[j] - r[i]) > 1e-4]
+            if nb:
+                j = nb[rng.integers(len(nb))]
+                c0[i], c0[j] = c[j].copy(), c[i].copy()
+                r0[i], r0[j] = r0[j], r0[i]
+            else:
+                c0 = c0 + rng.normal(0, 0.02, c0.shape)
+        else:
+            i = rng.integers(n)
+            dist = np.sqrt(((c - c[i]) ** 2).sum(1))
+            grp = np.argsort(dist)[:5]
+            ang = rng.random() * 2 * np.pi
+            c0[grp] += 0.05 * np.array([np.cos(ang), np.sin(ang)])
+        c0 = np.clip(c0, 0.01, 0.99)
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c2, r2 = out
+        if r2.sum() > best_val:
+            best_val = r2.sum()
+            best = (c2, r2)
+=======
+        c2, r2 = out
+        v2 = r2.sum()
+        if v2 > best_val:
+            best_val = v2
+            best = (c2, r2)
+        if all(abs(v2 - p[0]) > 1e-6 for p in pool) and (len(pool) < 8 or v2 > pool[-1][0]):
+            pool.append((v2, c2, r2))
+            pool.sort(key=lambda p: -p[0])
+            pool = pool[:8]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,14 @@
+{
+ "ok": false,
+ "issues": [
+  "(1) Evaluation path altered: the z-loss is added inside GPT.forward, which the evaluation also calls (with reduction='none' to get per-token losses). The value returned to the evaluator is no longer pure cross-entropy: it is CE plus 1e-4 * mean(lse^2). That scalar is broadcast onto every per-token loss, so the measured val_bpb is biased. The bias is upward, so it doesn't flatter the candidate, but the measured quantity has still been changed. The harness's integrity flag is justified.",
+  "(2) Semantics bug: z_loss ignores reduction and ignore_index=-1. It averages over every position, including masked targets, and with reduction='none' it adds the same batch-level scalar to each token. Any per-token or bpb number computed from this forward is therefore wrong.",
+  "Fix: apply the z-loss only during training. Either compute it in the training loop from the logits, or add it only when self.training and reduction=='mean', masking positions where targets==-1. Return plain CE in every other case. As a regularizer it is legitimate.",
+  "(3) There are no harness numbers because the run was rejected, so z cannot be recomputed. The comment's claim that this gives 'low val_bpb' is unsupported.",
+  "Minor: the diff also removes a blank line before the optimizer section. This is cosmetic."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

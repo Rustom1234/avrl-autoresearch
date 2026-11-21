@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+=======
+TIME_FRACTION = 0.75
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _polish(n, c, r):
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        cc, rr = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((cc[iu[0]] - cc[iu[1]]) ** 2).sum(1)) - rr[iu[0]] - rr[iu[1]]
+        return np.concatenate([d, cc[:, 0] - rr, cc[:, 1] - rr, 1 - cc[:, 0] - rr, 1 - cc[:, 1] - rr, rr, 1.0 - rr])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), np.concatenate([c.ravel(), r]), method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons}, options={"maxiter": 500, "ftol": 1e-12})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best, raw = np.random.default_rng(seed), time.process_time(), None, None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r2 = _repair(c, r)
+        if best is None or r2.sum() > best[1].sum():
+            best, raw = (c, r2), (c, r)
+    if raw is not None:   # final polish of the best pre-repair packing
+        c, r = _polish(n, *raw)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

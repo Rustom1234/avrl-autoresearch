@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+from sklearn.neural_network import MLPClassifier
+=======
+from sklearn.neural_network import MLPClassifier, MLPRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    # Multitask MLP: label + standardized auxiliary descriptors (removed from inputs)
+    names = [n for n, _ in Descriptors.descList]
+    aux = [names.index(n) for n in ("TPSA", "MolLogP", "MolWt", "NumHDonors")]
+    keep = [i for i in range(nd) if i not in aux]
+    ax = X[:, aux].astype(np.float64)
+    T = np.column_stack([y, (ax - ax.mean(0)) / (ax.std(0) + 1e-9)])
+    reg = MLPRegressor(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True, max_iter=300,
+                       random_state=seed)
+    reg.fit(Dq[:, keep], T)
+    preds.append(rankdata(reg.predict(Dtq[:, keep])[:, 0]) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

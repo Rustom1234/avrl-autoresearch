@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def slsqp(v, iters):
+        return minimize(lambda u: -u[2 * n:].sum(), v, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                        options={"maxiter": iters}).x
+
+    x0[2 * n:] = 0.01  # stage 1: start from small radii
+    v = slsqp(x0, MAX_ITER)
+    for _ in range(3):  # stage 2: inflate all radii by 1.1x and re-optimise
+        v[2 * n:] *= 1.1
+        v = slsqp(v, 30)
+    return v[:2 * n].reshape(n, 2), v[2 * n:]
+>>>>>>> REPLACE
+-----

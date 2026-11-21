@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _optimise_local(c, r, idx):
+    n = len(r)
+    fixed = np.setdiff1d(np.arange(n), idx)
+    m = len(idx)
+    iu = np.triu_indices(m, 1)
+    cfix, rfix = c[fixed], r[fixed]
+
+    def cons(v):
+        cc, rr = v[:2 * m].reshape(m, 2), v[2 * m:]
+        d = np.sqrt(((cc[iu[0]] - cc[iu[1]]) ** 2).sum(1)) - rr[iu[0]] - rr[iu[1]]
+        df = np.sqrt(((cc[:, None] - cfix[None]) ** 2).sum(-1)) - rr[:, None] - rfix[None]
+        return np.concatenate([d, df.ravel(), cc[:, 0] - rr, cc[:, 1] - rr, 1 - cc[:, 0] - rr, 1 - cc[:, 1] - rr, rr])
+
+    x0 = np.concatenate([c[idx].ravel(), r[idx]])
+    res = minimize(lambda v: -v[2 * m:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": 100})
+    c, r = c.copy(), r.copy()
+    c[idx] = res.x[:2 * m].reshape(m, 2)
+    r[idx] = res.x[2 * m:]
+    return c, r
+
+
+def _solve_once(n, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+=======
+    c, r = best
+    step = 0
+    while time.process_time() - t0 < budget:   # local reinsert of the smallest circle, periodic full polish
+        step += 1
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        idx = np.argsort(np.linalg.norm(c2 - c2[i], axis=1))[:9]
+        c2, r2 = _optimise_local(c2, r2, idx)
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        accepted = r2.sum() > r.sum()
+        if accepted:
+            c, r = c2, r2
+        if accepted or step % 20 == 0:
+            c2, r2 = _optimise(n, np.concatenate([c.ravel(), r]))
+            c2 = np.clip(c2, 0, 1)
+            r2 = _repair(c2, r2)
+            if r2.sum() > r.sum():
+                c, r = c2, r2
+    return c, r
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/SS_03/cand/s06_0.py",
+ "inc_scores": {
+  "11": 1.810051085791472,
+  "12": 1.8094329892059848
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random order with a PU-classifier filter, dedup, and a top-T cut.\n\n1. Dedup: drop exact and near duplicates, keyed on a hash of the whitespace-normalised, lowercased first 400 characters plus the document length bucket. Keep the first occurrence.\n\n2. Features: HashingVectorizer(analyzer='word', token_pattern=r'\\S+', lowercase=False, ngram_range=(1,2), n_features=2**20, alternate_sign=False), followed by a TfidfTransformer with sublinear_tf. Word bigrams are the point: they separate real target text from the word-shuffled copies of wiki articles, which have identical unigrams.\n\n3. Training set: positives are the 200 target_sample docs cut into chunks of about 1500 characters. Negatives are the same kind of chunks from about 3000 pool docs drawn with the CURATE_SEED rng. Fit LogisticRegression(C=10, class_weight='balanced', max_iter=300).\n\n4. Scoring: score every deduped pool doc as the mean decision_function over its first 4 chunks. Then run a second PU round: refit with negatives taken from the bottom 50% of pool docs by score, and rescore.\n\n5. Shuffle guard: also compute, per doc, the fraction of adjacent word pairs that appear in the target_sample bigram set. Drop docs whose fraction is below half the median fraction of the target_sample docs (measured leave-one-out style, or simply against the full set).\n\n6. Selection: rank the surviving docs by classifier score. Take the top docs until their gpt2 token count reaches T; estimate tokens as len(text)/4 if tiktoken is too slow, but prefer tiktoken's encode_ordinary_batch. Stop early if the score falls below 0, so the clean subset is cycled rather than padded with junk.\n\n7. Order: return the selected indices in a seeded shuffled order.",
+   "outcome": "dev 1.8229 against 1.9412 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Add a typo-corruption filter and title-level dedup, applied before the top-T cut; keep everything else unchanged.\n\n1. Build a pool vocabulary: for each deduped doc, take the set of whitespace-split words from its first 8000 chars and count document frequency in a Counter. Also count the target_sample docs. A word is \"known\" if it occurs in at least 5 docs, or is purely digits or punctuation.\n\n2. For each doc compute oov = fraction of alphabetic words (first 8000 chars) that are not known. Compute the same value for the target_sample docs and set oov_thr = max(95th percentile of target oov, 1.5 * median target oov). Drop candidate docs with oov > oov_thr. These are the character-noised copies, like 'sog' for 'song' and 'member' for 'members' in the pool sample.\n\n3. Title dedup: for docs whose first line matches '= ... =', key on the lowercased, whitespace-normalised first line. Among docs sharing a title, keep only the one with the lowest oov, breaking ties by the higher shuffle-guard bigram fraction and then by the longer length. This removes noised, shuffled or truncated variants of an article whose clean copy is already present, which the 400-char prefix hash misses.\n\n4. Then proceed as before: classifier score >= 0, shuffle guard, rank by score, take up to T tiktoken tokens, seeded shuffle. Restrict the vocabulary pass to docs with round-2 score >= 0 if time is tight, to stay under 180 s.",
+   "outcome": "dev 1.8289 against 1.8229 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Stop cycling the clean subset when it is short of T, and put the most target-like text last. Keep dedup, features, both PU rounds and the shuffle guard exactly as they are.\n\n1. Core set: as now, docs with round-2 score >= 0 that pass the shuffle guard, ranked by score and taken until T gpt2 tokens. Record core_tokens.\n\n2. Filler, only if core_tokens < T: continue down the ranking (score < 0, descending) and add docs until the total reaches T. A filler doc must pass both checks on its first 4000 characters:\n   a. Prose check: at least 80% of characters are letters or spaces, and the mean whitespace-split word length is between 3 and 8. This removes code, tables and spam lists.\n   b. Real-word check: at least 60% of its lowercased alphabetic words are in a common-word set. Build that set from words that occur in at least 20 deduped pool docs, using the first 2000 characters of each doc, plus all target_sample words. This removes letter-scrambled docs.\n   Do not apply the target-bigram shuffle guard to filler, because it is tuned to wiki text. Count filler tokens with tiktoken, falling back to len/4 after the existing time deadline.\n\n3. Order: return the filler first in a seeded shuffle, then the core. Split the core at its median score: the lower-scoring half in a seeded shuffle, then the higher-scoring half in a seeded shuffle. Training then ends on the most target-like documents. The returned list holds about T tokens with no repeats.\n\n4. If the core alone already reaches T, there is no filler and only the two-block ordering of step 3 applies.",
+   "outcome": "dev 1.8819 against 1.8229 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the fixed 'score >= 0' cutoff with a cutoff calibrated on held-out target documents; keep dedup, features, both PU rounds, the shuffle guard, the top-T cut by rank and the seeded shuffle unchanged.\n\n1. After round 2, keep the round-2 negative chunk matrix (X_neg2 = X_pool[mask[owner]]) and record which target doc each positive chunk came from.\n\n2. Cross-fit: split the 200 target docs into 3 folds with the CURATE_SEED rng, grouped by doc so that all chunks of a doc share a fold. For each fold, fit the same LogisticRegression (C=10, class_weight='balanced', max_iter=300) on the positive chunks of the other two folds plus X_neg2. Score the held-out target docs exactly as pool docs are scored: mean decision_function over the first 4 chunks of the doc (1500 chars each, trailing chunk under 300 chars ignored).\n\n3. Set cut = min(0.0, 5th percentile of the 200 held-out target doc scores). Candidates are docs with final round-2 score >= cut instead of >= 0, still ranked by score, still filtered by the shuffle guard, still taken until T gpt2 tokens.\n\n4. Time safety: skip the cross-fit and use cut = 0 if more than 110 s have elapsed before it starts; stop after any fold once 135 s have elapsed and use the folds finished so far.\n\n5. Print or log cut, the number of candidate docs and the core token count as a fraction of T, so the effect can be checked.",
+   "outcome": "dev 1.8218 against 1.8229 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Add a structural 'wiki format' recall path so that clean target-format articles on topics unlike the 200 samples are not lost at the score >= 0 cutoff. Keep dedup, features, both PU rounds, the shuffle guard, tiktoken counting and the final seeded shuffle unchanged.\n\n1. Format test, calibrated on target_sample. For a text, take the first 6000 characters and compute:\n   a. hdr = the first line matches the regex ^= [^=\\n].* =$\n   b. punct = the fraction of whitespace-split tokens that are exactly ',' or '.' (the target has space-separated punctuation)\n   c. alpha = the fraction of characters that are letters or whitespace\n   Compute punct and alpha on the 200 target docs. Set punct_lo to 0.7 times the 5th percentile of target punct, and alpha_lo to the 5th percentile of target alpha minus 0.03. Use the hdr requirement only if at least 90% of target docs satisfy it. A pool doc is 'format-wiki' if it passes hdr (when enabled), punct >= punct_lo and alpha >= alpha_lo.\n\n2. Candidate set = (round-2 score >= 0) OR format-wiki. Every candidate must still pass the existing shuffle guard (bigram fraction >= thr), which removes the word-shuffled copies that share the header format.\n\n3. Rank the candidates by round-2 score in descending order and take docs until T gpt2 tokens, as now. If the candidates total less than T, return them all and let the trainer cycle them. Do not add non-wiki filler.\n\n4. Print the number of docs and the token count as a fraction of T for three groups: score >= 0 only, format-wiki only, and the final selection. That shows how much the recall path added.\n\n5. Time: the format test is a single cheap pass over the first 6000 characters of each deduped doc. Run it before tokenisation and keep the existing deadlines.",
+   "outcome": "dev 1.8230 against 1.8229 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the trainer's implicit cycling with explicit, quality-weighted padding. Keep dedup, features, both PU rounds, the score >= 0 cutoff, the shuffle guard and tiktoken counting unchanged.\n\n1. Build the core exactly as now: docs with round-2 score >= 0 that pass the shuffle guard, ranked by score, taken until T gpt2 tokens. Record each doc's token count and core_tokens. If core_tokens >= T, return the seeded shuffle of the core as now (no behaviour change).\n\n2. If core_tokens < T, compute a cleanliness value for each core doc on its first 8000 characters:\n   a. oov = fraction of alphabetic whitespace-split words that are not 'known'. A word is known if it occurs in at least 5 core docs (document frequency over the first 8000 chars of each core doc) or in any target_sample doc.\n   b. bg = the existing shuffle-guard bigram fraction, frac(doc).\n   c. clean = rank(bg) - rank(oov), with ranks taken over the core docs; higher is cleaner.\n   d. Title penalty: for docs whose first line matches '= ... =', group by the lowercased, whitespace-normalised first line. In each group, every doc except the one with the highest clean value is marked 'variant'.\n\n3. Padding: every core doc appears once. Then add second copies in descending order of clean, skipping 'variant' docs, until the total reaches T tokens. If all non-variant docs have been used and the total is still below T, add third copies in the same order, and so on. Variant and noisy docs therefore appear once, while the cleanest unique articles get the repeats.\n\n4. Order: one seeded shuffle over the whole padded list, so that copies are interleaved and the list holds at least T tokens and the trainer never wraps.\n\n5. Print core_tokens / T, the number of core docs, the number of variant docs, and the median oov of the docs that were repeated against those that were not.\n\n6. Time: the vocabulary pass runs over core docs only, after tokenisation. If more than 165 s have elapsed, skip steps 2 to 4 and return the shuffled core.",
+   "outcome": "dev 1.8101 against 1.8229 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 7,
+   "idea": "Change only the ORDER of the padded list, not its composition: end training on a block of the cleanest target text instead of one global shuffle. Keep dedup, features, both PU rounds, score >= 0 cutoff, shuffle guard, tiktoken counting, cleanliness value, variant marking and the padding rule (which docs get how many copies) exactly as they are.\n\n1. Build `padded` as now, but track it as two lists of core positions k: `base` (one entry per core doc, the first copies) and `extra` (the padding copies, in the order they were added, i.e. descending clean over non-variant docs, pass after pass).\n\n2. Tail block: TAIL_TOKENS = int(0.25 * T). Walk `extra` from its start (cleanest first) and move entries into `tail` until the tail's token sum reaches TAIL_TOKENS or `extra` is exhausted. If `extra` holds fewer than TAIL_TOKENS tokens, top up the tail by MOVING (not copying) first copies out of `base`: take non-variant docs in descending clean order, skipping docs already in the tail, until the tail reaches TAIL_TOKENS. The multiset of returned indices is therefore identical to the current best.\n\n3. Head = everything else (remaining `base` entries plus remaining `extra` entries). Seeded-shuffle the head; seeded-shuffle the tail separately; return head + tail mapped back to doc indices.\n\n4. Make sure the tail is actually trained on: the total token count of head + tail must be >= T with an overshoot of at most one document, as now. Because the trainer stops at T, if the list overshoots, drop the surplus from the END OF THE HEAD (not from the tail) so the tail occupies the final ~25% of the T-token budget.\n\n5. If the core alone reaches T (no padding branch), apply the same idea: compute clean/variant for the core if time allows (same PAD_DEADLINE / PAD_ABORT checks), put the cleanest non-variant docs worth 0.25*T tokens in a shuffled tail and the rest in a shuffled head; on time-out fall back to the plain shuffle.\n\n6. Print head tokens/T, tail tokens/T, number of tail docs, and median oov of tail docs against head docs.",
+   "outcome": "dev 1.8132 against 1.8101 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Add a third, self-training classifier round that only ever ADDS documents to the core. Keep dedup, features, rounds 1 and 2, the shuffle guard, tiktoken counting, the cleanliness value, variant marking, the padding rule and the final single shuffle unchanged.\n\n1. Keep X_pool and X_pos alive after round 2 (delete them after round 3). Build the target bigram set and frac() before this step so the guard is available.\n\n2. Pseudo-positives: walk the pool docs in descending round-2 score and take the first 2000 that have score2 > 0 and pass the shuffle guard (frac >= thr). Use all their chunks already in X_pool (up to 4 per doc).\n\n3. Negatives: 3000 docs sampled with the CURATE_SEED rng from docs whose round-2 score is below the 40th percentile.\n\n4. Round 3: fit the same LogisticRegression (C=10, class_weight='balanced', max_iter=300) on positives = X_pos (target chunks) stacked with the pseudo-positive chunks, against those negatives. To stop the 200 target docs being swamped, pass sample_weight so the target chunks carry the same total weight as the pseudo-positive chunks. Compute score3 per doc as the mean decision_function over its chunks, as before.\n\n5. Candidates = (score2 >= 0) OR (score3 >= 0), and every candidate must still pass the shuffle guard. Order for the top-T cut: all score2 >= 0 docs first in descending score2 (exactly as now), then the newly added docs (score2 < 0, score3 >= 0) in descending score3. Take docs until T gpt2 tokens. The resulting list is the core; if it is still below T, apply the existing clean-rank padding to it unchanged.\n\n6. Time safety: skip round 3 (behave exactly as the current best) if more than 100 s have elapsed before the fit starts.\n\n7. Print the number of docs and tokens/T for: score2 >= 0 passing the guard, newly added by score3, and the final core. Also print the median oov of the added docs against the original core, so we can see whether round 3 recovered clean articles or noise.",
+   "outcome": "dev 1.8194 against 1.8101 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Make the quality checks see the whole document instead of only its head. At present the classifier scores the first 6000 characters and the shuffle guard the first 8000, so a doc that starts as a clean article but is shuffled, spammed or otherwise damaged later passes untouched and spends budget in proportion to its full length. Keep dedup, features, both PU rounds, the score >= 0 cutoff, tiktoken counting, the clean-rank padding rule and the single final shuffle unchanged.\n\n1. Windowed guard. For each candidate doc (round-2 score >= 0), split the FULL text into consecutive windows of 4000 characters, dropping a trailing window under 1000 characters unless it is the only one. For each window compute the existing target-bigram fraction (adjacent word pairs found in the target_sample bigram set). Record min_frac, the minimum over windows, and bad_share, the share of windows with fraction < thr. thr is the existing value, 0.5 * the leave-one-out target median.\n\n2. Calibrate on the target: compute the same per-window fractions for the 200 target docs, using the leave-one-out df >= 2 rule as now. Set thr_win = min(thr, 0.8 * the 1st percentile of all target window fractions), so that natural within-article variation never triggers it.\n\n3. Core admission: a doc enters the core only if its first-8000-char fraction >= thr (as now) AND bad_share, measured against thr_win, is <= 0.25. Docs with 0 < bad_share <= 0.25 stay in the core once but are marked 'variant', so they never receive padding copies.\n\n4. Cleanliness for padding: use the mean window fraction over the whole doc as bg instead of the first-8000-char fraction, and compute oov on up to 8000 characters taken as two 4000-char slices, one from the start and one from the end of the doc, instead of only the head.\n\n5. Time: run the windowed pass inside the existing batched loop, only on docs actually reached before T tokens. If more than 140 s have elapsed, fall back to the current head-only guard for the remaining docs.\n\n6. Print the number of docs and tokens/T dropped by the windowed guard, the number marked variant by it, and core_tokens/T before and after, so we can see whether late-document damage exists in the pool.",
+   "outcome": "dev 1.8073 against 1.8101 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Add a cheap whole-document 'wiki format' purity gate to core admission, as an AND with the classifier (experiment 5 tried it as an OR to add docs; this removes docs). Keep dedup, features, both PU rounds, the score >= 0 cutoff, the head-only shuffle guard, tiktoken counting, the clean-rank padding rule and the single final shuffle unchanged.\n\n1. Format statistics per window. Split a text into consecutive 4000-character windows over the FULL text, dropping a trailing window under 1000 characters unless it is the only one. For each window compute:\n   a. punct = fraction of whitespace-split tokens that are exactly one of ',', '.', '@-@', '(', ')', '\"' (the target has space-separated punctuation; ordinary web text, code and spam do not).\n   b. alpha = fraction of characters that are letters or whitespace.\n   c. rep = 1 - (number of distinct non-empty lines / number of non-empty lines), computed only when the window has at least 4 non-empty lines, else 0 (repeated-line junk).\n\n2. Calibrate on the 200 target docs. Compute the same window statistics and set punct_lo = 0.7 * the 1st percentile of target window punct, alpha_lo = the 1st percentile of target window alpha - 0.03, and rep_hi = max(0.2, the 99th percentile of target window rep + 0.1). A window is 'bad' if punct < punct_lo, alpha < alpha_lo or rep > rep_hi. Header test: the first non-empty line matches ^= [^=\\n].* =$. Enable it only if at least 90% of target docs pass it.\n\n3. Core admission. A doc with round-2 score >= 0 that passes the existing shuffle guard enters the core only if it passes the header test (when enabled), its FIRST window is not bad, and bad_share (the share of bad windows) is <= 0.25. Docs with 0 < bad_share <= 0.25 stay in the core once but are marked 'variant', so they never receive padding copies. OR this into the existing same-title variant mask.\n\n4. Everything downstream is unchanged: rank by score, take until T gpt2 tokens, and if the core is short of T, pad with extra copies of the cleanest non-variant docs, then one seeded shuffle.\n\n5. Time. Run the format pass inside the existing batched loop, only on candidates actually reached before T tokens. It is a single pass of str.split and character counting. If more than 140 s have elapsed, skip the gate for the remaining docs.\n\n6. Print the number of docs and tokens/T dropped for each reason (header, first window bad, bad_share), the number marked variant by the gate, and core_tokens/T before and after, so we can see how much non-wiki or late-damaged text the classifier was letting in.",
+   "outcome": "dev 1.8181 against 1.8101 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Remove redundant same-title variants from the core instead of keeping them once. Keep dedup, features, both PU rounds, the score >= 0 cutoff, the head-only shuffle guard, tiktoken counting, the clean value, the padding rule and the single final shuffle unchanged.\n\n1. Build the core as now (score >= 0, guard-passing, ranked by score, taken until T tokens). To let the title groups see every sibling, do not stop the batched loop at T: continue over all candidates with score >= 0, subject to the existing time deadlines, and apply the T cut after step 3.\n\n2. Compute oov, bg, clean = rank(bg) - rank(oov), and the title groups exactly as now. The title key is the normalised first line when it matches '= ... ='.\n\n3. In each title group with two or more members, keep only the member with the highest clean value, breaking ties by the higher classifier score. DELETE the other members from the core (selected, tok, clean), rather than marking them 'variant' and keeping one copy. Docs without a '= ... =' title, and docs that are the only one with their title, are untouched. This keeps noisy articles that have no clean sibling.\n\n4. Re-rank the remaining core by score and take docs until T tokens. If the core is below T, pad as now: every remaining core doc once, then extra copies in descending clean order, pass after pass, until T. There is no variant mask any more, because the variants are gone. Then one seeded shuffle.\n\n5. Time: if PAD_DEADLINE or PAD_ABORT is hit before step 3 finishes, fall back to the current behaviour, which is the shuffled core without deletion.\n\n6. Print the number of title groups with more than one member, the docs and tokens/T deleted, the median oov and median bg of deleted docs against kept siblings, and core_tokens/T before and after.",
+   "outcome": "dev 1.8240 against 1.8101 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Combine the two changes that each came out directionally lower than their baseline on a single run (exp 9 whole-document windowed guard, 1.8073 vs 1.8101; exp 4 calibrated cutoff, 1.8218 vs 1.8229), so that the windowed guard removes late-damaged docs and the lower cutoff refills the core with real target articles instead of more duplicate padding. Keep dedup, features, both PU rounds, tiktoken counting, the same-title variant mask, the clean-rank padding rule and the single final seeded shuffle unchanged.\n\n1. Calibrated cutoff (as exp 4). After round 2, keep X_neg2 = X_pool[mask[owner]] and record which target doc each positive chunk came from. Split the 200 target docs into 3 folds with the CURATE_SEED rng, grouped by doc. For each fold, fit the same LogisticRegression (C=10, class_weight='balanced', max_iter=300) on the other folds' positive chunks plus X_neg2. Score each held-out target doc as the mean decision_function over its first 4 chunks (1500 chars each, trailing chunk under 300 chars ignored). Set cut = min(0.0, 5th percentile of the held-out target doc scores). Candidates are docs with round-2 score >= cut, ranked by score descending. Skip the cross-fit and use cut = 0 if more than 105 s have elapsed before it starts; stop after any fold once 125 s have elapsed and use the folds finished so far.\n\n2. Windowed guard (as exp 9). For each candidate reached in the batched loop, split the FULL text into consecutive 4000-char windows, dropping a trailing window under 1000 chars unless it is the only one. Compute the target-bigram fraction per window. Compute the same per-window fractions on the 200 target docs with the leave-one-out df >= 2 rule, and set thr_win = min(thr, 0.8 * the 1st percentile of the target window fractions). bad_share = share of windows with fraction < thr_win. A doc enters the core only if its first-8000-char fraction >= thr (as now) AND bad_share <= 0.25. Docs with 0 < bad_share <= 0.25 stay in the core once but are OR-ed into the variant mask, so they never get padding copies. If more than 140 s have elapsed, fall back to the head-only guard for the remaining docs.\n\n3. Extra protection for docs admitted only by the lower cutoff (cut <= score < 0): they must have bad_share == 0, and they are marked variant, so they appear exactly once and never receive padding copies.\n\n4. Cleanliness for padding (as exp 9): bg = mean window fraction over the whole doc. oov is computed on up to 8000 chars taken as two 4000-char slices, one from the start and one from the end of the doc. clean = rank(bg) - rank(oov). Same-title variant marking and padding (every core doc once, then extra copies of non-variant docs in descending clean order until T tokens) are as now, followed by one seeded shuffle.\n\n5. Print cut, the docs and tokens/T added by the lower cutoff, the docs and tokens/T dropped by the windowed guard, the number marked variant by each rule, and core_tokens/T before and after.",
+   "outcome": "dev 1.8130 against 1.8101 for the best at the time, rejected"
+  }
+ ],
+ "usd": 8.4968672,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.4084996,
+   "dev": 1.8229236001730844,
+   "inc": 1.9411996346022524,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.27801189501349,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5298756,
+   "dev": 1.8288673739385994,
+   "inc": 1.8229236001730844,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.27801189501349,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5261955999999999,
+   "dev": 1.8818524793917502,
+   "inc": 1.8229236001730844,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.27801189501349,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5106435999999999,
+   "dev": 1.821837331881219,
+   "inc": 1.8229236001730844,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.27801189501349,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6908196,
+   "dev": 1.8229532465717764,
+   "inc": 1.8229236001730844,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.27801189501349,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.8102195999999999,
+   "dev": 1.810051085791472,
+   "inc": 1.8229236001730844,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.049621361241456,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7308035999999998,
+   "dev": 1.8132006316182412,
+   "inc": 1.810051085791472,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.049621361241456,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.8381395999999999,
+   "dev": 1.8194039655085035,
+   "inc": 1.810051085791472,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.049621361241456,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.8014435999999998,
+   "dev": 1.807293578841448,
+   "inc": 1.810051085791472,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.049621361241456,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.9878116000000006,
+   "dev": 1.8180920392170072,
+   "inc": 1.810051085791472,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.049621361241456,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7708355999999998,
+   "dev": 1.8240198585802652,
+   "inc": 1.810051085791472,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.049621361241456,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.8915796000000009,
+   "dev": 1.8130205326199134,
+   "inc": 1.810051085791472,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9411996346022524,
+ "inc_slot": 6
+}

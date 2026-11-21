@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+=======
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        if rng.random() < 0.5:
+            p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        else:   # cluster rotation: rotate the circles near a random centre
+            c0, rho, ang = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35), rng.normal(0, 0.3)
+            inside = np.sqrt(((c - c0) ** 2).sum(1)) < rho
+            cs, sn = np.cos(ang), np.sin(ang)
+            rot = (c - c0) @ np.array([[cs, sn], [-sn, cs]]) + c0
+            p = np.clip(np.where(inside[:, None], rot, c), 0, 1).ravel()
+        c, r = _solve_once(n, p)
+>>>>>>> REPLACE
+-----

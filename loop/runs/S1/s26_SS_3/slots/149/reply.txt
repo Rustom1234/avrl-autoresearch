@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if it % 10 in (0, 4, 8):
+            try:
+                zc = z0.copy()
+                Lp = 1.0
+                for Ls in (1.15, 1.08, 1.03):
+                    zc = zc * (Ls / Lp)
+                    Lp = Ls
+
+                    def consL(z, L=Ls):
+                        c_ = cons(z)
+                        c_[m + n:m + 2 * n] = L - z[:n] - z[2 * n:]
+                        c_[m + 3 * n:m + 4 * n] = L - z[n:2 * n] - z[2 * n:]
+                        return c_
+                    bL = [(0, Ls)] * (2 * n) + [(0, 0.5)] * n
+                    rs = minimize(obj, zc, jac=grad, method="SLSQP", bounds=bL,
+                                  constraints=[{"type": "ineq", "fun": consL, "jac": jac}],
+                                  options={"maxiter": 100, "ftol": 1e-9})
+                    zc = np.clip(rs.x, 0, None)
+                zc = zc / Lp
+                zc[:2 * n] = np.clip(zc[:2 * n], 0, 1)
+                z0 = zc
+            except Exception:
+                pass
+        try:
+>>>>>>> REPLACE
+-----

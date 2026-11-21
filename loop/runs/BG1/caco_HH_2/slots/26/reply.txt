@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def base_features(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Descriptors.TPSA(m), Descriptors.MolWt(m), Descriptors.NumHDonors(m), Descriptors.MolLogP(m)])
+    return np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+=======
+ACID_PATS = [Chem.MolFromSmarts(s) for s in ['[CX3](=O)[OX2H1,OX1-]', '[#6]1:[#7]:[#7]:[#7]:[#7]:1', 'C(=O)[NH]S(=O)=O']]
+BASE_PATS = [Chem.MolFromSmarts('[NX3;!$(N~[!#6;!#1]);!$(N-C=[O,S,N]);!$(N-a);!$(N-C=C)]')]
+QUAT_PATS = [Chem.MolFromSmarts('[N+;!$([N+]-[O-]);!$([N+]=O)]')]
+PHENOL_PATS = [Chem.MolFromSmarts('c[OX2H1]')]
+
+
+def ion_counts(m):
+    return [sum(len(m.GetSubstructMatches(p)) for p in pats) for pats in (ACID_PATS, BASE_PATS, QUAT_PATS, PHENOL_PATS)]
+
+
+def base_features(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Descriptors.TPSA(m), Descriptors.MolWt(m), Descriptors.NumHDonors(m), Descriptors.MolLogP(m)]
+                    + ion_counts(m))
+    return np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+>>>>>>> REPLACE
+-----

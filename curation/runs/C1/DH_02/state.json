@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/DH_02/cand/s03_0.py",
+ "inc_scores": {
+  "11": 1.9290016426792536
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Train a domain classifier and keep only target-like docs, deduplicated. Steps: (1) Fit TfidfVectorizer(analyzer='char_wb', ngram_range=(1,4), sublinear_tf=True, max_features=200k) on first 2000 chars of each doc; positives = 200 target_sample docs, negatives = seeded random 3000 pool docs; fit LogisticRegression(class_weight='balanced'); score all pool docs. Then do one self-training round: refit with top 1500 scored pool docs as positives and bottom 3000 as negatives, rescore. (2) Add a cheap structural feature boost: docs starting with '= ' title line and containing WikiText tokenization marks (' @-@ ', ' , ', ' . ') get kept regardless if score is borderline. (3) Exact-dedup by hash of whitespace-normalised text, and near-dedup by hash of first 200 chars. (4) Drop docs with <200 chars. (5) Keep docs with probability > 0.5 (if kept tokens < 0.3T, relax threshold to take top-scoring docs up to 0.3T), counting tokens with tiktoken gpt2. (6) Return kept indices in seeded shuffled order; if fewer than T tokens, append additional seeded reshuffles of the same kept set until T tokens are covered (so each epoch has a different order), rather than padding with off-domain text.",
+   "outcome": "dev 2.0257 against 1.9602 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Filter on word ORDER, not just vocabulary, because the pool contains word-shuffled Wikipedia articles (e.g. '= Poole =\\ntown of / on , coast the is ...') that a char-n-gram classifier scores as perfectly on-domain.\n\n(1) Order score. Split on whitespace. From target_sample, count unigrams and adjacent bigrams, restricted to the 400 most frequent target tokens (including ',', '.', 'the', 'of', '@-@'). For each pool doc, over its first 600 tokens, compute the mean PMI = log(p(a,b) / (p(a)p(b))) with add-0.5 smoothing over adjacent pairs where both tokens are in that vocabulary. Also compute the same score for a seeded word-shuffled copy of every target_sample doc. Set threshold = midpoint between the 5th percentile of real target scores and the 95th percentile of shuffled target scores. Mark any doc below it as 'scrambled' and drop it. Leave docs with fewer than 30 in-vocabulary pairs to the later rules.\n\n(2) Junk rules. Drop docs that:\n- contain '<html', '<!DOCTYPE', '<div', or have more than 3% '<', '>', '{', '}' characters;\n- match spam phrases, case-insensitive: 'discount code', 'coupon', 'click here to order', 'free shipping', 'best price guaranteed', 'limited offer';\n- have fewer than 200 characters;\n- have less than 70% alphabetic-or-space characters;\n- are exact duplicates by hash of whitespace-normalised text (keep the first copy).\n\n(3) Split the survivors.\n- WIKI: contains ' @-@ ', or has at least 1 per 100 tokens of standalone ' , ' and ' . ' tokens, or starts with '= '.\n- OTHER: the remaining clean prose.\n\n(4) Build the list, counting tokens with tiktoken gpt2.\n- Let W = WIKI tokens.\n- If W >= T: return a seeded shuffle of WIKI.\n- Otherwise the tail is WIKI repeated r = min(3, floor(T / W)) times, each repeat a different seeded shuffle.\n- The front is filler: a seeded shuffle of OTHER docs, truncated to T - r*W tokens. If OTHER runs out, add one more WIKI shuffle.\n- Order = filler first, then the WIKI epochs, so training ends on pure in-domain text.",
+   "outcome": "dev 1.9606 against 1.9602 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Rework experiment 2 into a single-pass, priority-filled, fully mixed selection with a vocabulary-coverage filter (experiment 2 let letter-scrambled and foreign-language docs through as filler, and used a filler-first curriculum with 3x repeats).\n\n(1) Hard junk drop. Drop docs that:\n- match spam phrases, case-insensitive: 'discount code', 'coupon', 'click here to order', 'free shipping', 'best price guaranteed', 'limited offer', 'buy now';\n- contain '<html', '<!DOCTYPE', '<div', or have more than 3% of '<>{}' characters;\n- have fewer than 200 characters;\n- have more than 10% non-ASCII characters;\n- are exact duplicates by hash of whitespace-normalised, lowercased text (keep the first copy).\n\n(2) Vocabulary coverage (catches letter-scrambled text like 'We ear nidgloa eth' and foreign text). Build the set V of lowercased whitespace tokens seen at least 2 times in target_sample. For each doc, cov = fraction of its first 400 lowercased alphabetic tokens that are in V. Compute cov for the target docs as well. Drop pool docs with cov < 0.75 * (5th percentile of target cov).\n\n(3) Word-order score, as in experiment 2: mean adjacent-bigram PMI over the top-400 target tokens, on the first 600 tokens, with the threshold at the midpoint between the 5th percentile of real target scores and the 95th percentile of seeded word-shuffled target scores. Docs below the threshold are flagged SHUF (not dropped). Docs with fewer than 30 in-vocabulary pairs are not flagged.\n\n(4) Tiers among the survivors.\n- A: not SHUF, and WikiText-formatted (starts with '= ', or contains ' @-@ ', or has at least 2 standalone ' , ' / ' . ' tokens per 100 tokens).\n- B: not SHUF, other clean prose. Sort B descending by cosine similarity between the doc's TF-IDF word-unigram vector and the centroid of the target_sample vectors.\n- C: SHUF docs.\n\n(5) Fill to 1.02 T tokens (count with tiktoken gpt2), each doc at most once, in this priority: all of A, then B in similarity order, then C. Only if that is still short of T, add a second copy of the A docs. Never use more than 2 copies of anything.\n\n(6) Return the chosen set in ONE seeded uniform shuffle, so in-domain and filler text are mixed across all 300 steps. No curriculum and no blocks.",
+   "outcome": "dev 1.9290 against 1.9602 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 4,
+   "idea": "Change only the fill priority (step 5), keeping all filters, tiers and the final single uniform shuffle as they are. New fill order to 1.02 T gpt2 tokens: (a) all of tier A once; (b) tier B in descending TF-IDF similarity order, capped at 0.15 T tokens; (c) a second copy of tier A docs (seeded random order, so a budget cut is unbiased) until the budget is reached; (d) only if still short, the rest of B in similarity order; (e) only if still short, tier C (word-shuffled docs) last. Never more than 2 copies of any doc. If A alone already reaches 1.02 T, nothing changes. Then shuffle the whole chosen list once with the seeded rng, so the two copies of an A doc land at independent random positions. Also have curate.py compute the token totals of A, B and C in a comment or returned debug variable, so the tier sizes are known for later experiments.",
+   "outcome": "dev 1.9287 against 1.9290 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Change only the final ordering (step 6); filters, tiers and fill priority stay exactly as in the current best. Replace the single uniform shuffle with a soft \"end on in-domain\" ordering.\n\n(a) Trim the surplus first. After the priority fill, pop docs from the end of the chosen list (the lowest-priority, last-picked ones) while the total without them is still >= 1.002 T gpt2 tokens. This makes the trainer's cut at T fall on filler, not on tier A.\n\n(b) Give every chosen doc a seeded random key:\n- tier A (clean WikiText): key ~ U(0, 1)\n- tier B (other clean prose): key ~ U(0, 0.75)\n- tier C (word-shuffled): key ~ U(0, 0.55)\n- a second copy of an A doc, if any: its own independent U(0, 1) key\n\n(c) Return the docs sorted by key ascending.\n\nResult: the first half of training is a uniform mix of all tiers, shuffled-word docs disappear after about 55% of the stream, other filler after about 75%, and the last stretch (during the learning-rate decay) is pure clean in-domain text. A docs stay spread uniformly over the whole run, so there are no hard blocks.",
+   "outcome": "dev 1.9283 against 1.9290 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Keep the pipeline, tiers, 1.02 T priority fill and single uniform shuffle of the current best; add near-duplicate removal and whole-document damage checks, since everything now is judged only on the document head and exact hashes.\n\n(1) Near-duplicate drop, after the hard junk drop. Split each doc into lines, and lines over 300 chars further on ' . '. Normalise each piece (lowercase, collapse whitespace), keep pieces of at least 60 chars and hash them. Process docs in descending length order so the most complete copy is kept. Drop a doc if at least 50% of its hashed pieces, with a minimum of 3, are already in the seen set; otherwise add its pieces to the set. This catches truncated copies, copies with a changed head or tail, and re-wrapped duplicates.\n\n(2) Internal repetition drop. Drop a doc if fewer than 60% of its hashed pieces are distinct, when it has at least 5 pieces.\n\n(3) Multi-window damage check. Compute vocabulary coverage (400 alphabetic tokens) and the bigram-PMI word-order score (600 tokens) on three windows instead of the head only: start, middle and end of the doc. Take three 12000-char slices for long docs, and only the distinct windows for short ones. Use the same thresholds as now. Drop the doc if any window fails coverage. Flag it SHUF (tier C) if any window with at least 30 in-vocabulary pairs falls below the PMI threshold. Apply the 3% bracket and 10% non-ASCII fractions per window as well, dropping the doc if any window fails.\n\n(4) Log the gpt2 token totals of tiers A, B and C and the number of docs removed by each new rule in a module-level debug dict (no file access).\n\nTier B in similarity order backfills whatever budget this frees.",
+   "outcome": "dev 1.9485 against 1.9290 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Change only the fill priority (step 5); keep all filters, the tier definitions, the 1.02 T budget, the one-copy limit and the final single seeded uniform shuffle. Split tier C (docs flagged SHUF by the word-order score) in two using the same WikiText-format test already used for tier A (starts with '= ', or contains ' @-@ ', or at least 2 standalone ',' / '.' tokens per 100 tokens): C_wiki = word-shuffled but WikiText-formatted docs, C_other = the rest. New fill order: (a) all of A; (b) C_wiki in seeded random order; (c) B in descending TF-IDF similarity order; (d) C_other last; (e) a second copy of A only if still short of T. So word-shuffled Wikipedia articles now take priority over off-domain clean prose instead of being used last. Also record the gpt2 token totals of A, C_wiki, B and C_other, and the tokens actually chosen from each, in a module-level debug dict (no file access).",
+   "outcome": "dev 1.9462 against 1.9290 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Change only how tier B is ranked; keep all filters, the tier definitions, the fill priority A -> B -> C to 1.02 T, the one-copy limit and the final single seeded uniform shuffle.\n\nReplace the TF-IDF cosine-to-centroid ranking of B with a cross-fitted discriminative 'looks like tier A' score.\n\n(1) Features: TfidfVectorizer(lowercase=True, sublinear_tf=True, min_df=3, max_features=100000, ngram_range=(1,2), dtype=float32), fitted on the first 5000 chars of all tier A docs, all tier B docs and the target_sample docs.\n\n(2) Positives: the 200 target_sample docs plus a seeded random sample of at most 4000 tier A docs. Negatives: tier B docs.\n\n(3) Cross-fitting: split B into 2 seeded random folds. For each fold, fit LogisticRegression(C=1.0, class_weight='balanced', solver='liblinear') on all positives against the other fold of B, and score the held-out fold with decision_function. Every B doc is therefore scored by a model that never saw it as a negative.\n\n(4) Sort B by this score, descending, and fill from it exactly as now. If fitting fails or a class is empty, fall back to the current centroid ranking.\n\n(5) Record in a module-level debug dict (no file access) the gpt2 token totals of A, B and C and the tokens actually chosen from each.",
+   "outcome": "dev 1.9280 against 1.9290 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Change only the fill (step 5); keep all filters, tier definitions, the 1.02 T budget, the 2-copy limit and the final single seeded uniform shuffle. Remove off-domain filler completely when tier A is large enough. Count the gpt2 tokens of all of tier A (W_A). If W_A >= 0.6 T: chosen = all of A once, plus a seeded random subset of A docs as second copies until the total reaches 1.02 T; use no tier B and no tier C at all. If W_A >= 1.02 T, this is just A cut at the budget, as now. If W_A < 0.6 T: all of A once, then a second copy of all of A, then B in descending TF-IDF similarity order up to 1.02 T, then C only if still short. Shuffle the whole chosen list once with the seeded rng so the two copies of a doc land at independent positions. Experiment 4 capped B at 0.15 T, which probably changed nothing if B was already filling less than that; this tests B = 0.",
+   "outcome": "dev 1.9283 against 1.9290 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Make the word-shuffle detector stricter and never use shuffled text as filler; keep everything else (hard junk drop, coverage filter, tier definitions, TF-IDF ranking of B, 1.02 T budget, 2-copy limit, single seeded uniform shuffle).\n\n(1) Longer scoring window. Compute the bigram-PMI word-order score over all tokens of the 12000-char prefix (set PMI_TOKENS to about 2500) instead of the first 600. Score the real and seeded-shuffled target docs with the same window, still leave-one-out.\n\n(2) Stricter threshold. Replace the midpoint with pmi_thr = max(midpoint, 5th percentile of the real leave-one-out target scores). A doc is flagged SHUF unless it scores like a real target doc; about 5% of genuine docs are sacrificed.\n\n(3) Short docs. Lower PMI_MIN_PAIRS from 30 to 15. A WikiText-formatted doc (passes the tier-A format test) that still has fewer than 15 in-vocabulary pairs goes to the end of tier B instead of tier A.\n\n(4) Fill order to 1.02 T: all of A once; then B in descending similarity order; then second copies of A docs in seeded random order; tier C only if still short after that. Previously C was used before any second copy of A.\n\n(5) Shuffle the chosen list once with the seeded rng.",
+   "outcome": "dev 1.9287 against 1.9290 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Add a target-calibrated character-profile and typo outlier check, applied to docs that survive the current filters. Keep everything else unchanged: hard junk drop, coverage filter, PMI flag, tier definitions, TF-IDF ranking of B, fill A -> B -> C to 1.02 T, single seeded uniform shuffle.\n\n(1) Per-doc statistics on the first 12000 chars, case-sensitive (the current filters all lowercase first, so case damage is invisible to them):\n- upper = uppercase letters / all letters\n- digit = digits / all chars\n- space = whitespace chars / all chars\n- wlen = mean length of whitespace-split tokens\n- rare = fraction of alphabetic lowercased tokens of length >= 4 (first 600 such tokens) whose pool document frequency is <= 1. Build the pool document-frequency Counter in a first pass over the lowercased 12000-char prefixes of docs that pass the hard junk drop. This catches character-level typo noise such as 'fnds'.\n- rep = 1 - distinct lines / lines, over lines of at least 20 chars, for docs with at least 6 such lines. This catches repeated boilerplate such as 'Posted by admin in Uncategorized'.\n\n(2) Calibration. Compute upper, digit, space, wlen and rare for the 200 target docs. For rare, use the same pool document-frequency table and count a token as rare if its pool df is 0, since target docs are not in the pool. For each statistic take lo = min and hi = max over the target docs, then widen: lo' = lo - 0.25*(hi - lo), hi' = hi + 0.25*(hi - lo). For rare use only the upper bound hi' = max(target max * 1.5, target p99 + 0.03). For rep use a fixed bound of 0.4.\n\n(3) Action. A doc is an OUTLIER if any statistic is outside its widened range.\n- Tier A outliers move to a new tier D.\n- Tier B outliers are dropped.\n- Tier C is unchanged.\nFill order: A, B (similarity order), then D (seeded random), then C, then a second copy of A only if still short of T.\n\n(4) Record in a module-level debug dict (no file access): the number of outliers per statistic and per tier, and the gpt2 token totals of A, B, C, D and the tokens chosen from each.",
+   "outcome": "dev 1.9331 against 1.9290 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Combine the two rejected changes that each came out slightly below the current best (experiment 8 at 1.9280, experiment 5 at 1.9283) and are independent of each other. Keep all filters, tier definitions, the fill priority A -> B -> C to 1.02 T and the one-copy limit; add no new dedup or damage filters (experiments 6 and 11 hurt).\n\n(1) Rank tier B as in experiment 8. Fit TfidfVectorizer(lowercase=True, sublinear_tf=True, min_df=3, max_features=100000, ngram_range=(1,2), dtype=float32) on the first 5000 chars of all tier A docs, all tier B docs and the target_sample docs. Positives: the 200 target docs plus a seeded random sample of at most 4000 tier A docs. Negatives: tier B docs. Split B into 2 seeded random folds; for each fold fit LogisticRegression(C=1.0, class_weight='balanced', solver='liblinear') on all positives against the other fold and score the held-out fold with decision_function. Sort B by this score, descending. If fitting fails or a class is empty, fall back to the current TF-IDF centroid ranking.\n\n(2) Fill as now: all of A, then B in the new order, then C, to 1.02 T gpt2 tokens; a second copy of A only if still short of T.\n\n(3) Order as in experiment 5 instead of the single uniform shuffle. First trim the surplus: pop the last-picked, lowest-priority docs while the total without them is still >= 1.002 T, so the trainer's cut at T falls on filler. Then give every chosen doc a seeded random key: tier A ~ U(0, 1), tier B ~ U(0, 0.75), tier C ~ U(0, 0.55), and any second copy of an A doc its own independent U(0, 1). Return the docs sorted by key ascending. Tier A stays spread over the whole run, and the last quarter (during learning-rate decay) is pure clean in-domain text.\n\n(4) Record the gpt2 token totals of A, B and C and the tokens chosen from each in a module-level debug dict (no file access).",
+   "outcome": "dev 1.9283 against 1.9290 for the best at the time, rejected"
+  }
+ ],
+ "usd": 7.3318832,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.3028836,
+   "dev": 2.0256862312875232,
+   "inc": 1.9601703860365816,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.4001875999999999,
+   "dev": 1.9605611676071826,
+   "inc": 1.9601703860365816,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.6170515999999999,
+   "dev": 1.9290016426792536,
+   "inc": 1.9601703860365816,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.289670156527388,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5685635999999998,
+   "dev": 1.9287179090923583,
+   "inc": 1.9290016426792536,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.289670156527388,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5412436,
+   "dev": 1.9282954262423673,
+   "inc": 1.9290016426792536,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.289670156527388,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6609555999999999,
+   "dev": 1.948542045399815,
+   "inc": 1.9290016426792536,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.289670156527388,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5102275999999999,
+   "dev": 1.9462411520575402,
+   "inc": 1.9290016426792536,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.289670156527388,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6845556000000004,
+   "dev": 1.9280199866870484,
+   "inc": 1.9290016426792536,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.289670156527388,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6195156000000006,
+   "dev": 1.9282958174204021,
+   "inc": 1.9290016426792536,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.289670156527388,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7573556000000004,
+   "dev": 1.9287348751180713,
+   "inc": 1.9290016426792536,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.289670156527388,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.9281395999999997,
+   "dev": 1.9330766711365825,
+   "inc": 1.9290016426792536,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.289670156527388,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7412035999999995,
+   "dev": 1.9283111552997,
+   "inc": 1.9290016426792536,
+   "harmed": true,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9601703860365816,
+ "inc_slot": 3
+}

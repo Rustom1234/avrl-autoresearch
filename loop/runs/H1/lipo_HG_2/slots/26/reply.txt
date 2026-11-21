@@ -1,0 +1,189 @@
+<<<<<<< SEARCH
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+        
+        
+    return np.array(fps, dtype=np.float32)
+=======
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        
+        # Elemental and Charge features
+        elements = ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P']
+        elem_counts = [mol.GetNumAtomWithElement(e).GetNumAtoms() for e in elements]
+        
+        halogens = [atom.GetSymbol() for atom in mol.GetAtoms() if atom.GetSymbol() in ['F', 'Cl', 'Br', 'I']]
+        
+        pos_charges = sum(1 for atom in mol.GetAtoms() if atom.GetFormalCharge() > 0)
+        neg_charges = sum(1 for atom in mol.GetAtoms() if atom.GetFormalCharge() < 0)
+        
+        arom_n = sum(1 for atom in mol.GetAtoms() if atom.GetSymbol() == 'N' and atom.GetIsAromatic())
+        
+        h_bond_free_hetero = sum(1 for atom in mol.GetAtoms() if atom.GetIsHeteroAtom() and not (atom.GetIsAromatic() or atom.GetSymbol() == 'N'))
+        
+        # Gasteiger charges
+        from rdkit.Chem import rdPartialCharges
+        partial_charges = rdPartialCharges.ComputeGasteigerCharges(mol)
+        charge_vals = [atom.GetPartialCharge() for atom in mol.GetAtoms()]
+        
+        extra_feats = [
+            *elem_counts,
+            len(halogens),
+            pos_charges,
+            neg_charges,
+            arom_n,
+            h_bond_free_hetero,
+            min(charge_vals),
+            max(charge_vals),
+            sum(abs(c) for c in charge_vals),
+            sum(1 for c in charge_vals if abs(c) > 0.3)
+        ]\n        
+        fps.append(np.concatenate([fp, np.array(descs + extra_feats, dtype=np.float32)]))
+        
+    return np.array(fps, dtype=np.float32)
+-----
+<<<<<<< SEARCH
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+再生 =======
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        
+        # Elemental and Charge features
+        elements = ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P']
+        elem_counts = [mol.GetNumAtomWithElement(e).GetNumAtoms() for e in elements]
+        
+        halogens = [atom.GetSymbol() for atom in mol.GetAtoms() if atom.GetSymbol() in ['F', 'Cl', 'Br', 'I']]
+        pos_charges = sum(1 for atom in mol.GetAtoms() if atom.GetFormalCharge() > 0)
+        neg_charges = sum(1 for atom in mol.GetAtoms() if atom.GetFormalCharge() < 0)
+        arom_n = sum(1 for atom in mol.GetAtoms() if atom.GetSymbol() == 'N' and atom.GetIsAromatic())
+        h_bond_free_hetero = sum(1 for atom in mol.GetAtoms() if atom.GetIsHeteroAtom() and not (atom.GetIsAromatic() or atom.GetSymbol() == 'N'))
+        
+        from rdkit.Chem import rdPartialCharges
+        rdPartialCharges.ComputeGasteigerCharges(mol)
+        charge_vals = [atom.GetPartialCharge() for atom in mol.GetAtoms()]
+        
+        extra_feats = [
+            *elem_counts,
+            len(halogens),
+            pos_charges,
+            neg_charges,
+            arom_n,
+            h_bond_free_hetero,
+            min(charge_vals),
+            max(charge_vals),
+            sum(abs(c) for c in charge_vals),
+            sum(1 for c in charge_vals if abs(c) > 0.3)
+        ]
+        
+        fps.append(np.concatenate([fp, np.array(descs + extra_feats, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+============
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        
+        # Elemental and Charge features
+        elements = ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'P']
+        elem_counts = [mol.GetNumAtomWithElement(e).GetNumAtoms() for e in elements]
+        
+        halogens = [atom.GetSymbol() for atom in mol.GetAtoms() if atom.GetSymbol() in ['F', 'Cl', 'Br', 'I']]
+        pos_charges = sum(1 for atom in mol.GetAtoms() if atom.GetFormalCharge() > 0)
+        neg_charges = sum(1 for atom in mol.GetAtoms() if atom.GetFormalCharge() < 0)
+        arom_n = sum(1 for atom in mol.GetAtoms() if atom.GetSymbol() == 'N' and atom.GetIsAromatic())
+        h_bond_free_hetero = sum(1 for atom in mol.GetAtoms() if atom.GetIsHeteroAtom() and not (atom.GetIsAromatic() or atom.GetSymbol() == 'N'))
+        
+        from rdkit.Chem import rdPartialCharges
+        rdPartialCharges.ComputeGasteigerCharges(mol)
+        charge_vals = [atom.GetPartialCharge() for atom in mol.GetAtoms()]
+        
+        extra_feats = [
+            *elem_counts,
+            len(halogens),
+            pos_charges,
+            neg_charges,
+            arom_n,
+            h_bond_free_hetero,
+            min(charge_vals),
+            max(charge_vals),
+            sum(abs(c) for c in charge_vals),
+            sum(1 for c in charge_vals if abs(c) > 0.3)
+        ]
+        
+        fps.append(np.concatenate([fp, np.array(descs + extra_feats, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+>>>>>>> REPLACE
+-----

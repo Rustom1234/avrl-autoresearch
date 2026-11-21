@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import ARDRegression
+=======
+from sklearn.linear_model import ARDRegression, Ridge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.7 * rankdata(svr_pred) / len(svr_pred) + 0.3 * rankdata(ard_pred) / len(ard_pred)
+=======
+    base = 0.7 * rankdata(svr_pred) / len(svr_pred) + 0.3 * rankdata(ard_pred) / len(ard_pred)
+    S = tanimoto(X, X)
+    np.fill_diagonal(S, -1.0)
+    nn = np.argsort(-S, axis=1)[:, :10]
+    nn_sim = np.take_along_axis(S, nn, axis=1)
+    pi = np.repeat(np.arange(len(y)), 10)
+    pj = nn.ravel()
+    ok = nn_sim.ravel() > 0.5
+    pi, pj = pi[ok], pj[ok]
+    PF = np.column_stack([D[pi] - D[pj], S[pi, pj]])
+    ridge = Ridge(alpha=10.0).fit(PF, y[pi] - y[pj])
+    St = tanimoto(Xt, X)
+    tn = np.argsort(-St, axis=1)[:, :10]
+    tsim = np.take_along_axis(St, tn, axis=1)
+    TF = np.column_stack([(Dt[:, None, :] - D[tn]).reshape(-1, D.shape[1]), tsim.reshape(-1, 1)])
+    val = y[tn] + ridge.predict(TF).reshape(tn.shape)
+    w = np.where(tsim > 0.5, tsim, 0.0)
+    wsum = w.sum(axis=1)
+    fallback = svr_pred * sd + mu
+    pair = np.where(wsum > 0, (w * val).sum(axis=1) / np.maximum(wsum, 1e-9), fallback)
+    return 0.7 * base + 0.3 * rankdata(pair) / len(pair)
+>>>>>>> REPLACE
+-----

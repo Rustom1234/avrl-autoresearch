@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from scipy.spatial.distance import cdist
+from rdkit.Chem import rdMolDescriptors
+from sklearn.svm import SVC
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def morgan_counts(smiles):
+    X = np.zeros((len(smiles), N_BITS))
+    for i, s in enumerate(smiles):
+        fp = rdMolDescriptors.GetHashedMorganFingerprint(Chem.MolFromSmiles(s), RADIUS, nBits=N_BITS)
+        for k, v in fp.GetNonzeroElements().items():
+            X[i, k] = v
+    return X
+
+
+def minmax_kernel(A, B):
+    sa = A.sum(1)[:, None]
+    sb = B.sum(1)[None, :]
+    l1 = cdist(A, B, metric="cityblock")
+    return (sa + sb - l1) / np.maximum(sa + sb + l1, 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * rankdata(p_rf) / len(p_rf) + 0.5 * rankdata(p_mlp) / len(p_mlp)
+=======
+    Ctr = morgan_counts(train_smiles)
+    Cte = morgan_counts(test_smiles)
+    svc = SVC(kernel="precomputed", C=1.0)
+    svc.fit(minmax_kernel(Ctr, Ctr), y)
+    d_svm = svc.decision_function(minmax_kernel(Cte, Ctr))
+    n = len(p_rf)
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(d_svm)) / (3 * n)
+>>>>>>> REPLACE
+-----

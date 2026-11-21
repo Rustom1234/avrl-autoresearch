@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    yn = (y - mu) / sd
+    XT = np.hstack([X, D])
+    XTt = np.hstack([Xt, Dt])
+
+    def run(tr, Kte, Xte):
+        svr = SVR(kernel="precomputed", C=5.0, epsilon=0.05).fit(K_train[np.ix_(tr, tr)], yn[tr])
+        lg = lgb.LGBMRegressor(n_estimators=300, learning_rate=0.03, colsample_bytree=0.3, subsample=0.8,
+                               subsample_freq=1, num_leaves=15, min_child_samples=10, n_jobs=8,
+                               random_state=seed, verbose=-1).fit(XT[tr], yn[tr])
+        rf = RandomForestRegressor(n_estimators=500, max_features=0.3, min_samples_leaf=2, n_jobs=8,
+                                   random_state=seed).fit(XT[tr], yn[tr])
+        P = np.column_stack([svr.predict(Kte), lg.predict(Xte), rf.predict(Xte)])
+        return np.column_stack([rankdata(P[:, j]) / len(P) for j in range(P.shape[1])])
+
+    n = len(y)
+    oof = np.zeros((n, 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(np.arange(n)):
+        oof[va] = run(tr, K_train[np.ix_(va, tr)], XT[va])
+    meta = Ridge(alpha=1.0, positive=True).fit(oof, y)
+    return run(np.arange(n), K_test, XTt) @ meta.coef_
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def _optimise(n, x0):
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _optimise(n, x0):
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def barrier(v, mu):
+        g = cons(v)
+        if not g.min() > 0:   # infeasible or nan: reject the step
+            return 1e20
+        return -(v[2 * n:].sum() + mu * np.log(g).sum())
+
+    # strictly feasible start: centres inside the square, tiny radii
+    v = np.concatenate([np.clip(np.asarray(x0[:2 * n], float), 1e-3, 1 - 1e-3), np.full(n, 1e-4)])
+    mu = 1e-2
+    for _ in range(8):
+        v = minimize(barrier, v, args=(mu,), method="L-BFGS-B", options={"maxiter": 200}).x
+        mu *= 0.2
+
+    res = minimize(lambda v: -v[2 * n:].sum(), v, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

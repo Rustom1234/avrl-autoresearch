@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None, sd=0.0):
+=======
+def _solve_once(n, rng, start=None, sd=0.0, mask=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = np.concatenate([(start[0] + rng.normal(0, sd, start[0].shape)).ravel(), start[1] * 0.5])
+=======
+        noise = rng.normal(0, sd, start[0].shape)
+        if mask is not None:
+            noise = noise * mask[:, None]
+        x0 = np.concatenate([(start[0] + noise).ravel(), start[1] * 0.5])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _contacts(c, r):
+    """Number of touching neighbours and walls per circle (gap below 1e-4)."""
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    gap = d - r[:, None] - r[None]
+    np.fill_diagonal(gap, 1)
+    wall = np.stack([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r], 1)
+    return (gap < 1e-4).sum(1) + (wall < 1e-4).sum(1)
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is not None and time.process_time() - t0 > 0.3 * time_limit:
+            c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+=======
+        if best is not None and time.process_time() - t0 > 0.3 * time_limit:
+            if rng.random() < 0.5:
+                idx = np.lexsort((best[1], _contacts(*best)))[:5]
+                mask = np.zeros(n)
+                mask[idx] = 1
+                c, r = _solve_once(n, rng, best, 0.08, mask)
+            else:
+                c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+>>>>>>> REPLACE
+-----

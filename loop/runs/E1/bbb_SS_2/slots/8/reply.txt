@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    qt = QuantileTransformer(output_distribution="normal", n_quantiles=200, random_state=seed)
+    Qtr = qt.fit_transform(Xtr)
+    Qte = qt.transform(Xte)
+    p_mlp = np.zeros(len(Xte))
+    for i in range(5):
+        mlp = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True,
+                            random_state=seed + i, max_iter=200)
+        mlp.fit(Qtr, y)
+        p_mlp += mlp.predict_proba(Qte)[:, 1] / 5
+    return 0.5 * rankdata(p_rf) / len(p_rf) + 0.5 * rankdata(p_mlp) / len(p_mlp)
+=======
+    sc = StandardScaler()
+    Str = np.clip(sc.fit_transform(Xtr), -5, 5)
+    Ste = np.clip(sc.transform(Xte), -5, 5)
+    lr = LogisticRegression(C=0.1, max_iter=2000)
+    lr.fit(Str, y)
+    p_lr = lr.predict_proba(Ste)[:, 1]
+    return 0.5 * rankdata(p_rf) / len(p_rf) + 0.5 * rankdata(p_lr) / len(p_lr)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+>>>>>>> REPLACE
+-----

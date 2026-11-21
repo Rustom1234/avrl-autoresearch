@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    rng = np.random.default_rng(seed)
+    n = len(y)
+    m = int(round(0.7 * n))
+    preds = np.zeros(len(test_smiles))
+    for _ in range(15):
+        idx = rng.choice(n, size=m, replace=False)
+        yb = y[idx]
+        mu, sd = yb.mean(), yb.std() + 1e-9
+        model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+        model.fit(K_train[np.ix_(idx, idx)], (yb - mu) / sd)
+        p = model.predict(K_test[:, idx])
+        preds += rankdata(p) / len(p)
+    return preds / 15
+>>>>>>> REPLACE
+-----

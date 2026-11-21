@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+=======
+_CACHE = {}
+
+
+def featurize(smiles):
+    new = [s for s in dict.fromkeys(smiles) if s not in _CACHE]
+    if new:
+        for s, row in zip(new, _featurize(new)):
+            _CACHE[s] = row
+    return np.array([_CACHE[s] for s in smiles], dtype=np.float32)
+
+
+def _featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for k in range(5)], axis=0)
+=======
+        for k in range(3)], axis=0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for k in range(3)], axis=0)
+    p_wide = np.mean([
+        MLPRegressor(hidden_layer_sizes=(1024, 512, 128), alpha=0.3, early_stopping=True,
+                     max_iter=300, random_state=seed + 200 + k).fit(Mtr, y).predict(Mte)
+        for k in range(3)], axis=0)
+    return 0.35 * p_tree + 0.2 * p_mlp + 0.25 * p_fp + 0.2 * p_wide
+=======
+        for k in range(3)], axis=0)
+    return 0.4 * p_tree + 0.25 * p_mlp + 0.35 * p_fp
+>>>>>>> REPLACE
+-----

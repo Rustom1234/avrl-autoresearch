@@ -1,0 +1,82 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    
+    indices = np.arange(len(X))
+    np.random.RandomState(seed).shuffle(indices)
+    split = int(len(X) * 0.9)
+    
+    X_train, X_val = X[:split], X[split:]
+    y_train, y_val = y[:split], y[split:]
+    
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(X_train, y_train, eval_set=[(X_val, y_val)], eval_metric='binary_logloss',
+               callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)])
+    
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+================
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    
+    indices = np.arange(len(X))
+    np.random.RandomState(seed).shuffle(indices)
+    split = int(len(X) * 0.9)
+    
+    X_train, X_val = X[indices[:split]], X[indices[split:]]
+    y_train, y_val = y[indices[:split]], y[indices[split:]]
+    
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(X_train, y_train, eval_set=[(X_val, y_val)], eval_metric='binary_logloss',
+               callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)])
+    
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+
+    # Split into 90% train, 10% validation
+    indices = np.arange(len(X))
+    rng = np.random.RandomState(seed)
+    rng.shuffle(indices)
+    split = int(len(X) * 0.9)
+
+    X_train, X_val = X[indices[:split]], X[indices[split:]]
+    y_train, y_val = y[indices[:split]], y[indices[split:]]
+
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(X_train, y_train, eval_set=[(X_val, y_val)], 
+                eval_metric='binary_logloss', 
+                callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)])
+
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+>>>>>>> REPLACE
+-----

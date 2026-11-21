@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if it % 3 == 0:
+            try:
+                zz = z0.copy()
+                lam = np.zeros(m + 4 * n)
+                mu = 10.0
+
+                def al_f(z, lam=None, mu=None):
+                    cv = cons(z)
+                    t = np.maximum(0.0, lam - mu * cv)
+                    val = -np.sum(z[2 * n:]) + (np.sum(t * t) - np.sum(lam * lam)) / (2 * mu)
+                    gr = g - jac(z).T @ t
+                    return val, gr
+
+                for _o in range(5):
+                    rs = minimize(al_f, zz, args=(lam, mu), jac=True, method="L-BFGS-B",
+                                  bounds=bounds, options={"maxiter": 150})
+                    zz = rs.x
+                    lam = np.maximum(0.0, lam - mu * cons(zz))
+                    mu *= 3.0
+                z0 = zz
+            except Exception:
+                pass
+>>>>>>> REPLACE
+-----

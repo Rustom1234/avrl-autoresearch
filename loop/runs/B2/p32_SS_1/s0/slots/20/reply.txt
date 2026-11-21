@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _band_slide(pool, n, rng):
+    c, r = pool[rng.integers(len(pool))]
+    c, r = c.copy(), r.copy()
+    ax = rng.integers(2)
+    other = 1 - ax
+    w = rng.uniform(0.2, 0.4)
+    a = rng.uniform(0, 1 - w)
+    m = (c[:, other] >= a) & (c[:, other] <= a + w)
+    c[m, ax] += rng.uniform(-0.08, 0.08)
+    r = r * 0.95
+    c = np.clip(c, r[:, None], 1 - r[:, None])
+    return np.concatenate([c.ravel(), r])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        u = rng.random() if len(pool) >= 2 else 1.0
+        x0 = None
+        if u < 0.3:
+            x0 = _band_slide(pool, n, rng)
+        elif u < 0.8:
+            x0 = _cross(pool, n, rng)
+>>>>>>> REPLACE
+-----

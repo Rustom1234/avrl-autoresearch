@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    def _pol(cc):
+        try:
+            c2 = np.clip(_polish(cc, _lp_radii(cc)), 0, 1)
+            r2 = _lp_radii(c2)
+            return c2, r2
+        except Exception:
+            return None, None
+
+    cur_c = best[0].copy()
+    cur_s = best[1].sum()
+    ts = time.time()
+    dur = 80.0
+    acc = 0
+    while True:
+        frac = (time.time() - ts) / dur
+        if frac >= 1:
+            break
+        T = 3e-3 * (1e-5 / 3e-3) ** frac
+        cand = cur_c.copy()
+        k = int(rng.integers(1, 4))
+        idx = rng.choice(_N, k, replace=False)
+        sig = np.exp(rng.uniform(np.log(0.002), np.log(0.08)))
+        cand[idx] += rng.normal(0, sig, (k, 2))
+        cand = np.clip(cand, 0.0, 1.0)
+        try:
+            rr = _lp_radii(cand)
+        except Exception:
+            continue
+        s = rr.sum()
+        if s >= cur_s or rng.random() < np.exp((s - cur_s) / T):
+            cur_c, cur_s = cand, s
+            acc += 1
+            if s > best_s:
+                best_s, best = s, (cand.copy(), rr)
+            if acc % 200 == 0:
+                c2, r2 = _pol(cur_c)
+                if c2 is not None:
+                    if r2.sum() > best_s:
+                        best_s, best = r2.sum(), (c2, r2)
+                    if r2.sum() > cur_s:
+                        cur_c, cur_s = c2, r2.sum()
+    c2, r2 = _pol(cur_c)
+    if c2 is not None and r2.sum() > best_s:
+        best_s, best = r2.sum(), (c2, r2)
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

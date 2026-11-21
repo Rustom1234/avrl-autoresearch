@@ -1,0 +1,78 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    rows = [[f(m) for _, f in Descriptors.descList] for m in mols]
+    X = np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    X = np.clip(X, -1e6, 1e6)
+    return np.hstack([X, np.array([pharm_fp(m) for m in mols])])
+=======
+_CACHE = {}
+
+
+def _feat_one(s):
+    if s not in _CACHE:
+        m = Chem.MolFromSmiles(s)
+        row = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        row = np.clip(np.nan_to_num(row, nan=0.0, posinf=0.0, neginf=0.0), -1e6, 1e6)
+        _CACHE[s] = np.concatenate([row, pharm_fp(m)])
+    return _CACHE[s]
+
+
+def featurize(smiles):
+    return np.array([_feat_one(s) for s in smiles])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for i in range(5):
+=======
+    for i in range(3):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        p_mlp += mlp.predict(Qte) / 5
+=======
+        p_mlp += mlp.predict(Qte) / 3
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+random_state=seed + i, max_iter=200)
+=======
+random_state=seed + i, max_iter=100)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    rows = [[f(m) for _, f in Descriptors.descList] for m in mols]
+    X = np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    X = np.clip(X, -1e6, 1e6)
+    return np.hstack([X, np.array([pharm_fp(m) for m in mols])])
+=======
+_CACHE = {}
+
+
+def _feat_one(s):
+    if s not in _CACHE:
+        m = Chem.MolFromSmiles(s)
+        row = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        row = np.clip(np.nan_to_num(row, nan=0.0, posinf=0.0, neginf=0.0), -1e6, 1e6)
+        _CACHE[s] = np.concatenate([row, pharm_fp(m)])
+    return _CACHE[s]
+
+
+def featurize(smiles):
+    return np.array([_feat_one(s) for s in smiles])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for i in range(5):
+=======
+    for i in range(3):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        p_mlp += mlp.predict(Qte) / 5
+=======
+        p_mlp += mlp.predict(Qte) / 3
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                           random_state=seed + i, max_iter=200)
+=======
+                           random_state=seed + i, max_iter=100)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.kernel_ridge import KernelRidge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def tanimoto(A, B):
+    dot = A @ B.T
+    denom = A.sum(1)[:, None] + B.sum(1)[None, :] - dot
+    return dot / np.maximum(denom, 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    Xtr = featurize(train_smiles, "morgan").astype(np.float64)
+    Xte = featurize(test_smiles, "morgan").astype(np.float64)
+    ym = y.mean()
+    krr = KernelRidge(alpha=0.5, kernel="precomputed")
+    krr.fit(tanimoto(Xtr, Xtr), y - ym)
+    preds.append(krr.predict(tanimoto(Xte, Xtr)) + ym)
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

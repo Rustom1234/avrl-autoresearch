@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+=======
+def _from_larger(n, rng):
+    """Optimise n+1 circles, drop the one with the smallest radius, and return the start vector for n."""
+    c, r = _solve_once(n + 1, rng)
+    k = np.argmin(r)
+    return np.concatenate([np.delete(c, k, 0).ravel(), np.delete(r, k)])
+
+
+def _from_smaller(n, rng):
+    """Optimise n-1 circles, then add a circle at the point with the largest gap."""
+    c, r = _solve_once(n - 1, rng)
+    p = rng.uniform(0, 1, (2000, 2))
+    d = np.sqrt(((p[:, None] - c[None]) ** 2).sum(-1)).min(1)
+    d = np.minimum(d, np.minimum(p, 1 - p).min(1))
+    g = p[np.argmax(d)]
+    return np.concatenate([np.vstack([c, g]).ravel(), np.append(r, 0.01)])
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    k = 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts cycle: random, n+1 minus one, n-1 plus one
+        mode = k % 3
+        k += 1
+        if mode == 0:
+            c, r = _solve_once(n, rng)
+        elif mode == 1:
+            c, r = _solve_once(n, rng, _from_larger(n, rng))
+        else:
+            c, r = _solve_once(n, rng, _from_smaller(n, rng))
+>>>>>>> REPLACE
+-----

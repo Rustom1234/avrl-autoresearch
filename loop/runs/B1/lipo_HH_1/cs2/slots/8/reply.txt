@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from scipy.optimize import minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    k = oof.shape[1]
+    res = minimize(lambda w: np.abs(oof @ w - y).mean(), np.full(k, 1.0 / k), method="SLSQP",
+                   bounds=[(0.0, 1.0)] * k, constraints=[{"type": "eq", "fun": lambda w: w.sum() - 1.0}])
+    w = res.x
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return base_te @ w
+>>>>>>> REPLACE
+-----

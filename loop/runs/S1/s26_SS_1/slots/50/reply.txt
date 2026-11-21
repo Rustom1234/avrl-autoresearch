@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+=======
+    while time.time() - t0 < 90:
+        try:
+            u = rng.random()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+=======
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    global _N, _IU
+    while time.time() - t0 < 150:
+        try:
+            _N = 24
+            _IU = np.triu_indices(24, 1)
+            c = _physics(rng)
+            r = _lp_radii(c)
+            c = np.clip(_polish(c, r), 0, 1)
+            r = _lp_radii(c)
+            for _ in range(2):
+                d = np.sqrt(((_GRID[:, None, :] - c[None, :, :]) ** 2).sum(2)) - r[None, :]
+                wall = np.minimum(np.minimum(_GRID[:, 0], _GRID[:, 1]),
+                                  np.minimum(1 - _GRID[:, 0], 1 - _GRID[:, 1]))
+                clr = np.minimum(d.min(1), wall)
+                k = int(np.argmax(clr))
+                c = np.vstack([c, _GRID[k]])
+                r = np.append(r, 0.02)
+            _N = 26
+            _IU = np.triu_indices(26, 1)
+            c2 = np.clip(_polish(c, r), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        finally:
+            _N = 26
+            _IU = np.triu_indices(26, 1)
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,60 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _lp_polish(c, r, max_iter=100):
+    """Sequential LP: linearise all constraints at (c, r), maximise the radius sum in a trust region."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+    k = np.arange(n)
+    m = len(iu[0])
+    p = np.arange(m)
+    tr = 1e-3
+    for _ in range(max_iter):
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1))
+        u = diff / d[:, None]
+        A = np.zeros((m + 4 * n, 3 * n))
+        b = np.empty(m + 4 * n)
+        A[p, 2 * iu[0]] = -u[:, 0]
+        A[p, 2 * iu[0] + 1] = -u[:, 1]
+        A[p, 2 * iu[1]] = u[:, 0]
+        A[p, 2 * iu[1] + 1] = u[:, 1]
+        A[p, 2 * n + iu[0]] = 1
+        A[p, 2 * n + iu[1]] = 1
+        b[:m] = d - r[iu[0]] - r[iu[1]]
+        for q, (ax, s) in enumerate([(0, -1), (1, -1), (0, 1), (1, 1)]):
+            R = m + q * n + k
+            A[R, 2 * k + ax] = s
+            A[R, 2 * n + k] = 1
+            b[R] = c[:, ax] - r if s < 0 else 1 - c[:, ax] - r
+        lo = np.concatenate([np.full(2 * n, -tr), np.maximum(-tr, -r)])
+        cost = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+        res = linprog(cost, A_ub=A, b_ub=b, bounds=np.column_stack([lo, np.full(3 * n, tr)]), method="highs")
+        if res.status != 0:
+            break
+        cn = np.clip(c + res.x[:2 * n].reshape(n, 2), 0, 1)
+        rn = _repair(cn, r + res.x[2 * n:])
+        if rn.sum() - r.sum() > 1e-12:
+            c, r = cn, rn
+        else:
+            tr *= 0.3
+            if tr < 1e-8:
+                break
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            best = (c, r)
+    return best
+=======
+            best = (c, r)
+    return _lp_polish(*best)
+>>>>>>> REPLACE
+-----

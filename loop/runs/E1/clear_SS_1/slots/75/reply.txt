@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+=======
+    Gtr, Gte = xgb_features(train_smiles), xgb_features(test_smiles)
+    model.fit(Gtr, y)
+    p_rf = model.predict(Gte)
+    from scipy import sparse
+
+    def onehot(X):
+        L = model.apply(X).astype(np.int64)
+        n, t = L.shape
+        cols = (np.arange(t)[None, :] * 64 + L).ravel()
+        return sparse.csr_matrix((np.ones(n * t), (np.repeat(np.arange(n), t), cols)), shape=(n, t * 64))
+    Ztr, Zte = onehot(Gtr), onehot(Gte)
+    nt = model.get_booster().num_boosted_rounds()
+    Ktr = (Ztr @ Ztr.T).toarray() / nt
+    Kte = (Zte @ Ztr.T).toarray() / nt
+    svr_l = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr_l.fit(Ktr, (y - y.mean()) / (y.std() + 1e-9))
+    p_leaf = svr_l.predict(Kte)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    return (rankdata(p_rf) + rankdata(p_svr) + 0.5 * rankdata(p_leaf)) / len(p_rf)
+>>>>>>> REPLACE
+-----

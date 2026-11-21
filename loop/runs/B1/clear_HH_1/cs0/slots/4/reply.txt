@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.linear_model import Ridge
+from rdkit.Chem.Pharm2D import Generate, Gobbi_Pharm2D
+
+PHYS = [Descriptors.MolWt, Descriptors.MolLogP, Descriptors.TPSA, Descriptors.NumHDonors,
+        Descriptors.NumHAcceptors, Descriptors.NumRotatableBonds, Descriptors.RingCount]
+
+
+def physchem(smiles):
+    return np.array([[f(Chem.MolFromSmiles(s)) for f in PHYS] for s in smiles], dtype=np.float64)
+
+
+def gobbi(smiles, n=4096):
+    out = np.zeros((len(smiles), n))
+    for i, s in enumerate(smiles):
+        fp = Generate.Gen2DFingerprint(Chem.MolFromSmiles(s), Gobbi_Pharm2D.factory)
+        for b in fp.GetOnBits():
+            out[i, b % n] = 1.0
+    return out
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    G = gobbi(train_smiles)
+    Gt = gobbi(test_smiles)
+    K_train = (tanimoto(X, X) + rbf(D, D, gamma) + tanimoto(G, G)) / 3.0
+    K_test = (tanimoto(Xt, X) + rbf(Dt, D, gamma) + tanimoto(Gt, G)) / 3.0
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    P = physchem(train_smiles)
+    Pt = physchem(test_smiles)
+    pmu, psd = P.mean(axis=0), P.std(axis=0) + 1e-9
+    P = np.clip((P - pmu) / psd, -5.0, 5.0)
+    Pt = np.clip((Pt - pmu) / psd, -5.0, 5.0)
+    ridge = Ridge(alpha=10.0).fit(P, y)
+    r = y - ridge.predict(P)
+    mu, sd = r.mean(), r.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (r - mu) / sd)
+    return model.predict(K_test) * sd + mu + ridge.predict(Pt)
+>>>>>>> REPLACE
+-----

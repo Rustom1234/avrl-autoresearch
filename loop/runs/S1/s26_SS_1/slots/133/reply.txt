@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _classinit(rng):
+    cr, er, ir = 0.13, 0.10, 0.11
+    pts = [[cr, cr], [1 - cr, cr], [cr, 1 - cr], [1 - cr, 1 - cr]]
+    rad = [cr] * 4
+    for k in range(3):
+        t = (k + 1) / 4 + rng.normal(0, 0.03)
+        pts += [[t, er], [t, 1 - er], [er, t], [1 - er, t]]
+        rad += [er] * 4
+    lo, hi = 0.2, 0.8
+    q = rng.uniform(lo, hi, (10, 2))
+    g = lo + (np.arange(40) + 0.5) / 40 * (hi - lo)
+    G = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    for _ in range(15):
+        lab = ((G[:, None, :] - q[None]) ** 2).sum(2).argmin(1)
+        for k in range(10):
+            m = lab == k
+            if m.any():
+                q[k] = G[m].mean(0)
+    q = q + rng.normal(0, 0.01, q.shape)
+    c = np.vstack([np.array(pts, float), q])
+    r = np.array(rad + [ir] * 10, float)
+    return np.clip(c, 0.03, 0.97), r
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            r = _lp_radii(c)
+=======
+            u = rng.random()
+            if rng.random() < 0.25:
+                c, r = _classinit(rng)
+            else:
+                c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+                r = _lp_radii(c)
+>>>>>>> REPLACE
+-----

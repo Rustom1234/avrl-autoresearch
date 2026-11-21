@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _contacts(c, r):
+    """Number of near-touching pairs and walls per circle (gap below 1e-6)."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+    gap = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+    touch = gap < 1e-6
+    cnt = np.bincount(iu[0][touch], minlength=n) + np.bincount(iu[1][touch], minlength=n)
+    walls = (c - r[:, None] < 1e-6) | (1 - c - r[:, None] < 1e-6)
+    return cnt + walls.sum(1)
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+=======
+        c, r = best
+        if rng.random() < 0.5:
+            k = np.lexsort((r, _contacts(c, r)))[:6]   # fewest contacts first, then smaller radius
+            sd = np.full(n, 0.005)
+            sd[k] = 0.08
+            p = (c + rng.normal(0, 1, c.shape) * sd[:, None]).ravel()
+        else:
+            p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+>>>>>>> REPLACE
+-----

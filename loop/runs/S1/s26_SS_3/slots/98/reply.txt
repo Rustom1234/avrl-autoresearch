@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+    def finalize(z):
+=======
+    def finalize(z, mar=2e-9):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = np.maximum(z[2 * n:] - 2e-9, 0.0)
+=======
+        r = np.maximum(z[2 * n:] - mar, 0.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best is None:
+        c = np.stack([np.linspace(0.05, 0.95, n), np.full(n, 0.5)], axis=1)
+=======
+    if best is not None:
+        try:
+            c, r = best
+            z = np.concatenate([c[:, 0], c[:, 1], r + 2e-9])
+            d = np.sqrt((z[:n][iu] - z[:n][ju]) ** 2 + (z[n:2 * n][iu] - z[n:2 * n][ju]) ** 2)
+            gp = d - (z[2 * n:][iu] + z[2 * n:][ju])
+            cv = cons(z)
+            act = np.concatenate([gp < 1e-7, np.abs(cv[m:]) < 1e-7])
+            if act.sum() > 0:
+                for _ in range(30):
+                    F = cons(z)[act]
+                    if np.max(np.abs(F)) < 1e-15:
+                        break
+                    Ja = jac(z)[act]
+                    step = np.linalg.lstsq(Ja, -F, rcond=None)[0]
+                    z = z + step
+                out = finalize(z, 1e-13)
+                if out is not None and out[1].sum() > best_val:
+                    best_val = out[1].sum()
+                    best = out
+        except Exception:
+            pass
+    if best is None:
+        c = np.stack([np.linspace(0.05, 0.95, n), np.full(n, 0.5)], axis=1)
+>>>>>>> REPLACE
+-----

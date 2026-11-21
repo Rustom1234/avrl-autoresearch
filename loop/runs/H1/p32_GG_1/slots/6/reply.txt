@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    x = res.x
+    c = x[:2 * n].reshape(n, 2)
+    r = x[2 * n:]
+
+    # Gradient descent to resolve overlaps
+    lr = 0.01
+    for _ in range(50):
+        grad_c = np.zeros_like(c)
+        grad_r = np.zeros_like(r)
+        for i in range(n):
+            for j in range(i + 1, n):
+                diff = c[i] - c[j]
+                dist = np.linalg.norm(diff)
+                if dist < (r[i] + r[j]):
+                    # Move centers apart
+                    # If dist is 0, move in random direction
+                    direction = diff / (dist + 1e-9)
+                    grad_c[i] += direction
+                    grad_c[j] -= direction
+                    # Shrink radii
+                    grad_r[i] -= 1
+                    grad_r[j] -= 1
+        c -= lr * grad_c
+        r -= lr * grad_r
+        # Keep in bounds
+        c = np.clip(c, r, 1 - r)
+
+    return c, r
+>>>>>>> REPLACE
+-----

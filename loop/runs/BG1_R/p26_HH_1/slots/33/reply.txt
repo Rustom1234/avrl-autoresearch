@@ -1,0 +1,76 @@
+<<<<<<< SEARCH
+import time
+
+import numpy as np
+=======
+import time
+from collections import deque
+
+import numpy as np
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+AMP0, AMP_MIN, AMP_MAX = 0.02, 1e-3, 0.1
+T0, T1 = 1e-3, 1e-6
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _free(n, x0):
+    """Free-radius SLSQP from a given start (centres then radii)."""
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    budget = TIME_FRACTION * time_limit
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    cur_c, cur_r = c, r
+    best = (c, r)
+    amp, window = AMP0, deque(maxlen=20)
+    while True:
+        el = time.process_time() - t0
+        if el >= budget:
+            break
+        T = T0 * (T1 / T0) ** (el / budget)   # geometric temperature decay over the budget
+        cand = np.clip(cur_c + amp * rng.standard_normal(cur_c.shape), 0, 1)
+        c2, r2 = _free(n, np.concatenate([cand.ravel(), cur_r]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        acc = r2.sum() >= cur_r.sum() - T
+        if acc:
+            cur_c, cur_r = c2, r2
+        window.append(acc)
+        if len(window) == 20:   # 1/5-style amplitude adaptation
+            rate = np.mean(window)
+            if rate > 0.3:
+                amp *= 1.2
+            elif rate < 0.15:
+                amp *= 0.8
+            amp = min(max(amp, AMP_MIN), AMP_MAX)
+        if r2.sum() > best[1].sum():
+            best = (c2, r2)
+    return best
+>>>>>>> REPLACE
+-----

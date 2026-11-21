@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from scipy.stats import rankdata
+from sklearn.ensemble import RandomForestClassifier
+from lightgbm import LGBMClassifier
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+from scipy.stats import rankdata
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import QuantileTransformer
+from lightgbm import LGBMClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+=======
+def standardize(smi):
+    m = Chem.MolFromSmiles(smi)
+    try:
+        m2 = rdMolStandardize.Uncharger().uncharge(rdMolStandardize.LargestFragmentChooser().choose(m))
+        if m2 is not None and m2.GetNumAtoms() > 0:
+            return m2
+    except Exception:
+        pass
+    return m
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = standardize(s)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+=======
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    # Tanimoto similarity committee on binary Morgan bits (last N_BITS columns are the count fingerprint)
+    B, Bt = X[:, -N_BITS:] > 0, Xt[:, -N_BITS:] > 0
+    inter = Bt.astype(np.float32) @ B.astype(np.float32).T
+    S = inter / (Bt.sum(1)[:, None] + B.sum(1)[None, :] - inter + 1e-9)
+    order = np.argsort(-S, axis=1)
+    rows_idx = np.arange(len(Xt))[:, None]
+    ranks = []
+    for k in (5, 25, 100):
+        idx = order[:, :k]
+        w = S[rows_idx, idx]
+        ranks.append(rankdata((w * y[idx]).sum(1) / (w.sum(1) + 1e-9)))
+    preds.append(rankdata(np.mean(ranks, axis=0)) / len(Xt))
+    # Quantile-scaled MLP member
+    qt = QuantileTransformer(n_quantiles=min(1000, len(X)), output_distribution="normal", random_state=seed)
+    mlp = MLPClassifier(hidden_layer_sizes=(256, 64), early_stopping=True, max_iter=300, random_state=seed)
+    mlp.fit(qt.fit_transform(X), y)
+    preds.append(rankdata(mlp.predict_proba(qt.transform(Xt))[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

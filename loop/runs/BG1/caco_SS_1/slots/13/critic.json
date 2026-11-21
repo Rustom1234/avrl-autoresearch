@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of gaming the measurement. There is no file or network access and no pasted answers. Only train_smiles and train_y are used for fitting. StandardScaler and QuantileTransformer are fit inside the pipeline on training data only, and the seed is passed to XGB, ExtraTrees and QuantileTransformer.",
+  "Unverified assumption: the SVR uses Xtr[:, :nd] with nd = len(Descriptors.descList), which assumes featurize() puts the RDKit descriptors first. featurize is not in the diff, so I can't check this. If the fingerprint comes first, the SVR is trained on fingerprint bits instead of descriptors. The score would still be valid, but the model would not be what was intended. Worth confirming.",
+  "Possible NaN/inf problem: some RDKit descriptors can return NaN or inf, and SVR and older versions of ExtraTrees fail on those. Both runs finished without errors, so it does not happen on this data. It could still happen on the held-out test molecules if featurize does not clean these values.",
+  "z check: the candidate mean is (0.3659+0.3644)/2 = 0.36515, which is 0.00895 below the incumbent. With sd 0.0037 and n = 2 vs 1, SE = 0.0037*sqrt(1.5) = 0.00453, so z \u2248 1.98. The harness reports 1.947. The gap fits rounding of the 4-decimal inputs (\u00b10.0001 moves z by about \u00b10.02), so the numbers agree.",
+  "The evidence is borderline. There is only one incumbent run, and z \u2248 1.95 is just below 2. Even so, the gain (about 0.009, roughly 2.4 times the noise sd) is consistent across both candidate runs. The added complexity, a 3-model blend with fixed weights, is moderate and fair for this gain. The blend weights look hand-picked, which leaves a small risk of tuning to the CV folds."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 1.975
+ }
+}

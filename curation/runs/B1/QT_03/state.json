@@ -1,0 +1,73 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/B1/QT_03/cand/s12_0.py",
+ "inc_scores": {
+  "11": 1.941138147371112,
+  "12": 1.9514321295122872
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Introduce a two-stage process that first sorts the pool by estimated length (using first 300 chars to approximate total token count) and retains only the 10% shortest documents, then shuffles the shorter subset.",
+   "outcome": "FAILED to run (runs/B1/QT_03/cand/s01_1.py\", line 20, in select encoding = tiktoken_encoding.get_encoding(\"gpt2\") ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ AttributeError: type object 'Encoding' has no attribute 'get_encoding')"
+  },
+  {
+   "slot": 2,
+   "idea": "Pre-filter the pool to remove obvious junk (e.g., empty strings, single word strings, or strings containing only special characters) before shuffling, to ensure the high-quality short documents dominate the early training tokens.",
+   "outcome": "dev 1.9630 against 1.9639 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Filter out documents that are statistically closer to the target_sample content (via exact substring match or edit distance on the first 300 chars) than any other document in the pool, retaining only the most unique documents to prevent 'target domain' leakage during training.",
+   "outcome": "FAILED to run (SyntaxError: invalid syntax (line 1))"
+  },
+  {
+   "slot": 4,
+   "idea": "Filter out documents that are highly repetitive or consist of only a small number of distinct tokens (calculated using first 300 chars), excluding documents below a threshold like 10 unique tokens, before shuffling and returning.",
+   "outcome": "FAILED to run (/active-audit/curation/runs/B1/QT_03/cand/s04_1.py\", line 50, in select if i < len(equalTo_docs): # Fix: comparison with filtered_docs length ^^^^^^^^^^^^ NameError: name 'equalTo_docs' is not defined)"
+  },
+  {
+   "slot": 5,
+   "idea": "Filter out documents that contain only low-value stop words or appear to be pure advertisement spam (identified by high ratio of arrays/buy/sell patterns), specifically removing any document where all words in the first 300 characters are present in a simple stop-word list OR contains the exact phrases 'best price guaranteed', 'fast delivery', or 'coupon' with no associating noun meaning a product name, prioritizing educational and non-marketing content.",
+   "outcome": "dev 2.0522 against 1.9639 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Filter out documents that are HTML code or have a high ratio of special characters/symbols (non-ALNUM) before shuffling, to reduce tokenization noise and improve coherence.",
+   "outcome": "dev 1.9605 against 1.9639 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Sort documents by estimated total token count (using the ratio of first 300 tokens to total tokenization of the full document) and sample a subset with a much higher proportion of longer, denser documents (approx. 80% by token) compared to their ratio in the original pool, which avoids short-context noise while maximizing the average token utility per selected document.",
+   "outcome": "FAILED to run ( in _call_with_frames_removed File \"/homes/rdubash/active-audit/curation/runs/B1/QT_03/cand/s07_1.py\", line 14, in <module> caller = sys.modules[__name__] ~~~~~~~~~~~^^^^^^^^^^ KeyError: 'curate_user')"
+  },
+  {
+   "slot": 8,
+   "idea": "Filter out documents that perfectly match any sentence or paragraph from the 2-target documents in target_sample, to prevent direct copying of target domain text that the model might memorize instead of learning, and also filter out documents completely identical to noise patterns found in earlier spam-rejection experiments by checking for exact token repetition across the first 100 characters.",
+   "outcome": "FAILED to run (select() did not finish in 180 seconds)"
+  },
+  {
+   "slot": 9,
+   "idea": "Filter out the ~40% of documents that are clearly JavaScript or HTML code by detecting if the first 200 characters (or ~400 tokens of the screen output, not total) contain the substring \"<script\" or \"<div\", specifically targeting the clean \"(function() {\" etc. document eliminated in failed run 2 and the known javascript document to (likely) less noise.",
+   "outcome": "dev 1.9543 against 1.9639 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 10,
+   "idea": "Add a filter to remove the ~35% of documents with the lowest distinct word-to-byte ratios (high repetition) calculated on their first 200 characters before shuffling, to reduce redundant noise.",
+   "outcome": "FAILED to run (/runs/B1/QT_03/cand/s10_1.py\", line 71, in select original_idx = valid_indices[idx_in_kep] # Correction needed here ^^^^^^^^^^ NameError: name 'idx_in_kep' is not defined. Did you mean: 'idx_in_kept'?)"
+  },
+  {
+   "slot": 11,
+   "idea": "Sort the filtered documents by the ratio of their first 300 characters to their estimated total token count (descending) to prioritize longer, denser documents and minimize short, noisy documents during the early training phase.",
+   "outcome": "dev 3.7990 against 1.9543 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Add a filter to remove documents containing URLs (after stripping paths/fragments) or email addresses in their first 200 characters, as these are likely external links pointing to irrelevant domains or spam that reduces domain fidelity.",
+   "outcome": "dev 1.9411 against 1.9543 for the best at the time, KEPT as the new best"
+  }
+ ],
+ "usd": 0.009437800000000001,
+ "status": "done",
+ "inc_slot": 12
+}

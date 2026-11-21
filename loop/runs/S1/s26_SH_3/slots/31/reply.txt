@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+        if cur_val > best_val:
+            best_val = cur_val
+            best_c = np.stack([cur[:n], cur[n:2 * n]], axis=1)
+            best_r = cur[2 * n:].copy()
+
+    centers = np.clip(best_c, 0.0, 1.0)
+=======
+        if cur_val > best_val:
+            best_val = cur_val
+            best_c = np.stack([cur[:n], cur[n:2 * n]], axis=1)
+            best_r = cur[2 * n:].copy()
+
+    # greedy LP hill climb on the best centers (time-guarded)
+    hc_c = best_c.copy()
+    hc_v = float(np.sum(lp_radii(hc_c)))
+    hc_sigma = 0.003
+    for _ in range(1500):
+        if time.time() - t0 > 170:
+            break
+        k = int(rng.integers(n))
+        cand = hc_c.copy()
+        cand[k] = np.clip(cand[k] + rng.normal(0.0, hc_sigma, 2), 0.0, 1.0)
+        v = float(np.sum(lp_radii(cand)))
+        if v > hc_v:
+            hc_c, hc_v = cand, v
+            hc_sigma *= 1.1
+        else:
+            hc_sigma *= 0.97
+    zf = optimize(np.concatenate([hc_c[:, 0], hc_c[:, 1], lp_radii(hc_c)]))
+    opt_c = np.stack([zf[:n], zf[n:2 * n]], axis=1)
+    opt_r = zf[2 * n:].copy()
+    pool = [(best_c, best_r), (hc_c, lp_radii(hc_c)), (opt_c, opt_r)]
+    best_sum = -1.0
+    for pc, pr in pool:
+        pc = np.clip(pc, 0.0, 1.0)
+        pr = np.maximum(pr, 0.0)
+        rr = safe_radii(pc, pr)
+        if np.sum(rr) > best_sum:
+            best_sum = float(np.sum(rr))
+            best_c, best_r = pc, pr
+
+    centers = np.clip(best_c, 0.0, 1.0)
+>>>>>>> REPLACE
+-----

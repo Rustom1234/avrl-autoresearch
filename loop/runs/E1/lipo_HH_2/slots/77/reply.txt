@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+_FCAT = {}
+
+
+def frag_catalog():
+    if "fcat" not in _FCAT:
+        fp = rdfragcatalog.FragCatParams(1, 6, RDConfig.RDDataDir + "/FunctionalGroups.txt")
+        _FCAT["fcat"] = rdfragcatalog.FragCatalog(fp)
+        _FCAT["gen"] = rdfragcatalog.FragFPGenerator()
+    return _FCAT["fcat"], _FCAT["gen"]
+
+
+def frag_bits(smiles):
+    fcat, gen = frag_catalog()
+    out = np.zeros((len(smiles), fcat.GetFPLength()), dtype=np.float32)
+    for i, s in enumerate(smiles):
+        for b in gen.GetFPForMol(Chem.MolFromSmiles(s), fcat).GetOnBits():
+            out[i, b] = 1.0
+    return out
+
+
+def frag_fit(smiles):
+    F = frag_bits(smiles)
+    keep = np.where(F.sum(0) >= 5)[0]
+    return F[:, keep], keep
+
+
+def frag_apply(smiles, keep):
+    return frag_bits(smiles)[:, keep]
+=======
+def frag_catalog(smiles):
+    # build a fresh functional-group catalog from the training molecules (it must be populated before use)
+    fp = rdfragcatalog.FragCatParams(1, 6, RDConfig.RDDataDir + "/FunctionalGroups.txt")
+    fcat = rdfragcatalog.FragCatalog(fp)
+    cat_gen = rdfragcatalog.FragCatGenerator()
+    for s in smiles:
+        cat_gen.AddFragsFromMol(Chem.MolFromSmiles(s), fcat)
+    return fcat, rdfragcatalog.FragFPGenerator()
+
+
+def frag_bits(smiles, fcat, gen):
+    out = np.zeros((len(smiles), fcat.GetFPLength()), dtype=np.float32)
+    for i, s in enumerate(smiles):
+        for b in gen.GetFPForMol(Chem.MolFromSmiles(s), fcat).GetOnBits():
+            out[i, b] = 1.0
+    return out
+
+
+def frag_fit(smiles):
+    fcat, gen = frag_catalog(smiles)
+    F = frag_bits(smiles, fcat, gen)
+    keep = np.where(F.sum(0) >= 5)[0]
+    return F[:, keep], (fcat, gen, keep)
+
+
+def frag_apply(smiles, state):
+    fcat, gen, keep = state
+    return frag_bits(smiles, fcat, gen)[:, keep]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ftr, keep = frag_fit(train_smiles)
+=======
+    Ftr, fstate = frag_fit(train_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xte = np.hstack([featurize(test_smiles), frag_apply(test_smiles, keep)])
+=======
+    Xte = np.hstack([featurize(test_smiles), frag_apply(test_smiles, fstate)])
+>>>>>>> REPLACE
+-----

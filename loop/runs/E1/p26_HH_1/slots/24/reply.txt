@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    x, best_sum = x2, -np.inf
+    for _ in range(5):   # warm restarts: SLSQP often stops early on this scaling
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+        if res.x[2 * n:].sum() - best_sum < 1e-9:
+            break
+        best_sum = res.x[2 * n:].sum()
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

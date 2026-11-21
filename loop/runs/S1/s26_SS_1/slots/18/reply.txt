@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+=======
+    while time.time() - t0 < 110:
+        try:
+            u = rng.random()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    improved = True
+    while improved and time.time() - t0 < 150:
+        improved = False
+        for k in range(_N):
+            if time.time() - t0 >= 150:
+                break
+            try:
+                others = np.delete(np.arange(_N), k)
+                d = np.sqrt(((_GRID[:, None, :] - c[None, others, :]) ** 2).sum(2)) - r[None, others]
+                wall = np.minimum(np.minimum(_GRID[:, 0], _GRID[:, 1]),
+                                  np.minimum(1 - _GRID[:, 0], 1 - _GRID[:, 1]))
+                free = np.minimum(d.min(1), wall)
+                p = _GRID[free.argmax()]
+                c3 = c.copy()
+                c3[k] = p
+                r3 = _lp_radii(c3)
+                c4 = np.clip(_polish(c3, r3), 0, 1)
+                r4 = _lp_radii(c4)
+            except Exception:
+                continue
+            if r4.sum() > r.sum() + 1e-9:
+                c, r = c4, r4
+                improved = True
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+स्थापन
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_feats = featurize(train_smiles)
+    test_feats = featurize(test_smiles)
+    train_y_arr = np.asarray(train_y, dtype=np.int64)
+
+    # Feature selection: find top 512 most important features
+    selector = RandomForestClassifier(n_estimators=200, max_features='sqrt', min_samples_leaf=2, 
+                                      class_weight='balanced', n_jobs=-1, random_state=seed)
+    selector.fit(train_feats, train_y_arr)
+    importances = selector.feature_importances_
+    top_indices = np.argsort(importances)[-512:]
+
+    # Train final model on top features
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(train_feats[:, top_indices], train_y_arr)
+    
+    return model.predict_proba(test_feats[:, top_indices])[:, 1]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    x_train = featurize(train_smiles)
+    x_test = featurize(test_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+
+    # Quick selector to find top 512 features
+    selector = RandomForestClassifier(n_estimators=200, max_features='sqrt', min_samples_leaf=2, 
+                                      class_weight='balanced', n_jobs=-1, random_state=seed)
+    selector.fit(x_train, y_train)
+    importances = selector.feature_importances_
+    top_indices = np.argsort(importances)[-512:]
+
+    # Train final model on selected features
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(x_train[:, top_indices], y_train)
+    return model.predict_proba(x_test[:, top_indices])[:, 1]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,74 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+=======
+import numpy as np
+from collections import Counter
+from rdkit import Chem
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+=======
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    fp = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+=======
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.hstack([fp, smarts_counts(smiles), ap, tt])
+=======
+    return np.hstack([smarts_counts(smiles), ap, tt])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_predict(Xtr, ytr, Xte, seed):
+=======
+def base_predict(Xtr, ytr, Xte, seed, nb):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr.fit(tanimoto(Xtr[:, :N_BITS], Xtr[:, :N_BITS]), ytr)
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS]))])
+=======
+    Btr = (Xtr[:, :nb] > 0).astype(np.float64)
+    Bte = (Xte[:, :nb] > 0).astype(np.float64)
+    svr.fit(tanimoto(Btr, Btr), ytr)
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Bte, Btr))])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = featurize(train_smiles)
+=======
+    mgen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS)
+    dtr = [mgen.GetSparseCountFingerprint(Chem.MolFromSmiles(s)).GetNonzeroElements() for s in train_smiles]
+    dte = [mgen.GetSparseCountFingerprint(Chem.MolFromSmiles(s)).GetNonzeroElements() for s in test_smiles]
+    df = Counter(k for d in dtr for k in d)
+    vocab = [k for k, c in df.most_common() if c >= 3][:3000]
+    vidx = {k: i for i, k in enumerate(vocab)}
+    NB = len(vocab)
+
+    def mcount(ds):
+        M = np.zeros((len(ds), NB), dtype=np.float32)
+        for i, d in enumerate(ds):
+            for k, v in d.items():
+                if k in vidx:
+                    M[i, vidx[k]] = v
+        return M
+
+    X = np.hstack([mcount(dtr), featurize(train_smiles)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xte = featurize(test_smiles)
+=======
+    Xte = np.hstack([mcount(dte), featurize(test_smiles)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed)
+=======
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed, NB)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return meta.predict(base_predict(X, y, Xte, seed)) + a + b * Lte
+=======
+    return meta.predict(base_predict(X, y, Xte, seed, NB)) + a + b * Lte
+>>>>>>> REPLACE
+-----

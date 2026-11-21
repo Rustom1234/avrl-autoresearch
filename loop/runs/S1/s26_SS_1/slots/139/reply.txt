@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+=======
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    _setn(25)
+    cands = []
+    while time.time() - t0 < 50:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            r = _lp_radii(c)
+            c2 = np.clip(_polish(c, r), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        cands.append((r2.sum(), c2, r2))
+    cands.sort(key=lambda t: -t[0])
+    _setn(26)
+    for _, c25, r25 in cands[:5]:
+        try:
+            d = np.sqrt(((_GRID[:, None, :] - c25[None, :, :]) ** 2).sum(2)) - r25[None, :]
+            wall = np.minimum(np.minimum(_GRID[:, 0], _GRID[:, 1]),
+                              np.minimum(1 - _GRID[:, 0], 1 - _GRID[:, 1]))
+            clr = np.minimum(d.min(1), wall)
+            picks = []
+            for k in np.argsort(-clr):
+                if all(np.hypot(*(_GRID[k] - _GRID[p])) > 0.1 for p in picks):
+                    picks.append(k)
+                if len(picks) >= 5:
+                    break
+            for k in picks:
+                c = np.vstack([c25, _GRID[k][None, :]])
+                r = _lp_radii(c)
+                c2 = np.clip(_polish(c, r), 0, 1)
+                r2 = _lp_radii(c2)
+                s = r2.sum()
+                if s > best_s:
+                    best_s, best = s, (c2, r2)
+        except Exception:
+            continue
+    while time.time() - t0 < 150:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _lp_radii(c):
+=======
+def _setn(n):
+    global _N, _IU
+    _N = n
+    _IU = np.triu_indices(n, 1)
+
+
+def _lp_radii(c):
+>>>>>>> REPLACE
+-----

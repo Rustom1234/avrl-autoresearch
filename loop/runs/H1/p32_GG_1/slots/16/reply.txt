@@ -1,0 +1,100 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c = res.x[:2 * n].reshape(n, 2)
+    r = res.x[2 * n:]
+    
+    # Local search refinement: small hill climbing to nudge centers
+    for _ in range(100): # Small number of iterations to keep within time limits
+        best_c = c.copy()
+        max_r_sum = r.sum()
+        for i in range(n):
+            # Try small nudges in 4 directions
+            for dx, dy in [(0.001, 0), (-0.001, 0), (0, 0.001), (0, -0.001)]:
+                new_c = best_c.copy()
+                new_c[i] += [dx, dy]
+                # Quick check bounds
+                if np.any(new_c[i] < 0) or np.any(new_c[i] > 1):
+                    continue
+                # Quick check overlaps
+                valid = True
+                dist_sq = np.sum((new_c[i] - best_c)**2, axis=1)
+                # Optimization: only check against others
+                over_idx = np.where((dist_sq < (r[i] + r)**2) & (np.indices(best_c.shape)[0] != i))[0]
+                # This part is slightly simplified for speed, but we'll repair it
+                
+                # Actually, just let the repair function handle the small moves
+                # if they are nearly valid. 
+                # To keep it simple and fast, let's just do a small random perturbation
+                # that we then repair.
+                break
+
+            # Simple nudge and repair
+            new_c = best_c.copy()
+            new_c[i] += rng.normal(0, 0.002, 2)
+            r_sum = r.sum()
+            # Check validity (very basic)
+            c_norm = new_c
+            # The repair function is robust, so we can just perturb and repair
+            c, r = _repair(new_c, r)
+            if r.sum() > max_r_sum:
+                max_r_sum = r.sum()
+                best_c = c.copy()
+        c = best_c
+        if max_r_sum == r.sum(): break
+
+    return c, r
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw{"type": "ineq", "fun": cons},
+                   options{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c = res.x[:2 * n].reshape(n, 2)
+    r = res.x[2 * n:]
+
+    # Fast local search: perturb centers slightly and repair
+    current_r_sum = r.sum()
+    for _ in range(20):  # Keep it light to stay within time limit
+        for i in range(n):
+            new_c = c.copy()
+            new_c[i] += rng.normal(0, 0.005, 2)
+            c_temp, r_temp = _repair(new_c, r)
+            if r_temp.sum() > current_r_sum:
+                current_r_sum = r_temp.sum()
+                c, r = c_temp, r_temp
+    
+    return c, r
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+============
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c = res.x[:2 * n].reshape(n, 2)
+    r = res.x[2 * n:]
+
+    # Fast local search: perturb centers slightly and repair
+    curr_sum = r.sum()
+    for _ in range(10):  # Keep it very light to stay within time limit
+        for i in range(n):
+            c_copy = c.copy()
+            c_copy[i] += rng.normal(0, 0.002, 2)
+            c_new, r_new = _repair(c_copy, r)
+            if r_new.sum() > curr_sum:
+                curr_sum = r_new.sum()
+                c, r = c_new, r_new
+    
+    return c, r
+>>>>>>> REPLACE
+-----

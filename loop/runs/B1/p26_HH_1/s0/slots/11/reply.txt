@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+    if start is None:
+        x1 = np.concatenate([x0[:2 * n], [INIT_RADIUS]])
+        res1 = minimize(lambda v: -v[2 * n], x1, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                        options={"maxiter": MAX_ITER})
+=======
+    m = len(iu[0])
+    I = np.eye(n)
+
+    def cons_jac(v):
+        c = v[:2 * n].reshape(n, 2)
+        J = np.zeros((m + 5 * n, 3 * n))
+        i, j = iu
+        dif = c[i] - c[j]
+        u = dif / np.maximum(np.sqrt((dif ** 2).sum(1)), 1e-12)[:, None]
+        k = np.arange(m)
+        J[k, 2 * i] = u[:, 0]
+        J[k, 2 * i + 1] = u[:, 1]
+        J[k, 2 * j] = -u[:, 0]
+        J[k, 2 * j + 1] = -u[:, 1]
+        J[k, 2 * n + i] = -1
+        J[k, 2 * n + j] = -1
+        J[m:m + n, 0:2 * n:2] = I
+        J[m:m + n, 2 * n:] = -I
+        J[m + n:m + 2 * n, 1:2 * n:2] = I
+        J[m + n:m + 2 * n, 2 * n:] = -I
+        J[m + 2 * n:m + 3 * n, 0:2 * n:2] = -I
+        J[m + 2 * n:m + 3 * n, 2 * n:] = -I
+        J[m + 3 * n:m + 4 * n, 1:2 * n:2] = -I
+        J[m + 3 * n:m + 4 * n, 2 * n:] = -I
+        J[m + 4 * n:, 2 * n:] = I
+        return J
+
+    def cons_eq_jac(v):
+        c = v[:2 * n].reshape(n, 2)
+        J = np.zeros((m + 4 * n + 1, 2 * n + 1))
+        i, j = iu
+        dif = c[i] - c[j]
+        u = dif / np.maximum(np.sqrt((dif ** 2).sum(1)), 1e-12)[:, None]
+        k = np.arange(m)
+        J[k, 2 * i] = u[:, 0]
+        J[k, 2 * i + 1] = u[:, 1]
+        J[k, 2 * j] = -u[:, 0]
+        J[k, 2 * j + 1] = -u[:, 1]
+        J[k, 2 * n] = -2
+        J[m:m + n, 0:2 * n:2] = I
+        J[m + n:m + 2 * n, 1:2 * n:2] = I
+        J[m + 2 * n:m + 3 * n, 0:2 * n:2] = -I
+        J[m + 3 * n:m + 4 * n, 1:2 * n:2] = -I
+        J[m:m + 4 * n, 2 * n] = -1
+        J[m + 4 * n, 2 * n] = 1
+        return J
+
+    if start is None:
+        x1 = np.concatenate([x0[:2 * n], [INIT_RADIUS]])
+        res1 = minimize(lambda v: -v[2 * n], x1, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq, "jac": cons_eq_jac},
+                        jac=lambda v: np.r_[np.zeros(2 * n), -1.0], options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons, "jac": cons_jac},
+                   jac=lambda v: np.r_[np.zeros(2 * n), -np.ones(n)], options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+-----

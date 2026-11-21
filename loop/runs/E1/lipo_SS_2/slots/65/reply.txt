@@ -1,0 +1,12 @@
+<<<<<<< SEARCH
+    return meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES)) + cte
+=======
+    res = y - meta.predict(oof)
+    S = tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS])
+    idx = np.argsort(-S, axis=1)[:, :5]
+    s = np.take_along_axis(S, idx, 1)
+    w = np.where(s > 0.5, s ** 3, 0.0)
+    corr = (w * res[idx]).sum(1) / np.maximum(w.sum(1), 1e-9)
+    return meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES)) + 0.5 * corr + cte
+>>>>>>> REPLACE
+-----

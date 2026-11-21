@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    def optimize(z0):
+        res = minimize(lambda z: -np.sum(z[2 * n:]), z0, jac=lambda z: obj_grad,
+                       constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                       bounds=[(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n,
+                       method="SLSQP", options={"maxiter": 300, "ftol": 1e-12})
+        z = res.x
+        if not np.all(np.isfinite(z)):
+            return z0
+        return z
+=======
+    def pen_obj(z):
+        r = z[2 * n:]
+        return -np.sum(r) + 0.5 * np.sum((r - r.mean()) ** 2)
+
+    def pen_grad(z):
+        r = z[2 * n:]
+        g = np.zeros(3 * n)
+        g[2 * n:] = -1.0 + (r - r.mean())
+        return g
+
+    def optimize(z0):
+        bnds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+        cons_list = [{"type": "ineq", "fun": cons, "jac": cjac}]
+        res1 = minimize(pen_obj, z0, jac=pen_grad, constraints=cons_list,
+                        bounds=bnds, method="SLSQP", options={"maxiter": 150, "ftol": 1e-12})
+        z1 = res1.x if np.all(np.isfinite(res1.x)) else z0
+        res = minimize(lambda z: -np.sum(z[2 * n:]), z1, jac=lambda z: obj_grad,
+                       constraints=cons_list, bounds=bnds,
+                       method="SLSQP", options={"maxiter": 300, "ftol": 1e-12})
+        z = res.x
+        if not np.all(np.isfinite(z)):
+            return z1
+        return z
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from sklearn.decomposition import TruncatedSVD
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+=======
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+
+    # MLP on descriptors + Morgan SVD components
+    svd = TruncatedSVD(n_components=32, random_state=seed)
+    Z = svd.fit_transform(A)
+    Zt = svd.transform(B)
+    mu, sd = Z.mean(0), Z.std(0) + 1e-6
+    F = np.hstack([Dq, (Z - mu) / sd])
+    Ft = np.hstack([Dtq, (Zt - mu) / sd])
+    p = np.zeros(len(Xt))
+    for k in range(3):
+        m2 = MLPClassifier(hidden_layer_sizes=(128, 32), alpha=0.1, early_stopping=True, max_iter=300,
+                           random_state=seed + k)
+        m2.fit(F, y)
+        p += m2.predict_proba(Ft)[:, 1] / 3
+    preds.append(rankdata(p) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

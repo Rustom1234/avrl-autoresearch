@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    curr_best_sum = -1.0
+    
+    # Pre-calculate temperature schedule
+    total_time = TIME_FRACTION * time_limit
+    steps = 20  # Approximate steps to fit in time_limit
+    temps = np.geomspace(0.02, 1e-4, steps)
+    
+    elapsed = 0
+    for i in range(steps):
+        # Dynamic time check
+        if time.process_time() - t0 > total_time * (i+1) / steps: break
+        
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        r_sum = r.sum()
+        if best is None or r_sum > best[1].sum():
+            best = (c, r)
+            curr_best_sum = r_sum
+        else:
+            # Simulated annealing acceptance
+            temp = temps[min(i, len(temps)-1)]
+            prob = np.exp((r_sum - curr_best_sum) / temp)
+            if rng.random() < prob:
+                # current best becomes the new 'current' for the annealing
+                # but we only update the 'best' if it's strictly better
+                pass 
+                
+    return best
+>>>>>>> REPLACE
+-----

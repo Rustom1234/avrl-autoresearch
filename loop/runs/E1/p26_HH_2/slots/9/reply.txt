@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r, cap - r])
+=======
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r, cap - r])
+
+    def cons_jac(v, cap):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        P, idx = len(iu[0]), np.arange(n)
+        J = np.zeros((P + 6 * n, 3 * n))
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.maximum(np.sqrt((diff ** 2).sum(1)), 1e-12)
+        u = diff / d[:, None]
+        k = np.arange(P)
+        J[k, 2 * iu[0]] = u[:, 0]
+        J[k, 2 * iu[0] + 1] = u[:, 1]
+        J[k, 2 * iu[1]] = -u[:, 0]
+        J[k, 2 * iu[1] + 1] = -u[:, 1]
+        J[k, 2 * n + iu[0]] = -1
+        J[k, 2 * n + iu[1]] = -1
+        b = P
+        J[b + idx, 2 * idx] = 1
+        J[b + idx, 2 * n + idx] = -1
+        b += n
+        J[b + idx, 2 * idx + 1] = 1
+        J[b + idx, 2 * n + idx] = -1
+        b += n
+        J[b + idx, 2 * idx] = -1
+        J[b + idx, 2 * n + idx] = -1
+        b += n
+        J[b + idx, 2 * idx + 1] = -1
+        J[b + idx, 2 * n + idx] = -1
+        b += n
+        J[b + idx, 2 * n + idx] = 1
+        b += n
+        J[b + idx, 2 * n + idx] = -1
+        return J
+
+    def obj_jac(v):
+        return np.concatenate([np.zeros(2 * n), -np.ones(n)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+=======
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", jac=obj_jac,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+=======
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap),
+                                    "jac": lambda v, cap=cap: cons_jac(v, cap)},
+>>>>>>> REPLACE
+-----

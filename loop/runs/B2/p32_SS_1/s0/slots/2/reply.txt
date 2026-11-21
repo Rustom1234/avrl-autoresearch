@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    c, r = np.concatenate([ca[ma], cb[mb]]), np.concatenate([ra[ma], rb[mb]])
+    if len(r) > n:
+        k = rng.choice(len(r), n, replace=False)
+        c, r = c[k], r[k]
+    elif len(r) < n:
+        m = n - len(r)
+        c = np.vstack([c, rng.uniform(INIT_LOW, 1 - INIT_LOW, (m, 2))])
+        r = np.concatenate([r, np.full(m, INIT_RADIUS)])
+    return np.concatenate([c.ravel(), r])
+=======
+    c, r = np.concatenate([ca[ma], cb[mb]]), np.concatenate([ra[ma], rb[mb]])
+    while len(r) > n:
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        ov = np.maximum(0, r[:, None] + r[None] - d)
+        np.fill_diagonal(ov, 0)
+        i = np.lexsort((r, -ov.sum(1)))[0]
+        c, r = np.delete(c, i, 0), np.delete(r, i)
+    while len(r) < n:
+        cand = rng.uniform(0, 1, (500, 2))
+        clear = np.minimum(np.minimum(cand[:, 0], cand[:, 1]), np.minimum(1 - cand[:, 0], 1 - cand[:, 1]))
+        if len(r):
+            clear = np.minimum(clear, (np.sqrt(((cand[:, None] - c[None]) ** 2).sum(-1)) - r[None]).min(1))
+        j = np.argmax(clear)
+        c = np.vstack([c, cand[j]])
+        r = np.concatenate([r, [max(0.01, 0.9 * clear[j])]])
+    return np.concatenate([c.ravel(), r])
+>>>>>>> REPLACE
+-----

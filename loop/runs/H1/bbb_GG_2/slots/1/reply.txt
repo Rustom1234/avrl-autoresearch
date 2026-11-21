@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+LEARNING_RATE = 0.1
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+LEARNING_RATE = 0.1
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+LEARNING_RATE = 0.1
+NUM_LEAVES = 31
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    desc = np.array([
+        [Descriptors.MolWt(m),
+         Descriptors.MolLogP(m),
+         Descriptors.NumHDonors(m),
+         Descriptors.NumHAcceptors(m),
+         Descriptors.TPSA(m)] for m in mols], dtype=np.float32)
+    
+    return np.hstack([fps, desc])
+>>>>>>> REPLACE
+-----

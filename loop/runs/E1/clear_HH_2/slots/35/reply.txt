@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+from sklearn.linear_model import ElasticNetCV
+from sklearn.preprocessing import StandardScaler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+W_DESC = 0.6  # weight of the descriptor-based LightGBM rank; fingerprint ExtraTrees gets 1 - W_DESC
+=======
+W_DESC, W_GP, W_EN = 0.4, 0.4, 0.2  # blend weights: descriptor LightGBM, fingerprint GP, descriptor ElasticNet
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    X_dtr, X_dte = desc_features(train_smiles), desc_features(test_smiles)
+    lo, hi = np.percentile(X_dtr, [1, 99], axis=0)
+    X_dtr, X_dte = np.clip(X_dtr, lo, hi), np.clip(X_dte, lo, hi)
+    scaler = StandardScaler().fit(X_dtr)
+    enet = ElasticNetCV(l1_ratio=[0.2, 0.5, 0.8], cv=5, max_iter=5000, random_state=seed)
+    enet.fit(scaler.transform(X_dtr), y)
+    p_en = enet.predict(scaler.transform(X_dte))
+
+    n = len(p_desc)
+    return (W_DESC * rankdata(p_desc) / n + W_GP * rankdata(p_fp) / n + W_EN * rankdata(p_en) / n)
+>>>>>>> REPLACE
+-----

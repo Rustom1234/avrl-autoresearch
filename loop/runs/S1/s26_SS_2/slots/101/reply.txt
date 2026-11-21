@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+=======
+        if rng.random() < 0.4:
+            pts = []
+            for j in range(4):
+                for k in range(4):
+                    pts.append([0.15 + 0.23 * k + (0.115 if j % 2 else 0.0), 0.13 + 0.247 * j])
+            pts = np.array(pts) + rng.uniform(-0.02, 0.02, (16, 2))
+            pts = np.clip(pts, 0.1, 0.9)
+            cs = [p for p in pts]
+            rs = [0.13] * 16
+            gg = (np.arange(50) + 0.5) / 50
+            GX, GY = np.meshgrid(gg, gg)
+            G = np.stack([GX.ravel(), GY.ravel()], 1)
+            for _ in range(10):
+                C = np.array(cs); R = np.array(rs)
+                dd = np.sqrt(((G[:, None, :] - C[None, :, :]) ** 2).sum(2)) - R[None, :]
+                h = np.minimum(dd.min(1), np.minimum(np.minimum(G[:, 0], G[:, 1]),
+                                                     np.minimum(1 - G[:, 0], 1 - G[:, 1])))
+                b = int(np.argmax(h))
+                cs.append(G[b].copy())
+                rs.append(max(0.9 * h[b], 0.01))
+            C = np.array(cs)
+            v = np.concatenate([C[:, 0], C[:, 1], np.array(rs)])
+        else:
+            v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+>>>>>>> REPLACE
+-----

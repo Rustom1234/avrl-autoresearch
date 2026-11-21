@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Found no integrity problems. The diff changes only one line, TOTAL_BATCH_SIZE (2**19 to 2**18). It does not touch the seed lines, the prepare.py import, the evaluation call, the data or the final summary.",
+  "Found no bug that would make the result meaningless. With DEVICE_BATCH_SIZE 64 and an assumed sequence length of 2048, 64*2048 = 131072, so 2**18 divides evenly and gives grad_accum = 2 instead of 4. Halving the batch inside a fixed 300 s budget roughly doubles the number of optimizer steps, which plausibly explains the gain. The learning rates were not retuned for the smaller batch, but that is a tuning choice, not a bug.",
+  "I could not reproduce z exactly. The candidate mean is (1.0645 + 1.061) / 2 = 1.06275, and the difference from the incumbent is 1.1013 - 1.06275 = 0.03855. The incumbent has only 1 run, so these numbers alone give no estimate of incumbent variance. The harness z = 5.747 implies a noise term of about 0.0067, which most likely comes from a prior or pooled noise estimate (per-run sigma about 0.0055 under SE = sigma*sqrt(1/2 + 1/1)). Using only the spread of the two candidate runs (sample sd 0.00247, SE 0.00175) would give z of about 22, which overstates the confidence. Under any reasonable noise model the improvement is well beyond noise, so the accept decision holds.",
+  "Minor: the incumbent baseline rests on a single run. A replicate would firm up the comparison, but this does not justify a veto."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.06275,
+  "delta": 0.03855,
+  "implied_noise_sd_for_harness_z": 0.00671,
+  "naive_z_from_candidate_spread_only": 22
+ }
+}

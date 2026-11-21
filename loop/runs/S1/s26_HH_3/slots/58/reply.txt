@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def _optimize(centers0, radii0):
+=======
+def _optimize(centers0, radii0, rmax=0.5):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+=======
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, rmax)] * n
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+=======
+    # Size-annealed radius cap: raise the max radius 0.1 -> 0.2 -> 0.5 with warm starts
+    try:
+        c, r = rng.uniform(0.05, 0.95, size=(n, 2)), np.full(n, 0.05)
+        for cap in (0.1, 0.2, 0.5):
+            r = np.minimum(r, cap)
+            c, r = _optimize(c, r, rmax=cap)
+        r = _repair(c, r)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    except Exception:
+        pass
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+N_TREES = 300
+MAX_FEATURES = 0.3
+=======
+N_TREES = 500
+MAX_FEATURES = "sqrt"
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def mixed_features(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        d = [f(m) for _, f in Descriptors.descList]
+        rows.append(np.concatenate([np.array(d, dtype=np.float64), gen.GetCountFingerprintAsNumPy(m)]))
+    X = np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                               n_jobs=-1, random_state=seed).fit(Xtr, y)
+=======
+                               n_jobs=-1, random_state=seed).fit(mixed_features(train_smiles), y)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    preds = [rf.predict(Xte), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr))]
+=======
+    preds = [rf.predict(mixed_features(test_smiles)), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr))]
+>>>>>>> REPLACE
+-----

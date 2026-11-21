@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if rng.random() < 0.8:
+            c, r = _solve_once(n, rng)
+            update_pop(c, r)
+        elif len(population) >= 2:
+            p1, p2 = rng.sample(population, 2)
+            c1, r1 = p1
+            c2, r2 = p2
+            mid = n // 2
+            c_child = np.concatenate([c1[:mid], c2[mid:]])
+            r_child = np.concatenate([r1[:mid], r2[mid:]])
+            # Re-adjust if n is odd
+            if len(c_child) < n:
+                c_child = np.concatenate([c_child, rng.uniform(INIT_LOW, 1-INIT_LOW, (n-len(c_child), 2))], axis=1)
+                r_child = np.concatenate([r_child, np.full(n-len(r_child), INIT_RADIUS)])
+            
+            c_child = np.clip(c_child, 0, 1)
+            r_child = _repair(c_child, r_child)
+            update_pop(c_child, r_child)
+            
+    population.sort(key=lambda x: x[1].sum(), reverse=True)
+    return population[0]
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if rng.random() < 0.8:
+            c, r = _solve_once(n, rng)
+            update_pop(c, r)
+        elif len(population) >= 2:
+            idx = rng.choice(len(population), 2, replace=False)
+            p1, p2 = population[idx[0]], population[idx[1]]
+            c1, r1 = p1
+            c2, r2 = p2
+            mid = n // 2
+            c_child = np.concatenate([c1[:mid], c2[mid:]])
+            r_child = np.concatenate([r1[:mid], r2[mid:]])
+            # Re-adjust if n is odd
+            if len(c_child) < n:
+                c_child = np.concatenate([c_child, rng.uniform(INIT_LOW, 1-INIT_LOW, (n-len(c_child), 2))], axis=1)
+                r_child = np.concatenate([r_child, np.full(n-len(r_child), INIT_RADIUS)])
+            
+            c_child = np.clip(c_child, 0, 1)
+            r_child = _repair(c_child, r_child)
+            update_pop(c_child, r_child)
+            
+    population.sort(key=lambda x: x[1].sum(), reverse=True)
+    return population[0]
+>>>>>>> REPLACE
+-----

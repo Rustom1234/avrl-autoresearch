@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+from sklearn.ensemble import RandomForestRegressor
+=======
+from scipy.stats import rankdata, spearmanr
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GroupKFold
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+INNER_TREES = 100
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles, kind):
+=======
+def featurize(smiles, kind, radius=RADIUS, nbits=N_BITS):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+=======
+        gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=nbits)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    preds = []
+    for kind in ("morgan", "atompair", "maccs", "gobbi"):
+        model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES,
+                                      min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+        model.fit(featurize(train_smiles, kind), y)
+        preds.append(model.predict(featurize(test_smiles, kind)))
+    return np.mean(preds, axis=0)
+=======
+def rf(seed, n_trees):
+    return RandomForestRegressor(n_estimators=n_trees, max_features=MAX_FEATURES,
+                                 min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_smiles = list(train_smiles)
+    test_smiles = list(test_smiles)
+    raw = np.asarray(train_y, dtype=np.float64)
+    y = rankdata(raw) / len(raw)
+    groups = [MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(s)) for s in train_smiles]
+    options = [("morgan", r, b) for r in (1, 2, 3) for b in (1024, 2048)]
+    options += [("atompair", 0, N_BITS), ("maccs", 0, 0)]
+    scores = []
+    for kind, r, b in options:
+        X = featurize(train_smiles, kind, r, b)
+        oof = np.zeros(len(y))
+        for tr, va in GroupKFold(n_splits=3).split(X, y, groups):
+            oof[va] = rf(seed, INNER_TREES).fit(X[tr], y[tr]).predict(X[va])
+        scores.append(spearmanr(oof, raw)[0])
+    best = np.argsort(scores)[::-1][:2]
+    preds = []
+    for i in best:
+        kind, r, b = options[i]
+        model = rf(seed, N_TREES).fit(featurize(train_smiles, kind, r, b), y)
+        preds.append(model.predict(featurize(test_smiles, kind, r, b)))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

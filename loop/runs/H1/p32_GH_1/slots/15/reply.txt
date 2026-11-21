@@ -1,0 +1,86 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+GD_ITER = 300
+GD_LR = 0.01
+GD_MOM = 0.9
+PEN = 10.0
+
+
+def _momentum(n, x):
+    """Momentum gradient descent on a penalty objective, run before the SLSQP stages."""
+    iu = np.triu_indices(n, 1)
+    v = np.zeros_like(x)
+    for _ in range(GD_ITER):
+        c, r = x[:2 * n].reshape(n, 2), x[2 * n:]
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        ov = np.maximum(r[iu[0]] + r[iu[1]] - d, 0)
+        u = diff / d[:, None]
+        gc, gr = np.zeros((n, 2)), np.zeros(n)
+        np.add.at(gc, iu[0], -2 * ov[:, None] * u)
+        np.add.at(gc, iu[1], 2 * ov[:, None] * u)
+        np.add.at(gr, iu[0], 2 * ov)
+        np.add.at(gr, iu[1], 2 * ov)
+        lo = np.maximum(r[:, None] - c, 0)
+        hi = np.maximum(c + r[:, None] - 1, 0)
+        gc += -2 * lo + 2 * hi
+        gr += 2 * lo.sum(1) + 2 * hi.sum(1)
+        g = np.concatenate([PEN * gc.ravel(), PEN * gr - 1])
+        v = GD_MOM * v - GD_LR * g
+        x = x + v
+    return x
+
+
+def _solve_once(n, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x = x0
+    for cap in RADIUS_CAPS:
+=======
+    x = _momentum(n, x0)
+    for cap in RADIUS_CAPS:
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+GD_ITER = 300
+GD_LR = 0.01
+GD_MOM = 0.9
+PEN = 10.0
+
+
+def _momentum(n, x):
+    """Momentum gradient descent on a penalty objective, run before the SLSQP stages."""
+    iu = np.triu_indices(n, 1)
+    v = np.zeros_like(x)
+    for _ in range(GD_ITER):
+        c, r = x[:2 * n].reshape(n, 2), x[2 * n:]
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        ov = np.maximum(r[iu[0]] + r[iu[1]] - d, 0)
+        u = diff / d[:, None]
+        gc, gr = np.zeros((n, 2)), np.zeros(n)
+        np.add.at(gc, iu[0], -2 * ov[:, None] * u)
+        np.add.at(gc, iu[1], 2 * ov[:, None] * u)
+        np.add.at(gr, iu[0], 2 * ov)
+        np.add.at(gr, iu[1], 2 * ov)
+        lo = np.maximum(r[:, None] - c, 0)
+        hi = np.maximum(c + r[:, None] - 1, 0)
+        gc += -2 * lo + 2 * hi
+        gr += 2 * lo.sum(1) + 2 * hi.sum(1)
+        g = np.concatenate([PEN * gc.ravel(), PEN * gr - 1])
+        v = GD_MOM * v - GD_LR * g
+        x = x + v
+    return x
+
+
+def _solve_once(n, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x = x0
+=======
+    x = _momentum(n, x0)
+>>>>>>> REPLACE
+-----

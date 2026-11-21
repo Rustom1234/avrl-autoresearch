@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata, spearmanr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    mu, sd = y.mean(), y.std() + 1e-9
+    ys = (y - mu) / sd
+    folds = list(KFold(n_splits=4, shuffle=True, random_state=seed).split(K_train))
+    best, best_score = (5.0, 0.05), -np.inf
+    for C in (1.0, 5.0, 20.0):
+        for eps in (0.02, 0.05, 0.1):
+            oof = np.zeros(len(ys))
+            for tr, va in folds:
+                m = SVR(kernel="precomputed", C=C, epsilon=eps)
+                m.fit(K_train[np.ix_(tr, tr)], ys[tr])
+                oof[va] = m.predict(K_train[np.ix_(va, tr)])
+            score = spearmanr(oof, y).correlation
+            if score > best_score:
+                best, best_score = (C, eps), score
+    model = SVR(kernel="precomputed", C=best[0], epsilon=best[1])
+    model.fit(K_train, ys)
+    return model.predict(K_test)
+>>>>>>> REPLACE
+-----

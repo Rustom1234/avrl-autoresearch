@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors, MACCSkeys, rdFingerprintGenerator, rdMolDescriptors
+=======
+from rdkit.Chem import Descriptors, MACCSkeys, rdFingerprintGenerator, rdMolDescriptors, rdPartialCharges
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+=======
+def descriptors(smiles):
+    base = featurize(smiles)
+    gast = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rdPartialCharges.ComputeGasteigerCharges(m)
+        c = np.array([m.GetAtomWithIdx(a.GetIdx()).GetDoubleProp('_GasteigerCharge')
+                      for a in m.GetAtoms() if a.GetAtomicNum() > 1])
+        c = np.nan_to_num(c, nan=0.0, posinf=0.0, neginf=0.0)
+        c = np.clip(c, -0.5, 0.5)
+        hist, _ = np.histogram(c, bins=12, range=(-0.5, 0.5))
+        gast.append(np.concatenate([hist, [c[c > 0].sum(), c[c < 0].sum()]]))
+    return np.hstack([base, np.array(gast, dtype=np.float32)])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles) + [descriptors(train_smiles)]
+    test_sets = fingerprints(test_smiles) + [descriptors(test_smiles)]
+>>>>>>> REPLACE
+-----

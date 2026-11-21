@@ -1,0 +1,75 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    best = None
+    best_val = -1.0
+    it = 0
+    pool = []
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        v = r.sum()
+        if v > best_val:
+=======
+        v = r.sum()
+        pool.append((v, c, r))
+        if v > best_val:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while best is not None and time.time() - t0 < time_budget:
+=======
+    def lp_radii(cn):
+        from scipy.optimize import linprog
+        dd = np.sqrt(((cn[iu] - cn[ju]) ** 2).sum(1))
+        A = np.zeros((m, n))
+        A[ar, iu] = 1.0
+        A[ar, ju] = 1.0
+        wd = np.stack([cn[:, 0], cn[:, 1], 1 - cn[:, 0], 1 - cn[:, 1]], axis=1)
+        wmin = wd.min(1)
+        rs = linprog(-np.ones(n), A_ub=A, b_ub=dd,
+                     bounds=[(0, float(max(w, 0))) for w in wmin], method="highs")
+        return rs, dd, wd
+
+    pool.sort(key=lambda t: -t[0])
+    tops = []
+    for v_, c_, r_ in pool:
+        if all(abs(v_ - t[0]) > 1e-7 for t in tops):
+            tops.append((v_, c_, r_))
+        if len(tops) >= 3:
+            break
+    lp_end = t0 + 0.8 * time_budget
+    for v_, c_, r_ in tops:
+        if time.time() > lp_end:
+            break
+        try:
+            cn = c_.copy() + rng.normal(0, 0.004, c_.shape)
+            cn = np.clip(cn, 0.02, 0.98)
+            for k in range(50):
+                rs, dd, wd = lp_radii(cn)
+                if rs.status != 0:
+                    break
+                lam = -rs.ineqlin.marginals
+                gr = np.zeros((n, 2))
+                dv = cn[iu] - cn[ju]
+                u = dv / np.maximum(dd, 1e-12)[:, None]
+                np.add.at(gr, iu, lam[:, None] * u)
+                np.add.at(gr, ju, -lam[:, None] * u)
+                cn = np.clip(cn + 0.01 * (1 - k / 50.0) * gr / (np.abs(gr).max() + 1e-12)
+                             + rng.normal(0, 0.0005, cn.shape), 0.0, 1.0)
+            rs, dd, wd = lp_radii(cn)
+            r0 = np.maximum(rs.x, 0.01)
+            z0 = np.concatenate([cn[:, 0], cn[:, 1], r0 * 0.98])
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+            out = finalize(res.x)
+            if out is not None and out[1].sum() > best_val:
+                best_val = out[1].sum()
+                best = out
+        except Exception:
+            continue
+
+    while best is not None and time.time() - t0 < time_budget:
+>>>>>>> REPLACE
+-----

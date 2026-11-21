@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+=======
+def layered_init(rng):
+    """Layered boundary-first layout: 4 corners, 12 edge circles (3 per side), 10 interior (3-3-4)."""
+    pts = [[0.12, 0.12], [0.88, 0.12], [0.12, 0.88], [0.88, 0.88]]
+    for k in range(3):
+        t = 0.31 + 0.19 * k
+        pts += [[t, 0.1], [t, 0.9], [0.1, t], [0.9, t]]
+    pts += [[0.3, 0.3], [0.5, 0.3], [0.7, 0.3]]
+    pts += [[0.25, 0.5], [0.5, 0.5], [0.75, 0.5]]
+    pts += [[0.25, 0.7], [0.42, 0.7], [0.58, 0.7], [0.75, 0.7]]
+    pts = np.array(pts, dtype=float)
+    pts = pts + rng.normal(0.0, 0.01, pts.shape)
+    return np.clip(pts, 0.05, 0.95)
+
+
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for start in range(4):
+        if start > 0 and time.time() - t0 > 150:
+            break
+        c0 = hex_jitter(rng)
+        c0 = sa_centers(c0, rng, t0)
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+=======
+    for start in range(5):
+        if start in (1, 2, 3) and time.time() - t0 > 150:
+            continue
+        if start == 4:
+            c0 = layered_init(rng)
+        else:
+            c0 = hex_jitter(rng)
+            c0 = sa_centers(c0, rng, t0)
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+>>>>>>> REPLACE
+-----

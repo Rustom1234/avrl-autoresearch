@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+    return r * (1 - 1e-9)
+=======
+    return r * (1 - 1e-12)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    centers = np.clip(best_c, 0.0, 1.0)
+    radii = safe_radii(centers, np.maximum(best_r, 0.0))
+    return centers, radii
+=======
+    centers = np.clip(best_c, 0.0, 1.0)
+    radii = safe_radii(centers, np.maximum(best_r, 0.0))
+    try:
+        r_lp = safe_radii(centers, np.maximum(lp_radii(centers), 0.0))
+        ok = bool(np.all(np.isfinite(r_lp)) and np.all(r_lp >= 0.0))
+        walls = np.minimum(np.minimum(centers[:, 0], centers[:, 1]), np.minimum(1 - centers[:, 0], 1 - centers[:, 1]))
+        ok = ok and bool(np.all(r_lp <= walls))
+        for i in range(n):
+            for j in range(i + 1, n):
+                d = np.sqrt(np.sum((centers[i] - centers[j]) ** 2))
+                if r_lp[i] + r_lp[j] > d:
+                    ok = False
+        if ok and np.sum(r_lp) >= np.sum(radii):
+            radii = r_lp
+    except Exception:
+        pass
+    return centers, radii
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+        return r * (1 - 1e-9)
+=======
+        return r * (1 - 1e-12)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    centers = np.clip(best_c, 0.0, 1.0)
+    radii = safe_radii(centers, np.maximum(best_r, 0.0))
+    return centers, radii
+=======
+    centers = np.clip(best_c, 0.0, 1.0)
+    radii = safe_radii(centers, np.maximum(best_r, 0.0))
+    try:
+        r_lp = safe_radii(centers, np.maximum(lp_radii(centers), 0.0))
+        ok = bool(np.all(np.isfinite(r_lp)) and np.all(r_lp >= 0.0))
+        walls = np.minimum(np.minimum(centers[:, 0], centers[:, 1]), np.minimum(1 - centers[:, 0], 1 - centers[:, 1]))
+        ok = ok and bool(np.all(r_lp <= walls))
+        for i in range(n):
+            for j in range(i + 1, n):
+                d = np.sqrt(np.sum((centers[i] - centers[j]) ** 2))
+                if r_lp[i] + r_lp[j] > d:
+                    ok = False
+        if ok and np.sum(r_lp) >= np.sum(radii):
+            radii = r_lp
+    except Exception:
+        pass
+    return centers, radii
+>>>>>>> REPLACE
+-----

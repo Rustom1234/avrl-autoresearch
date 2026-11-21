@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x1 = np.concatenate([x0[:2 * n], [INIT_RADIUS]])
+    res1 = minimize(lambda v: -v[2 * n], x1, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                    options={"maxiter": MAX_ITER})
+    x2 = np.concatenate([res1.x[:2 * n], np.full(n, max(res1.x[2 * n], 0.0))])
+=======
+    if start is None:
+        x1 = np.concatenate([x0[:2 * n], [INIT_RADIUS]])
+        res1 = minimize(lambda v: -v[2 * n], x1, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                        options={"maxiter": MAX_ITER})
+        x2 = np.concatenate([res1.x[:2 * n], np.full(n, max(res1.x[2 * n], 0.0))])
+    else:
+        x2 = start
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < 0.2 * budget:   # random restarts for the first 20% of the budget
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    # Iterated local search: Gaussian kicks on the centres, sigma decaying geometrically 0.08 -> 0.001
+    s0 = time.process_time()
+    while True:
+        frac = (time.process_time() - s0) / max(0.8 * budget, 1e-9)
+        if frac >= 1:
+            break
+        sigma = 0.08 * (0.001 / 0.08) ** frac
+        c0, r0 = best
+        c_kick = np.clip(c0 + rng.normal(0, sigma, c0.shape), 0, 1)
+        c, r = _solve_once(n, rng, start=np.concatenate([c_kick.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

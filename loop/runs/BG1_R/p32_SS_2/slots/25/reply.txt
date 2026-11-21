@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+=======
+TIME_FRACTION = 0.85
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _lp_radii(c):
+    n = len(c)
+    i, j = np.triu_indices(n, 1)
+    d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+    A = np.zeros((len(i), n))
+    A[np.arange(len(i)), i] = 1
+    A[np.arange(len(i)), j] = 1
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=[(0, max(w, 0)) for w in wall], method="highs")
+    return res.x if res.success else None
+
+
+def _polish_round(c, r):
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+    d0 = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+    a, b = iu[0][d0 < 0.02], iu[1][d0 < 0.02]
+
+    def cons(v):
+        cc, rr = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((cc[a] - cc[b]) ** 2).sum(1)) - rr[a] - rr[b]
+        return np.concatenate([d, cc[:, 0] - rr, cc[:, 1] - rr, 1 - cc[:, 0] - rr, 1 - cc[:, 1] - rr, rr])
+
+    x0 = np.concatenate([c.ravel(), r])
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": 50})
+    return np.clip(res.x[:2 * n].reshape(n, 2), 0, 1), res.x[2 * n:]
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    c, r = best
+    for _ in range(20):
+        if time.process_time() - t0 > 0.97 * time_limit:
+            break
+        r1 = _lp_radii(c)
+        if r1 is None:
+            break
+        c2, r2 = _polish_round(c, r1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    r3 = _lp_radii(c)
+    if r3 is not None:
+        r3 = _repair(c, r3)
+        if r3.sum() > r.sum():
+            r = r3
+    return c, r
+>>>>>>> REPLACE
+-----

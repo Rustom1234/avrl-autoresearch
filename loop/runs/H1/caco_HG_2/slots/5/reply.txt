@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    Dtr, Dte = descriptors(train_smiles), descriptors(test_smiles)
+    quick = RandomForestRegressor(n_estimators=100, max_features=0.3, n_jobs=-1, random_state=seed)
+    quick.fit(Dtr, y)
+    top = np.argsort(quick.feature_importances_)[::-1][:N_DESC]
+    Xtr = np.hstack([Dtr[:, top], featurize(train_smiles)])
+    Xte = np.hstack([Dte[:, top], featurize(test_smiles)])
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(Xtr, y)
+    return model.predict(Xte)
+=======
+def minmax_kernel(A, B):
+    sa, sb = A.sum(1), B.sum(1)
+    K = np.empty((len(A), len(B)), dtype=np.float64)
+    for i in range(len(A)):
+        mn = np.minimum(A[i], B).sum(1)
+        K[i] = mn / np.maximum(sa[i] + sb - mn, 1e-9)
+    return K
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    from sklearn.kernel_ridge import KernelRidge
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    model = KernelRidge(alpha=1.0, kernel="precomputed")
+    model.fit(minmax_kernel(Xtr, Xtr), y - y.mean())
+    return model.predict(minmax_kernel(Xte, Xtr)) + y.mean()
+>>>>>>> REPLACE
+-----

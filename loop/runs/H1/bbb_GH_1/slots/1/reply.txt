@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+=======
+from rdkit.Chem import Descriptors, rdFingerprintGenerator
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        fp = gen.GetFingerprintAsNumPy(m)
+        desc = [Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m)]
+        rows.append(np.concatenate([fp, desc]))
+    return np.array(rows, dtype=np.float32)
+>>>>>>> REPLACE
+-----

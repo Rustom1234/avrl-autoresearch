@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+    for start in range(12):
+        k = (4, 6, 8, 10)[start % 4]
+        if time.time() - t0 > 150:
+            break
+        c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+        r0 = np.full(n, 0.07)
+        r0[:k] = 0.12
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+        try:
+            c0, r0 = _relax(c0, r0)
+            c, r = _optimize(c0, r0)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+=======
+    def _halton(idx, base, perm):
+        f, res = 1.0, 0.0
+        while idx > 0:
+            f /= base
+            res += f * perm[idx % base]
+            idx //= base
+        return res
+
+    perm2 = rng.permutation(2)
+    perm3 = rng.permutation(3)
+    cands = []
+    for start in range(40):
+        if time.time() - t0 > 150:
+            break
+        k = (4, 6, 8, 10)[start % 4]
+        pts = np.empty((n, 2))
+        for i in range(n):
+            idx = start * n + i + 1
+            pts[i, 0] = 0.05 + 0.9 * _halton(idx, 2, perm2)
+            pts[i, 1] = 0.05 + 0.9 * _halton(idx, 3, perm3)
+        r0 = np.full(n, 0.07)
+        r0[:k] = 0.12
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+        try:
+            c0, r0 = _relax(pts, r0, iters=40)
+        except Exception:
+            continue
+        cands.append((float(np.sum(r0)), c0, r0))
+    cands.sort(key=lambda t: -t[0])
+    for _, c0, r0 in cands[:8]:
+        try:
+            c, r = _optimize(c0, r0)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMRegressor
+=======
+import lightgbm
+from lightgbm import LGBMRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                          colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    params = dict(learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                  colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    idx = np.random.RandomState(seed).permutation(len(y))
+    n_val = int(round(0.15 * len(y)))
+    va, fi = idx[:n_val], idx[n_val:]
+    es = LGBMRegressor(n_estimators=2000, **params)
+    es.fit(Xtr[fi], y[fi], eval_set=[(Xtr[va], y[va])], eval_metric='l1',
+           callbacks=[lightgbm.early_stopping(100, verbose=False)])
+    best = es.best_iteration_ if es.best_iteration_ > 0 else 2000
+    model = LGBMRegressor(n_estimators=max(1, int(round(1.1 * best))), **params)
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is clean. The diff doesn't touch the evaluation call, the data loading, the import line from prepare.py, the seed lines or the summary printing. It changes only FINAL_LR_FRAC and the input shape passed to model() during training.",
+  "No bug makes the result meaningless. x.reshape(-1, MAX_SEQ_LEN // seq_div) turns a (B, T) batch into a (4B, T/4) batch. This works as long as MAX_SEQ_LEN is divisible by 4, which is true for the usual 2048. Tokens per step and the loss normalisation stay the same, x and y stay aligned, and evaluation still runs at full sequence length.",
+  "Side effect: the shape change at 30% of the time budget probably forces a torch.compile recompile partway through training. That time likely counts against the 300 s budget, which only hurts the candidate. Wall time should still be well under 450 s.",
+  "Two changes are bundled: the short-sequence curriculum and FINAL_LR_FRAC 0.0 to 0.05. This review can't say which one causes the gain.",
+  "Evidence is thin. There are only 2 candidate runs against 16 incumbent runs. The candidate mean is 1.10765, which is 0.00685 better than the incumbent mean of 1.1145. Both candidate runs beat the incumbent mean, which fits the claimed improvement.",
+  "I can't recompute z because the incumbent standard deviation isn't given. If z = diff / (sd * sqrt(1/2 + 1/16)), then 1.664 implies an incumbent sd of about 0.0055, which is plausible. z = 1.664 is borderline, so a replicate run would help before accepting."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.10765,
+  "delta_vs_incumbent": 0.00685
+ }
+}

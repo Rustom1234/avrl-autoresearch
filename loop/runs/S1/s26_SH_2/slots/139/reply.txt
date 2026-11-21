@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _pack_once(seed, ref_pen=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def obj(z):
+        return -np.sum(z[2 * n:])
+=======
+    zc = np.column_stack([np.clip(z0[:n], 0.0, 1.0), np.clip(z0[n:2 * n], 0.0, 1.0)])
+    pen_r = _repair(zc, np.maximum(z0[2 * n:], 0.0))
+    pen_sum = float(np.sum(pen_r))
+    if ref_pen is not None and seed >= 8 and pen_sum < ref_pen - 0.02:
+        return zc, pen_r, pen_sum
+
+    def obj(z):
+        return -np.sum(z[2 * n:])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    centers = np.column_stack([np.clip(z[:n], 0.0, 1.0), np.clip(z[n:2 * n], 0.0, 1.0)])
+    radii = _repair(centers, np.maximum(z[2 * n:], 0.0))
+    return centers, radii
+=======
+    centers = np.column_stack([np.clip(z[:n], 0.0, 1.0), np.clip(z[n:2 * n], 0.0, 1.0)])
+    radii = _repair(centers, np.maximum(z[2 * n:], 0.0))
+    return centers, radii, pen_sum
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best = None
+    best_sum = -1.0
+    for seed in range(10000):
+        if seed > 0 and time.time() - t0 > 200.0:
+            break
+        c, r = _pack_once(seed)
+        s = float(np.sum(r))
+=======
+    best = None
+    best_sum = -1.0
+    ref_pen = None
+    for seed in range(10000):
+        if seed > 0 and time.time() - t0 > 200.0:
+            break
+        c, r, ps = _pack_once(seed, ref_pen)
+        if ref_pen is None or ps > ref_pen:
+            ref_pen = ps
+        s = float(np.sum(r))
+>>>>>>> REPLACE
+-----

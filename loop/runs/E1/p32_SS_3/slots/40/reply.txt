@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        late = best is not None and time.process_time() - t0 > 0.4 * time_limit
+        c, r = _solve_once(n, rng, best if late else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, best = np.random.default_rng(seed), None
+    chain = TIME_FRACTION * time_limit / 3
+    for _ in range(3):   # independent chains: fresh starts, then basin hopping from the chain's own best
+        s, cur = time.process_time(), None
+        while time.process_time() - s < chain:
+            late = cur is not None and time.process_time() - s > 0.7 * chain
+            c, r = _solve_once(n, rng, cur if late else None)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if cur is None or r.sum() > cur[1].sum():
+                cur = (c, r)
+        if cur is not None and (best is None or cur[1].sum() > best[1].sum()):
+            best = cur
+    return best
+>>>>>>> REPLACE
+-----

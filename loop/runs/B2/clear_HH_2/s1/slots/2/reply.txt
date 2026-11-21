@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+=======
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+=======
+def std_smiles(s):
+    try:
+        m = Chem.MolFromSmiles(s)
+        if m is None:
+            return s
+        m = rdMolStandardize.LargestFragmentChooser().choose(m)
+        m = rdMolStandardize.Uncharger().uncharge(m)
+        return Chem.MolToSmiles(m)
+    except Exception:
+        return s
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_smiles = [std_smiles(s) for s in train_smiles]
+    test_smiles = [std_smiles(s) for s in test_smiles]
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+>>>>>>> REPLACE
+-----

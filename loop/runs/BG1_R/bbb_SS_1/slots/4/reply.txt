@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    F, Ft = X[:, -N_BITS:], Xt[:, -N_BITS:]
+
+    def tanimoto(A, B):
+        dot = A @ B.T
+        return dot / (np.sum(A * A, 1)[:, None] + np.sum(B * B, 1)[None, :] - dot + 1e-9)
+
+    svm = SVC(kernel='precomputed', C=1, probability=True, random_state=seed)
+    svm.fit(tanimoto(F, F), y)
+    preds.append(rankdata(svm.predict_proba(tanimoto(Ft, F))[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+>>>>>>> REPLACE
+-----

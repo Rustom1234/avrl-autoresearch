@@ -1,0 +1,118 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(0)
+
+    def finalize(z):
+=======
+    rng = np.random.default_rng(0)
+    from scipy.stats import qmc
+    sob = qmc.Sobol(d=52, scramble=True, seed=0)
+    sob_buf = []
+    seen = set()
+    dup = 0
+    top3 = []
+
+    def finalize(z):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = rng.random((n, 2)) * 0.9 + 0.05
+=======
+        if dup >= 20 and top3:
+            tc = top3[rng.integers(len(top3))][1]
+            c0 = np.clip(tc + rng.normal(0, 0.04, tc.shape), 0.03, 0.97)
+        else:
+            if not sob_buf:
+                sob_buf.extend(list(sob.random_base2(m=6)))
+            pt = sob_buf.pop()
+            c0 = np.stack([pt[:n], pt[n:2 * n]], axis=1) * 0.9 + 0.05
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        z = res.x
+        if -res.fun < best_val - 0.02:
+            continue
+=======
+        z = res.x
+        key = tuple(np.sort(np.round(z[2 * n:], 3)))
+        if key in seen:
+            dup += 1
+            continue
+        seen.add(key)
+        dup = 0
+        if -res.fun < best_val - 0.02:
+            continue
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        v = r.sum()
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+    while best
+=======
+        v = r.sum()
+        top3.append((v, c))
+        top3.sort(key=lambda t: -t[0])
+        del top3[3:]
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+    while best
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    rng = np.random.default_rng(0)
+
+    def finalize(z):
+=======
+    rng = np.random.default_rng(0)
+    from scipy.stats import qmc
+    sob = qmc.Sobol(d=52, scramble=True, seed=0)
+    sob_buf = []
+    seen = set()
+    dup = 0
+    top3 = []
+
+    def finalize(z):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = rng.random((n, 2)) * 0.9 + 0.05
+=======
+        if dup >= 20 and top3:
+            tc = top3[rng.integers(len(top3))][1]
+            c0 = np.clip(tc + rng.normal(0, 0.04, tc.shape), 0.03, 0.97)
+        else:
+            if not sob_buf:
+                sob_buf.extend(list(sob.random_base2(m=6)))
+            pt = sob_buf.pop()
+            c0 = np.stack([pt[:n], pt[n:2 * n]], axis=1) * 0.9 + 0.05
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        z = res.x
+        if -res.fun < best_val - 0.02:
+            continue
+=======
+        z = res.x
+        key = tuple(np.sort(np.round(z[2 * n:], 3)))
+        if key in seen:
+            dup += 1
+            continue
+        seen.add(key)
+        dup = 0
+        if -res.fun < best_val - 0.02:
+            continue
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        v = r.sum()
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+    while best is not None and time.time() - t0 < time_budget:
+=======
+        v = r.sum()
+        top3.append((v, c))
+        top3.sort(key=lambda t: -t[0])
+        del top3[3:]
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+    while best is not None and time.time() - t0 < time_budget:
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. Nothing is carried from one run to the next, nothing is seeded, the test images are not used for training, and there is no file access or new import (F.interpolate is assumed to come from the existing torch.nn.functional import; the runs completed, which supports this).",
+  "What changed: for the first 40% of training steps, batches are shrunk to 24x24 with bilinear resizing. This is a legitimate speedup.",
+  "AdaptiveMaxPool2d(1) does the same thing as the old MaxPool2d(3) at full resolution. Assuming the usual 32\u219231\u219215\u21927\u21923 shape path, the final map is 3x3, so both layers take one max over it. At 24 pixels the final map is 2x2, where MaxPool2d(3) would fail. The adaptive pool handles that size, and prediction still runs at 32 pixels.",
+  "dynamic=False means torch.compile builds a separate graph for each input size. The untimed first call goes through the full schedule, so it should compile both. Even if it did not, the extra compile would land in timed runs and make the candidate look worse, not better.",
+  "There are only 2 candidate runs. The gain (mean adjusted value -0.1365, roughly 13% lower cost) is large compared with the noise and fits a speedup from training at lower resolution early on. If budget allows, a replicate run would firm it up.",
+  "The z value cannot be recomputed exactly because the incumbent sd is not given. Using the stated job noise sd of 0.026 for both sides gives SE = 0.026*sqrt(1/2+1/15) \u2248 0.0196 and z \u2248 6.97. The harness's 7.026 matches if its incumbent sd is about 0.0258."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 6.97
+ }
+}

@@ -1,0 +1,292 @@
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+# Settings
+TIME_FRACTION = 0.8
+INIT_RADIUS = 0.04
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    # Start with random positions and small radii
+    c = rng.random((n, 2)) * 0.9 + 0.05
+    r = rng.uniform(0.01, INIT_RADIUS, n)
+    
+    def get_score(centers, radii):
+        # Penalty for overlaps and boundary violations
+        score = radii.sum()
+        for i in range(n):
+            # Boundary
+            if centers[i, 0] - radii[i] < 0 or centers[i, 0] + radii[i] > 1 or 
+               centers[i, 1] - radii[i] < 0 or centers[i, 1] + radii[i] > 1:
+                score -= 100
+            for j in range(i + 1, n):
+                dist = np.linalg.norm(centers[i] - centers[j])
+                if dist < radii[i] + radii[j]:
+                    score -= 100 * (radii[i] + radii[j] - dist)
+        return score
+
+    curr_score = get_score(c, r)
+    best_score = curr_score
+    best_c, best_r = c.copy(), r.copy()
+
+    T = 1.0
+    cooling = 0.9995
+    for _ in range(2000):
+        # Perturb
+        nc = c + rng.normal(0, 0.02, c.shape)
+        nr = r + rng.normal(0, 0.005, r.shape)
+        nr = np.clip(nr, 0, 0.5)
+        
+        new_score = get_score(nc, nr)
+        if new_score > curr_score or rng.random() < np.exp((new_score - curr_score) / (T + 1e-9)):
+            c, r, curr_score = nc, nr, new_score
+            if curr_score > best_score:
+                best_score = curr_score
+                best_c, best_r = nc.copy(), nr.copy()
+        T *= cooling
+
+    return best_c, best_r
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(100):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        if np.max(over) <= 0:
+            break
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        s = d[i, j] / (r[i] + r[j])
+        r[i] *= s
+        r[j] *= s
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+-----
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+# Settings
+TIME_FRACTION = 0.9
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    # Simple Simulated Annealing
+    # Initialize centers and radii
+    c = rng.uniform(0.05, 0.95, (n, 2))
+    r = rng.uniform(0.01, INIT_RADIUS, n)
+    
+    current_r = r.copy()
+    current_c = c.copy()
+    current_sum = current_r.sum()
+    
+    temp = 0.5
+    cooling = 0.9995
+    
+    for i in range(4000):
+        # Perturb
+        idx = rng.integers(0, n)
+        if rng.random() < 0.5:
+            # Move center
+            current_c[idx] += rng.normal(0, 0.02, 2)
+            current_c[idx] = np.clip(current_c[idx], 0.001, 0.999)
+        else:
+            # Change radius
+            current_r[idx] += rng.normal(0, 0.01)
+            current_r[idx] = np.clip(current_r[idx], 0, 0.4)
+        
+        # Fast check for validity
+        valid = True
+        for k in range(n):
+            # Boundary check
+            if (current_c[k, 0] - current_r[k] < 0 or 
+                current_c[k, 0] + current_r[k] > 1 or 
+                current_c[k, 1] - current_r[k] < 0 or 
+                current_c[k, 1] + current_r[k] > 1):
+                valid = False
+                break
+            for m in range(k + 1, n):
+                dist = np.linalg.norm(current_c[k] - current_c[m])
+                if dist < current_r[k] + current_r[m]:
+                    valid = False
+                    break
+            if not valid: break
+        
+        if valid:
+            new_sum = current_r.sum()
+            if new_sum > current_sum or rng.random() < np.exp((new_sum - current_sum) / temp):
+                current_sum = new_sum
+        
+        temp *= cooling
+        if i % 500 == 0 and i > 0: temp *= 0.8
+
+    return current_c, current_r
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

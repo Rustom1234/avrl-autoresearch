@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+=======
+def standardize(m):
+    try:
+        return rdMolStandardize.Uncharger().uncharge(rdMolStandardize.LargestFragmentChooser().choose(m))
+    except Exception:
+        return m
+
+
+def featurize(smiles):
+    orig = [Chem.MolFromSmiles(s) for s in smiles]
+    mols = [standardize(m) for m in orig]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    ion = np.array([[len(m.GetSubstructMatches(p)) for p in SMARTS] + [Chem.GetFormalCharge(m)]
+                    for m in mols], dtype=np.float32)
+=======
+    ion = np.array([[len(m.GetSubstructMatches(p)) for p in SMARTS] + [Chem.GetFormalCharge(o)]
+                    for m, o in zip(mols, orig)], dtype=np.float32)
+>>>>>>> REPLACE
+-----

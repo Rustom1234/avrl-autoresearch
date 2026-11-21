@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+    def get_muon_momentum(step):
+        frac = min(step / 300, 1)
+        return (1 - frac) * 0.85 + frac * 0.95
+=======
+    def get_muon_momentum(step, alpha=0.97, beta=0.93):
+        if step < 60:
+            # Rapid ramp-up to target alpha in first 60 steps
+            frac = min(step / 60, 1.0)
+            return alpha * (1 - frac) + beta * frac
+        elif step <= 300:
+            # Steady ramp-up from beta to alpha between 60 and 300 steps
+            frac = (step - 60) / 240
+            return beta * (1 - frac) + alpha * frac
+        else:
+            # Warmdown phase: linear ramp from alpha to 0.9
+            w_d_frac = (step - 300) / WARMDOWN_RATIO * TIME_BUDGET
+            if w_d_frac < WARMUP_RATIO + 1.0 - WARMDOWN_RATIO:
+                return alpha - (alpha - 0.9) * ((w_d_frac - 1.0 + WARMDOWN_RATIO) / (1.0 + WARMDOWN_RATIO - (WARMUP_RATIO + 1.0 - WARMDOWN_RATIO)))
+            return 0.9
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    def get_muon_momentum(step):
+        frac = min(step / 300, 1)
+        return (1 - frac) * 0.85 + frac * 0.95
+=======
+    def get_muon_momentum(step):
+        if step < 60:
+            # Ramp up quickly from 0.85 to 0.95 in first 60 steps
+            return (1 - (step / 60)) * 0.85 + (step / 60) * 0.95
+        elif step <= 300:
+            # Hold at 0.95 for the main training phase
+            return 0.95
+        else:
+            # Warmdown: linear ramp from 0.95 to 0.9 over the final WARMDOWN_RATIO fraction
+            remaining = 1.0 - (1.0 - WARMUP_RATIO - WARMDOWN_RATIO)
+            if remaining <= 0:
+                return 0.95
+            progress_in_final = (progress := min(progress, 1.0)) - (1.0 - WARMUP_RATIO - WARMDOWN_RATIO)
+            if progress_in_final <= 0:
+                return 0.95
+            decay_fraction = (progress_in_final) / (WARMUP_RATIO + WARMDOWN_RATIO)
+            return 0.95 * (1 - decay_fraction) + 0.9 * decay_fraction
+>>>>>>> REPLACE                                             </edits_text>                                          , 
+-----
+<<<<<<< SEARCH
+    def get_muon_momentum(step):
+        frac = min(step / 300, 1)
+        return (1 - frac) * 0.85 + frac * 0.95
+=======
+    def get_muon_momentum(step):
+        if step < 60:
+            # Ramp up quickly from 0.85 to 0.95 in first 60 steps
+            return (1 - (step / 60)) * 0.85 + (step / 60) * 0.95
+        elif step <= 300:
+            # Hold at 0.95 for the main training phase
+            return 0.95
+        else:
+            # Warmdown: linear ramp from 0.95 to 0.9 over the final WARMDOWN_RATIO fraction
+            remaining = 1.0 - (1.0 - WARMUP_RATIO - WARMDOWN_RATIO)
+            if remaining <= 0:
+                return 0.95
+            progress_in_final = (progress := min(progress, 1.0)) - (1.0 - WARMUP_RATIO - WARMDOWN_RATIO)
+            if progress_in_final <= 0:
+                return 0.95
+            decay_fraction = (progress_in_final) / (WARMUP_RATIO + WARMDOWN_RATIO)
+            return 0.95 * (1 - decay_fraction) + 0.9 * decay_fraction
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,96 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraintsEW{"type": "ineq", "fun": cons},
+                   optionsEW{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    # Start with very small radii to easily find a valid configuration
+    r_init = np.full(n, 0.02)
+    c_init = rng.uniform(0.1, 0.9, (n, 2))
+    x0 = np.concatenate([c_init.flatten(), r_init])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    # Stage 1: Find a valid loose packing
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                     constraintsEW{"type": "ineq", "fun": cons}, 
+                     optionsEW{"maxiter": 100})
+    
+    # Stage 2: Inflate radii
+    curr_x = res.x
+    for _ in range(3): # Iterative inflation
+        res = minimize(lambda v: -v[2 * n:].sum(), curr_x, 
+                         method="SLSQP", 
+                         constraintsEW{"type": "ineq", "fun": cons}, 
+                         optionsEW{"maxiter": 100})\n        curr_x = res.x
+        
+    return curr_x[:2 * n].reshape(n, 2), curr_x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints是一位{"type": "ineq", "fun": cons},
+                   options是一位{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    # Start with very small radii to easily find a valid configuration
+    r_init = np.full(n, 0.02)
+    c_init = rng.uniform(0.1, 0.9, (n, 2))
+    x0 = np.concatenate([c_init.flatten(), r_init])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    # Stage 1: Find a valid loose packing
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                     constraints={"type": "ineq", "fun": cons}, 
+                     options={"maxiter": 100})
+    
+    # Stage 2: Inflate radii
+    curr_x = res.x
+    for _ in range(2):  # Iterative inflation
+        res = minimize(lambda v: -v[2 * n:].sum(), curr_x, 
+                         method="SLSQP", 
+                         constraints={"type": "ineq", "fun": cons}, 
+                         options={"maxiter": 150})
+        curr_x = res.x
+        
+    return curr_x[:2 * n].reshape(n, 2), curr_x[2 * n:]
+-----

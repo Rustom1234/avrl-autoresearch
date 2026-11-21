@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+from scipy.stats import spearmanr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+=======
+    ys = (y - mu) / sd
+    best, best_s = (5.0, 0.05), -np.inf
+    folds = list(KFold(4, shuffle=True, random_state=seed).split(K_train))
+    for C in (1.0, 5.0, 20.0):
+        for eps in (0.02, 0.05, 0.1):
+            oof = np.zeros(len(ys))
+            for tr, va in folds:
+                m = SVR(kernel="precomputed", C=C, epsilon=eps)
+                m.fit(K_train[np.ix_(tr, tr)], ys[tr])
+                oof[va] = m.predict(K_train[np.ix_(va, tr)])
+            s = spearmanr(oof, ys)[0]
+            if s > best_s:
+                best, best_s = (C, eps), s
+    model = SVR(kernel="precomputed", C=best[0], epsilon=best[1])
+    model.fit(K_train, ys)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    x2 = start
+=======
+    x2 = start
+    L = 1 + rng.uniform(0.02, 0.08)
+
+    def cons_L(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, L - c[:, 0] - r, L - c[:, 1] - r, r])
+
+    # Container continuation: settle in a looser box, then compress back into [0, 1]^2
+    res0 = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons_L},
+                    options={"maxiter": MAX_ITER})
+    x2 = res0.x / L
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _spsa(centers, radii, iters=300):
+    """SPSA on penalized (x, y, r) objective, then SLSQP polish and repair."""
+    n = len(radii)
+    iu, ju = np.triu_indices(n, 1)
+    rng = np.random.default_rng(777)
+    z = np.concatenate([np.asarray(centers)[:, 0], np.asarray(centers)[:, 1],
+                        np.asarray(radii, dtype=float)])
+    lo = np.concatenate([np.zeros(2 * n), np.zeros(n)])
+    hi = np.concatenate([np.ones(2 * n), np.full(n, 0.5)])
+
+    def pen(v):
+        x = v[:n]
+        y = v[n:2 * n]
+        r = v[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        d = np.sqrt(dx * dx + dy * dy + 1e-18)
+        ov = np.maximum(0.0, r[iu] + r[ju] - d)
+        wall = (np.maximum(0.0, r - x) + np.maximum(0.0, x + r - 1.0)
+                + np.maximum(0.0, r - y) + np.maximum(0.0, y + r - 1.0))
+        return -np.sum(r) + 200.0 * (np.sum(ov * ov) + np.sum(wall * wall))
+
+    for k in range(iters):
+        ak = 0.01 / (k + 1) ** 0.602
+        ck = 0.01 / (k + 1) ** 0.101
+        delta = rng.choice([-1.0, 1.0], size=3 * n)
+        fp = pen(z + ck * delta)
+        fm = pen(z - ck * delta)
+        g = (fp - fm) / (2.0 * ck) * delta
+        z = np.clip(z - ak * g, lo, hi)
+    c = np.column_stack([z[:n], z[n:2 * n]])
+    r = np.maximum(z[2 * n:], 0.0)
+    c, r = _optimize(c, r)
+    r = _repair(c, r)
+    return np.clip(c, 0.0, 1.0), r
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+=======
+    # SPSA refinement of the best packing; keep only if the sum improves
+    if best_c is not None:
+        try:
+            c, r = _spsa(best_c, best_r)
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+        except Exception:
+            pass
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+>>>>>>> REPLACE
+-----

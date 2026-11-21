@@ -1,0 +1,97 @@
+<<<<<<< SEARCH
+def _local_opt(c0):
+=======
+def _adam_soft_rex(c0, iters=1500, betas=(50.0, 200.0, 800.0, 3000.0), seed=7):
+    # Replica exchange over Adam softplus chains at fixed betas; adjacent swaps by Metropolis
+    # on the energy difference (inverse temperature w = 100 / beta). Returns lowest-beta replica.
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    rng = np.random.default_rng(seed)
+    z0 = np.concatenate([np.clip(c0[:, 0], 0.0, 1.0), np.clip(c0[:, 1], 0.0, 1.0), _lp_radii(c0)])
+    K = len(betas)
+    zs = [z0.copy() for _ in range(K)]
+    ms = [np.zeros_like(z0) for _ in range(K)]
+    vs = [np.zeros_like(z0) for _ in range(K)]
+    w = [100.0 / b for b in betas]
+    b1, b2, eps = 0.9, 0.999, 1e-8
+
+    def grad(z, beta):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        dist = np.sqrt(dx * dx + dy * dy) + 1e-12
+        ux = dx / dist
+        uy = dy / dist
+        gp = _sig(beta * (r[I] + r[J] - dist))
+        gx = np.zeros(n)
+        gy = np.zeros(n)
+        gr = np.zeros(n)
+        np.add.at(gr, I, gp)
+        np.add.at(gr, J, gp)
+        np.add.at(gx, I, -gp * ux)
+        np.add.at(gx, J, gp * ux)
+        np.add.at(gy, I, -gp * uy)
+        np.add.at(gy, J, gp * uy)
+        gl = _sig(beta * (r - x))
+        gx -= gl
+        gr += gl
+        gR = _sig(beta * (r + x - 1.0))
+        gx += gR
+        gr += gR
+        gB = _sig(beta * (r - y))
+        gy -= gB
+        gr += gB
+        gT = _sig(beta * (r + y - 1.0))
+        gy += gT
+        gr += gT
+        gr -= 1.0
+        return np.concatenate([gx, gy, gr])
+
+    def energy(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        dist = np.sqrt(dx * dx + dy * dy)
+        ov = np.maximum(r[I] + r[J] - dist, 0.0)
+        bd = np.maximum(r - x, 0.0) + np.maximum(r + x - 1.0, 0.0) + np.maximum(r - y, 0.0) + np.maximum(r + y - 1.0, 0.0)
+        return -float(np.sum(r)) + float(np.sum(ov) + np.sum(bd))
+
+    for t in range(1, iters + 1):
+        frac = (t - 1) / max(iters - 1, 1)
+        lr = 0.01 * (1e-4 / 0.01) ** frac
+        for k in range(K):
+            g = grad(zs[k], betas[k])
+            ms[k] = b1 * ms[k] + (1.0 - b1) * g
+            vs[k] = b2 * vs[k] + (1.0 - b2) * g * g
+            mh = ms[k] / (1.0 - b1 ** t)
+            vh = vs[k] / (1.0 - b2 ** t)
+            z = zs[k] - lr * mh / (np.sqrt(vh) + eps)
+            z[:2 * n] = np.clip(z[:2 * n], 0.0, 1.0)
+            z[2 * n:] = np.clip(z[2 * n:], 0.0, 0.5)
+            zs[k] = z
+        if t % 100 == 0:
+            start = (t // 100) % 2
+            for k in range(start, K - 1, 2):
+                Ea = energy(zs[k])
+                Eb = energy(zs[k + 1])
+                log_acc = (w[k] - w[k + 1]) * (Ea - Eb)
+                if log_acc >= 0.0 or rng.uniform() < np.exp(log_acc):
+                    zs[k], zs[k + 1] = zs[k + 1], zs[k]
+                    ms[k], ms[k + 1] = ms[k + 1], ms[k]
+                    vs[k], vs[k + 1] = vs[k + 1], vs[k]
+    z = zs[int(np.argmin(betas))]
+    return np.clip(np.stack([z[:n], z[n:2 * n]], axis=1), 0.0, 1.0)
+
+
+def _local_opt(c0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    candidates = [c0.copy(), c_orig, _adam_soft(c_orig)]
+=======
+    candidates = [c0.copy(), c_orig, _adam_soft_rex(c_orig)]
+>>>>>>> REPLACE
+-----

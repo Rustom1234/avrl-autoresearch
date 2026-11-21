@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, p=1.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    res = minimize(lambda v: -(np.maximum(v[2 * n:], 0) ** p).sum(), x2, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None:   # first start: a random restart
+            c, r = _solve_once(n, rng)
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        p = max(1.0, 2 - (time.process_time() - t0) / (TIME_FRACTION * time_limit))  # exponent anneals 2 -> 1
+        if best is None:   # first start: a random restart
+            c, r = _solve_once(n, rng, p=p)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+=======
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]), p=p)
+>>>>>>> REPLACE
+-----

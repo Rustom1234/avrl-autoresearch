@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMRegressor
+=======
+from catboost import CatBoostRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                          colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+=======
+def morgan_counts(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=512)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostRegressor(iterations=1500, depth=4, learning_rate=0.03, l2_leaf_reg=5, rsm=0.3,
+                              random_seed=seed, verbose=0, thread_count=8)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(np.hstack([Xtr, morgan_counts(train_smiles)]), y)
+    p_lgb = model.predict(np.hstack([Xte, morgan_counts(test_smiles)]))
+>>>>>>> REPLACE
+-----

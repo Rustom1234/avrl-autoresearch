@@ -1,0 +1,2 @@
+def equation(t, A, params):
+    return params[0]*np.tanh(params[1]*t)**params[2]*np.exp(-params[3]*t) + params[4]*np.exp(-params[5]*t)*A**3+params[6]

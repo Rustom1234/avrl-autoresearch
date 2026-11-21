@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    x_tr = np.hstack(fingerprints(train_smiles))
+    x_te = np.hstack(fingerprints(test_smiles))
+    n_cols = x_tr.shape[1]
+    n_sub = n_cols // 3
+    total = np.zeros(len(test_smiles))
+    for member in range(24):
+        rng = np.random.default_rng(seed + member)
+        cols = rng.choice(n_cols, size=n_sub, replace=False)
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr[:, cols], y)
+        total += rankdata(model.predict_proba(x_te[:, cols])[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _shearlat(rng):
+    s = rng.uniform(0.17, 0.21)
+    th = rng.uniform(0, np.pi)
+    sh = rng.uniform(-0.3, 0.3)
+    a1 = np.array([s, 0.0])
+    a2 = np.array([s / 2, s * np.sqrt(3) / 2])
+    S = np.array([[1, sh], [0, 1]])
+    R = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
+    M = R @ S
+    off = rng.uniform(0, s, 2)
+    pts = []
+    for a in range(-12, 13):
+        for b in range(-12, 13):
+            p = M @ (a * a1 + b * a2) + off + 0.5
+            if 0.03 <= p[0] <= 0.97 and 0.03 <= p[1] <= 0.97:
+                pts.append(p)
+    c = np.array(pts, float).reshape(-1, 2)
+    if len(c) > _N:
+        c = c[rng.permutation(len(c))[:_N]]
+    elif len(c) < _N:
+        c = np.vstack([c, rng.uniform(0.1, 0.9, (_N - len(c), 2))])
+    for k in range(2):
+        lo = c[:, k] < 0.08
+        hi = c[:, k] > 0.92
+        c[lo, k] = rng.uniform(0.05, 0.1, lo.sum())
+        c[hi, k] = 1 - rng.uniform(0.05, 0.1, hi.sum())
+    c = c + rng.normal(0, 0.004, c.shape)
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            if u < 0.3:
+                c = _shearlat(rng)
+            elif u < 0.5:
+                c = _hexgrid(rng)
+            elif u < 0.75:
+                c = _hexinit(rng)
+            else:
+                c = _physics(rng)
+>>>>>>> REPLACE
+-----

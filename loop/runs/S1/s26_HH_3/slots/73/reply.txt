@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def _optimize(centers0, radii0):
+=======
+def _optimize(centers0, radii0, pin=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+=======
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    if pin is not None:
+        for i in np.where(pin)[0]:
+            bounds[i] = (float(centers0[i, 0]), float(centers0[i, 0]))
+            bounds[n + i] = (float(centers0[i, 1]), float(centers0[i, 1]))
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+        try:
+            c0, r0 = _relax(c0, r0)
+            c, r = _optimize(c0, r0)
+            r = _repair(c, r)
+        except Exception:
+            continue
+=======
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+        pinned = start % 3 == 2
+        try:
+            if pinned:
+                na = int(rng.integers(3, 5))
+                pin = np.zeros(n, dtype=bool)
+                pin[:na] = True
+                c0[:na] = rng.uniform(0.1, 0.9, size=(na, 2))
+                r0[:na] = rng.uniform(0.15, 0.2, size=na)
+                c, r = _optimize(c0, r0, pin)
+                c, r = _optimize(c, r)
+            else:
+                c0, r0 = _relax(c0, r0)
+                c, r = _optimize(c0, r0)
+            r = _repair(c, r)
+        except Exception:
+            continue
+>>>>>>> REPLACE
+-----

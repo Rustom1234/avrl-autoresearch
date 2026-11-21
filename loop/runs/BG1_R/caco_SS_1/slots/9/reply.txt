@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    model = ExtraTreesRegressor(n_estimators=N_TREES, max_features=1.0, min_samples_leaf=2,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), y)
+    et = model.predict(featurize(test_smiles))
+    knn = knn_predict(train_smiles, y, test_smiles)
+    return 0.75 * et + 0.25 * knn
+=======
+def base_predictions(Xtr, ytr, str_, Xte, ste, seed):
+    import lightgbm as lgb
+    from sklearn.svm import SVR
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import QuantileTransformer
+    et = ExtraTreesRegressor(n_estimators=200, max_features=1.0, min_samples_leaf=2,
+                             n_jobs=-1, random_state=seed).fit(Xtr, ytr)
+    gb = lgb.LGBMRegressor(n_estimators=300, learning_rate=0.03, num_leaves=15, subsample=0.8,
+                           subsample_freq=1, colsample_bytree=0.3, random_state=seed,
+                           n_jobs=8, verbose=-1).fit(Xtr, ytr)
+    sv = make_pipeline(QuantileTransformer(n_quantiles=min(200, len(ytr)), output_distribution='normal'),
+                       SVR(C=3.0)).fit(Xtr, ytr)
+    kn = knn_predict(str_, ytr, ste)
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(Xte), kn])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    from scipy.optimize import nnls
+    from sklearn.model_selection import KFold
+    y = np.asarray(train_y, dtype=np.float64)
+    tr = list(train_smiles)
+    X = featurize(tr)
+    Xte = featurize(test_smiles)
+    oof = np.zeros((len(y), 4))
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(X):
+        oof[b] = base_predictions(X[a], y[a], [tr[i] for i in a], X[b], [tr[i] for i in b], seed)
+    w, _ = nnls(oof, y)
+    w = w / max(w.sum(), 1e-9)
+    return base_predictions(X, y, tr, Xte, list(test_smiles), seed) @ w
+>>>>>>> REPLACE
+-----

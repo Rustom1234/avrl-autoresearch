@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _lloyd(c, w):
+    """Weighted Lloyd relaxation: move each centre to the centroid of its power-diagram cell on a 200x200 grid."""
+    g = (np.arange(200) + 0.5) / 200
+    gx, gy = np.meshgrid(g, g)
+    p = np.stack([gx.ravel(), gy.ravel()], 1)
+    n = len(c)
+    c = c.copy()
+    for _ in range(20):
+        a = np.argmin(((p[:, None] - c[None]) ** 2).sum(-1) - w[None], 1)
+        cnt = np.bincount(a, minlength=n)
+        sx = np.bincount(a, weights=p[:, 0], minlength=n)
+        sy = np.bincount(a, weights=p[:, 1], minlength=n)
+        ok = cnt > 0
+        c[ok, 0] = sx[ok] / cnt[ok]
+        c[ok, 1] = sy[ok] / cnt[ok]
+    return c
+
+
+def _solve_once(n, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    x0[:2 * n] = _lloyd(x0[:2 * n].reshape(n, 2), np.full(n, INIT_RADIUS ** 2)).ravel()
+>>>>>>> REPLACE
+-----

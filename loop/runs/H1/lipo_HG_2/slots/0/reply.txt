@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+IONIZABLE_SMARTS = [
+    r'[CX3](=O)[OX2H1,OX1-]',  # Carboxylic acids
+    r'[NX3;H2,H1,H0;!$(NC=O);!$(N-a);!$(N-S(=O))]',  # Aliphatic amines
+    r'N=[N+]=N',  # Amidines
+    r'c1ncnnc1'  # Tetrazoles
+]
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    extra = []
+    for m in mols:
+        counts = []
+        for smarts in IONIZABLE_SMARTS:
+            p = Chem.recover_pattern_from_smarts(smarts)
+            counts.append(float(m.GetSubstructMatches(p)))
+        extra.append(counts)
+    
+    return np.hstack([fps, np.array(extra, dtype=np.float32)])
+>>>>>>> REPLACE
+-----

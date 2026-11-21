@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    preds = [meta.predict(base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed))]
+    rng = np.random.RandomState(seed)
+    ug, inv = np.unique(groups, return_inverse=True)
+    members = [np.where(inv == k)[0] for k in range(len(ug))]
+    for _ in range(4):
+        pick = rng.randint(0, len(ug), len(ug))
+        idx = np.concatenate([members[k] for k in pick])
+        preds.append(meta.predict(base_predict(Xtr[idx], Ftr[idx], y[idx], Xte, Fte, groups[idx], seed)))
+    return np.median(np.array(preds), axis=0)
+>>>>>>> REPLACE
+-----

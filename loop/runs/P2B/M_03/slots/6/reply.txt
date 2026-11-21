@@ -1,0 +1,166 @@
+<<<<<<< SEARCH
+gradient_accumulation_steps = TOTAL_BATCH_SIZE // tokens_per_fwdbwd
+for micro_step in range(gradient_accumulation_steps):
+    with autocast_ctx:
+        loss = model(x, y)
+    train_loss = loss.detach()
+    loss = loss / gradient_accumulation_steps
+    loss.backward()
+    x, y, epoch = next(train_loader)
+=======
+train_steps_total = int(TIME_BUDGET * 1.0 / 100)
+
+# Batch size ramping: start small, scale up over time
+base_batch_size = 2**16  # 2^16 = 65536
+batch_size_current = base_batch_size
+gradient_accumulation_steps = TOTAL_BATCH_SIZE // tokens_per_fwdbwd
+bat_size_idx = 0
+
+for micro_step in range(grad_accumulation_steps):
+    with autocast_ctx:
+        loss = model(x, y)
+    train_loss = loss.detach()
+    loss = loss / gradient_accumulation_steps
+    loss.backward()
+    x, y, epoch = next(train_loader)
+>>>>>>> REPLACE
+-----
+<<<<<<<< SEARCH
+grad_accum_steps = TOTAL_BATCH_SIZE // tokens_per_fwdbwd
+
+optimizer = model.setup_optimizer(
+    unembedding_lr=UNEMBEDDING_LR,
+    embedding_lr=EMBEDDING_LR,
+    scalar_lr=SCALAR_LR,
+    adam_betas=ADAM_BETAS,
+    matrix_lr=MATRIX_LR,
+    weight_decay=WEIGHT_DECAY,
+)
+
+model = torch.compile(model, dynamic=False)
+
+train_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, "train")
+x, y, epoch = next(train_loader)  # prefetch first batch
+-----
+<<<<<<< SEARCH
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+SCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+ADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2
+WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+=======
+# Use base batch size but double at 25%/50% of time budget; adjust grad accumulation LR accordingly
+AT_SCHEDULE = [
+    ("start", 2**17,  # 262K per-step
+     [0.25, 0.5, 1.0], # milestones
+     [1.0, 2.0, 4.0], # scale multipliers
+     ],
+]
+EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+SCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+ADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2
+WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+ authToken = model.setup_optimizer(
+    unembedding_lr=UNEMBEDDING_LR,
+    embedding_lr=EMBEDDING_LR,
+    scalar_lr=SCALAR_LR,
+    adam_betas=ADAM_BETAS,
+    matrix_lr=MATRIX_LR,
+    weight_decay=WEIGHT_DECAY,
+)
+=======
+# Configure optimizer, batch size ramp, gradient accumulation
+optimizer = model.setup_optimizer(
+    unembedding_lr=UNEMBEDDING_LR,  # fixed
+    embedding_lr=EMBEDDING_LR,      # fixed
+    scalar_lr=SCALAR_LR,           # fixed
+    adam_betas=ADAM_BETAS,
+    matrix_lr=MATRIX_LR,           # fixed
+    weight_decay=WEIGHT_DECAY,     # fixed
+)
+
+# Pre-fetch first batch at initial batch size
+train_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, "train")
+x, y, epoch = next(train_loader)
+device = torch.device("cuda")
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+ مدل = torch.compile(model, dynamic=False)
+=======
+ مدل = torch.compile(model, dynamic=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+=======
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+    # Batch size ramp: return multiplier based on current progress
+    batch_scale = get_batch_scale(progress)
+    return batch_scale
+
+
+def get_batch_scale(progress):
+    if not AT_SCHEDULE:
+        return 1.0
+    # Find index of current progress
+    idx = 0
+    for i, (head, milestones) in enumerate(AT_SCHEDULE):
+        if progress >= milestones[0]:
+            if i == len(AT_SCHEDULE) - 1:
+                return AT_SCHEDULE[i][2] # scaled multipliers
+            else:
+                return AT_SCHEDULE[1]
+        else:
+            idx = i
+    return AT_SCHEDULE[-1][2]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+while True:
+    torch.cuda.synchronize()
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+while True:
+    torch.cuda.synchronize()
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+>>>>>>> REPLACE
+</think>
+-----

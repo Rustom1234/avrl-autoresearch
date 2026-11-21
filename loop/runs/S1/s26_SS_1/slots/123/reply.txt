@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _soft(rng):
+    n = _N
+    i, j = _IU
+    k = int(rng.integers(4, 7))
+    t = rng.uniform(0.07, 0.10, n)
+    big = rng.permutation(n)[:k]
+    t[big] = rng.uniform(0.13, 0.16, k)
+    c = rng.uniform(0.1, 0.9, (n, 2))
+
+    def f(x, tt):
+        P = x.reshape(n, 2)
+        g = np.zeros((n, 2))
+        dv = P[i] - P[j]
+        d = np.sqrt((dv ** 2).sum(1)) + 1e-12
+        ov = np.maximum(0, tt[i] + tt[j] - d)
+        E = (ov ** 2).sum()
+        coef = (-2 * ov / d)[:, None] * dv
+        np.add.at(g, i, coef)
+        np.add.at(g, j, -coef)
+        lo = np.maximum(0, tt[:, None] - P)
+        hi = np.maximum(0, P + tt[:, None] - 1)
+        E += (lo ** 2).sum() + (hi ** 2).sum()
+        g += -2 * lo + 2 * hi
+        return E, g.ravel()
+
+    x = c.ravel()
+    for s in range(5):
+        tt = t * (1.05 ** s)
+        res = minimize(f, x, args=(tt,), jac=True, method="L-BFGS-B", options={"maxiter": 300})
+        x = res.x
+    return np.clip(x.reshape(n, 2), 0.02, 0.98)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            if u < 0.25:
+                c = _hexgrid(rng)
+            elif u < 0.55:
+                c = _hexinit(rng)
+            elif u < 0.75:
+                c = _physics(rng)
+            else:
+                c = _soft(rng)
+>>>>>>> REPLACE
+-----

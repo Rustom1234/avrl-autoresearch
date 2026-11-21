@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 2 == 0 and it % 10 in (0, 4, 6, 8):
+            h = rng.random((13, 2)) * 0.9 + 0.05
+            c0 = np.vstack([h, 1 - h])
+            c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.02, 0.98)
+            rh = np.full(13, 0.05) + rng.random(13) * 0.03
+            r0 = np.concatenate([rh, rh])
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+>>>>>>> REPLACE
+-----

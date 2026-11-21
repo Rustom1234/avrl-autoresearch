@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+    # Find columns with variance
+    variance = np.var(X_desc, axis=0)
+    is_constant = variance == 0
+    X_desc = X_desc[:, ~is_constant]
+    
+    # Clip to 1st-99th percentile
+    p1, p99 = np.percentile(X_desc, [1, 99], axis=0)
+    X_desc = np.clip(X_desc, p1, p99)
+    
+    # Ridge on descriptors
+    scaler = StandardScaler()
+    X_desc_scaled = scaler.fit_transform(X_desc)
+=======
+    # Find columns with variance
+    variance = np.var(X_desc, axis=0)
+    is_constant = variance == 0
+    # Ensure at least one column is kept if all are constant
+    if np.all(is_constant):
+        X_desc = X_desc[:, :1]
+        is_constant = np.array([False])
+    else:
+        X_desc = X_desc[:, ~is_constant]
+    
+    # Clip to 1st-99th percentile
+    p1, p99 = np.percentile(X_desc, [1, 99], axis=0)
+    X_desc = np.clip(X_desc, p1, p99)
+    
+    # Ridge on descriptors
+    scaler = StandardScaler()
+    X_desc_scaled = scaler.fit_transform(X_desc)
+>>>>>>> REPLACE
+-----

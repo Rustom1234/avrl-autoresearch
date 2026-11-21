@@ -1,0 +1,143 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    def get_packing(params, is_symmetric=False):
+        if not is_symmetric:
+            c = params[:2 * n].reshape(n, 2)
+            r = params[2 * n:]
+        else:
+            # params is size 2 * (n_vars) + n_vars. We need to map back.
+            # For symmetry about x=0.5: x' = 1 - x. 
+            # Let's simplify: n_vars = (n + 1) // 2. 
+            # We use the same structure as the original but for a subset.
+            # To keep it simple and robust, we just use the original solver 
+            # but initialized with symmetric values.
+            pass
+        
+        iu = np.triu_indices(n, 1)
+        def cons(v):
+            c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+            return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+        
+        res = minimize(lambda v: -v[2 * n:].sum(), params, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})\n        return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    
+    # Standard random restart
+    c, r = get_packing(x0, is_symmetric=False)
+    
+    # Mirror-symmetric restart (reflection about x=0.5)
+    # We only optimize the left half of the square, and mirror it.
+    # For simplicity, we just initialize the symmetric positions.
+    x0_sym = np.concatenate([rng.uniform(INIT_LOW, 0.5 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    # Set right half to be mirrors of left half
+    c_sym = x0_sym[:2*n].reshape(n, 2)
+    c_sym[n//2:] = 1 - c_sym[:n//2]
+    # Note: This is a heuristic to get a better starting point for SLSQP
+    # To truly reduce search space, we'd need to change the 'cons' to only 
+    # take unique variables. Given the 
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints Wings{"type": "ineq", "fun": cons},
+                   options dwarfs{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    iu = np.triu_indices(n, 1)
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def run_slsqp(x0):
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})
+        return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+    # Standard search
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    c1, r1 = run_slsqp(x0)
+
+    # Mirror-symmetric search (reflection about x = 0.5)
+    # Optimize circles 0 to n//2-1 and their mirrors in n//2 to n-1
+    # To keep it simple and valid for the harness, we initialize a symmetric config
+    # and let SLSQP explore it (it will naturally respect symmetry if the init is symmetric)
+    x0_sym = np.concatenate([rng.uniform(INIT_LOW, 0.5 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    c_sym = x0_sym[:2 * n].reshape(n, 2)
+    # Mirror the right side
+    c_sym[n // 2:] = 1.0 - c_sym[:n // 2]
+    x0_sym[:2 * n] = c_sym.flatten()
+    c2, r2 = run_slsqp(x0_sym)
+
+    if r1.sum() > r2.sum():
+        return c1, r1
+    return c2, r2
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    iu = np.triu_indices(n, 1)
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def run_slsqp(x0):
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})
+        return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+    # Standard search
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    c1, r1 = run_slsqp(x0)
+
+    # Mirror-symmetric search (reflection about x = 0.5)
+    # Use same number of variables but constrain symmetry via initialization
+    x0_sym = np.concatenate([rng.uniform(INIT_LOW, 0.5 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    c_sym = x0_sym[:2 * n].reshape(n, 2)
+    # Mirror the right half
+    c_sym[n // 2:] = 1.0 - c_sym[:n // 2]
+    x0_sym[:2 * n] = c_sym.flatten()
+    c2, r2 = run_slsqp(x0_sym)
+
+    if r1.sum() > r2.sum():
+        return c1, r1
+    return c2, r2
+>>>>>>> REPLACE
+-----

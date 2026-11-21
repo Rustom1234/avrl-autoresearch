@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def ngram_features(all_smiles):
+    canon = [Chem.MolToSmiles(Chem.MolFromSmiles(s)) for s in all_smiles]
+    vocab = {}
+    docs = []
+    for s in canon:
+        counts = {}
+        for n in (2, 3, 4):
+            for i in range(len(s) - n + 1):
+                g = s[i:i + n]
+                counts[g] = counts.get(g, 0) + 1
+        docs.append(counts)
+        for g in counts:
+            if g not in vocab:
+                vocab[g] = len(vocab)
+    M = np.zeros((len(canon), len(vocab)), dtype=np.float64)
+    for r, counts in enumerate(docs):
+        for g, c in counts.items():
+            M[r, vocab[g]] = c
+    return M
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    n = len(train_smiles)
+    S = ngram_features(list(train_smiles) + list(test_smiles))
+    S = S / np.maximum(np.linalg.norm(S, axis=1, keepdims=True), 1e-9)
+    K_train = (tanimoto(X, X) + rbf(D, D, gamma) + S[:n] @ S[:n].T) / 3.0
+    K_test = (tanimoto(Xt, X) + rbf(Dt, D, gamma) + S[n:] @ S[:n].T) / 3.0
+>>>>>>> REPLACE
+-----

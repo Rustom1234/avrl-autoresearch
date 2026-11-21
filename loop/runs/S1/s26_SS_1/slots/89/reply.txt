@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _template(rng):
+    m = rng.uniform(0.08, 0.13)
+    pts = [[m, m], [1 - m, m], [m, 1 - m], [1 - m, 1 - m]]
+    ks = [int(rng.integers(2, 4)) for _ in range(4)]
+    for side, k in enumerate(ks):
+        for q in range(k):
+            t = (q + 1) / (k + 1) + rng.normal(0, 0.02)
+            e = rng.uniform(0.06, 0.1)
+            if side == 0:
+                pts.append([t, e])
+            elif side == 1:
+                pts.append([t, 1 - e])
+            elif side == 2:
+                pts.append([e, t])
+            else:
+                pts.append([1 - e, t])
+    rem = _N - len(pts)
+    base = rem // 3
+    rows = [base, base, base]
+    for q in range(rem - 3 * base):
+        rows[int(rng.integers(3))] += 1
+    if rem >= 12 and rng.random() < 0.5:
+        rows = [rows[0] + 1, rows[1] - 1, rows[2] + 0] if rows[1] > 1 else rows
+    for k, cnt in enumerate(rows):
+        y = 0.27 + 0.46 * k / 2
+        off = 0.5 / max(cnt, 1) * 0.5 * (k % 2)
+        for j in range(cnt):
+            x = 0.2 + 0.6 * (j + 0.5) / max(cnt, 1)
+            pts.append([x, y])
+    c = np.array(pts[:_N], float)
+    if len(c) < _N:
+        c = np.vstack([c, rng.uniform(0.2, 0.8, (_N - len(c), 2))])
+    if rng.random() < 0.5:
+        c = c[:, ::-1].copy()
+    c = c + rng.normal(0, rng.uniform(0.005, 0.03), c.shape)
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            if u < 0.25:
+                c = _template(rng)
+            else:
+                u = (u - 0.25) / 0.75
+                c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+>>>>>>> REPLACE
+-----

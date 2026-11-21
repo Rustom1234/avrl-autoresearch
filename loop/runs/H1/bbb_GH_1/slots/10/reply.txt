@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+import lightgbm as lgb
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    n_val = max(1, int(0.1 * len(y)))
+    n_tr = len(y) - n_val
+    model = lgb.LGBMClassifier(n_estimators=500, learning_rate=0.05, num_leaves=31, subsample=0.8, subsample_freq=1,
+                               colsample_bytree=0.3, random_state=seed, n_jobs=8, verbose=-1)
+    model.fit(X[:n_tr], y[:n_tr], eval_set=[(X[n_tr:], y[n_tr:])], eval_metric="auc",
+              callbacks=[lgb.early_stopping(50, verbose=False)])
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+>>>>>>> REPLACE
+-----

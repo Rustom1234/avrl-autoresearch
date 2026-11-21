@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _solve_free(c, r, free):
+    """Re-optimise only the free circles; the others stay fixed and enter the pair constraints as constants."""
+    m = int(free.sum())
+    f, k = np.flatnonzero(free), np.flatnonzero(~free)
+    iu = np.triu_indices(m, 1)
+    cf, rf = c[k], r[k]
+
+    def cons(v):
+        cc, rr = v[:2 * m].reshape(m, 2), v[2 * m:]
+        d = np.sqrt(((cc[iu[0]] - cc[iu[1]]) ** 2).sum(1)) - rr[iu[0]] - rr[iu[1]]
+        dk = np.sqrt(((cc[:, None] - cf[None]) ** 2).sum(-1)) - rr[:, None] - rf[None]
+        return np.concatenate([d, dk.ravel(), cc[:, 0] - rr, cc[:, 1] - rr, 1 - cc[:, 0] - rr, 1 - cc[:, 1] - rr, rr])
+
+    x0 = np.concatenate([c[f].ravel(), r[f]])
+    res = minimize(lambda v: -v[2 * m:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c, r = c.copy(), r.copy()
+    c[f], r[f] = res.x[:2 * m].reshape(m, 2), res.x[2 * m:]
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+=======
+        bc, br = best
+        free = np.ones(n, bool)
+        free[np.argsort(-br)[:n // 4]] = False   # hold the 25 percent largest circles fixed
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape) * free[:, None], 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape) * free, 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c0, r0 = _solve_free(c0, r0, free)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+>>>>>>> REPLACE
+-----

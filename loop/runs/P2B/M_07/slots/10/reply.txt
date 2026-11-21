@@ -1,0 +1,109 @@
+<<<<
+Search block for line boundary check:
+",
+"SEARCH": "muon_step_fused(stacked_grads, stacked_params, momentum_buffer, second_momentum_buffer,\n                    momentum_t, lr_t, wd_t, beta2_t, ns_steps, red_dim):\n    # Nesterov momentum",
+
+"REPLACE": "muon_step_fused(stacked_grads, stacked_params, momentum_buffer, second_momentum_buffer,\n                    momentum_t, lr_t, wd_t, beta2_t, ns_steps, red_dim):\n    # Nesterov momentum\n    # Scale step by shape factor: sqrt(rows/cols) so tall matrices get larger steps\n    rows = stacked_grads.size(red_dim)\n    cols = stacked_params.size(red_dim)\n    shape_factor = math.sqrt(max(rows, cols) / (min(rows, cols)))\n\n    momentum_buffer.lerp_(stacked_grads, 1 - momentum_t)",
+
+
+<<<<
+End of edits
+"
+-----
+<<<< SEARCH
+    @torch.compile(dynamic=False, fullgraph=True)
+    def muon_step_fused(stacked_grads, stacked_params, momentum_buffer, second_momentum_buffer,
+                        momentum_t, lr_t, wd_t, beta2_t, ns_steps, red_dim):
+        # Nesterov momentum
+        momentum = momentum_t.to(stacked_grads.dtype)
+        momentum_buffer.lerp_(stacked_grads, 1 - momentum_t)
+-----
+<<<<<<< SEARCH
+@torch.compile(dynamic=False, fullgraph=True)
+def muon_step_fused(stacked_grads, stacked_params, momentum_buffer, second_momentum_buffer,
+                    momentum_t, lr_t, wd_t, beta2_t, ns_steps, red_dim):
+    # Nesterov momentum
+    momentum = momentum_t.to(stacked_grads.dtype)
+    momentum_buffer.lerp_(stacked_grads, 1 - momentum_t)
+    g = stacked_grads.lerp_(momentum_buffer, momentum)
+    # Polar express orthogonalization
+    X = g.bfloat16()
+    X = X / (X.norm(dim=(-2, -1), keepdim=True) * 1.02 + 1e-6)
+    if g.size(-2) > g.size(-1):
+        for a, b, c in polar_express_coeffs[:ns_steps]:
+            A = X.mT @ X
+            B = b * A + c * (A @ A)
+            X = a * X + X @ B
+    else:
+        for a, b, c in polar_express_coeffs[:ns_steps]:
+            A = X @ X.mT
+            B = b * A + c * (A @ A)
+            X = a * X + B @ X
+    g = X
+    # NorMuon variance reduction
+    beta2 = beta2_t.to(g.dtype)
+    v_mean = g.float().square().mean(dim=red_dim, keepdim=True)
+    red_dim_size = g.size(red_dim)
+    v_norm_sq = v_mean.sum(dim=(-2, -1), keepdim=True) * red_dim_size
+    v_norm = v_norm_sq.sqrt()
+    second_momentum_buffer.lerp_(v_mean.to(dtype=second_momentum_buffer.dtype), 1 - beta2_t)
+    step_size = second_momentum_buffer.clamp_min(1e-10).rsqrt()
+    scaled_sq_sum = (v_mean * red_dim_size) * step_size.float().square()
+    v_norm_new = scaled_sq_sum.sum(dim=(-2, -1), keepdim=True).sqrt()
+    final_scale = step_size * (v_norm / v_norm_new.clamp_min(1e-10))
+    g = g * final_scale.to(g.dtype)
+    # Cautious weight decay + parameter update
+    lr = lr_t.to(g.dtype)
+    wd = wd_t.to(g.dtype)
+    mask = (g * stacked_params) >= 0
+    stacked_params.sub_(lr * g + lr * wd * stacked_params * mask)
+=======
+@torch.compile(dynamic=False, fullgraph=True)
+def muon_step_fused(stacked_grads, stacked_params, momentum_buffer, second_momentum_buffer,
+                    momentum_t, lr_t, wd_t, beta2_t, ns_steps, red_dim):
+    # Nesterov momentum
+    momentum = momentum_t.to(stacked_grads.dtype)
+    momentum_buffer.lerp_(stacked_grads, 1 - momentum_t)
+    g = stacked_grads.lerp_(momentum_buffer, momentum)
+    # Polar express orthogonalization
+    X = g.bfloat16()
+    X = X / (X.norm(dim=(-2, -1), keepdim=True) * 1.02 + 1e-6)
+    if g.size(-2) > g.size(-1):
+        for a, b, c in polar_express_coeffs[:ns_steps]:
+            A = X.mT @ X
+            B = b * A + c * (A @ A)
+            X = a * X + X @ B
+    else:
+        for a, b, c in polar_express_coeffs[:ns_steps]:
+            A = X @ X.mT
+            B = b * A + c * (A @ A)
+            X = a * X + B @ X
+    g = X
+    # NorMuon variance reduction
+    beta2 = beta2_t.to(g.dtype)
+    v_mean = g.float().square().mean(dim=red_dim, keepdim=True)
+    red_dim_size = g.size(red_dim)
+    v_norm_sq = v_mean.sum(dim=(-2, -1), keepdim=True) * red_dim_size
+    v_norm = v_norm_sq.sqrt()
+    second_momentum_buffer.lerp_(v_mean.to(dtype=second_momentum_buffer.dtype), 1 - beta2_t)
+    step_size = second_momentum_buffer.clamp_min(1e-10).rsqrt()
+    scaled_sq_sum = (v_mean * red_dim_size) * step_size.float().square()
+    v_norm_new = scaled_sq_sum.sum(dim=(-2, -1), keepdim=True).sqrt()
+    final_scale = step_size * (v_norm / v_norm_new.clamp_min(1e-10))
+    g = g * final_scale.to(g.dtype)
+    # Scale by max(1, rows/cols)^0.5: tall matrices (MLP up) get larger steps, wide ones stay same
+    rows = g.shape[red_dim - 1] if red_dim == -2 else g.shape[red_dim]
+    cols = g.shape[red_dim]
+    if red_dim == -2:
+        rows, cols = g.shape[-1], g.shape[-2]
+    else:
+        rows, cols = g.shape[red_dim], g.shape[red_dim + 1] if red_dim + 1 < g.ndim else g.shape[red_dim] if g.ndim > red_dim + 1 else g.shape[red_dim]
+    shape_ratio = max(1.0, rows / cols).sqrt()
+    g = g * shape_ratio.to(g.dtype)  # Negative momentum edit scaled by shape ratio before update. See spec comment.
+    # Cautious weight decay + parameter update
+    lr = lr_t.to(g.dtype)
+    wd = wd_t.to(g.dtype)
+    mask = (g * stacked_params) >= 0
+    stacked_params.sub_(lr * g + lr * wd * stacked_params * mask)
+>>>>>>> REPLACE
+-----

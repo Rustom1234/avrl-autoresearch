@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+    model.fit(Xtr, y)
+    p_tree = model.predict(Xte)
+=======
+    keep = (Xtr != 0).sum(axis=0) >= 5
+    d_idx = np.where(keep)[0]
+    d_idx = d_idx[d_idx >= N_BITS]
+    with np.errstate(all="ignore"):
+        c = np.nan_to_num(np.abs(np.corrcoef(Xtr[:, d_idx].astype(np.float64), rowvar=False)))
+    keep[d_idx[np.triu(c, 1).max(axis=0) > 0.95]] = False
+    model.fit(Xtr[:, keep], y)
+    p_tree = model.predict(Xte[:, keep])
+>>>>>>> REPLACE
+-----

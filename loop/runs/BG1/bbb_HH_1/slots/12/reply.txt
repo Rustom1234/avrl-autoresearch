@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from sklearn.model_selection import GroupKFold
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def bits(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    return np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+
+
+def max_sim(query, ref, ref_y):
+    inter = query @ ref.T
+    sim = inter / (query.sum(1)[:, None] + ref.sum(1)[None, :] - inter + 1e-9)
+    pos = sim[:, ref_y == 1].max(1) if (ref_y == 1).any() else np.zeros(len(query))
+    neg = sim[:, ref_y == 0].max(1) if (ref_y == 0).any() else np.zeros(len(query))
+    return np.column_stack([pos, neg, pos - neg]).astype(np.float32)
+
+
+def nn_features(train_smiles, train_y, test_smiles):
+    X_tr, X_te = bits(train_smiles), bits(test_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    scaf = [MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles]
+    _, groups = np.unique(np.array(scaf, dtype=object), return_inverse=True)
+    F_tr = np.zeros((len(y), 3), dtype=np.float32)
+    for tr_idx, va_idx in GroupKFold(n_splits=5).split(X_tr, y, groups):
+        F_tr[va_idx] = max_sim(X_tr[va_idx], X_tr[tr_idx], y[tr_idx])
+    return F_tr, max_sim(X_te, X_tr, y)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+    F_tr, F_te = nn_features(train_smiles, train_y, test_smiles)
+    model.fit(np.hstack([featurize(train_smiles), F_tr]), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(np.hstack([featurize(test_smiles), F_te]))[:, 1]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+            lr_factor1 = 1 - step * lr_factor1_base
+            lr_factor2 = 1 - step * lr_factor2_base
+
+            # Apply learning rates in a fused way
+            optimizer1.param_groups[0]["lr"] = lr_factor1_initial * lr_factor1
+            for i, group in enumerate(optimizer1.param_groups[1:] + optimizer2.param_groups):
+                group["lr"] = lr_factors2_initial[i] * lr_factor2
+=======
+            lr_factor1 = 1 - step * lr_factor1_base
+            lr_factor2 = 1 - step * lr_factor2_base
+            # Muon: hold LR for the first 40% of steps, then linear decay to 0
+            lr_factor_muon = min(1.0, lr_factor2 / 0.6)
+
+            # Apply learning rates in a fused way
+            optimizer1.param_groups[0]["lr"] = lr_factor1_initial * lr_factor1
+            for i, group in enumerate(optimizer1.param_groups[1:]):
+                group["lr"] = lr_factors2_initial[i] * lr_factor2
+            optimizer2.param_groups[0]["lr"] = lr_factors2_initial[-1] * lr_factor_muon
+>>>>>>> REPLACE
+-----

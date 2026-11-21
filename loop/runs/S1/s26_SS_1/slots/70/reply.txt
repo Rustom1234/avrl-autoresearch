@@ -1,0 +1,72 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+=======
+    cands = []
+    while time.time() - t0 < 45:
+        try:
+            c0 = rng.uniform(0.05, 0.95, (_N, 2))
+            cs = _soft(c0)
+            cands.append((_lp_radii(cs).sum(), cs))
+        except Exception:
+            continue
+    cands.sort(key=lambda t: -t[0])
+    for sc, cs in cands[:max(1, len(cands) // 5)]:
+        if time.time() - t0 > 100:
+            break
+        try:
+            c2 = np.clip(_polish(cs, _lp_radii(cs)), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        if r2.sum() > best_s:
+            best_s, best = r2.sum(), (c2, r2)
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def optimized_packing():
+=======
+def _soft(c):
+    n = _N
+    i, j = _IU
+    x = np.concatenate([c[:, 0], c[:, 1], np.full(n, 0.02)])
+
+    def make(mu):
+        def f(x):
+            X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+            dx = X[i] - X[j]
+            dy = Y[i] - Y[j]
+            d = np.sqrt(dx * dx + dy * dy + 1e-12)
+            ov = np.maximum(R[i] + R[j] - d, 0)
+            w = [np.maximum(R - X, 0), np.maximum(R - 1 + X, 0),
+                 np.maximum(R - Y, 0), np.maximum(R - 1 + Y, 0)]
+            val = -R.sum() + mu * ((ov ** 2).sum() + sum((a ** 2).sum() for a in w))
+            gX = np.zeros(n)
+            gY = np.zeros(n)
+            gR = -np.ones(n)
+            t = 2 * mu * ov
+            gR += np.bincount(i, t, n) + np.bincount(j, t, n)
+            tx = -t * dx / d
+            ty = -t * dy / d
+            gX += np.bincount(i, tx, n) - np.bincount(j, tx, n)
+            gY += np.bincount(i, ty, n) - np.bincount(j, ty, n)
+            gR += 2 * mu * (w[0] + w[1] + w[2] + w[3])
+            gX += 2 * mu * (-w[0] + w[1])
+            gY += 2 * mu * (-w[2] + w[3])
+            return val, np.concatenate([gX, gY, gR])
+        return f
+
+    for mu in np.geomspace(10, 1e4, 5):
+        res = minimize(make(mu), x, jac=True, method="L-BFGS-B",
+                       bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n,
+                       options={"maxiter": 300})
+        x = res.x
+    return np.stack([x[:n], x[n:2 * n]], 1)
+
+
+def optimized_packing():
+>>>>>>> REPLACE
+-----

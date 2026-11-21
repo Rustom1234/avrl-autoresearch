@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+def lp_radii(c):
+=======
+def lp_radii(c, w=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=bounds, method="highs")
+=======
+        cw = np.ones(n) if w is None else w
+        res = linprog(-cw, A_ub=A, b_ub=d, bounds=bounds, method="highs")
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    cur = c.copy()
+    cur_r = lp_radii(cur)
+    cur_v = float(np.sum(cur_r))
+    best, best_v = cur.copy(), cur_v
+    for s in range(steps):
+        if time.time() - t0 > 120:
+            break
+        frac = s / steps
+        T = T0 * (T1 / T0) ** frac
+=======
+    cur = c.copy()
+    cur_r = lp_radii(cur)
+    cur_v = float(np.sum(cur_r))
+    best, best_v = cur.copy(), cur_v
+    last_stage = -1
+    w = None
+    for s in range(steps):
+        if time.time() - t0 > 120:
+            break
+        frac = s / steps
+        T = T0 * (T1 / T0) ** frac
+        stage = int(frac * 10)
+        if stage != last_stage:
+            last_stage = stage
+            if frac < 0.5:
+                rank = np.argsort(np.argsort(cur_r)) / float(c.shape[0])
+                w = 1.0 + 0.5 * (1.0 - frac) * (rank - 0.5)
+                cur_r = lp_radii(cur, w)
+                cur_v = float(np.dot(w, cur_r))
+            else:
+                w = None
+                cur_r = lp_radii(cur)
+                cur_v = float(np.sum(cur_r))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rc = lp_radii(cand)
+        v = float(np.sum(rc))
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v, cur_r = cand, v, rc
+            if v > best_v:
+                best, best_v = cand.copy(), v
+    return best
+=======
+        rc = lp_radii(cand, w)
+        v = float(np.sum(rc)) if w is None else float(np.dot(w, rc))
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v, cur_r = cand, v, rc
+            tv = float(np.sum(rc)) if w is None else float(np.sum(lp_radii(cand)))
+            if tv > best_v:
+                best, best_v = cand.copy(), tv
+    return best
+>>>>>>> REPLACE
+-----

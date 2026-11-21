@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Shrink radii and move centers slightly using a gradient-like step to resolve overlaps."""
+    n = len(r)
+    # Project into boundary
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(40):
+        dist = np.sqrt(((c[:, None] - c[None])**2).sum(axis=2))
+        over = (r[:, None] + r[None]) - dist
+        np.fill_diagonal(over, -1)
+        if np.max(over) <= 0:
+            break
+        # Find biggest overlap
+        idx = np.unravel_index(np.argmax(over), over.shape)
+        i, j = idx
+        if over[i, j] > 0:
+            # Move centers away from each other and shrink radii
+            diff = c[i] - c[j]
+            d_norm = np.linalg.norm(diff)
+            if d_norm > 1e-9:
+                move = (diff / d_norm) * (over[i, j] / (2 * (r[i] + r[j]))) * 0.5
+                c[i] += move
+                c[j] -= move
+            r[i] *= 0.99
+            r[j] *= 0.99
+            # Ensure still in box
+            r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+            r = np.maximum(r, 0)
+    return r
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,80 @@
+<<<<<<< SEARCH
+def _optimize(centers0, radii0):
+=======
+def _optimize(centers0, radii0, eq=None, maxiter=300):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                   bounds=bounds, options={"maxiter": 300, "ftol": 1e-12})
+    x, y, r = unpack(res.x)
+    return np.column_stack([x, y]), r
+=======
+    cons_list = [{"type": "ineq", "fun": cons, "jac": cons_jac}]
+    if eq:
+        def eq_fun(z):
+            x, y, r = unpack(z)
+            out = []
+            for i, ax, val in eq:
+                cc = x[i] if ax == 0 else y[i]
+                out.append(cc - r[i] if val == 0 else 1 - cc - r[i])
+            return np.array(out)
+
+        def eq_jac(z):
+            J = np.zeros((len(eq), 3 * n))
+            for k, (i, ax, val) in enumerate(eq):
+                J[k, i if ax == 0 else n + i] = 1.0 if val == 0 else -1.0
+                J[k, 2 * n + i] = -1.0
+            return J
+
+        cons_list.append({"type": "eq", "fun": eq_fun, "jac": eq_jac})
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+                   constraints=cons_list,
+                   bounds=bounds, options={"maxiter": maxiter, "ftol": 1e-12})
+    x, y, r = unpack(res.x)
+    return np.column_stack([x, y]), r
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _pinned_start(rng):
+    """Edge-pinned start: 4 to 6 seeded circles per wall are placed in contact with it
+    (radius equal to wall distance); the rest are uniform random."""
+    n = 26
+    c = rng.uniform(0.05, 0.95, size=(n, 2))
+    r = rng.uniform(0.06, 0.1, size=n)
+    pins = []
+    for ax in (0, 1):
+        for val in (0, 1):
+            k = int(rng.integers(4, 7))
+            for i in rng.choice(n, size=k, replace=False):
+                i = int(i)
+                if any(p[0] == i and p[1] == ax for p in pins):
+                    continue
+                pins.append((i, ax, val))
+                c[i, ax] = r[i] if val == 0 else 1 - r[i]
+    return np.clip(c, 0.0, 1.0), r, pins
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for start in range(12):
+        k = (4, 6, 8, 10)[start % 4]
+=======
+    prng = np.random.default_rng(777)
+    try:
+        pc0, pr0, pins = _pinned_start(prng)
+        pc0, pr0 = _relax(pc0, pr0)
+        pc1, pr1 = _optimize(pc0, pr0, eq=pins, maxiter=50)
+        pc2, pr2 = _optimize(pc1, pr1)
+        pr2 = _repair(pc2, pr2)
+        ps = float(np.sum(pr2))
+        if ps > best_sum:
+            best_sum, best_c, best_r = ps, pc2, pr2
+    except Exception:
+        pass
+    for start in range(12):
+        k = (4, 6, 8, 10)[start % 4]
+>>>>>>> REPLACE
+-----

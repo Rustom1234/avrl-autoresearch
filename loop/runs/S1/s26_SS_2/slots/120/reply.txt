@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+    best = None
+    bs = -1
+=======
+    def staged(v, use):
+        if not use:
+            return v
+        for p in (0.5, 0.8):
+            try:
+                res = minimize(lambda z: -np.sum(np.maximum(z[2 * n:], 1e-9) ** p), v,
+                               jac=lambda z: np.concatenate([np.zeros(2 * n), -p * np.maximum(z[2 * n:], 1e-9) ** (p - 1)]),
+                               method="SLSQP", bounds=bounds,
+                               constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                               options={"maxiter": 80, "ftol": 1e-12})
+                if np.all(np.isfinite(res.x)):
+                    v = res.x
+            except Exception:
+                pass
+        return v
+
+    best = None
+    bs = -1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), v, jac=lambda
+=======
+        v = staged(v, rng.random() < 0.5)
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), v, jac=lambda
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), w, jac=lambda
+=======
+        w = staged(w, rng.random() < 0.5)
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), w, jac=lambda
+>>>>>>> REPLACE
+-----

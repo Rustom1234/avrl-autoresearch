@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import StandardScaler
+=======
+from sklearn.model_selection import GroupKFold
+from sklearn.preprocessing import StandardScaler
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def knn_feature(fp_a, fp_b, y_b, k=10):
+    A = (fp_a > 0).astype(np.float32)
+    B = (fp_b > 0).astype(np.float32)
+    inter = A @ B.T
+    union = A.sum(1)[:, None] + B.sum(1)[None, :] - inter
+    S = inter / np.maximum(union, 1e-9)
+    idx = np.argsort(-S, axis=1)[:, :k]
+    w = np.maximum(np.take_along_axis(S, idx, axis=1), 1e-6)
+    return (w * y_b[idx]).sum(1) / w.sum(1)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    scaf = [MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles]
+    _, groups = np.unique(scaf, return_inverse=True)
+    oof = np.zeros(len(y))
+    for tr_i, va_i in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va_i] = knn_feature(Xtr[va_i, :N_BITS], Xtr[tr_i, :N_BITS], y[tr_i])
+    kte = knn_feature(Xte[:, :N_BITS], Xtr[:, :N_BITS], y)
+    Xtr = np.column_stack([Xtr, oof]).astype(np.float32)
+    Xte = np.column_stack([Xte, kte]).astype(np.float32)
+>>>>>>> REPLACE
+-----

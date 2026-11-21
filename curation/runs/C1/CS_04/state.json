@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/CS_04/cand/s04_0.py",
+ "inc_scores": {
+  "11": 1.934905801125763
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Calculate the average word count/length for the target_sample and the pool. Use a heuristic to prioritize documents in the pool that have the highest cosine similarity to the target_sample (using a basic bag-of-words or simple keyword overlap) or simply filter for documents that share high-frequency 'serious' vocabulary (e.g., avoiding spam-like 'click here' patterns).",
+   "outcome": "dev 1.9518 against 1.9616 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Increase the weight of the nearest-neighbor (s_knn) similarity and decrease the centroid similarity (s_cent) in the final score (e.g., 0.3 * s_cent + 0.7 * s_knn), while also increasing the length penalty coefficient to 0.3.",
+   "outcome": "dev 1.9592 against 1.9518 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Implement a 'diverse' selection strategy by clustering the candidate documents using a small number of clusters (e.g., 20) based on their similarity scores and selecting the top-scoring documents from each cluster proportionally before filling the budget.",
+   "outcome": "dev 1.9392 against 1.9518 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the global 'centroid similarity' with a 'local centroid' approach where the pool is divided into $K$ clusters (using K-Means on the TF-IDF vectors) and each cluster's centroid is weighted based on its proximity to the target sample centroid. Specifically, calculate the distance of each cluster centroid to the target centroid, and use these distances as weights for the cluster-wise average similarity scores.",
+   "outcome": "dev 1.9349 against 1.9518 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the standard TF-IDF `min_df=2` and `max_df=0.9` with a more aggressive pruning strategy (e.g., `min_df=1` and `max_df=0.7`) and incorporate a 'relevance' booster by multiplying the final score by the similarity of each document to its own nearest neighbor in the target sample (s_knn), rather than just using the average of the 5 nearest neighbors.",
+   "outcome": "dev 1.9622 against 1.9349 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Implement a 'Density-Based Diversity' strategy: after ranking documents by the current score, instead of taking the top-N, use a greedy approach that selects documents one-by-one, at each step choosing the highest-scoring document that has a cosine similarity of at least 0.3 (or some threshold) to the already selected set (the 'growing' centroid).",
+   "outcome": "dev 1.9525 against 1.9349 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Modify the `_local_centroid_scores` calculation to use a 'Soft-Max' weighting scheme for the cluster centroids instead of the current Gaussian-like weighting, and adjust the cluster weighting to be more sensitive to the exact closest cluster to the target centroid.",
+   "outcome": "dev 1.9302 against 1.9349 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Replace the current cluster weight calculation with a 'Distance-to-Target' penalty: instead of weights $w$, calculate the raw cosine similarity of each cluster centroid to the target centroid, and then for each document, calculate its score as the weighted average of its similarities to the clusters where the weight is the cluster's own similarity to the target (i.e., $\\sum (sim(doc, C_i) \\times sim(C_i, Target)) / \\sum sim(C_i, Target)$).",
+   "outcome": "dev 1.9458 against 1.9349 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Replace the current local-centroid weighted average with a 'Max-Similarity' cluster score: for each document, first find the cluster $C_i$ that is closest to the target centroid $Target$ (based on cosine similarity), and use the document's similarity to that specific cluster centroid as the primary score component, while maintaining a smaller secondary weight for the average similarity to all clusters.",
+   "outcome": "dev 1.9585 against 1.9349 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Modify the final score calculation to prioritize 'unique' information by applying a penalty based on the document's intra-document word diversity (uniq_ratio). Specifically, multiply the final score by (uniq_ratio / mean_uniq_ratio_of_top_candidates), where mean_uniq_ratio_of_top_candidates is the average uniqueness score of the current top-ranked candidates.",
+   "outcome": "dev 1.9513 against 1.9349 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Replace the local-centroid weighted average (Step 4/7/8) with a 'Gaussian Kernel' approach on the cosine distance between the document and the target centroid, but specifically filter the pool first to only include documents that share at least 5% of their top 100 words with the target_sample vocabulary to prune low-quality unrelated noise.",
+   "outcome": "dev 1.9480 against 1.9349 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Modify the score calculation to use a 'Diversity-Aware Max-Similarity' approach: first, identify the top 10% of documents by the current local-centroid score, then select a final subset by greedily picking documents that maximize the 'Max-Similarity' to the target centroid (the highest similarity to any individual target document) while ensuring that the cosine similarity between the new selection and the already-selected documents remains above a certain threshold (e.g., 0.2).",
+   "outcome": "dev 3.4974 against 1.9349 for the best at the time, rejected"
+  }
+ ],
+ "usd": 3.64516405,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.26261209999999996,
+   "dev": 1.9517877341337968,
+   "inc": 1.961620461866921,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3532518212392333,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.2161269,
+   "dev": 1.9592089444336358,
+   "inc": 1.9517877341337968,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3532518212392333,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.30376754999999994,
+   "dev": 1.939237608888912,
+   "inc": 1.9517877341337968,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3532518212392333,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.29258205000000004,
+   "dev": 1.934905801125763,
+   "inc": 1.9517877341337968,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.676666768670264,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.3071902999999998,
+   "dev": 1.9621984036255227,
+   "inc": 1.934905801125763,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.676666768670264,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.42806225,
+   "dev": 1.9525363299531855,
+   "inc": 1.934905801125763,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.676666768670264,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.2947096,
+   "dev": 1.9302336896170744,
+   "inc": 1.934905801125763,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.676666768670264,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.2839705000000001,
+   "dev": 1.945766047832581,
+   "inc": 1.934905801125763,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.676666768670264,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.29230175,
+   "dev": 1.9584533311974737,
+   "inc": 1.934905801125763,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.676666768670264,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.3118711999999997,
+   "dev": 1.9513339068222182,
+   "inc": 1.934905801125763,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.676666768670264,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.3080341500000001,
+   "dev": 1.9480478580301837,
+   "inc": 1.934905801125763,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.676666768670264,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.3439357000000003,
+   "dev": 3.4974283927414733,
+   "inc": 1.934905801125763,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.961620461866921,
+ "inc_slot": 4
+}

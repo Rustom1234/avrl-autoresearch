@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+=======
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+        # Gradient checkpointing: zero intermediate activations for narrow layers
+        if self.layer_idx >= 3:
+            self.archives = None
+            return checkpoint(self.forward_archives, q, k, v, mlp=mx)
+>>>>>>> REPLACE
+                y = fa3.flash_attn_func(q, k, v, causal=True, window_size=window_size)
+                y = y.contiguous().view(B, T, -1)
+                y = self.c_proj(y)
+                return y
+
+class FwdArc(nn.Module):
+    def __init__(self, config, layer_idx):
+        super().__init__()
+        self.n_head = config.n_head
+        self.n_kv_head = config.n_kv_head
+        self.n_embd = config.n_embd
+        self.head_dim = self.n_embd // self.n_head
+        assert self.n_embd % self.n_head == 0
+        assert self.n_kv_head <= self.n_head and self.n_head % self.n_kv_head == 0
+        self.c_q = nn.Linear(self.n_embd, self.n_head * self.head_dim, bias=False)
+        self.c_k = nn.Linear(self.n_embd, self.n_kv_head * self.head_dim, bias=False)
+        self.c_v = nn.Linear(self.n_embd, self.n_kv_head * self.head_dim, bias=False)
+        self.c_proj = nn.Linear(self.n_embd, self.n_embd, bias=False)
+        # Already gated by has_ve in the original
+        self.ve_gate_channels = 32
+        self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) else None
+
+    def forward(self, x):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+        # Value residual (ResFormer): mix in value embedding with input-dependent gate per head
+        if self.ve_gate is not None:
+            ve = self.__dict__['ve'](x)
+            gate = 2 * torch.sigmoid(self.ve_gate(x[..., :self.ve_gate_channels]))
+            v = v + gate.unsqueeze(-1) * ve
+        # Already applied rotary in original, but here we just forward
+        cos, sin = cos_sin
+        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
+        q, k = norm(q), norm(k)
+        y = fa3.flash_attn_func(q, k, v, causal=True, window_size=window_size)
+        y = y.contiguous().view(B, T, -1)
+        y = self.c_proj(y)
+        return y
+-----

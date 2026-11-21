@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    s0 = rng.uniform(0.7, 1.4)   # elliptical stretch used only in the initial search
+=======
+    s0 = rng.uniform(0.7, 1.4)   # elliptical stretch used only in the initial search
+
+    def pen(v, w):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        b = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        return -r.sum() + w * (np.sum(np.minimum(d, 0) ** 2) + np.sum(np.minimum(b, 0) ** 2))
+
+    for w in (10, 100, 1e3, 1e4):   # gradually increasing overlap penalty weight
+        x0 = minimize(pen, x0, args=(w,), method="L-BFGS-B", options={"maxiter": 500}).x
+>>>>>>> REPLACE
+-----

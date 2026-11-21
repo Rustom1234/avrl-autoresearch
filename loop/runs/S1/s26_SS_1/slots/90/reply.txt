@@ -1,0 +1,97 @@
+<<<<<<< SEARCH
+def optimized_packing():
+    t0 = time.time()
+=======
+def _tc_polish(c, r, tend):
+    from scipy.optimize import NonlinearConstraint, BFGS, Bounds
+    n = _N
+    i, j = _IU
+    m = len(i)
+    x0 = np.concatenate([c[:, 0], c[:, 1], r])
+    I = np.eye(n)
+    Z = np.zeros((n, n))
+    wj = np.vstack([
+        np.hstack([I, Z, -I]),
+        np.hstack([-I, Z, -I]),
+        np.hstack([Z, I, -I]),
+        np.hstack([Z, -I, -I]),
+    ])
+
+    def cons(x):
+        X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+        dx = X[i] - X[j]
+        dy = Y[i] - Y[j]
+        pair = dx * dx + dy * dy - (R[i] + R[j]) ** 2
+        return np.concatenate([pair, X - R, 1 - X - R, Y - R, 1 - Y - R])
+
+    def consj(x):
+        X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+        dx = X[i] - X[j]
+        dy = Y[i] - Y[j]
+        s = R[i] + R[j]
+        J = np.zeros((m, 3 * n))
+        k = np.arange(m)
+        J[k, i] = 2 * dx
+        J[k, j] = -2 * dx
+        J[k, n + i] = 2 * dy
+        J[k, n + j] = -2 * dy
+        J[k, 2 * n + i] = -2 * s
+        J[k, 2 * n + j] = -2 * s
+        return np.vstack([J, wj])
+
+    g = np.zeros(3 * n)
+    g[2 * n:] = -1
+
+    def cb(xk, state):
+        return time.time() > tend
+
+    nlc = NonlinearConstraint(cons, 0, np.inf, jac=consj, hess=BFGS())
+    res = minimize(lambda x: -x[2 * n:].sum(), x0, jac=lambda x: g,
+                   hess=BFGS(), method="trust-constr", constraints=[nlc],
+                   bounds=Bounds(np.zeros(3 * n), np.concatenate([np.ones(2 * n), 0.5 * np.ones(n)])),
+                   callback=cb,
+                   options={"gtol": 1e-12, "maxiter": 1000, "verbose": 0})
+    x = res.x
+    return np.clip(np.stack([x[:n], x[n:2 * n]], 1), 0, 1)
+
+
+def optimized_packing():
+    t0 = time.time()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    pool = []
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+=======
+        s = r2.sum()
+        pool.append((s, c2, r2))
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    pool.sort(key=lambda t: -t[0])
+    top = []
+    for s, c2, r2 in pool:
+        if all(abs(s - t[0]) > 1e-7 for t in top):
+            top.append((s, c2, r2))
+        if len(top) >= 4:
+            break
+    for k, (s, c2, r2) in enumerate(top):
+        tend = time.time() + 30
+        if time.time() - t0 > 215:
+            break
+        try:
+            c3 = _tc_polish(c2, r2, tend)
+            r3 = _lp_radii(c3)
+        except Exception:
+            continue
+        if r3.sum() > best_s:
+            best_s, best = r3.sum(), (c3, r3)
+    c, r = best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+=======
+        else:
+            # Warm start from scaled and perturbed incumbent
+            c_curr, r_curr = best
+            scale = rng.uniform(0.97, 1.03)
+            # Scale centers about the center (0.5, 0.5)
+            c_new = (c_curr - 0.5) * scale + 0.5
+            c_new += rng.normal(0, 0.01, (n, 2))
+            c_new = np.clip(c_new, 0, 1)
+            
+            r_new = r_curr * 0.9
+            x0 = np.concatenate([c_new.ravel(), r_new])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+>>>>>>> REPLACE
+-----

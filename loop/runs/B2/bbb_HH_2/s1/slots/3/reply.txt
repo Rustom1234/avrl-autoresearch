@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+=======
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        probs = np.zeros(len(test_smiles))
+        for s in (seed, seed + 1000, seed + 2000):
+            model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                                  min_child_weight=2, eval_metric='logloss', random_state=s, n_jobs=8)
+            model.fit(x_tr, y)
+            probs += model.predict_proba(x_te)[:, 1]
+        total += rankdata(probs / 3)
+>>>>>>> REPLACE
+-----

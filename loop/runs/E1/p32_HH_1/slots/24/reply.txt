@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _barrier_fg(v, n, iu, mu):
+    """Barrier objective -sum(r) - mu * sum(log slack) and its gradient; infeasible points get a huge value."""
+    c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+    i, j = iu
+    diff = c[i] - c[j]
+    dist = np.maximum(np.sqrt((diff ** 2).sum(1)), 1e-12)
+    sp = dist - r[i] - r[j]
+    sx0, sx1 = c[:, 0] - r, 1 - c[:, 0] - r
+    sy0, sy1 = c[:, 1] - r, 1 - c[:, 1] - r
+    slacks = (sp, sx0, sx1, sy0, sy1, r)
+    if min(s.min() for s in slacks) <= 0:
+        return 1e20, np.zeros_like(v)
+    f = -r.sum() - mu * sum(np.log(s).sum() for s in slacks)
+    g, gr = np.zeros((n, 2)), -np.ones(n)
+    u = diff / dist[:, None]
+    wp = mu / sp
+    np.add.at(g, i, -wp[:, None] * u)
+    np.add.at(g, j, wp[:, None] * u)
+    np.add.at(gr, i, wp)
+    np.add.at(gr, j, wp)
+    g[:, 0] += -mu / sx0 + mu / sx1
+    g[:, 1] += -mu / sy0 + mu / sy1
+    gr += mu * (1 / sx0 + 1 / sx1 + 1 / sy0 + 1 / sy1) - mu / r
+    return f, np.concatenate([g.ravel(), gr])
+
+
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    iu = np.triu_indices(n, 1)
+    x = np.concatenate([np.clip(base, 1e-3, 1 - 1e-3).ravel(), np.full(n, 1e-4)])
+    mu = 1e-2
+    for _ in range(8):
+        x = minimize(_barrier_fg, x, args=(n, iu, mu), jac=True, method="L-BFGS-B",
+                     options={"maxiter": MAX_ITER}).x
+        mu /= 5
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    maccs_gen = MACCSkeys.GenMACCSKeys
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        mf = gen.GetFingerprintAsNumPy(mol)
+        mk = np.array(maccs_gen(mol), dtype=np.float32)
+        ap = ap_gen.GetFingerprintAsNumPy(mol)
+        features.append(np.concatenate([mf, mk, ap]))
+    return np.array(features, dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    maccs_gen = MACCSkeys.GenMACCSKeys
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        mf = gen.GetFingerprintAsNumPy(mol)
+        mk = np.array(maccs_gen(mol), dtype=np.float32)
+        ap = ap_gen.GetFingerprintAsNumPy(mol)
+        features.append(np.concatenate([mf, mk, ap]))
+    
+    X = np.array(features, dtype=np.float32)
+    # Remove bits with zero variance across the dataset
+    variances = np.var(X, axis=0)
+    mask = variances > 1e-6
+    return X[:, mask]
+>>>>>>> REPLACE
+-----

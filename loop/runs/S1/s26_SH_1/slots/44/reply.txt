@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+=======
+def _ladder_start(rng):
+    # size-ordered ladder: corner circles large, edge circles medium, rest small
+    corners = np.array([(0.12, 0.12), (0.88, 0.12), (0.12, 0.88), (0.88, 0.88)])
+    interior = rng.uniform(0.2, 0.8, size=(4, 2))
+    edge = np.array([(0.3, 0.06), (0.7, 0.06), (0.3, 0.94), (0.7, 0.94),
+                     (0.06, 0.3), (0.06, 0.7), (0.94, 0.3), (0.94, 0.7)])
+    small = rng.uniform(0.05, 0.95, size=(10, 2))
+    P = np.vstack([corners, interior, edge, small])
+    P = P + rng.uniform(-0.03, 0.03, size=P.shape)
+    P = np.clip(P, 0.02, 0.98)
+    R = np.concatenate([np.full(4, 0.12), np.full(4, 0.10),
+                        np.full(8, 0.08), np.full(10, 0.04)])
+    return P[:, 0].copy(), P[:, 1].copy(), R
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+        r0 = np.full(_N, 0.05)
+=======
+        if _k % 2 == 1:
+            x0, y0, r0 = _ladder_start(rng)
+        else:
+            P = rng.uniform(0.05, 0.95, size=(_N, 2))
+            x0 = P[:, 0].copy()
+            y0 = P[:, 1].copy()
+            r0 = np.full(_N, 0.05)
+>>>>>>> REPLACE
+-----

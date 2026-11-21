@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    preds = [meta.predict(base_te)]
+    rng = np.random.default_rng(seed)
+    ug = np.unique(groups)
+    for _ in range(4):
+        pick = rng.choice(ug, size=len(ug), replace=True)
+        idx = np.concatenate([np.where(groups == g)[0] for g in pick])
+        b = base_predict(Xtr[idx], Ftr[idx], y[idx], Xte, Fte, groups[idx], seed)
+        preds.append(meta.predict(b))
+    return np.median(np.vstack(preds), axis=0)
+>>>>>>> REPLACE
+-----

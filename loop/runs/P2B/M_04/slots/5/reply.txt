@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction=reduction)
+        return loss
+=======
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction=reduction)
+        # Z-loss regularization: stabilizes logit norm near zero
+        z_loss = logits.square().mean().square()
+        loss = loss + 1e-4 * z_loss
+        return loss
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction=reduction)
+        return loss
+=======
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction=reduction)
+        # Z-loss regularization: stabilizes logit norm near zero and reduces late logit drift
+        z_loss = (logits.square().mean(0).square()).mean(-1)
+        loss = loss + 1e-4 * z_loss
+        return loss
+>>>>>>> REPLACE
+-----
+		if targets is not None:
+			loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+		                           ignore_index=-1, reduction=reduction)
+			
+			# Z-loss regularization: stabilizes logit norm near zero and reduces late drift
+			z_loss = (logits.float().square().mean(dim=0)).sum(mean=1).sum(dim=1).mean(dim=-1)
+			loss = loss + 1e-4 * z_loss
+-----

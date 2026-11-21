@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No measurement workaround found: the low-resolution phase (first 40% of steps at 24x24) is computed inside train() on every run, there is no seeding and no file access, and test images are not used. predict() is unchanged and runs at full resolution.",
+  "AdaptiveMaxPool2d(1) gives the same output as MaxPool2d(3) on the 3x3 map produced at 32x32, so inference is unchanged. At 24x24 the map is 2x2, where a fixed 3x3 pool would have failed, so the change is needed.",
+  "With dynamic=False there are two input shapes and so two compiles. Both should be triggered in the untimed first call, which runs the same schedule, so timed runs should not pay for compiling. Worth confirming that the median time does not include a recompile.",
+  "The whitening filters are set from 32x32 patch statistics but are applied to downscaled inputs early in training. This is a quality question, not a bug.",
+  "Only 2 candidate runs, and they differ by 0.057 (about 2.2 job sds), which is a somewhat wide spread. Recomputed z with the stated sd of 0.026 is about 7.90, consistent with the harness's 7.966. The decision to accept is robust."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 7.9
+ }
+}

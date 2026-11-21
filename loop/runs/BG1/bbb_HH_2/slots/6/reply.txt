@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+from xgboost import XGBClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fingerprints(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    morgan = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    pair = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    x_morgan = np.array([morgan.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    x_pair = np.array([pair.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    x_maccs = np.array([np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float32) for m in mols])
+    return [x_morgan, x_pair, x_maccs]
+=======
+def descriptors(mols):
+    fns = [f for _, f in Descriptors.descList]
+    return np.array([[f(m) for f in fns] for m in mols], dtype=np.float64)
+
+
+def fingerprints(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    morgan = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    x_morgan = np.array([morgan.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    x_maccs = np.array([np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float32) for m in mols])
+    return np.hstack([x_morgan, x_maccs]), descriptors(mols)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    fp_tr, desc_tr = fingerprints(train_smiles)
+    fp_te, desc_te = fingerprints(test_smiles)
+    desc_tr = np.nan_to_num(desc_tr, nan=0.0, posinf=0.0, neginf=0.0)
+    desc_te = np.nan_to_num(desc_te, nan=0.0, posinf=0.0, neginf=0.0)
+    lo, hi = np.percentile(desc_tr, [1, 99], axis=0)
+    desc_tr = np.clip(desc_tr, lo, hi)
+    desc_te = np.clip(desc_te, lo, hi)
+    x_tr = np.hstack([fp_tr, desc_tr]).astype(np.float32)
+    x_te = np.hstack([fp_te, desc_te]).astype(np.float32)
+    model = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES,
+                                   min_samples_leaf=MIN_SAMPLES_LEAF, random_state=seed, n_jobs=8)
+    model.fit(x_tr, y)
+    return model.predict_proba(x_te)[:, 1]
+>>>>>>> REPLACE
+-----

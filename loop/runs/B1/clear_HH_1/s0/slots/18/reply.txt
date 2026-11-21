@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+=======
+def featurize(smiles, n_bits=N_BITS, radius=RADIUS):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=n_bits)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+=======
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    views = [(b, r) for b in (1024, 2048, 4096) for r in (2, 3)]
+    K_struct = np.zeros((len(train_smiles), len(train_smiles)))
+    K_struct_t = np.zeros((len(test_smiles), len(train_smiles)))
+    for b, r in views:
+        Xb = featurize(train_smiles, b, r).astype(np.float64)
+        Xtb = featurize(test_smiles, b, r).astype(np.float64)
+        K_struct += tanimoto(Xb, Xb) / len(views)
+        K_struct_t += tanimoto(Xtb, Xb) / len(views)
+    K_train = 0.5 * (K_struct + rbf(D, D, gamma))
+    K_test = 0.5 * (K_struct_t + rbf(Dt, D, gamma))
+>>>>>>> REPLACE
+-----

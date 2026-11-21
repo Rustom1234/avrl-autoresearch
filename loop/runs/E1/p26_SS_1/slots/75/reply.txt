@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and time.process_time() - t0 > 0.3 * TIME_FRACTION * time_limit:
+            c, r = _solve_once(n, rng, best)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, best, cur = np.random.default_rng(seed), time.process_time(), None, None
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:   # random restarts, then annealed perturbation
+        el = time.process_time() - t0
+        anneal = best is not None and el > 0.3 * budget
+        if anneal:
+            c, r = _solve_once(n, rng, cur)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        if not anneal:
+            cur = best
+        else:
+            p = min(1.0, (el - 0.3 * budget) / (0.7 * budget))
+            T = 0.004 * (0.0003 / 0.004) ** p
+            d = r.sum() - cur[1].sum()
+            if d >= 0 or rng.random() < np.exp(d / T):
+                cur = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

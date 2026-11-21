@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+t_start_training = time.time()
+smooth_train_loss = 0
+total_training_time = 0
+step = 0
+
+while True:
+    torch.cuda.synchronize()
+    t0 = time.time()
+=======
+def get_short_window(progress):
+    # Attention span heuristic: narrower local spans early, wider spans later
+    return MAX_SEQ_LEN // 4 if progress < 0.5 else MAX_SEQ_LEN // 2
+
+t_start_training = time.time()
+smooth_train_loss = 0
+total_training_time = 0
+step = 0
+current_short_window = None
+
+while True:
+    torch.cuda.synchronize()
+    t0 = time.time()
+    short_window = get_short_window(min(total_training_time / TIME_BUDGET, 1.0))
+    if short_window != current_short_window:
+        current_short_window = short_window
+        model._orig_mod.window_sizes = [
+            (short_window, 0) if w < MAX_SEQ_LEN else (w, 0) for w, _ in model._orig_mod.window_sizes
+        ]
+>>>>>>> REPLACE
+-----

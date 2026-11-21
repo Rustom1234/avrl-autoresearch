@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+    def forward(self, idx, targets=None, reduction='mean'):
+        B, T = idx.size()
+        assert T <= self.cos.size(1)
+        cos_sin = self.cos[:, :T], self.sin[:, :T]
+
+        x = self.transformer.wte(idx)
+        x = norm(x)
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+
+        softcap = 15
+        logits = self.lm_head(x)
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+=======
+        x = self.transformer.wte(idx)
+        x = norm(x)
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+
+        softcap = 15
+        raw_logits = self.lm_head(x)
+        raw_logits = raw_logits.float()
+        raw_logits = softcap * torch.tanh(raw_logits / softcap)
+        # Residual dropout: mix raw logits with a purely random, non-linearly processed signal
+        noise = F.gumbel_soft(self.lm_head.weight, hard=False).squeeze(0).expand_as(raw_logits).uniform_()
+        logits = (1.0 - 0.05) * raw_logits + 0.05 * noise
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+        return optimizer
+
+        x = self.transformer.wte(idx)
+=======
+        return optimizer
+
+    def forward(self, idx, targets=None, reduction='mean'):
+        cos_sin = self.cos, self.sin
+        x = self.transformer.wte(idx)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        noise = F.gumbel_soft(self.lm_head.weight, hard=False).squeeze(0).expand_as(raw_logits).uniform_()
+=======
+        noise = torch.rand_like(raw_logits)
+>>>>>>> REPLACE
+-----

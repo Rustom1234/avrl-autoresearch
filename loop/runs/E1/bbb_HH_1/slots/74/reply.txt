@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+def stereo_salt_features(mol):
+    centres = Chem.FindMolChiralCenters(mol, includeUnassigned=True)
+    n_centres = len(centres)
+    n_unassigned = sum(1 for _, label in centres if label == '?')
+    n_ez = sum(1 for b in mol.GetBonds()
+               if b.GetBondType() == Chem.BondType.DOUBLE
+               and b.GetStereo() in (Chem.BondStereo.STEREOE, Chem.BondStereo.STEREOZ))
+    n_unassigned += sum(1 for b in mol.GetBonds() if b.GetStereo() == Chem.BondStereo.STEREOANY)
+    frags = Chem.GetMolFrags(mol)
+    smallest = min(len(f) for f in frags)
+    return [n_centres, n_ez, n_unassigned, len(frags), smallest]
+
+
+_DESC_CACHE = {}
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            _DESC_CACHE[s] = [f(mol) for _, f in Descriptors.descList]
+=======
+            _DESC_CACHE[s] = [f(mol) for _, f in Descriptors.descList] + stereo_salt_features(mol)
+>>>>>>> REPLACE
+-----

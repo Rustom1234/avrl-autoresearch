@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+N_CONFIGS = 1
+=======
+_LOGP_CACHE = {}
+
+
+def logp_vector(smiles):
+    # Crippen logP per SMILES, cached like desc_vector.
+    if smiles not in _LOGP_CACHE:
+        _LOGP_CACHE[smiles] = Descriptors.MolLogP(Chem.MolFromSmiles(smiles))
+    return _LOGP_CACHE[smiles]
+
+
+N_CONFIGS = 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+    # Three base learners; returns their predictions on Xb as columns.
+=======
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed, la, lb):
+    # Three base learners fit on the residual of a logP line; returns their predictions on Xb as columns.
+    coef = np.polyfit(la, ya, 1)
+    ba, bb = np.polyval(coef, la), np.polyval(coef, lb)
+    ya = ya - ba
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([p_rf, p_lgb, p_krr])
+=======
+    return np.column_stack([p_rf, p_lgb, p_krr]) + bb[:, None]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ftr, Fte = featurize(train_smiles), featurize(test_smiles)
+=======
+    Ftr, Fte = featurize(train_smiles), featurize(test_smiles)
+    Ltr = np.array([logp_vector(s) for s in train_smiles])
+    Lte = np.array([logp_vector(s) for s in test_smiles])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+=======
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed, Ltr[tr], Ltr[va])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+=======
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed, Ltr, Lte)
+>>>>>>> REPLACE
+-----

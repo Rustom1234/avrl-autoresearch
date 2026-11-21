@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing in the diff touches how val_bpb is measured, the data, the seed lines, the evaluation call, or the prepare.py import. It changes only two hyperparameters: DEPTH goes from 8 to 6 and ASPECT_RATIO from 64 to 80.",
+  "Dimension check: 6*80 = 480, which is not a multiple of HEAD_DIM=128. In the usual train.py, model_dim is rounded up to a multiple of head_dim. That gives 512, the same width as the incumbent (8*64 = 512), so the real change is a shallower model with the same width. If the code did not round up, 480/128 would fail, and both runs completed. No bug that would make the result meaningless.",
+  "z = 4.752 could not be reproduced from the numbers given. Candidate mean = 1.0634, incumbent = 1.0952, difference = 0.0318. Using the two candidate runs (sample SD about 0.0051), z is about 6.2 with the SD of single runs, about 8.8 with the standard error of the mean, and about 5.1 for a two-sample comparison against one incumbent run. The harness value implies a noise sigma of about 0.0067, probably a prior or pooled estimate. Either way the difference is clearly in favour of the candidate.",
+  "Caveat: there is only one incumbent run, and the two candidate runs differ by 0.0072. The size of the gain is therefore uncertain, though the direction is not. Getting a lower val_bpb from a shallower model within a fixed time budget makes sense, because each step is faster and the model gets more steps in 300 s."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0634,
+  "delta": 0.0318,
+  "z_candidate_sd_only": 6.25,
+  "z_two_sample_candidate_sd": 5.1
+ }
+}

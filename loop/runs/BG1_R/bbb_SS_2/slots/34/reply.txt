@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+from rdkit.Chem.Pharm2D import Generate, Gobbi_Pharm2D
+=======
+from rdkit.Chem import rdFingerprintGenerator
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def pharm_fp(mol):
+    v = np.zeros(N_BITS)
+    for b in Generate.Gen2DFingerprint(mol, Gobbi_Pharm2D.factory).GetOnBits():
+        v[b % N_BITS] = 1
+    return v
+
+
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    rows = [[f(m) for _, f in Descriptors.descList] for m in mols]
+    X = np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    X = np.clip(X, -1e6, 1e6)
+    return np.hstack([X, np.array([pharm_fp(m) for m in mols])])
+=======
+_GEN = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+_CACHE = {}
+
+
+def _row(s):
+    if s not in _CACHE:
+        m = Chem.MolFromSmiles(s)
+        d = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        d = np.clip(np.nan_to_num(d, nan=0.0, posinf=0.0, neginf=0.0), -1e6, 1e6)
+        _CACHE[s] = np.concatenate([d, _GEN.GetFingerprintAsNumPy(m).astype(np.float64)])
+    return _CACHE[s]
+
+
+def featurize(smiles):
+    return np.array([_row(s) for s in smiles])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = ExtraTreesClassifier(n_estimators=1000, max_features=0.5,
+=======
+    model = ExtraTreesClassifier(n_estimators=500, max_features=0.3,
+>>>>>>> REPLACE
+-----

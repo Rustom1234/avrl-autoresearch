@@ -1,0 +1,81 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([centers.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+
+    # Stage 1: Optimize for equal radii 's'
+    x0_eq = np.concatenate([centers.flatten(), np.array([INIT_RADIUS])])
+    def cons_eq(v):
+        c = v[:2 * n].reshape(n, 2)
+        s = v[2 * n]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * s
+        return np.concatenate([d, c[:, 0] - s, c[:, 1] - s, 1 - c[:, 0] - s, 1 - c[:, 1] - s, s])
+
+    res_eq = minimize(lambda v: -v[2 * n], x0_eq, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                       options={"maxiter": MAX_ITER})\n    
+    # Stage 2: Use result as warm start for mixed radii
+    c_warm = res_eq.x[:2 * n].reshape(n, 2)
+    r_warm = np.full(n, res_eq.x[2 * n])
+    x0 = np.concatenate([c_warm.flatten(), r_warm])
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    x0 = np.concatenate([centers.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+
+    # Stage 1: Optimize for equal radii 's'
+    x0_eq = np.concatenate([centers.flatten(), np.array([INIT_RADIUS])])
+    def cons_eq(v):
+        c = v[:2 * n].reshape(n, 2)
+        s = v[2 * n]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * s
+        return np.concatenate([d, c[:, 0] - s, c[:, 1] - s, 1 - c[:, 0] - s, 1 - c[:, 1] - s, s])
+
+    res_eq = minimize(lambda v: -v[2 * n], x0_eq, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                       options={"maxiter": MAX_ITER})
+    
+    # Stage 2: Use result as warm start for mixed radii
+    c_warm = res_eq.x[:2 * n].reshape(n, 2)
+    r_warm = np.full(n, res_eq.x[2 * n])
+    x0 = np.concatenate([c_warm.flatten(), r_warm])
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

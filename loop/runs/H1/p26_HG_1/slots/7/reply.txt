@@ -1,0 +1,138 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+        # Try to improve by reinserting the smallest circle
+        if r.sum() > 0:
+            idx = np.argmin(r)
+            c_rem = np.delete(c, idx, axis=0)
+            r_rem = np.delete(r, idx)
+            
+            # Sample points to find best position for the removed circle
+            samples = rng.uniform(0, 1, (2000, 2))
+            # Distance to walls
+            dist_walls = np.minimum(samples[:, 0], 1 - samples[:, 0]) * 2 + 
+                          np.minimum(samples[:, 1], 1 - samples[:, 1]) * 2
+            # Distance to other circles
+            # (Simplified: just use distance to centers minus radii)
+            dist_centers = np.min(np.linalg.norm(samples[:, None, :] - c_rem, axis=2) - r_rem, axis=1)
+            
+            best_p = samples[np.argmax(np.minimum(dist_walls, dist_centers))]
+            
+            # Try to place the smallest circle at the best point with a reasonable radius
+            # For simplicity, we just try to put it back with its original radius
+            # If it fails (overlap), the repair step handles it.
+            c_new = np.vstack([c_rem, best_p])
+            r_new = np.append(r_rem, r[idx])
+            
+            c_new = np.clip(c_new, 0, 1)
+            r_new = _repair(c_new, r_new)
+            
+            if r_new.sum() > r.sum():
+                c, r = c_new, r_new
+
+    return best
+-----
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+        # Try to improve by reinserting the smallest circle at a better position
+        if r.sum() > 0:
+            idx = np.argmin(r)
+            c_rem = np.delete(c, idx, axis=0)
+            r_rem = np.delete(r, idx)
+            
+            # Sample points to find a position with maximum clearance
+            samples = rng.uniform(0, 1, (2000, 2))
+            # Distance to boundaries
+            dist_walls = np.minimum(samples[:, 0], 1 - samples[:, 0]) + 
+                          np.minimum(samples[:, 1], 1 - samples[:, 1])
+            # Distance to other circles
+            dists = np.linalg.norm(samples[:, None, :] - c_rem, axis=2) - r_rem
+            dist_centers = np.min(dists, axis=1)
+            
+            best_p = samples[np.argmax(np.minimum(dist_walls, dist_centers))]
+            
+            c_new = np.vstack([c_rem, best_p])
+            r_new = np.append(r_rem, r[idx])
+            
+            c_new = np.clip(c_new, 0, 1)
+            r_new = _repair(c_new, r_new)
+            
+            if r_new.sum() > r.sum():
+                c, r = c_new, r_new
+
+    return best
+-----
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+        # Try to improve by reinserting the smallest circle at a better position
+        if r.sum() > 0:
+            idx = np.argmin(r)
+            c_rem = np.delete(c, idx, axis=0)
+            r_rem = np.delete(r, idx)
+            
+            # Sample points to find a position with maximum clearance
+            samples = rng.uniform(0, 1, (2000, 2))
+            # Distance to boundaries
+            dist_walls = np.minimum(samples[:, 0], 1 - samples[:, 0]) + 
+                          np.minimum(samples[:, 1], 1 - samples[:, 1])
+            # Distance to other circles
+            dists = np.linalg.norm(samples[:, None, :] - c_rem, axis=2) - r_rem
+            dist_centers = np.min(dists, axis=1)
+            
+            best_p = samples[np.argmax(np.minimum(dist_walls, dist_centers))]
+            
+            c_new = np.vstack([c_rem, best_p])
+            r_new = np.append(r_rem, r[idx])
+            
+            c_new = np.clip(c_new, 0, 1)
+            r_new = _repair(c_new, r_new)
+            
+            if r_new.sum() > r.sum():
+                c, r = c_new, r_new
+
+    return best
+-----

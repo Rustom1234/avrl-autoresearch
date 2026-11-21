@@ -1,0 +1,111 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (regression).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors
+from xgboost import XGBRegressor
+from sklearn.linear_model import Ridge
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import KFold
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    desc_list = []
+    for m in mols:
+        row = []
+        for func in Descriptors.descList:
+            try:
+                val = func(m)
+                row.append(val if np.isfinite(val) else 0.0)
+            except:
+                row.append(0.0)
+        desc_list.append(row)
+    desc = np.array(desc_list, dtype=np.float32)
+    return np.hstack([fps, desc])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_all = featurize(train_smiles)
+    y_all = np.asarray(train_y, dtype=np.float64)
+    
+    # Features for Ridge
+    X_desc = X_all[:, -len(Descriptors.descList):]
+    
+    # Handle constant columns and clipping
+    # Since descriptors are shared, we do this once for the whole set to keep logic simple
+    # and to ensure X_desc and X_test_desc have same dimensions.
+    # Find columns with variance
+    variance = np.var(X_desc, axis=0)
+    is_constant = variance == 0
+    # Ensure at least one column is kept if all are constant
+    if np.all(is_constant):
+        X_desc = X_desc[:, :1]
+        is_constant = np.array([False])
+    else:
+        X_desc = X_desc[:, ~is_constant]
+    
+    # Clip to 1st-99th percentile
+    p1, p99 = np.percentile(X_desc, [1, 99], axis=0)
+    X_desc = np.clip(X_desc, p1, p99)
+    
+    # Ridge on descriptors
+    scaler = StandardScaler()
+    X_desc_scaled = scaler.fit_transform(X_desc)
+    
+    # Out-of-fold residuals for XGB
+    kf = KFold(n_splits=5, shuffle=True, random_state=seed)
+    oof_res = np.zeros_like(y_all)
+    
+    # Ridge model to predict residuals
+    ridge = Ridge(alpha=1.0)
+    for tr_idx, val_idx in kf.split(X_desc_scaled):
+        X_train_r = X_desc_scaled[tr_idx]
+        X_val_r = X_desc_scaled[val_idx]
+        y_train_r = y_all[tr_idx]
+        
+        ridge.fit(X_train_r, y_train_r)
+        oof_res[val_idx] = y_all[val_idx] - ridge.predict(X_val_r)
+    
+    # XGB on fingerprints + descriptors to predict residuals
+    # We must reconstruct X_all to match the dimensions of the reduced X_desc
+    # Actually, it's safer to construct a final feature matrix for XGB
+    # including only the non-constant descriptors.
+    num_desc = X_desc.shape[1]
+    X_all_reduced = np.hstack([X_all[:, :2048], X_desc])
+    
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all_reduced, oof_res)
+    
+    # Final Prediction
+    X_test_raw = featurize(test_smiles)
+    X_test_desc_raw = X_test_raw[:, -len(Descriptors.descList):]
+    X_test_desc_raw = np.array([[v if np.isfinite(v) else 0.0 for v in row] for row in X_test_desc_raw])
+    X_test_desc_raw = np.clip(X_test_desc_raw, p1, p99)
+    
+    # Filter constant columns from test set
+    X_test_desc = X_test_desc_raw[:, ~is_constant]
+    X_test_desc_scaled = scaler.transform(X_test_desc)
+    
+    ridge_pred = ridge.predict(X_test_desc_scaled)
+    X_test_final = np.hstack([X_test_raw[:, :2048], X_test_desc])
+    xgb_res_pred = xgb_model.predict(X_test_final)
+    
+    return ridge_pred + xgb_res_pred

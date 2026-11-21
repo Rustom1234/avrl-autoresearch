@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+        self.attn = CausalSelfAttention(config, layer_idx)
+        self.mlp = MLP(config)
+
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(norm(x))
+        return x
+=======
+        self.attn = CausalSelfAttention(config, layer_idx)
+        self.mlp = MLP(config)
+        self.attn_norm_gain = nn.Parameter(torch.ones(config.n_embd))
+        self.mlp_norm_gain = nn.Parameter(torch.ones(config.n_embd))
+
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x) * self.attn_norm_gain, ve, cos_sin, window_size)
+        x = x + self.mlp(norm(x) * self.mlp_norm_gain)
+        return x
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.x0_lambdas.fill_(0.1)
+=======
+        self.x0_lambdas.fill_(0.1)
+        for block in self.transformer.h:
+            block.attn_norm_gain.fill_(1.0)
+            block.mlp_norm_gain.fill_(1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        matrix_params = list(self.transformer.h.parameters())
+=======
+        matrix_params = [p for p in self.transformer.h.parameters() if p.ndim == 2]
+        norm_gain_params = [p for p in self.transformer.h.parameters() if p.ndim == 1]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params) + len(norm_gain_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+=======
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=norm_gain_params, lr=scalar_lr, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+=======
+        else:              # local kick, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            if rng.uniform() < 0.3:   # relocate the 2 or 3 smallest circles to random interior points
+                idx = np.argsort(r)[:rng.integers(2, 4)]
+                c[idx] = rng.uniform(0.05, 0.95, (len(idx), 2))
+                r[idx] = 0
+            else:                     # re-randomise the centres in a disc
+                p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+                m = np.hypot(*(c - p).T) < R
+                k = m.sum()
+                ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+                c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+                r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+>>>>>>> REPLACE
+-----

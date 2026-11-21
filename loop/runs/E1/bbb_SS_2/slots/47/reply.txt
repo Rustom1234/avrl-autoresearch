@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+BASIC_AMINE = Chem.MolFromSmarts("[NX3;H2,H1,H0;!$(NC=[O,S,N]);!$(N-a);!$(N-S(=O)=O)]")
+ACID = Chem.MolFromSmarts("[CX3](=O)[OX2H1,OX1-]")
+HALOGEN = Chem.MolFromSmarts("[F,Cl,Br,I]")
+
+
+def compact_features(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Descriptors.TPSA(m), Descriptors.MolLogP(m), Descriptors.MolWt(m),
+                     Descriptors.NumHDonors(m), Descriptors.NumHAcceptors(m),
+                     Descriptors.NumRotatableBonds(m), Chem.GetFormalCharge(m),
+                     len(m.GetSubstructMatches(BASIC_AMINE)), len(m.GetSubstructMatches(ACID)),
+                     Descriptors.NumAromaticRings(m), Descriptors.FractionCSP3(m),
+                     len(m.GetSubstructMatches(HALOGEN))])
+    return np.array(rows, dtype=np.float64)
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * rankdata(p_rf) / len(p_rf) + 0.5 * rankdata(p_mlp) / len(p_mlp)
+=======
+    hgb = HistGradientBoostingClassifier(max_depth=3, learning_rate=0.05, max_iter=200,
+                                         random_state=seed)
+    hgb.fit(compact_features(train_smiles), y)
+    p_hgb = hgb.predict_proba(compact_features(test_smiles))[:, 1]
+    n = len(p_rf)
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_hgb)) / (3 * n)
+>>>>>>> REPLACE
+-----

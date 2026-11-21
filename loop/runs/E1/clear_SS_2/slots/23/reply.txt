@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def minmax_kernel(A, B):
+=======
+def compact(smiles):
+    from rdkit.Chem import Crippen, rdMolDescriptors, MACCSkeys
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        pos = sum(a.GetFormalCharge() > 0 for a in m.GetAtoms())
+        neg = sum(a.GetFormalCharge() < 0 for a in m.GetAtoms())
+        d = [Crippen.MolLogP(m), rdMolDescriptors.CalcTPSA(m), Descriptors.MolWt(m),
+             rdMolDescriptors.CalcNumHBD(m), rdMolDescriptors.CalcNumHBA(m),
+             rdMolDescriptors.CalcNumRotatableBonds(m), rdMolDescriptors.CalcNumAromaticRings(m),
+             rdMolDescriptors.CalcFractionCSP3(m), pos, neg]
+        rows.append(d + list(MACCSkeys.GenMACCSKeys(m)))
+    return np.array(rows, dtype=np.float32)
+
+
+def minmax_kernel(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        preds.append(rankdata(p) / len(p))
+    return np.mean(preds, axis=0)
+=======
+        preds.append(rankdata(p) / len(p))
+    rf = RandomForestRegressor(n_estimators=300, max_features=0.3, min_samples_leaf=2,
+                               n_jobs=8, random_state=seed)
+    rf.fit(compact(train_smiles), y)
+    p = rf.predict(compact(test_smiles))
+    preds.append(rankdata(p) / len(p))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

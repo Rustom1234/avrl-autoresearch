@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/DH_01/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.930651790215837
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace random order with a target-similarity filter plus dedup and junk removal. Steps: (1) Exact-dedup docs by hash of whitespace-normalised text; also drop docs with <200 chars, and boilerplate docs where the fraction of unique lines is <0.5 (repeated-line junk). (2) Fit a character n-gram TF-IDF (analyzer='char_wb', ngram_range=(1,3), max_features=50000, sublinear_tf=True, on first 3000 chars of each doc) and train LogisticRegression (C=1) with positives = the 200 target_sample docs (weight-balanced) and negatives = a seeded random sample of 3000 pool docs; score all pool docs. Add a strong prior feature: boost the score for docs that start with '= ' title line and contain WikiText markers (' @-@ ', ' @,@ ', ' , ', ' . '). (3) Detect shuffled-word damage among wiki-like docs: compute, with a word-bigram set built from target_sample plus the top-scoring 2000 pool docs, the fraction of each doc's adjacent word bigrams (first 400 words after the title line) that appear in that set; also the fraction of sentences-ending patterns like ' . ' followed by a capitalised word; drop docs whose bigram-hit rate is below roughly half of the median hit rate of the wiki-like docs (the shuffled ones such as '= Pulaski Skyway =\\nThe northeastern @-@ bridge U.S. @-@ causeway US carrying the 9 part 9 1 /' will be far below). (4) Rank the surviving docs by classifier score, take the top docs until their gpt2 token count (tiktoken, encode_ordinary_batch) reaches T tokens if enough clean target-like docs exist; if the clean target-like set (score > 0.5) holds fewer than T tokens, use only that set and let the trainer cycle it as long as it holds at least 0.4T tokens, otherwise top up with the next-best-scoring non-junk docs to reach 0.4T. (5) Shuffle the final selection with random.Random(CURATE_SEED) and return it.",
+   "outcome": "dev 1.9307 against 1.9607 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Add near-duplicate removal and a generic damage filter on top of the current pipeline, keeping everything else unchanged.\n\n(a) Near-duplicate removal among the surviving target-like docs, done after the shuffled-word step. Group docs by two keys: (1) the normalised title line (lowercased text between '= ' and ' =' on the first line) for wiki-like docs; (2) a seeded MinHash signature of 5-word shingles over the first 600 body words (32 hashes, 8 bands of 4; treat docs sharing any band as candidates and confirm with estimated Jaccard >= 0.5). Within each group keep one doc: the one with the highest word-bigram hit rate from step 3, ties broken by larger length. Drop the rest.\n\n(b) Generic damage filter. Build an add-k smoothed character-trigram model (counts in a dict or hashed numpy array) from the full text of the 200 target_sample docs plus the top 1000 classifier-scored pool docs. For every candidate doc compute mean per-character negative log-likelihood on its first 4000 chars, the fraction of non-ASCII/non-printable chars, and the fraction of whitespace tokens that are not in the reference vocabulary (words seen at least twice in the reference set). Compute the same statistics on target_sample using leave-one-out or a held-out half. Drop pool docs whose char NLL exceeds the target's 99th percentile + 0.15 nats, or whose OOV-word fraction exceeds the target's 99th percentile + 0.10. This is meant to catch character corruption, case mangling, truncated garbage and spliced spam that the bigram test misses.\n\nThen rank, take up to T tokens, apply the existing 0.4T cycling rule and the seeded shuffle exactly as now. Guard each new stage with a time check (skip it if elapsed > 140 s) and a try/except fallback to current behaviour.",
+   "outcome": "dev 1.9301 against 1.9307 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Keep steps 1-3 (dedup, junk removal, classifier, shuffled-word filter) unchanged and change only how the final stream is composed and ordered, building an explicit list of about T tokens instead of relying on the trainer's cycling.\n\nLet CLEAN be the surviving docs with prob > 0.5 (the clean target-like set) and C its gpt2 token count.\n\n(a) If C >= T: take the top-scoring CLEAN docs up to T tokens and shuffle them with the seed, exactly as now.\n\n(b) If C < T: build the stream in two segments.\n\nSegment 1, a general-English warm-up placed first, of size F = min(0.15*T, T - C) tokens. Fill it with the highest-classifier-score surviving docs that are not in CLEAN and not wiki-like (so no shuffled wiki docs), after removing spam. Spam test: skip a doc if, in its first 300 words, fewer than 70% of its word 3-grams are unique, or if it has 3 or more matches of the case-insensitive patterns 'cheap', 'order ', 'free shipping', 'best price', 'for sale', 'buy '. Shuffle this segment with the seed.\n\nSegment 2, the remaining T - F tokens (plus a small 2% surplus). Fill it with CLEAN repeated explicitly: append a freshly seeded-shuffled permutation of all CLEAN docs, epoch after epoch, until the token budget is reached. In the last (partial) epoch, take docs in descending classifier score instead of at random, so the most target-like docs are guaranteed to be included.\n\nReturn segment 1 followed by segment 2. Remove the old 0.4T top-up rule. If CLEAN is empty, fall back to the current behaviour.",
+   "outcome": "dev 1.9305 against 1.9307 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Keep steps 1-3 and the seeded shuffle unchanged, and add a 'typicality' filter on the clean target-like set before the final take. (a) Tokenise the 200 target_sample docs with tiktoken gpt2 and build an add-0.5 smoothed unigram distribution over the 50257 tokens (numpy array of log-probabilities). (b) For every surviving doc with prob > 0.5 (CLEAN), tokenise the full doc (reuse these counts for the token budget) and compute its mean per-token negative log-likelihood under that unigram model. This is high for docs dominated by rare tokens: tables, number lists, foreign-script names, heavy markup. (c) Drop the hardest CLEAN docs: those whose mean NLL is above the 75th percentile of CLEAN, but stop dropping (keep the least hard ones) once the remaining CLEAN token count would fall below max(0.4*T, 0.75*C), where C is the original CLEAN token count. (d) If the remaining set holds at least T tokens, rank by (classifier prob rank + NLL rank, lower NLL better) and take the best until T tokens; otherwise return the remaining set and let the trainer cycle it, with the existing 0.4T top-up rule. Wrap the new stage in try/except and a time check (skip it if elapsed > 140 s), falling back to current behaviour.",
+   "outcome": "dev 1.9373 against 1.9307 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Make the shuffled-word (damage) filter stricter and cover the whole document; keep steps 1, 2, 4 and 5 unchanged. The current filter has three weaknesses: its bigram reference includes the top 2000 pool docs, some of which may themselves be shuffled; its threshold (0.5 x median) is loose; and it only inspects the first 400 words.\n\nNew step 3:\n\n(a) Pass 1: run the existing test as now to get a provisional drop set.\n\n(b) Rebuild the reference bigram document-frequency table from the 200 target_sample docs (full text, up to 3000 words each) plus up to 4000 of the top-scoring wiki-like pool docs that survived pass 1 (first 1500 words each). Do not put pass-1-dropped docs in the reference.\n\n(c) For every candidate (wiki-like docs if the target is wiki, else prob > 0.5), compute the bigram hit rate in up to three windows of 200 words: the start of the body, the middle and the end. Skip windows with fewer than 60 words. Use leave-one-out: a bigram counts as a hit only if its df is >= 2 when the doc is itself in the reference, else >= 1. Record the doc's minimum window rate and its mean rate.\n\n(d) Calibrate on the target: compute the same windowed leave-one-out rates (need df >= 2) for the 200 target docs. Let q_min be the 2nd percentile of the target min-window rates and q_mean the 2nd percentile of the target mean rates. Because pool docs see a slightly different reference, rescale both by r = median(pool candidate mean rate) / median(target mean rate), clipped to [0.8, 1.2].\n\n(e) Drop a candidate if its mean rate < 0.95 * r * q_mean or its min-window rate < 0.85 * r * q_min. Also drop it if more than 3% of its bigrams in the inspected windows are of the forms 'the ,', 'the .', 'of .', 'of ,', ', ,', '. ,', 'the the', 'of of', 'a ,', 'and .', 'the of', 'in .' and the target's 99th percentile for that fraction is below 1.5%.\n\n(f) Safety: if this would drop more than 60% of candidates, fall back to the pass-1 drop set.\n\nGuard with try/except and a time check (skip pass 2 if elapsed > 140 s). Then rank, take tokens and shuffle as now.",
+   "outcome": "dev 1.9307 against 1.9307 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the classifier's 0.5 threshold as the membership gate with a format-based gate calibrated on the target; keep dedup, junk removal, the shuffled-word filter, the token take and the seeded shuffle as they are.\n\n(1) For every kept doc and every target doc, compute the spaced-punctuation ratio on the first 6000 chars: r = (count of ' , ' + count of ' . ') / max(1, count of ',' + count of '.'). WikiText-tokenised text has r near 1 and ordinary web text near 0. Also compute punctuation density d = (count of ',' + count of '.') / number of whitespace words.\n\n(2) Calibrate on target_sample: r_min = 0.9 * (2nd percentile of target r), and d_lo, d_hi = 0.5 * (1st percentile) and 2 * (99th percentile) of target d. Only apply this gate if the target's median r is above 0.6; otherwise keep current behaviour.\n\n(3) Define FORMAT_OK = r >= r_min and d_lo <= d <= d_hi and at least 100 words. This no longer requires the doc to start with '= ', so target-format docs with a missing or truncated title line are admitted. It also excludes non-wiki docs that the classifier scored above 0.5.\n\n(4) Run the existing shuffled-word test on all FORMAT_OK docs instead of only on _wiki_like docs. Build the bigram reference from target_sample plus the 2000 FORMAT_OK docs with the highest classifier score.\n\n(5) CLEAN = FORMAT_OK and not dropped, regardless of classifier prob. Order CLEAN by classifier score and take up to T tokens. If CLEAN holds fewer than T tokens, return all of it and let the trainer cycle. Top up with the best-scoring non-CLEAN docs only if CLEAN is below 0.4T. Then apply the seeded shuffle.\n\nWrap the new gate in try/except and fall back to the current gate on error.",
+   "outcome": "dev 1.9418 against 1.9307 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Add a topical (word-level) ranking inside the clean target-like set and use it to decide what fills the T-token budget. Steps 1-3 and the seeded shuffle stay unchanged.\n\nLet CLEAN be the surviving docs with prob > 0.5, and C its gpt2 token count.\n\n(a) Topic model. Fit TfidfVectorizer(analyzer='word', lowercase=True, ngram_range=(1,1), min_df=2, max_df=0.5, sublinear_tf=True, max_features=100000, token_pattern=r'[A-Za-z]{3,}') on the first 6000 chars of the 200 target docs plus all CLEAN docs. Train LogisticRegression(C=1.0, class_weight='balanced', max_iter=300) with positives = the 200 target docs and negatives = a seeded random sample of min(4000, |CLEAN|) CLEAN docs. Because the negatives are themselves clean wiki-format docs, this model learns the subject matter of the target (the samples look like video-game and entertainment articles), not the format. Score every CLEAN doc with decision_function to get topic_score.\n\n(b) Composition.\n- If C >= T: rank CLEAN by rank(topic_score) + 0.5 * rank(format classifier prob), and take the best until T tokens. This replaces ranking by format prob alone.\n- If C < T: include every CLEAN doc once. Then, instead of letting the trainer cycle uniformly, fill the remaining T - C tokens explicitly with second copies of CLEAN docs in descending topic_score. If the budget is still not full after every doc has two copies, add third copies in the same order, and so on.\n- If C < 0.4T, apply the existing top-up rule first.\n\n(c) Shuffle the full list, repeats included, with random.Random(CURATE_SEED), and return about T tokens.\n\nGuard the new stage with try/except and a time check: skip it and fall back to the current behaviour if elapsed > 135 s.",
+   "outcome": "dev 1.9309 against 1.9307 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Add a character-typo damage filter for wiki-like docs; keep everything else unchanged. The pool contains docs with character-level corruption that the word-bigram test cannot see (e.g. '= History of the Ottawa Senatos', 'ounded in 1883').\n\n(a) After step 3, build a word document-frequency table over the full text of all kept wiki-like docs (each doc counts a word once). Words are whitespace tokens that are purely alphabetic with length >= 4, case preserved.\n\n(b) For each surviving candidate doc (prob > 0.5), compute the typo rate = fraction of its word occurrences (first 3000 qualifying words) whose pool df is <= 1, i.e. the word occurs in no other pool doc. For each of the 200 target docs, compute the same rate with df == 0, since target docs are not in the pool. Also apply a rescue rule: a df<=1 word does not count as a typo if it occurs 3 or more times within the doc itself (a genuine rare name).\n\n(c) Calibrate: thr = max(2.5 * target median rate, target 97th percentile rate) + 0.005. Drop candidates whose typo rate exceeds thr.\n\n(d) Safety: apply the drop only if it removes between 0.5% and 45% of the candidates; otherwise skip the stage.\n\n(e) Then rank, take up to T tokens, and apply the existing 0.4T cycling rule and the seeded shuffle as now. Wrap the stage in try/except with a time check (skip if elapsed > 140 s).",
+   "outcome": "dev 1.9297 against 1.9307 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Stack the two damage/duplicate filters that each gave a small gain on their own (experiments 2 and 8) into one pipeline. Steps 1-3, the token take, the 0.4T rule and the seeded shuffle stay unchanged. Insert after step 3, operating on surviving docs with prob > 0.5:\n\n(A) Typo filter, as in experiment 8. Build a word document-frequency table over the full text of all kept wiki-like docs (purely alphabetic whitespace tokens, length >= 4, case preserved, each doc counts a word once). For each candidate, typo rate = fraction of its first 3000 qualifying word occurrences whose pool df <= 1, not counting words that occur >= 3 times inside the doc itself. For the 200 target docs compute the same rate with df == 0. thr = max(2.5 * target median, target 97th percentile) + 0.005. Drop candidates above thr, but only if this removes between 0.5% and 45% of candidates.\n\n(B) Character-trigram damage filter, as in experiment 2b. Build an add-k smoothed character-trigram model from target_sample plus the top 1000 classifier-scored survivors of (A). Drop docs whose mean per-char NLL on the first 4000 chars exceeds the target's leave-one-out 99th percentile + 0.15 nats, or whose OOV-word fraction (vocabulary = words seen >= 2 times in the reference) exceeds the target's 99th percentile + 0.10.\n\n(C) Near-duplicate removal, as in experiment 2a. Group survivors by normalised title line (lowercased text between '= ' and ' =') and by a seeded MinHash of 5-word shingles over the first 600 body words (32 hashes, 8 bands of 4, confirm estimated Jaccard >= 0.5). In each group keep the doc with the lowest typo rate, ties broken by highest bigram hit rate, then by length. Drop the rest.\n\nThen rank by classifier prob, take up to T tokens, apply the 0.4T rule and the seeded shuffle as now. Guard each stage separately with try/except and a time check (skip the stage if elapsed > 140 s), so a failure falls back to the current behaviour.",
+   "outcome": "dev 1.9305 against 1.9307 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Keep steps 1-3 unchanged and change only the final composition, so that the stream is an explicit list of about T tokens with no trainer cycling and no ranking bias. Let CLEAN be the surviving docs with prob > 0.5 and C its gpt2 token count.\n\n(a) If C >= T: do not take the top docs by classifier prob. Take a seeded uniform random subset of CLEAN totalling T tokens, so the selection matches the target distribution rather than the docs closest to the 200 samples.\n\n(b) If C < T: include every CLEAN doc once, then fill F = min(0.30*T, T - C) tokens with clean general-English docs. These are surviving docs that are not in CLEAN and not wiki-like, taken in descending classifier score, after a spam test. Spam test: skip a doc if fewer than 70% of the word 3-grams in its first 300 words are unique, or if it has 3 or more case-insensitive matches of 'cheap', 'order ', 'coupon', 'discount', 'best price', 'for sale', 'buy ', 'limited offer'. If tokens are still missing after that, add second copies of seeded-randomly chosen CLEAN docs until T is reached.\n\n(c) Shuffle the whole list with random.Random(CURATE_SEED), so filler docs are interleaved uniformly through training rather than placed first as in experiment 3. Remove the old 0.4T rule.\n\nWrap the new stage in try/except and fall back to the current behaviour on error or if elapsed > 140 s.",
+   "outcome": "dev 1.9286 against 1.9307 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Build on the composition of experiment 10 (best raw score so far, 1.9286), and add a clean-only tail and the typo filter of experiment 8. Steps 1-3 stay unchanged.\n\n(A) Typo filter, exactly as in experiment 8. Build a word document-frequency table over all kept wiki-like docs (alphabetic whitespace tokens, length >= 4, case preserved, each doc counts a word once). For each candidate with prob > 0.5, typo rate = fraction of its first 3000 qualifying word occurrences with pool df <= 1, not counting words that occur >= 3 times inside the doc. For the 200 target docs use df == 0. thr = max(2.5 * target median, target 97th percentile) + 0.005. Drop candidates above thr, but only if this removes between 0.5% and 45% of candidates.\n\n(B) Composition. Let CLEAN be the surviving docs with prob > 0.5 and C its gpt2 token count.\n- If C >= T: take a seeded uniform random subset of CLEAN totalling T tokens and shuffle it with the seed.\n- If C < T: include every CLEAN doc once. Then add F = min(0.30*T, T - C) tokens of filler: surviving docs that are not in CLEAN and not wiki-like, in descending classifier score, after a spam test. Spam test: skip a doc if fewer than 70% of the word 3-grams in its first 300 words are unique, or if it has >= 3 case-insensitive matches of 'cheap', 'order ', 'coupon', 'discount', 'best price', 'for sale', 'buy ', 'limited offer'. If tokens are still missing, add second copies of seeded-randomly chosen CLEAN docs until T is reached.\n\n(C) Ordering, the new part. Do not shuffle everything uniformly. Seeded-shuffle the CLEAN items (repeats included) and split them by tokens: the last 0.25*T tokens' worth form the TAIL, the rest form the HEAD. Add all filler docs to the HEAD and seeded-shuffle the HEAD. Return HEAD + TAIL. Filler is then interleaved through the first 75% of training, and the final 25% is pure clean target-domain text. Check that the total is at least T tokens so the trainer never cycles back into the head. Remove the old 0.4T rule.\n\nGuard each new stage with try/except and a time check (elapsed > 140 s), falling back to the current behaviour.",
+   "outcome": "dev 1.9632 against 1.9307 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Combine the composition of experiment 10 (best raw score, 1.9286) with the typo filter of experiment 8 (1.9297) and a stricter filler, keeping a fully uniform shuffle (no head/tail ordering as in experiment 11). Steps 1-3 stay unchanged.\n\n(A) Typo filter, as in experiment 8. Build a word document-frequency table over the full text of all kept wiki-like docs (alphabetic whitespace tokens, length >= 4, case preserved, each doc counts a word once). For each surviving candidate with prob > 0.5, typo rate = fraction of its first 3000 qualifying word occurrences with pool df <= 1, not counting words that occur >= 3 times inside the doc. For the 200 target docs use df == 0. thr = max(2.5 * target median, target 97th percentile) + 0.005. Drop candidates above thr, but only if this removes between 0.5% and 45% of candidates.\n\n(B) Title dedup. Among the remaining candidates, group by normalised title line (lowercased text between '= ' and ' =' on the first line). Keep only the doc with the lowest typo rate in each group, ties broken by higher bigram hit rate, then by length.\n\n(C) Composition. Let CLEAN be the surviving docs with prob > 0.5 and C its gpt2 token count.\n- If C >= T: take a seeded uniform random subset of CLEAN totalling T tokens.\n- If C < T: include every CLEAN doc once. Then add F = min(0.30*T, T - C) tokens of filler: surviving docs that are not in CLEAN and not wiki-like, in descending classifier score, that pass a prose test. Prose test, skip a doc if any of these holds: fewer than 70% of the word 3-grams in its first 300 words are unique; it has >= 3 case-insensitive matches of 'cheap', 'order ', 'coupon', 'discount', 'best price', 'for sale', 'buy ', 'limited offer'; more than 3% of its first 3000 chars are in '{}[]();=<>_#/\\\\|'; fewer than 85% of its first 3000 chars are ASCII letters or spaces; it has fewer than 150 words. If tokens are still missing, add second copies of seeded-randomly chosen CLEAN docs until T is reached, and third copies if needed.\n\n(D) Shuffle the whole list, filler and repeats included, uniformly with random.Random(CURATE_SEED). Return at least T tokens. Remove the old 0.4T rule.\n\nGuard each new stage separately with try/except and a time check (skip the stage if elapsed > 140 s), falling back to the current behaviour for that stage.",
+   "outcome": "dev 1.9303 against 1.9307 for the best at the time, rejected"
+  }
+ ],
+ "usd": 8.2910272,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.4384676,
+   "dev": 1.930651790215837,
+   "inc": 1.9607139279159718,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.137371001945316,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.9192436000000002,
+   "dev": 1.9300718687792084,
+   "inc": 1.930651790215837,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.137371001945316,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5522676,
+   "dev": 1.930452477077809,
+   "inc": 1.930651790215837,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.137371001945316,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5650915999999997,
+   "dev": 1.9372756290242963,
+   "inc": 1.930651790215837,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.137371001945316,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6652756000000002,
+   "dev": 1.9306962576432554,
+   "inc": 1.930651790215837,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.137371001945316,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5419315999999998,
+   "dev": 1.9417752072317735,
+   "inc": 1.930651790215837,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.137371001945316,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5897316000000004,
+   "dev": 1.9308588396924324,
+   "inc": 1.930651790215837,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.137371001945316,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5779795999999999,
+   "dev": 1.9296632516046952,
+   "inc": 1.930651790215837,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.137371001945316,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.0662275999999995,
+   "dev": 1.9305285479901086,
+   "inc": 1.930651790215837,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.137371001945316,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7631636000000004,
+   "dev": 1.928576358148743,
+   "inc": 1.930651790215837,
+   "harmed": true,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.137371001945316,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7584356000000003,
+   "dev": 1.9632180329611486,
+   "inc": 1.930651790215837,
+   "harmed": false,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.137371001945316,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.8532115999999998,
+   "dev": 1.9303046487839728,
+   "inc": 1.930651790215837,
+   "harmed": true,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9607139279159718,
+ "inc_slot": 1
+}

@@ -1,0 +1,25 @@
+<<<<<<<< SEARCH
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+-----
+<<<<<<< SEARCH
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+=======
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            # Linearly decay weight decay from initial to zero over remaining time
+            progress_in_slot = step / (step + 1)  # Simple decay: 0 -> 0.5 as step grows
+            base_wd = Weights.decaying_wd(initial_wd=WEIGHT_DECAY, step=step, max_steps=step + 1)
+            final_wd = max(0.0, (1.0 - 0.5 * progress_in_slot) * WEIGHT_DECAY)
+            group["weight_decay"] = final_wd
+>>>>>>> REPLACE
+-----

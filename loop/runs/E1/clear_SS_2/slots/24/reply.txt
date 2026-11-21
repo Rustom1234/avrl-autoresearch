@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    Xtr = np.hstack([descriptors(train_smiles), featurize(train_smiles)])
+    Xte = np.hstack([descriptors(test_smiles), featurize(test_smiles)])
+=======
+    from xgboost import XGBRegressor
+    from rdkit.Chem import MACCSkeys
+    def maccs(smiles):
+        return np.array([list(MACCSkeys.GenMACCSKeys(Chem.MolFromSmiles(s))) for s in smiles], dtype=np.float32)
+    Dtr, Dte = descriptors(train_smiles), descriptors(test_smiles)
+    Xtr = np.hstack([Dtr, featurize(train_smiles)])
+    Xte = np.hstack([Dte, featurize(test_smiles)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    xgb = XGBRegressor(n_estimators=600, max_depth=4, learning_rate=0.03, subsample=0.8,
+                       colsample_bytree=0.3, min_child_weight=3, n_jobs=8, random_state=seed)
+    xgb.fit(np.hstack([Dtr, maccs(train_smiles)]), y)
+    p = xgb.predict(np.hstack([Dte, maccs(test_smiles)]))
+    preds.append(rankdata(p) / len(p))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

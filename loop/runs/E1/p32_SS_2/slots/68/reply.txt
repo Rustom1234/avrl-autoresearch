@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+MAX_ITER = 200
+=======
+MAX_ITER = 400
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    class _Stop(Exception):
+        pass
+
+    hist, last = [], [x0]
+
+    def cb(xk):
+        last[0] = np.array(xk)
+        hist.append(-xk[2 * n:].sum())
+        if len(hist) > 20 and hist[-21] - hist[-1] < 1e-6:
+            raise _Stop
+
+    try:
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       callback=cb, options={"maxiter": MAX_ITER, "ftol": 1e-10})
+        x = res.x
+    except _Stop:
+        x = last[0]
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,98 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (regression).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    # Target transformation
+    if np.all(y_train >= 0):
+        y_train = np.log1p(y_train)
+
+    # Model 1: RandomForest
+    rf = RandomForestRegressor(n_estimators=100, max_depth=12, random_state=seed, n_jobs=-1)
+    rf.fit(X_train, y_train)
+    rf_preds = rf.predict(X_test)
+
+    # Model 2: LightGBM
+    lgb_params = {
+        'n_estimators': 100,
+        'learning_rate': 0.05,
+        'num_leaves': 31,
+        'random_state': seed,
+        'verbose': -1
+    }
+    lgb_reg = lgb.LGBMRegressor(**lgb_params)
+    lgb_reg.fit(X_train, y_train)
+    lgb_preds = lgb_reg.predict(X_test)
+
+    # Rank-average ensemble
+    # Using scipy.stats.rankdata or a simple argsort-based rank
+    # Since we only have numpy, scipy, pandas, sklearn, rdkit, lightgbm, xgboost, catboost
+    # We use scipy.stats.rankdata if available, or just sort.
+    from scipy.stats import rankdata
+    
+    rf_ranks = rankdata(rf_preds)
+    lgb_ranks = rankdata(lgb_preds)
+    
+    final_ranks = (rf_ranks + lgb_ranks) / 2
+    
+    # To return values in original scale, we map the average ranks back to original values
+    # but since we are returning a single number per molecule and rank-averaging is 1D,
+    # and the goal is to minimize loss (Spearman), returning the average rank is often
+    # acceptable or we can map it back using the sorted y_train.
+    
+    # To be safest and maintain the original scale (for log1p):
+    sorted_indices = np.argsort(y_train)
+    sorted_y = y_train[sorted_indices]
+    
+    # Find the average rank position
+    # This is a simplification, but for Spearman loss, the rank vector itself is often sufficient.
+    # However, to keep it simple and robust, let's just return the rank-averaged values scaled.
+    # Actually, for Spearman, returning the rank-average mapped back to y_train space is best.
+    
+    # A simpler way that preserves scale for log1p: return the mean of the rank-based predictions
+    # If we want to be precise about the Spearman, we just need the ranks.
+    # Let's return the rank-averaged values mapped back to the range of y_train.
+    
+    # Refined approach: Rank-average the predictions, then map to original scale.
+    # Actually, let's keep it simple: the Spearman correlation only cares about the order.
+    # Let's return the average rank mapped back to the y_train range.
+    
+    y_min, y_max = np.min(y_train), np.max(y_train)
+    # Map ranks (1 to N) to y_train space
+    # rankdata returns 1-based ranks. 
+    # Average rank is in [1, N]
+    
+    # Just return the average rank vector as a proxy for the prediction.
+    # If we need to handle log1p, we'll need to expm1 at the end.
+    # Let's just return the rank-averaged values scaled to the y_train range.
+    
+    res = y_min + (final_ranks - 1) * (y_max - y_min) / (len(y_train) - 1)
+    
+    if np.all(y_train >= 0) and (y_train >= 0).all(): 
+        # Re-check if we should have expm1. If we did log1p, y_train is now log-space.
+        # So we need to expm1 the result.
+        # But the original code was: if y_train >= 0, y_train = log1p(y_train)
+        # So 'res' is currently in log1p space.
+        return np.expm1(res)
+    
+    return res

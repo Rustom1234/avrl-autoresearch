@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def scaled_rank(p):
+=======
+def ratio_features(smiles):
+    rows = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        n = max(mol.GetNumHeavyAtoms(), 1)
+        mw = max(Descriptors.MolWt(mol), 1.0)
+        tpsa = rdMolDescriptors.CalcTPSA(mol)
+        hbd = rdMolDescriptors.CalcNumHBD(mol)
+        hba = rdMolDescriptors.CalcNumHBA(mol)
+        logp = Crippen.MolLogP(mol)
+        rot = rdMolDescriptors.CalcNumRotatableBonds(mol)
+        atoms = mol.GetAtoms()
+        hetero = sum(1 for a in atoms if a.GetSymbol() in ("N", "O", "S", "F", "Cl", "Br", "I"))
+        arom = sum(1 for a in atoms if a.GetIsAromatic())
+        nitro = sum(1 for a in atoms if a.GetSymbol() == "N")
+        rows.append([tpsa / mw, tpsa / n, (hbd + hba) / n, logp / n, hetero / n, arom / n, nitro / n, rot / n])
+    return np.array(rows, dtype=np.float64)
+
+
+def scaled_rank(p):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_train = np.hstack([X_train, np.clip(D_train, lo, hi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+=======
+    R_train = ratio_features(train_smiles)
+    R_test = ratio_features(test_smiles)
+    rlo, rhi = np.percentile(R_train, [1, 99], axis=0)
+    X_train = np.hstack([X_train, np.clip(D_train, lo, hi).astype(np.float32),
+                         np.clip(R_train, rlo, rhi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32),
+                        np.clip(R_test, rlo, rhi).astype(np.float32)])
+>>>>>>> REPLACE
+-----

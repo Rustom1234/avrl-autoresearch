@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from lightgbm import LGBMRegressor, early_stopping
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def scaffold_holdout(smiles, seed, frac=0.15):
+    groups = {}
+    for i, s in enumerate(smiles):
+        groups.setdefault(MurckoScaffold.MurckoScaffoldSmiles(smiles=s), []).append(i)
+    keys = list(groups)
+    np.random.RandomState(seed).shuffle(keys)
+    val = []
+    for k in keys:
+        if len(val) >= frac * len(smiles):
+            break
+        val += groups[k]
+    return np.array(val)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+=======
+    Xg = xgb_features(train_smiles)
+    params = dict(learning_rate=0.03, num_leaves=15, max_depth=4, subsample=0.7, subsample_freq=1,
+                  colsample_bytree=0.3, min_child_samples=10, reg_lambda=5, n_jobs=8, random_state=seed,
+                  verbose=-1)
+    val = scaffold_holdout(train_smiles, seed)
+    mask = np.zeros(len(y), dtype=bool)
+    mask[val] = True
+    m1 = LGBMRegressor(n_estimators=1500, **params)
+    m1.fit(Xg[~mask], y[~mask], eval_set=[(Xg[mask], y[mask])], callbacks=[early_stopping(50, verbose=False)])
+    best = max(100, int(m1.best_iteration_ * 1.1))
+    model = LGBMRegressor(n_estimators=best, **params)
+    model.fit(Xg, y)
+    p_rf = model.predict(xgb_features(test_smiles))
+>>>>>>> REPLACE
+-----

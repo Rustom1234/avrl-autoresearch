@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _solve_once(n, rng, x0=None, gamma=0.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+=======
+    res = minimize(lambda v: -(v[2 * n:].sum() + gamma * (v[2 * n:] ** 2).sum()), x0, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons},
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+=======
+        gamma = rng.uniform(-2, 2) if rng.random() < 0.5 else 0.0
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]), gamma)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if gamma != 0 and r.sum() > best[1].sum() - 0.002:
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+>>>>>>> REPLACE
+-----

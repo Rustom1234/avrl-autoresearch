@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+import xgboost as xgb
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def laplace_boost(Xtr, r, Xte, seed, n_rounds=300, step=0.05):
+    # Laplace(mu, b) residual model; natural-gradient steps (Fisher: 1/b^2 for mu, 1 for s)
+    dtr = xgb.DMatrix(Xtr)
+    dte = xgb.DMatrix(Xte)
+    p = dict(max_depth=4, eta=0.1, tree_method='hist', seed=seed, nthread=8,
+             objective='reg:squarederror')
+    mu0 = float(np.median(r))
+    s0 = float(np.log(max(np.mean(np.abs(r - mu0)), 1e-3)))
+    mu_tr, mu_te = np.full(len(r), mu0), np.full(Xte.shape[0], mu0)
+    s_tr, s_te = np.full(len(r), s0), np.full(Xte.shape[0], s0)
+    for _ in range(n_rounds):
+        x = r - mu_tr
+        b = np.exp(s_tr)
+        # descent directions = negative natural gradients of the Laplace NLL
+        d_mu = b * np.sign(x)
+        d_s = np.abs(x) / b - 1.0
+        dtr.set_label(d_mu)
+        bst = xgb.train(p, dtr, num_boost_round=60)
+        mu_tr += step * bst.predict(dtr)
+        mu_te += step * bst.predict(dte)
+        dtr.set_label(d_s)
+        bst = xgb.train(p, dtr, num_boost_round=60)
+        s_tr += step * bst.predict(dtr)
+        s_te += step * bst.predict(dte)
+    return mu_te
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    params = dict(tree_method='hist', max_depth=6, learning_rate=0.03,
+                  subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                  random_state=seed, n_jobs=8)
+    stage1 = XGBRegressor(objective='reg:squarederror', n_estimators=200, **params)
+    stage1.fit(Xtr, y - base_tr)
+    stage2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400, **params)
+    stage2.fit(Xtr, y - base_tr, xgb_model=stage1.get_booster())
+    return base_te + stage2.predict(Xte)
+=======
+    return base_te + laplace_boost(Xtr, y - base_tr, Xte, seed)
+>>>>>>> REPLACE
+-----

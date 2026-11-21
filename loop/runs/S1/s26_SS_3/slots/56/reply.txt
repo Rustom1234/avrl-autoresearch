@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 4 == 0:
+            L = 0.84
+            sp = 4 * L / 16
+            off = rng.random() * sp
+            bp = []
+            for kk in range(16):
+                s = (off + kk * sp) % (4 * L)
+                side = int(s // L)
+                t = s - side * L
+                if side == 0:
+                    bp.append([0.08 + t, 0.08])
+                elif side == 1:
+                    bp.append([0.92, 0.08 + t])
+                elif side == 2:
+                    bp.append([0.92 - t, 0.92])
+                else:
+                    bp.append([0.08, 0.92 - t])
+            ip = []
+            for yy, xs in ((0.3, [0.3, 0.5, 0.7]),
+                           (0.5, [0.25, 0.42, 0.58, 0.75]),
+                           (0.7, [0.3, 0.5, 0.7])):
+                for xx in xs:
+                    ip.append([xx, yy])
+            pts = np.array(bp + ip)
+            c0 = np.clip(pts + rng.normal(0, 0.02, pts.shape), 0.03, 0.97)
+            r0 = np.concatenate([np.full(16, 0.09), np.full(10, 0.12)])
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+>>>>>>> REPLACE
+-----

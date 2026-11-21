@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+        k = rng.integers(1, 5)
+        idx = rng.choice(n, k, replace=False)
+        w[idx] += rng.normal(0, 0.05, k)
+        w[n + idx] += rng.normal(0, 0.05, k)
+=======
+        if rng.random() < 0.4:
+            k = rng.integers(1, 4)
+            idx = np.argsort(w[2 * n:])[:k]
+            keep = np.ones(n, bool)
+            keep[idx] = False
+            for q in idx:
+                P = rng.uniform(0, 1, (2000, 2))
+                dd = np.sqrt((P[:, None, 0] - w[None, :n]) ** 2 + (P[:, None, 1] - w[None, n:2 * n]) ** 2) - w[None, 2 * n:]
+                dd = dd[:, keep]
+                cl = np.minimum(dd.min(axis=1), np.minimum(np.minimum(P[:, 0], 1 - P[:, 0]), np.minimum(P[:, 1], 1 - P[:, 1])))
+                b = np.argmax(cl)
+                w[q] = P[b, 0]; w[n + q] = P[b, 1]
+                w[2 * n + q] = max(0.5 * cl[b], 1e-3)
+                keep[q] = True
+        else:
+            k = rng.integers(1, 5)
+            idx = rng.choice(n, k, replace=False)
+            w[idx] += rng.normal(0, 0.05, k)
+            w[n + idx] += rng.normal(0, 0.05, k)
+>>>>>>> REPLACE
+-----

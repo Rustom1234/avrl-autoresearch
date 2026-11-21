@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity check passed. The diff changes one hyperparameter, TOTAL_BATCH_SIZE (2**19 to 2**17). It does not touch the seed lines, the prepare.py import line, the data, the evaluation call or the final summary printing. The harness reports no integrity flags.",
+  "No bug makes the result meaningless. With DEVICE_BATCH_SIZE 64 and an assumed sequence length of 2048, 2**17 = 64*2048, so gradient accumulation goes from 4 steps to 1. Any divisibility check still passes. The time budget is fixed at 300 s, so this gives about 4x more optimizer steps. Smaller batches often help under a fixed time budget, so a gain this size is believable.",
+  "Learning rates were not rescaled for the smaller batch. That is a tuning point, not an integrity problem.",
+  "I can't recompute z exactly because the incumbent standard deviation over its 16 runs isn't given. The candidate mean is 1.0516, which is 0.0629 below the incumbent mean of 1.1145. For the reported z of 15.324 to hold, the denominator would have to be about 0.0041. That is plausible for run-to-run noise, so nothing contradicts the reported numbers.",
+  "The candidate has only 2 replicates, but they agree closely (1.0517 and 1.0515), and the effect is large compared with any likely noise."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

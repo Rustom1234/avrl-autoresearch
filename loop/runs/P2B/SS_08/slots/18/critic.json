@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problem. The diff changes one hyperparameter: TOTAL_BATCH_SIZE goes from 2**19 to 2**17. It does not touch the val_bpb measurement, the data, the seed lines, the prepare.py import or the evaluation call.",
+  "No bug found. 2**17 = 131072 = DEVICE_BATCH_SIZE 64 \u00d7 2048 tokens, assuming the usual MAX_SEQ_LEN of 2048. So gradient accumulation becomes 1 step and the divisibility assert still passes. With a fixed 300 s budget, smaller steps give about 4\u00d7 more optimizer updates. That makes a large gain plausible.",
+  "Not verified: the learning rates were tuned for a 524K-token batch and were not rescaled. This affects quality, not validity.",
+  "The numbers are consistent. Candidate mean is (1.0512 + 1.052) / 2 = 1.0516. The improvement over the incumbent is 1.1075 \u2212 1.0516 = 0.0559 bpb. The reported z = 10.208 implies a standard error of about 0.00548.",
+  "z cannot be recomputed exactly because the incumbent's individual run values (its spread) are not given. The candidate runs alone have SD \u2248 0.00057. Using only that, z would be far above 10, so the harness's z of 10.208 is the more conservative figure. Either way, the decision to accept holds.",
+  "Only 2 candidate runs were made. That is a small sample, but the effect is very large compared with the run-to-run noise."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.0516,
+  "delta": 0.0559
+ }
+}

@@ -1,0 +1,48 @@
+{
+ "problem": "bio_L4_s3",
+ "model": "haiku",
+ "budget": 14,
+ "n_parents": 3,
+ "ok": true,
+ "error": null,
+ "error_class": null,
+ "t_start": 1795091632.0924394,
+ "wall_s": 86.5731749534607,
+ "cost_usd": 0.01433106,
+ "num_turns": 15,
+ "usage": {
+  "input": 28,
+  "output": 16350,
+  "cache_read": 161186,
+  "cache_write": 22707
+ },
+ "models_used": [
+  "claude-haiku-5-5"
+ ],
+ "reply": "adding exp(\u2212P) or log P terms, or swapping the saturating time function for Michaelis\u2013Menten or tanh did not close the gap. The gap is most likely a different time structure, such as a time-varying carrying capacity or a non-separable t\u2013P interaction, which I did not identify within the call budget.",
+ "stop": "success",
+ "n_calls": 14,
+ "n_evals": 1,
+ "best": {
+  "code": "import numpy as np\ndef equation(t, P, params):\n    a, b, d = params[0], params[1], params[2]\n    g = 1 - np.exp(-a * t**b)\n    u = t**d\n    c = [ 2.83228445e-01, -4.31790568e-02, -1.93094051e-01, -1.72711211e-03,\n          1.09368644e+01, -1.61740700e-01,  3.42224749e-02, -4.89957907e-02,\n          1.07719372e+00,  3.01100161e-01, -3.17496381e-02, -3.76402940e-03,\n         -1.03822428e+00, -2.27211307e-02,  8.54363781e-03,  4.75904693e-03]\n    T = [np.ones_like(t), g, u, g*u]\n    out = 0\n    idx = 0\n    for Tk in T:\n        for k in range(4):\n            out = out + c[idx] * Tk * P**k\n            idx += 1\n    return out\n",
+  "train_nmse": 4.932892208629945e-07,
+  "call": 13
+ },
+ "val": 4.423471431126739e-07,
+ "test_id": 5.667471118763742e-07,
+ "test_ood": 7.842862179647192e-05,
+ "path": [
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku"
+ ],
+ "rep": 1,
+ "parent_best": 5.875107397434934e-06
+}

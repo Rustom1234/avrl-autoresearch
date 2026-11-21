@@ -1,0 +1,67 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import MACCSkeys
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import Ridge
+from sklearn.svm import SVR
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+N_CONFIGS = 1
+=======
+_MACCS_CACHE = {}
+
+
+def maccs_vector(smiles):
+    # Cache per SMILES, same reason as desc_vector.
+    if smiles not in _MACCS_CACHE:
+        mol = Chem.MolFromSmiles(smiles)
+        _MACCS_CACHE[smiles] = np.array(list(MACCSkeys.GenMACCSKeys(mol)), dtype=np.float32)
+    return _MACCS_CACHE[smiles]
+
+
+N_CONFIGS = 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Descriptor block is the last columns of X (already clipped to 1st-99th percentiles on the full train set).
+    Za = Xa[:, 2 * N_BITS:].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:].astype(np.float64)
+    zm, zs = Za.mean(axis=0), Za.std(axis=0) + 1e-9
+    Za, Zb = (Za - zm) / zs, (Zb - zm) / zs
+    gamma = 1.0 / (2 * Za.shape[1])
+=======
+    # Descriptor block then MACCS block are the last columns of X (descriptors already clipped to 1st-99th percentiles).
+    n_desc = len(Descriptors._descList)
+    Za = Xa[:, 2 * N_BITS:2 * N_BITS + n_desc].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:2 * N_BITS + n_desc].astype(np.float64)
+    zm, zs = Za.mean(axis=0), Za.std(axis=0) + 1e-9
+    Za, Zb = (Za - zm) / zs, (Zb - zm) / zs
+    gamma = 1.0 / (2 * Za.shape[1])
+    Ma, Mb = Xa[:, 2 * N_BITS + n_desc:].astype(np.float64), Xb[:, 2 * N_BITS + n_desc:].astype(np.float64)
+    SVa, SVb = np.hstack([Za, Ma]), np.hstack([Zb, Mb])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([p_rf, p_lgb, p_krr])
+=======
+    p_svr = SVR(C=5.0, epsilon=0.1, gamma='scale').fit(SVa, ya).predict(SVb)
+    return np.column_stack([p_rf, p_lgb, p_krr, p_svr])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32)])
+=======
+    Mtr = np.array([maccs_vector(s) for s in train_smiles], dtype=np.float32)
+    Mte = np.array([maccs_vector(s) for s in test_smiles], dtype=np.float32)
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32), Mtr])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32), Mte])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    oof = np.zeros((len(y), 4))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,121 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+=======
+    ia, ib = iu
+    m, ar = len(ia), np.arange(n)
+    km = np.arange(m)
+    Jw = np.zeros((5 * n, 3 * n))
+    Jw[ar, 2 * ar], Jw[n + ar, 2 * ar + 1] = 1, 1
+    Jw[2 * n + ar, 2 * ar], Jw[3 * n + ar, 2 * ar + 1] = -1, -1
+    Jw[ar, 2 * n + ar] = Jw[n + ar, 2 * n + ar] = Jw[2 * n + ar, 2 * n + ar] = Jw[3 * n + ar, 2 * n + ar] = -1
+    Jw[4 * n + ar, 2 * n + ar] = 1
+    Jw2 = np.hstack([Jw[:, :2 * n], Jw[:, 2 * n:].sum(1, keepdims=True)])
+
+    def pair_jc(dx):
+        J = np.zeros((m, 2 * n))
+        J[km, 2 * ia], J[km, 2 * ib] = 2 * dx[:, 0], -2 * dx[:, 0]
+        J[km, 2 * ia + 1], J[km, 2 * ib + 1] = 2 * dx[:, 1], -2 * dx[:, 1]
+        return J
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = ((c[ia] - c[ib]) ** 2).sum(1) - (r[ia] + r[ib]) ** 2
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def cons_jac(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        J = np.zeros((m, 3 * n))
+        J[:, :2 * n] = pair_jc(c[ia] - c[ib])
+        s = -2 * (r[ia] + r[ib])
+        J[km, 2 * n + ia], J[km, 2 * n + ib] = s, s
+        return np.vstack([J, Jw])
+
+    def cons_eq_jac(v):
+        c, t = v[:2 * n].reshape(n, 2), v[2 * n]
+        J = np.zeros((m, 2 * n + 1))
+        J[:, :2 * n] = pair_jc(c[ia] - c[ib])
+        J[:, 2 * n] = -8 * t
+        return np.vstack([J, Jw2])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * t
+=======
+        d = ((c[ia] - c[ib]) ** 2).sum(1) - 4 * t * t
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+constraints={"type": "ineq", "fun": cons_eq},
+=======
+constraints={"type": "ineq", "fun": cons_eq, "jac": cons_eq_jac},
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+constraints={"type": "ineq", "fun": cons},
+=======
+constraints={"type": "ineq", "fun": cons, "jac": cons_jac},
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+=======
+    ia, ib = iu
+    m, ar = len(ia), np.arange(n)
+    km = np.arange(m)
+    Jw = np.zeros((5 * n, 3 * n))
+    Jw[ar, 2 * ar], Jw[n + ar, 2 * ar + 1] = 1, 1
+    Jw[2 * n + ar, 2 * ar], Jw[3 * n + ar, 2 * ar + 1] = -1, -1
+    Jw[ar, 2 * n + ar] = Jw[n + ar, 2 * n + ar] = Jw[2 * n + ar, 2 * n + ar] = Jw[3 * n + ar, 2 * n + ar] = -1
+    Jw[4 * n + ar, 2 * n + ar] = 1
+    Jw2 = np.zeros((4 * n + 1, 2 * n + 1))
+    Jw2[:4 * n, :2 * n] = Jw[:4 * n, :2 * n]
+    Jw2[:4 * n, 2 * n] = -1
+    Jw2[4 * n, 2 * n] = 1
+
+    def pair_jc(dx):
+        J = np.zeros((m, 2 * n))
+        J[km, 2 * ia], J[km, 2 * ib] = 2 * dx[:, 0], -2 * dx[:, 0]
+        J[km, 2 * ia + 1], J[km, 2 * ib + 1] = 2 * dx[:, 1], -2 * dx[:, 1]
+        return J
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = ((c[ia] - c[ib]) ** 2).sum(1) - (r[ia] + r[ib]) ** 2
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def cons_jac(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        J = np.zeros((m, 3 * n))
+        J[:, :2 * n] = pair_jc(c[ia] - c[ib])
+        s = -2 * (r[ia] + r[ib])
+        J[km, 2 * n + ia], J[km, 2 * n + ib] = s, s
+        return np.vstack([J, Jw])
+
+    def cons_eq_jac(v):
+        c, t = v[:2 * n].reshape(n, 2), v[2 * n]
+        J = np.zeros((m, 2 * n + 1))
+        J[:, :2 * n] = pair_jc(c[ia] - c[ib])
+        J[:, 2 * n] = -8 * t
+        return np.vstack([J, Jw2])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * t
+=======
+        d = ((c[ia] - c[ib]) ** 2).sum(1) - 4 * t * t
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        res1 = minimize(lambda v: -v[2 * n], x1, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+=======
+        res1 = minimize(lambda v: -v[2 * n], x1, method="SLSQP",
+                        constraints={"type": "ineq", "fun": cons_eq, "jac": cons_eq_jac},
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons, "jac": cons_jac},
+>>>>>>> REPLACE
+-----

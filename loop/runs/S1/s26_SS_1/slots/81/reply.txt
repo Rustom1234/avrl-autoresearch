@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def optimized_packing():
+=======
+def _softpen(c, rng):
+    n = _N
+    i, j = _IU
+    r = np.exp(rng.normal(0, 0.35, n))
+    r = r * (2.6 / r.sum())
+    rs = r[i] + r[j]
+
+    def f(x, mu):
+        X, Y = x[:n], x[n:]
+        dx = X[i] - X[j]
+        dy = Y[i] - Y[j]
+        d = np.sqrt(dx * dx + dy * dy) + 1e-12
+        ov = np.maximum(rs - d, 0)
+        val = (ov ** 2).sum()
+        gx = np.zeros(n)
+        gy = np.zeros(n)
+        coef = -2 * ov / d
+        np.add.at(gx, i, coef * dx)
+        np.add.at(gx, j, -coef * dx)
+        np.add.at(gy, i, coef * dy)
+        np.add.at(gy, j, -coef * dy)
+        for A, g, sgn in ((X, gx, 1), (Y, gy, 1)):
+            lo = np.maximum(r - A, 0)
+            hi = np.maximum(A + r - 1, 0)
+            val += (lo ** 2).sum() + (hi ** 2).sum()
+            g += -2 * lo + 2 * hi
+        return mu * val, mu * np.concatenate([gx, gy])
+
+    x = np.concatenate([c[:, 0], c[:, 1]])
+    for mu in (10, 100, 1000, 1e4):
+        res = minimize(f, x, args=(mu,), jac=True, method="L-BFGS-B",
+                       bounds=[(0.01, 0.99)] * (2 * n), options={"maxiter": 200})
+        x = res.x
+    return np.stack([x[:n], x[n:]], 1)
+
+
+def optimized_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+=======
+            if rng.random() < 0.5:
+                c = _softpen(c, rng)
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+>>>>>>> REPLACE
+-----

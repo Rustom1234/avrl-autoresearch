@@ -1,0 +1,75 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _lp_local_search(x, y, deadline, rng):
+    """Random local search on centers; objective = LP-optimal sum of radii."""
+    x = x.copy()
+    y = y.copy()
+    r = _lp_radii(x, y)
+    cur = float(np.sum(r)) if r is not None else -1.0
+    best_x, best_y, best_r, best_s = x.copy(), y.copy(), r, cur
+    t_start = time.time()
+    total = max(deadline - t_start, 1e-6)
+    while time.time() < deadline:
+        frac = min((time.time() - t_start) / total, 1.0)
+        sigma = 0.05 * (0.002 / 0.05) ** frac
+        k = int(rng.integers(1, 4))
+        idx = rng.choice(_N, size=k, replace=False)
+        nx = x.copy()
+        ny = y.copy()
+        nx[idx] = np.clip(nx[idx] + rng.normal(0.0, sigma, k), 0.0, 1.0)
+        ny[idx] = np.clip(ny[idx] + rng.normal(0.0, sigma, k), 0.0, 1.0)
+        rn = _lp_radii(nx, ny)
+        if rn is None:
+            continue
+        sn = float(np.sum(rn))
+        if sn > cur:
+            x, y, r, cur = nx, ny, rn, sn
+            if sn > best_s:
+                best_x, best_y, best_r, best_s = x.copy(), y.copy(), r, sn
+    return best_x, best_y, best_r
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+    for _k in range(100000):
+        if time.time() - t0 > 200.0 and best is not None:
+=======
+    rng = np.random.default_rng(12345)
+    best = None
+    pool = []
+    t0 = time.time()
+    for _k in range(100000):
+        if time.time() - t0 > 150.0 and best is not None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = float(np.sum(r))
+        if best is None or s > best[0]:
+            centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            best = (s, centers, r)
+=======
+        s = float(np.sum(r))
+        centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+        pool.append((s, centers, r))
+        if best is None or s > best[0]:
+            best = (s, centers, r)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    s0, c0, r0 = best
+=======
+    pool.sort(key=lambda t: -t[0])
+    for s_p, c_p, _rp in pool[:5]:
+        bx, by, br = _lp_local_search(c_p[:, 0].copy(), c_p[:, 1].copy(),
+                                      time.time() + 12.0, rng)
+        if br is None:
+            continue
+        sb = float(np.sum(br))
+        if sb > best[0]:
+            best = (sb, np.column_stack([np.clip(bx, 0.0, 1.0), np.clip(by, 0.0, 1.0)]), br)
+    s0, c0, r0 = best
+>>>>>>> REPLACE
+-----

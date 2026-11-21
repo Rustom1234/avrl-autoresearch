@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+=======
+    T = [0.0005 * 3 ** k for k in range(4)]          # fixed chain temperatures (hot chains have larger T)
+    S = [0.01 * 15 ** (k / 3) for k in range(4)]     # geometric jitter scales from 0.01 (cold) to 0.15 (hot)
+    P = [0.25 * (k + 1) for k in range(4)]           # probability of jittering per proposal
+    chains = [(best[0].copy(), best[1].copy()) for _ in range(4)]
+    step = 0
+    while time.process_time() - t0 < budget:   # parallel tempering over perturbation strength
+        for k in range(4):
+            c, r = chains[k]
+            c2, r2 = c.copy(), r.copy()
+            i = np.argmin(r2)
+            c2[i] = rng.uniform(0, 1, 2)
+            r2[i] = 0
+            if rng.random() < P[k]:
+                m = rng.random(n) < 0.5
+                c2[m] += rng.normal(0, S[k], (m.sum(), 2))
+            c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+            c2 = np.clip(c2, 0, 1)
+            r2 = _repair(c2, r2)
+            d = r2.sum() - r.sum()
+            if d > 0 or rng.random() < np.exp(d / T[k]):
+                chains[k] = (c2, r2)
+                if r2.sum() > best[1].sum():
+                    best = (c2, r2)
+        step += 1
+        if step % 10 == 0:
+            for k in range(3):
+                Ei, Ej = chains[k][1].sum(), chains[k + 1][1].sum()
+                a = (Ej - Ei) * (1 / T[k] - 1 / T[k + 1])
+                if a >= 0 or rng.random() < np.exp(a):
+                    chains[k], chains[k + 1] = chains[k + 1], chains[k]
+    return best
+>>>>>>> REPLACE
+-----

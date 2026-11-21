@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+from catboost import CatBoostClassifier
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        features.append(np.concatenate([fp, desc]))
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+from lightgbm import LGBMClassifier
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        features.append(np.concatenate([fp, desc]))
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMClassifier(
+        boosting_type='dart',
+        n_estimators=600,
+        learning_rate=0.03,
+        max_depth=6,
+        drop_rate=0.1,
+        skip_drop=0.5,
+        max_drop=50,
+        random_state=seed,
+        verbose=-1,
+        n_jobs=-1
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+>>>>>>> REPLACE
+-----

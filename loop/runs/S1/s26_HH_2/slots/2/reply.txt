@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+def _relax(c, r, steps, lr_c, lr_r, lam=0.0, tpl=None):
+    """Repulsion from overlaps and walls moves centers; radii grow into free space."""
+    n = r.shape[0]
+    eye = np.eye(n)
+    for k in range(steps):
+=======
+def _energy(c, r):
+    """Penalised objective: half the sum of ordered squared pair overlaps plus squared wall violations."""
+    n = r.shape[0]
+    diff = c[:, None, :] - c[None, :, :]
+    d = np.sqrt(np.sum(diff ** 2, axis=-1) + np.eye(n))
+    gap = d - (r[:, None] + r[None, :])
+    np.fill_diagonal(gap, np.inf)
+    ov = np.maximum(-gap, 0.0)
+    wall = (np.maximum(r - c[:, 0], 0.0) ** 2 + np.maximum(r - 1.0 + c[:, 0], 0.0) ** 2
+            + np.maximum(r - c[:, 1], 0.0) ** 2 + np.maximum(r - 1.0 + c[:, 1], 0.0) ** 2)
+    return float(0.5 * np.sum(ov ** 2) + np.sum(wall))
+
+
+def _relax(c, r, steps, lr_c, lr_r, lam=0.0, tpl=None):
+    """Repulsion from overlaps and walls moves centers; radii grow into free space.
+    Center steps are capped by a trust region adapted from predicted vs actual decrease."""
+    n = r.shape[0]
+    eye = np.eye(n)
+    delta = 0.05
+    E = _energy(c, r)
+    for k in range(steps):
+        if delta < 1e-7:
+            break
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if lam > 0.0 and tpl is not None:
+            lk = lam * (1.0 - k / max(steps - 1, 1))
+            f = f - lk * (c - tpl)
+        c = np.clip(c + lr_c * decay * f, 0.0, 1.0)
+=======
+        fp = f
+        if lam > 0.0 and tpl is not None:
+            lk = lam * (1.0 - k / max(steps - 1, 1))
+            f = f - lk * (c - tpl)
+        s = lr_c * decay * f
+        sn = np.sqrt(np.sum(s ** 2, axis=1))
+        s = s * np.minimum(1.0, delta / np.maximum(sn, 1e-300))[:, None]
+        c_new = np.clip(c + s, 0.0, 1.0)
+        pred = 2.0 * np.sum(fp * (c_new - c))
+        E_new = _energy(c_new, r)
+        actual = E - E_new
+        rho = actual / pred if pred > 1e-18 else 1.0
+        if rho > 0.75:
+            delta *= 1.5
+        elif rho < 0.25:
+            delta *= 0.5
+        if actual >= 0.0:
+            c, E = c_new, E_new
+>>>>>>> REPLACE
+-----

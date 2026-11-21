@@ -1,0 +1,322 @@
+[
+ {
+  "id": "b001",
+  "title": "Log-uniform jitter scale for guided restarts",
+  "spec": "The guided restarts currently jitter the best centres with a fixed normal sd of 0.03. Replace the constant by a per-restart draw from the seed rng: sigma = exp(rng.uniform(log(0.004), log(0.08))). Pass sigma into _solve_once and use it in rng.normal(0, sigma, (n, 2)). Nothing else changes. Small sigmas refine the same contact graph, large ones jump to neighbouring basins; mixing scales removes the need to tune one value.",
+  "family": "data",
+  "sim_hist_bge": 0.8079702258110046,
+  "sim_tried_bge": 0.7875721454620361,
+  "sim_hist_mini": 0.5826740264892578,
+  "sources": [
+   [
+    "fable",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Random-shape jittered grid starts under the guided scheme",
+  "spec": "For half of the non-guided restarts (chosen with the seed rng), replace the uniform random centres by a jittered grid: pick (rows, cols) at random from [(6, 6), (5, 7), (7, 5), (6, 5) plus 2 extras, (4, 8), (8, 4)], lay out cell-centred grid points in the unit square, shift every other row by half a cell with probability 0.5, select exactly n points at random (if the grid has fewer than n points, add uniform random points to reach n), and add normal jitter with sd 0.25 of the cell size, clipped to [0.02, 0.98]. The other half keep uniform starts and the guided restarts are unchanged. A fixed jittered grid looked promising in slot 6; this varies the row structure so that restarts cover several plausible layouts.",
+  "family": "data",
+  "sim_hist_bge": 0.8754256367683411,
+  "sim_tried_bge": 0.8754256367683411,
+  "sim_hist_mini": 0.7213874459266663,
+  "sources": [
+   [
+    "fable",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Basin hopping: perturb the best packing by relocating the smallest circles",
+  "spec": "Replace the guided-restart branch in solve with a basin-hopping move used for the whole second half of the time budget. Let _solve_once accept full initial centres and radii without adding its own noise. A move: copy the best centres, pick the 1 to 3 circles with the smallest radii (or random ones with probability 0.3), and move each to the location of the largest empty hole, estimated by sampling 2000 rng points in the square and choosing the one maximising min(distance to walls, min over other circles of distance to centre minus radius); add Gaussian noise of sd 0.01 to all other centres; start radii at 0.9 times their current values and the relocated ones at the hole size. Run SLSQP from there, repair, and accept if the sum of radii improves on the best. Keep pure random restarts for the first half.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8969297409057617,
+  "sim_tried_bge": 0.8969297409057617,
+  "sim_hist_mini": 0.7506750822067261,
+  "sources": [
+   [
+    "fable",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Use more of the time limit with a deadline-aware last restart",
+  "spec": "Raise TIME_FRACTION from 0.8 to 0.92, and guard against overrun: record the CPU time of the slowest restart so far, and stop the loop when the time remaining before 0.97 * time_limit is less than 1.5 times that slowest duration. The guided phase still starts at 0.5 * TIME_FRACTION * time_limit. This gives roughly 15 percent more restarts per call while staying far below the 45 s void limit.",
+  "family": "schedule",
+  "sim_hist_bge": 0.76905357837677,
+  "sim_tried_bge": 0.7504334449768066,
+  "sim_hist_mini": 0.6294927597045898,
+  "sources": [
+   [
+    "fable",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Stagnation fallback from guided to random restarts",
+  "spec": "Track the number of consecutive guided restarts that failed to improve the best sum of radii. In the second half of the budget, set the probability of a guided restart to 0.8 while that counter is below 8, and to 0.2 once it reaches 8 (reset the counter to 0 whenever best improves, whether through a guided or a random restart). All randomness stays on the seed rng. This spends more time on exploitation while it pays, and returns to exploration when the incumbent basin is exhausted.",
+  "family": "schedule",
+  "sim_hist_bge": 0.830631673336029,
+  "sim_tried_bge": 0.8103629350662231,
+  "sim_hist_mini": 0.6825997829437256,
+  "sources": [
+   [
+    "fable",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Two-stage restarts: cheap screening then polish of the top few",
+  "spec": "Restructure solve into two phases. Phase 1 (first 55 percent of the time): run restarts with a low SLSQP maxiter (about 60) and keep the top 5 results by repaired sum of radii in a list, de-duplicated by requiring a sum difference of more than 1e-6. Phase 2 (until 85 percent of the time): for each kept candidate in order of quality, restart SLSQP from its exact centres and radii (no noise) with maxiter 1000 and ftol 1e-12, repair, and keep the overall best. Add a maxiter and an x0 argument to _solve_once to support this. Check the clock before each polish and stop if the remaining time is less than twice the longest SLSQP call seen so far, so the 45 s limit is never at risk.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8697336912155151,
+  "sim_tried_bge": 0.8697336912155151,
+  "sim_hist_mini": 0.8052217960357666,
+  "sources": [
+   [
+    "fable",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Tighter SLSQP convergence and safer time budget",
+  "spec": "Tune the settings rather than the algorithm: set MAX_ITER to 500 and pass ftol=1e-10 in the SLSQP options so restarts are not cut off before the active set settles (the default ftol 1e-6 stops with radii still about 1e-4 short per run). To keep the deadline safe, track the longest restart duration so far and stop the restart loop when the elapsed CPU time plus 1.5 times that duration would exceed 0.9 * time_limit, replacing the fixed TIME_FRACTION test; raise TIME_FRACTION to 0.9 accordingly. In guided restarts also reduce the perturbation sd from 0.03 to 0.01 and start from the best radii multiplied by 0.95 instead of the constant INIT_RADIUS.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8571052551269531,
+  "sim_tried_bge": 0.8571052551269531,
+  "sim_hist_mini": 0.7744003534317017,
+  "sources": [
+   [
+    "fable",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Smooth collective displacement field for guided restarts",
+  "spec": "In guided restarts, replace the independent per-circle normal jitter by a smooth low-frequency displacement field so that neighbouring circles move together: draw amplitudes a (shape (2, 2, 2), normal with sd 0.03), integer frequencies kx, ky in {1, 2} and phases in [0, 2*pi) from the seed rng, and set displacement_d(c) = sum over 2 terms of a[d, t, 0] * sin(2*pi*(kx*c_x + ky*c_y) + phase) for d in {x, y}. Add this to the best centres, plus a small independent jitter with sd 0.005, clip to [0, 1], then run SLSQP as now. This shears and compresses whole regions of the packing instead of scrambling local contacts.",
+  "family": "data",
+  "sim_hist_bge": 0.8398001790046692,
+  "sim_tried_bge": 0.8269439339637756,
+  "sim_hist_mini": 0.708083987236023,
+  "sources": [
+   [
+    "fable",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Penalty-method L-BFGS pre-relaxation before SLSQP",
+  "spec": "Before SLSQP in _solve_once, run a cheap vectorised penalty relaxation to get a much better starting point. Minimise f(c, r) = -sum(r) + mu * (sum over pairs of max(0, r_i + r_j - dist_ij)^2 + sum over circles and walls of max(0, r - wall_distance)^2) with scipy L-BFGS-B and an analytic gradient, bounds 0 <= c <= 1 and 0 <= r <= 0.5, for three stages mu = 10, 100, 1000 with about 150 iterations each, warm-starting each stage from the previous. Feed the result (radii multiplied by 0.98) as x0 to the existing SLSQP call. The penalty stage costs O(n^2) per evaluation with no QP solve, so it is far cheaper than SLSQP iterations and lets SLSQP converge in fewer steps from an almost feasible, well-spread configuration.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9053964614868164,
+  "sim_tried_bge": 0.9053964614868164,
+  "sim_hist_mini": 0.7769678831100464,
+  "sources": [
+   [
+    "fable",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Equal-radius pre-stage stacked on the guided restarts",
+  "spec": "Keep the current guided-restart logic unchanged. For non-guided restarts only, insert a pre-stage in _solve_once before the free-radius SLSQP: optimise the variables (2n centres, one shared radius R) to maximise R subject to pairwise distance >= 2R and wall distance >= R, with SLSQP, maxiter 60, starting from the uniform random centres and R = 0.03. Then use the resulting centres as the start of the existing free-radius SLSQP (radii initialised to INIT_RADIUS as now). Guided restarts (init is not None) skip the pre-stage. This is the slot 27 idea, which was only tested without competing against the guided restarts in the same file; the goal is to check whether the two gains stack.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9156008958816528,
+  "sim_tried_bge": 0.9156008958816528,
+  "sim_hist_mini": 0.7934644222259521,
+  "sources": [
+   [
+    "fable",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Move box and positivity constraints into SLSQP bounds",
+  "spec": "Remove the n constraints r >= 0 from the cons vector and instead pass bounds to minimize: centres in [0, 1] and radii in [0, 0.5] (bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n). Keep the 4n wall constraints c - r >= 0 and 1 - c - r >= 0 and the pairwise constraints. This shrinks the constraint Jacobian slightly, keeps iterates inside the square (so the np.clip in solve becomes a no-op), and lets each restart finish faster so more restarts fit in the budget.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8327476978302002,
+  "sim_tried_bge": 0.8123387098312378,
+  "sim_hist_mini": 0.6525267362594604,
+  "sources": [
+   [
+    "fable",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Active-set constraint pruning by neighbour list",
+  "spec": "Reduce the SLSQP constraint count from 496 pair constraints to only near pairs. In _solve_once, run SLSQP in rounds: at the start of each round compute the pair list of circles whose centre distance is below 0.45 (always include at least each circle's 8 nearest neighbours), build cons using only those pairs plus the wall and r >= 0 constraints, and run SLSQP for up to 60 iterations; repeat for up to 4 rounds, rebuilding the pair list from the current centres, and stop early when a round changes the objective by less than 1e-9. The existing _repair over all pairs remains as the validity guard, so a rare violated far pair is still corrected. Fewer constraints make each SLSQP iteration and its QP subproblem several times cheaper, giving more restarts and deeper convergence.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9000033140182495,
+  "sim_tried_bge": 0.8608626127243042,
+  "sim_hist_mini": 0.7875548601150513,
+  "sources": [
+   [
+    "fable",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Two independent half-budget episodes",
+  "spec": "Split the 0.8 * time_limit budget into two equal episodes. Each episode runs the current scheme on its own: random restarts for the first half of the episode, then the 50/50 guided/random mix from that episode's own best for the second half. The episode best is reset at the start of the second episode; solve returns the better of the two episode bests. This hedges against the first episode locking onto a poor basin, which is the main source of seed-to-seed variance.",
+  "family": "batch",
+  "sim_hist_bge": 0.7572412490844727,
+  "sim_tried_bge": 0.7572412490844727,
+  "sim_hist_mini": 0.5478265881538391,
+  "sources": [
+   [
+    "fable",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Symmetry-and-swap population of elites with crossover restarts",
+  "spec": "Keep a small elite pool of the 4 best distinct packings (centres and radii) instead of a single best. After the first 40 percent of the time, generate half of the new starts by crossover: pick two elites with rng, apply a random symmetry of the square (one of the 8 rotations/reflections) to the second, choose a random vertical or horizontal cut position in [0.35, 0.65], take the circles of the first parent on one side of the cut and those of the second parent on the other side, then drop the smallest or duplicate the largest-clearance random points until exactly n circles remain. Start radii at 0.85 times the parents' values, run SLSQP, repair, and insert into the pool if it beats the worst elite and its sum differs from all elites by more than 1e-7. The other half of the starts remain random restarts.",
+  "family": "batch",
+  "sim_hist_bge": 0.8492105007171631,
+  "sim_tried_bge": 0.8492105007171631,
+  "sim_hist_mini": 0.7094689607620239,
+  "sources": [
+   [
+    "fable",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "Analytic Jacobians for SLSQP",
+  "spec": "In _solve_once, supply exact gradients so SLSQP stops spending its time on finite differences. Pass jac for the objective (a constant vector: zeros for the 2n centre entries, -1 for the n radius entries) and add a 'jac' entry to the constraint dict returning the dense Jacobian of cons with rows in the same order as cons: for each pair (i,j) the derivative of dist - r_i - r_j is (c_i-c_j)/dist w.r.t. c_i, the negative w.r.t. c_j, and -1 for r_i and r_j (guard dist with max(dist,1e-12)); then the four wall blocks (+-1 on the coordinate, -1 on the radius) and the identity for r >= 0. Build the constant wall/radius part once outside the closure. Keep everything else unchanged. Expected effect: each restart becomes many times faster, so far more restarts fit in the same time budget.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8497960567474365,
+  "sim_tried_bge": 0.8497960567474365,
+  "sim_hist_mini": 0.6636960506439209,
+  "sources": [
+   [
+    "fable",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Shorter iteration cap for guided restarts",
+  "spec": "Guided restarts start close to a local optimum and should not need 200 SLSQP iterations. Add a setting GUIDED_MAX_ITER = 80 and use it as maxiter when init is not None; non-guided restarts keep MAX_ITER = 200. This roughly doubles the number of guided attempts in the second half of the budget at no cost to the random restarts.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8377166390419006,
+  "sim_tried_bge": 0.8095250725746155,
+  "sim_hist_mini": 0.7691202163696289,
+  "sources": [
+   [
+    "fable",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Non-uniform initial radii and size-diverse starts",
+  "spec": "The best packings with free radii mix large and small circles, but every start uses identical radii of 0.05. In _solve_once, for unguided starts draw initial radii from rng: with probability 0.5 uniform in [0.03, 0.11], otherwise a bimodal draw where k circles (k uniform in 2..8) get radius about 0.04 and the rest about 0.095. Then place centres sequentially by best-of-30 candidate sampling: for each circle in descending radius order, sample 30 rng points inside [r, 1-r]^2 and keep the one with the largest clearance to already placed circles. Finally scale all radii by 0.8 so the start is nearly feasible, and pass it to SLSQP as before.",
+  "family": "data",
+  "sim_hist_bge": 0.8970367908477783,
+  "sim_tried_bge": 0.84062659740448,
+  "sim_hist_mini": 0.814083993434906,
+  "sources": [
+   [
+    "fable",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Squared-distance form of the non-overlap constraints",
+  "spec": "In cons, replace the pairwise constraint sqrt(dist2) - r_i - r_j >= 0 by the smooth form dist2 - (r_i + r_j)**2 >= 0 (no square root). It is differentiable when centres coincide and gives SLSQP a different, better-scaled linearisation with finite differences. Keep the wall and r >= 0 constraints and _repair unchanged (the repair still uses true distances, so validity is unaffected).",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8342387080192566,
+  "sim_tried_bge": 0.8136006593704224,
+  "sim_hist_mini": 0.7313816547393799,
+  "sources": [
+   [
+    "fable",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Final LP radius re-optimisation instead of shrink-only repair",
+  "spec": "Replace the body of _repair with an exact linear programme: for fixed centres c, maximise sum(r) subject to r_i + r_j <= dist_ij - 2e-10 for all pairs, r_i <= min(x_i, y_i, 1-x_i, 1-y_i) - 1e-10 via bounds, and r_i >= 0, using scipy.optimize.linprog(method='highs'). Then run the existing greedy shrink loop on the LP result as a safety net (and fall back to the old shrink on LP failure), and keep the final subtraction of SHRINK. This gives the best possible radii for the centres instead of a lossy pairwise shrink, and guarantees validity. To keep it cheap, only pairs with dist_ij < 0.5 need to be included in the LP, but the safety shrink must check all pairs.",
+  "family": "other",
+  "sim_hist_bge": 0.8893235921859741,
+  "sim_tried_bge": 0.8893235921859741,
+  "sim_hist_mini": 0.8324583768844604,
+  "sources": [
+   [
+    "fable",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Hexagonal-like row initialisations with jitter",
+  "spec": "Change the unguided initial centres in _solve_once from uniform random to structured staggered-row layouts. Using rng, pick a row pattern at random from a small list of row counts summing to 32 (for example [6,5,6,5,6,4], [6,6,5,5,5,5], [5,6,5,6,5,5], [6,5,5,6,5,5], [7,6,7,6,6], [6,7,6,7,6]); place rows at evenly spaced y in (0,1), each row's circles evenly spaced in x with alternating rows offset by half a spacing, then add Gaussian jitter with sd about 0.02 and clip to [0.03, 0.97]. Randomly transpose x and y half the time. Use uniform random init for about 30 percent of the restarts for diversity. Set the initial radius to roughly 0.4 times the typical spacing. Rationale: good packings of 32 circles are near-hexagonal with a few defects, and SLSQP from uniform random starts rarely reaches those basins.",
+  "family": "data",
+  "sim_hist_bge": 0.8442862629890442,
+  "sim_tried_bge": 0.8442862629890442,
+  "sim_hist_mini": 0.6683225631713867,
+  "sources": [
+   [
+    "fable",
+    "f",
+    2
+   ]
+  ]
+ }
+]

@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    p_svr = model.predict(K_test)
+    F_train = np.hstack([D, X])
+    F_test = np.hstack([Dt, Xt])
+    gbm = lgb.LGBMRegressor(n_estimators=600, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+                            subsample=0.8, subsample_freq=1, random_state=seed, verbose=-1)
+    gbm.fit(F_train, y)
+    p_gbm = gbm.predict(F_test)
+    r = (rankdata(p_svr) + rankdata(p_gbm)) / 2.0
+    return (r - r.min()) / max(r.max() - r.min(), 1e-9)
+>>>>>>> REPLACE
+-----

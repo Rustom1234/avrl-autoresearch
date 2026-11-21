@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+import xgboost as xgb
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    params = dict(tree_method='hist', max_depth=6, learning_rate=0.03,
+                  subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                  random_state=seed, n_jobs=8)
+    stage1 = XGBRegressor(objective='reg:squarederror', n_estimators=200, **params)
+    stage1.fit(Xtr, y - base_tr)
+    stage2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400, **params)
+    stage2.fit(Xtr, y - base_tr, xgb_model=stage1.get_booster())
+    return base_te + stage2.predict(Xte)
+=======
+    Xtr = np.hstack([featurize(train_smiles), ptr]).astype(np.float32)
+    Xte = np.hstack([featurize(test_smiles), pte]).astype(np.float32)
+    fw = np.ones(Xtr.shape[1], dtype=np.float32)
+    fw[-7:] = 4.0
+    dtr = xgb.DMatrix(Xtr, label=y - base_tr, feature_weights=fw)
+    dte = xgb.DMatrix(Xte)
+    params = dict(tree_method='hist', max_depth=6, eta=0.03,
+                  subsample=0.8, colsample_bynode=0.3, colsample_bytree=1.0,
+                  min_child_weight=3, seed=seed, nthread=8)
+    stage1 = xgb.train(dict(params, objective='reg:squarederror'), dtr, num_boost_round=200)
+    stage2 = xgb.train(dict(params, objective='reg:absoluteerror'), dtr, num_boost_round=400,
+                       xgb_model=stage1)
+    return base_te + stage2.predict(dte)
+>>>>>>> REPLACE
+-----

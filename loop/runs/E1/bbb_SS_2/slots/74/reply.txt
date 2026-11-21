@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    model = RandomForestClassifier(
+=======
+def blend(Xtr, y, Xte, train_smiles, test_smiles, seed):
+    model = RandomForestClassifier(
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+    model.fit(Xtr, y)
+=======
+    model.fit(Xtr, y)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn)) / (3 * n)
+=======
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn)) / (3 * n)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    p = blend(Xtr, y, Xte, train_smiles, test_smiles, seed)
+    lo, hi = np.quantile(p, [0.15, 0.85])
+    sel_hi = p >= hi
+    sel = sel_hi | (p <= lo)
+    X2 = np.vstack([Xtr, Xte[sel]])
+    y2 = np.concatenate([y, sel_hi[sel].astype(np.int64)])
+    s2 = list(train_smiles) + [s for s, m in zip(test_smiles, sel) if m]
+    return blend(X2, y2, Xte, s2, test_smiles, seed)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def blend(train_smiles, train_y, test_smiles, seed, Xtr=None, Xte=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = featurize(train_smiles)
+=======
+    Xtr = featurize(train_smiles) if Xtr is None else Xtr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xte = featurize(test_smiles)
+=======
+    Xte = featurize(test_smiles) if Xte is None else Xte
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn)) / (3 * n)
+=======
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn)) / (3 * n)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    p = blend(train_smiles, y, test_smiles, seed, Xtr, Xte)
+    lo, hi = np.quantile(p, [0.15, 0.85])
+    hi_m = p >= hi
+    sel = hi_m | (p <= lo)
+    X2 = np.vstack([Xtr, Xte[sel]])
+    y2 = np.concatenate([y, hi_m[sel].astype(np.int64)])
+    s2 = list(train_smiles) + [s for s, m in zip(test_smiles, sel) if m]
+    return blend(s2, y2, test_smiles, seed, X2, Xte)
+>>>>>>> REPLACE
+-----

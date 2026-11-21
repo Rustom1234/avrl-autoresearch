@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def smiles_ngram_block(train_smiles, test_smiles):
+    def grams(s):
+        c = Counter()
+        for n in (2, 3, 4):
+            for i in range(len(s) - n + 1):
+                c[s[i:i + n]] += 1
+        return c
+
+    tr = [grams(s) for s in train_smiles]
+    df = Counter()
+    for c in tr:
+        df.update(c.keys())
+    vocab = {g: j for j, g in enumerate(sorted(g for g, k in df.items() if k >= 5))}
+    idf = np.array([np.log((len(tr) + 1) / (df[g] + 1)) + 1.0 for g in vocab], dtype=np.float32)
+
+    def vec(counters):
+        X = np.zeros((len(counters), len(vocab)), dtype=np.float32)
+        for i, c in enumerate(counters):
+            for g, v in c.items():
+                j = vocab.get(g)
+                if j is not None:
+                    X[i, j] = (1.0 + np.log(v)) * idf[j]
+        norms = np.linalg.norm(X, axis=1, keepdims=True)
+        return X / np.maximum(norms, 1e-9)
+
+    return vec(tr), vec([grams(s) for s in test_smiles])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    Gtr, Gte = smiles_ngram_block(train_smiles, test_smiles)
+    Xtr = np.hstack([Xtr, Gtr])
+    Xte = np.hstack([Xte, Gte])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from collections import Counter
+
+from sklearn.ensemble import RandomForestRegressor
+>>>>>>> REPLACE
+-----

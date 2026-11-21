@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def crippen(smiles):
+=======
+def big_fp(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=4096)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def crippen(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+=======
+def base_preds(Xtr, Btr, ytr, Xte, Bte, seed, n_trees):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ftr, Fte = Xtr[:, :N_BITS], Xte[:, :N_BITS]
+    sv = SVR(kernel="precomputed", C=5.0, epsilon=0.1).fit(tanimoto(Ftr, Ftr), ytr)
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr))])
+=======
+    sv = SVR(kernel="precomputed", C=5.0, epsilon=0.1).fit(tanimoto(Btr, Btr), ytr)
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Bte, Btr))])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    ctr, cte = crippen(train_smiles), crippen(test_smiles)
+=======
+    ctr, cte = crippen(train_smiles), crippen(test_smiles)
+    Btr, Bte = big_fp(train_smiles), big_fp(test_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        oof[va] = base_preds(Xtr[tr], y[tr], Xtr[va], seed, 200)
+=======
+        oof[va] = base_preds(Xtr[tr], Btr[tr], y[tr], Xtr[va], Btr[va], seed, 200)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES)) + cte
+=======
+    return meta.predict(base_preds(Xtr, Btr, y, Xte, Bte, seed, N_TREES)) + cte
+>>>>>>> REPLACE
+-----

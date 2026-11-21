@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. There is no file or network access and no pasted answers. Test SMILES are only featurized, and their labels are never used. Clipping percentiles come from Dtr (the training fold) only.",
+  "The RBF descriptor slice [2*N_BITS : 2*N_BITS+len(_descList)] is correct only if X is laid out as [Morgan bits (2*N_BITS) | descriptors | BRICS]. The old comment and code suggest it is, but featurize and the hstack are not shown in the diff, so I could not confirm this.",
+  "Effectiveness concern, not a bug: the BRICS hashed counts go through the same 1st-99th percentile clipping as the descriptors. Most of the 512 sparse bins are nonzero in fewer than 1% of molecules, so their 99th percentile is 0. Clipping then sets those columns to 0 and throws away most of the BRICS signal. Consider excluding the BRICS block from clipping.",
+  "Speed and cosmetics: BRICS decomposition is not cached, so it runs again on every one of the 15 fits. That is probably fine within 10 minutes for 3360 molecules, but caching it like desc_vector would be cleaner. The comment in brics_counts repeats the docstring note of _frag_hash. BRICSDecompose would crash on an unparseable SMILES (MolFromSmiles returns None), but the benchmark SMILES should all parse, as the existing descriptor code already assumes.",
+  "No harness numbers yet, so z cannot be computed and there are no claims to check against results."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

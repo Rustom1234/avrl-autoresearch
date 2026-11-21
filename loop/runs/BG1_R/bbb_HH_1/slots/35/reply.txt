@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+from sklearn.ensemble import RandomForestClassifier
+=======
+from scipy.stats import rankdata
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def scaled_rank(p):
+=======
+def pairwise_linear_score(D_train, y, D_test, seed):
+    qt = QuantileTransformer(n_quantiles=200, output_distribution='normal', random_state=seed)
+    Z_train = qt.fit_transform(D_train).astype(np.float32)
+    Z_test = qt.transform(D_test).astype(np.float32)
+    rng = np.random.default_rng(seed)
+    pos = np.flatnonzero(y == 1)
+    neg = np.flatnonzero(y == 0)
+    n_pairs = min(200000, len(pos) * len(neg))
+    i = rng.choice(pos, n_pairs)
+    j = rng.choice(neg, n_pairs)
+    diff = Z_train[i] - Z_train[j]
+    X_pair = np.vstack([diff, -diff])
+    y_pair = np.concatenate([np.ones(n_pairs), np.zeros(n_pairs)])
+    lr = LogisticRegression(C=0.1, max_iter=1000, fit_intercept=False)
+    lr.fit(X_pair, y_pair)
+    return Z_test @ lr.coef_.ravel()
+
+
+def scaled_rank(p):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    lin = pairwise_linear_score(D_train, y, D_test, seed)
+    return (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1])
+            + scaled_rank(lin)) / 3
+>>>>>>> REPLACE
+-----

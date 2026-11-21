@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, centers0, q=None, r_start=None, maxiter=MAX_ITER):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS) if r_start is None else r_start])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    obj = (lambda v: -v[2 * n:].sum()) if q is None else (lambda v: -(np.maximum(v[2 * n:], 1e-6) ** q).sum())
+    res = minimize(obj, x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+=======
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        if rng.random() < 0.5:   # power-objective homotopy: equalise (q=0.5) or favour big circles (q=2) first
+            q = rng.choice([0.5, 2.0])
+            c1, r1 = _solve_once(n, p, q=q, maxiter=60)
+            c, r = _solve_once(n, c1.ravel(), r_start=r1)
+        else:
+            c, r = _solve_once(n, p)
+>>>>>>> REPLACE
+-----

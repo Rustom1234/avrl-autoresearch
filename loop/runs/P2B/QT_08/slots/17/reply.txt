@@ -1,0 +1,68 @@
+<<<<<<< SEARCH
+    def __init__(self, config):
+        super().__init__()
+        self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=False)
+        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=False)
+=======
+    def __init__(self, config, bnn=True):
+        super().__init__()
+        self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=False)
+        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=False)
+        if bnn:
+            self.bn_fc = nn.BatchNorm1d(4 * config.n_embd, eps=1e-5)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def __init__(self, config, layer_idx):
+        super().__init__()
+        self.attn = CausalSelfAttention(config, layer_idx)
+        self.mlp = MLP(config)
+=======
+    def __init__(self, config, layer_idx, bnn=True):
+        super().__init__()
+        self.attn = CausalSelfAttention(config, layer_idx)
+        self.mlp = MLP(config, bnn)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+=======
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+        x = self.bn_fc(x)
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def __init__(self, config):
+        super().__init__()
+        self.c_fc = nn.Linear(config.n_embd, 4 * config.n_embd, bias=False)
+        self.c_proj = nn.Linear(4 * config.n_embd, config.n_embd, bias=False)
+=======
+    def forward(self, x):
+        x = self.c_fc(x)
+        x = self.bn_fc(x)
+        x = F.relu(x).square()
+        x = self.c_proj(x)
+        return x
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(norm(x))
+        return x
+=======
+    def __init__(self, config, layer_idx):
+        super().__init__()
+        self.attn = CausalSelfAttention(config, layer_idx)
+        self.mlp = MLP(config, True)
+
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn.norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(x)
+        return x
+>>>>>>> REPLACE
+-----

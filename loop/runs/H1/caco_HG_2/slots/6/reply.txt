@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+=======
+    # RDKit descriptors
+    desc_list = Descriptors.descList
+    desc_data = []
+    for m in mols:
+        d = [float(Descriptors.Calc(desc_list[i])) for i in range(len(desc_list))]
+        d = [0.0 if not np.isfinite(x) else x for x in d]
+        d = [min(max(x, -1e6), 1e6) for x in d]
+        desc_data.append(d)
+    desc = np.array(desc_data, dtype=np.float32)
+    return np.hstack([fps, desc])
+>>>>>>> REPLACE
+-----

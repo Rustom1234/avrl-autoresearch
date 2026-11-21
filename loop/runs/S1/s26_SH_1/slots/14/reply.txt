@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _ring_seed(rng):
+    # concentric rings from a random partition of 26; each ring gets a random rotation
+    parts = [(1, 6, 12, 7), (1, 7, 9, 9), (4, 8, 14), (1, 6, 10, 9), (2, 8, 16)]
+    part = parts[int(rng.integers(len(parts)))]
+    k = len(part)
+    pts = []
+    for idx, cnt in enumerate(part):
+        if cnt == 1:
+            pts.append((0.5, 0.5))
+            continue
+        rho = 0.42 * (idx + 1) / k
+        off = rng.uniform(0.0, 2 * np.pi)
+        for j in range(cnt):
+            a = off + 2 * np.pi * j / cnt
+            pts.append((0.5 + rho * np.cos(a), 0.5 + rho * np.sin(a)))
+    P = np.array(pts) + rng.normal(0.0, 0.01, size=(_N, 2))
+    return np.clip(P, 0.05, 0.95)
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+=======
+        if _k % 2 == 0:
+            P = _ring_seed(rng)
+        else:
+            P = rng.uniform(0.05, 0.95, size=(_N, 2))
+>>>>>>> REPLACE
+-----

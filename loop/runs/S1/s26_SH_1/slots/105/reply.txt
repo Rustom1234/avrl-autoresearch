@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _optimize(x0, y0, r0):
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+=======
+def _optimize(x0, y0, r0, w=None):
+    if w is None:
+        w = np.ones(_N)
+
+    def wobj(z):
+        return -np.dot(w, z[2 * _N:])
+
+    def wgrad(z):
+        g = np.zeros(3 * _N)
+        g[2 * _N:] = -w
+        return g
+
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        res = minimize(_obj, z_prev, jac=_obj_grad, constraints=cons,
+=======
+        f, gf = (wobj, wgrad) if cap is not None else (_obj, _obj_grad)
+        res = minimize(f, z_prev, jac=gf, constraints=cons,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r0 = np.full(_N, 0.05)
+        x, y = _optimize(x0, y0, r0)
+=======
+        r0 = np.full(_N, 0.05)
+        w = 1.0 + 0.05 * rng.random(_N)
+        x, y = _optimize(x0, y0, r0, w)
+>>>>>>> REPLACE
+-----

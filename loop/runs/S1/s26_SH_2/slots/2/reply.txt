@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _lp_radii(centers):
+    """Exact max-sum-radii LP for fixed centers, then strict-safety shrink."""
+    n = centers.shape[0]
+    x = centers[:, 0]
+    y = centers[:, 1]
+    border = np.maximum(np.minimum.reduce([x, 1 - x, y, 1 - y]), 0.0)
+    iu, ju = np.triu_indices(n, 1)
+    d = np.hypot(x[iu] - x[ju], y[iu] - y[ju])
+    m = iu.size
+    A = np.zeros((m, n))
+    A[np.arange(m), iu] = 1.0
+    A[np.arange(m), ju] = 1.0
+    try:
+        res = linprog(-np.ones(n), A_ub=A, b_ub=d,
+                      bounds=[(0.0, float(b)) for b in border], method="highs")
+        if res.status == 0:
+            r = np.maximum(res.x, 0.0)
+        else:
+            r = border
+    except Exception:
+        r = border
+    # _repair guarantees pairwise validity even under LP feasibility tolerance
+    r = _repair(centers, r)
+    return np.maximum(r - 1e-12, 0.0)
+
+
+def _pack_once(seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    radii = _repair(centers, np.maximum(z[2 * n:], 0.0))
+=======
+    radii = _lp_radii(centers)
+>>>>>>> REPLACE
+-----

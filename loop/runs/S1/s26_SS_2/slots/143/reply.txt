@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+                         bounds=bounds, options={"maxiter": 400}).x
+        try:
+=======
+                         bounds=bounds, options={"maxiter": 400}).x
+        if rng.random() < 0.3:
+            try:
+                z = np.concatenate([v, [1.0]])
+                zb = bounds + [(0.8, 1.2)]
+
+                def cons2(q):
+                    out = cons(q[:3 * n])
+                    out[m + n:m + 2 * n] += q[-1] - 1
+                    out[m + 3 * n:m + 4 * n] += q[-1] - 1
+                    return out
+
+                def cjac2(q):
+                    Jm = cjac(q[:3 * n])
+                    col = np.zeros((Jm.shape[0], 1))
+                    col[m + n:m + 2 * n] = 1
+                    col[m + 3 * n:m + 4 * n] = 1
+                    return np.hstack([Jm, col])
+
+                for wl, mi in ((0.5, 60), (2.0, 60), (10.0, 80)):
+                    g = np.concatenate([np.zeros(2 * n), -np.ones(n), [wl]])
+                    res0 = minimize(lambda q, wl=wl: -q[2 * n:3 * n].sum() + wl * (q[-1] - 1), z,
+                                    jac=lambda q, g=g: g, method="SLSQP", bounds=zb,
+                                    constraints=[{"type": "ineq", "fun": cons2, "jac": cjac2}],
+                                    options={"maxiter": mi, "ftol": 1e-10})
+                    z = res0.x
+                Ls = max(z[-1], 0.5)
+                v = z[:3 * n] / Ls
+                v[:2 * n] = np.clip(v[:2 * n], 0, 1)
+            except Exception:
+                pass
+        try:
+>>>>>>> REPLACE
+-----

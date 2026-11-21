@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+=======
+    c, r = best
+    tabu = []   # (site, radius) of reinsertion sites that did not improve the packing
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        others = np.delete(c2, i, axis=0)
+        cand = rng.uniform(0, 1, (200, 2))
+        if tabu:
+            sites = np.array([p for p, _ in tabu])
+            free = np.sqrt(((cand[:, None] - sites[None]) ** 2).sum(-1)).min(1) > 0.08
+            if free.any():
+                cand = cand[free]
+        gap = np.sqrt(((cand[:, None] - others[None]) ** 2).sum(-1)).min(1)
+        site = cand[np.argmax(gap)]
+        c2[i] = site
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+            tabu = []
+        else:
+            tabu.append((site, r[i]))
+    return c, r
+>>>>>>> REPLACE
+-----

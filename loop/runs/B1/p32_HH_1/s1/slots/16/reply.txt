@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+=======
+TIME_FRACTION = 0.92
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+=======
+    rng, t0, best, runs = np.random.default_rng(seed), time.process_time(), None, 0
+    budget = TIME_FRACTION * time_limit
+    while True:   # random restarts until the time is used
+        elapsed = time.process_time() - t0
+        if elapsed + (elapsed / runs if runs else 0) > budget:   # skip a restart that would overrun the budget
+            break
+        runs += 1
+        guided = best is not None and elapsed > 0.5 * budget and rng.random() < 0.5
+>>>>>>> REPLACE
+-----

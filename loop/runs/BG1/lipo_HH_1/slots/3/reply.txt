@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+import lightgbm as lgb
+from sklearn.model_selection import train_test_split
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def fit_lgb(X, y, X_te, seed):
+    # Inner 10% validation split (stratified by target quantile) to pick the tree count, then refit on all data
+    bins = np.digitize(y, np.quantile(y, [0.2, 0.4, 0.6, 0.8]))
+    idx_tr, idx_va = train_test_split(np.arange(len(y)), test_size=0.1, stratify=bins, random_state=seed)
+    params = dict(objective='l1', learning_rate=0.05, random_state=seed, n_jobs=8, verbose=-1)
+    m = lgb.LGBMRegressor(n_estimators=3000, **params)
+    m.fit(X[idx_tr], y[idx_tr], eval_set=[(X[idx_va], y[idx_va])], eval_metric='l1',
+          callbacks=[lgb.early_stopping(100, verbose=False)])
+    best = m.best_iteration_ if m.best_iteration_ > 0 else 3000
+    full = lgb.LGBMRegressor(n_estimators=max(1, int(best * 1.1)), **params)
+    full.fit(X, y)
+    return full.predict(X_te)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (p_rf + p_svr)
+=======
+    p_lgb = fit_lgb(featurize(train_smiles), y, featurize(test_smiles), seed)
+    return (p_rf + p_svr + p_lgb) / 3.0
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+    iu = np.triu_indices(n, 1)
+    i0, j0 = iu
+    P = len(i0)
+    rr = INIT_RADIUS
+
+    def pen(p):
+        c = p.reshape(n, 2)
+        diff = c[i0] - c[j0]
+        dist = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        ov = np.maximum(0, 2 * rr - dist)
+        lo = np.maximum(0, rr - c)
+        hi = np.maximum(0, c - (1 - rr))
+        val = (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum()
+        g = -2 * lo + 2 * hi
+        gp = (-2 * ov / dist)[:, None] * diff
+        np.add.at(g, i0, gp)
+        np.add.at(g, j0, -gp)
+        return val, g.ravel()
+
+    pts = minimize(pen, pts.ravel(), jac=True, method="L-BFGS-B", options={"maxiter": 30}).x.reshape(n, 2)
+    pts = np.clip(pts, 0.03, 0.97)
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+
+    rows = np.arange(P)
+    a = np.arange(n)
+    Jt = np.zeros((P + 5 * n, 3 * n))
+    Jt[rows, 2 * n + i0] = -1
+    Jt[rows, 2 * n + j0] = -1
+    Jt[P + a, 2 * a] = 1
+    Jt[P + a, 2 * n + a] = -1
+    Jt[P + n + a, 2 * a + 1] = 1
+    Jt[P + n + a, 2 * n + a] = -1
+    Jt[P + 2 * n + a, 2 * a] = -1
+    Jt[P + 2 * n + a, 2 * n + a] = -1
+    Jt[P + 3 * n + a, 2 * a + 1] = -1
+    Jt[P + 3 * n + a, 2 * n + a] = -1
+    Jt[P + 4 * n + a, 2 * n + a] = 1
+
+    def jac(v):
+        c = v[:2 * n].reshape(n, 2)
+        diff = c[i0] - c[j0]
+        u = diff / (np.sqrt((diff ** 2).sum(1)) + 1e-12)[:, None]
+        J = Jt.copy()
+        J[rows, 2 * i0] = u[:, 0]
+        J[rows, 2 * i0 + 1] = u[:, 1]
+        J[rows, 2 * j0] = -u[:, 0]
+        J[rows, 2 * j0 + 1] = -u[:, 1]
+        return J
+
+    def grad(v):
+        g = np.zeros(3 * n)
+        g[2 * n:] = -1
+        return g
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, jac=grad, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons, "jac": jac},
+>>>>>>> REPLACE
+-----

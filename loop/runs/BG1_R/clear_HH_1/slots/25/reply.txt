@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+PHYS = [Descriptors.MolLogP, Descriptors.TPSA, Descriptors.MolWt, Descriptors.NumHDonors,
+        Descriptors.NumHAcceptors, Descriptors.NumRotatableBonds, Descriptors.FractionCSP3]
+
+
+def physchem(smiles):
+    return np.array([[f(Chem.MolFromSmiles(s)) for f in PHYS] for s in smiles], dtype=np.float64)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    y = (rankdata(y) - 0.5) / len(y)
+    P = physchem(train_smiles)
+    Pt = physchem(test_smiles)
+    pmu, psd = P.mean(axis=0), P.std(axis=0) + 1e-9
+    P = (P - pmu) / psd
+    Pt = (Pt - pmu) / psd
+    prior = Ridge(alpha=10.0).fit(P, y)
+    r = y - prior.predict(P)
+    mu, sd = r.mean(), r.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (r - mu) / sd)
+    return prior.predict(Pt) + model.predict(K_test) * sd + mu
+>>>>>>> REPLACE
+-----

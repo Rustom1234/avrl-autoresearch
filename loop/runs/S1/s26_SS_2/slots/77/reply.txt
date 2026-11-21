@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+    best = None
+    bs = -1
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    bv = None
+    while time.time() - t0 < 60:
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+=======
+    best = None
+    bs = -1
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    bv = None
+    gbv = None
+    gbs = -1
+    for run in range(5):
+      rng = np.random.default_rng(run + 1)
+      if run < 4:
+          ms_end = time.time() + 15
+          bh_end = time.time() + 50
+          sigma = 0.05
+          bv = None
+          bs = -1
+      else:
+          ms_end = 0
+          bh_end = time.time() + 20
+          sigma = 0.01
+          bv = gbv.copy(); bs = gbs
+      while time.time() < ms_end:
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > bs:
+            bs = s; best = (c, r); bv = v.copy()
+
+    cur_v = bv.copy(); cur_s = bs
+    while time.time() - t0 < 200:
+        w = cur_v.copy()
+        k = rng.integers(1, 5)
+        idx = rng.choice(n, k, replace=False)
+        w[idx] += rng.normal(0, 0.05, k)
+        w[n + idx] += rng.normal(0, 0.05, k)
+=======
+        if s > bs:
+            bs = s; bv = v.copy()
+            if s > gbs:
+                gbs = s; best = (c, r); gbv = v.copy()
+
+      if bv is None:
+          continue
+      cur_v = bv.copy(); cur_s = bs
+      while time.time() < bh_end:
+        w = cur_v.copy()
+        k = rng.integers(1, 5)
+        idx = rng.choice(n, k, replace=False)
+        w[idx] += rng.normal(0, sigma, k)
+        w[n + idx] += rng.normal(0, sigma, k)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > bs:
+            bs = s; best = (c, r)
+    return best
+=======
+        if s > bs:
+            bs = s
+        if s > gbs:
+            gbs = s; best = (c, r); gbv = w.copy()
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+    # Out-of-fold residuals for XGB
+    kf = KFold(n_splits=5, shuffle=True, random_state=seed)
+    oof_res = np.zeros_like(y_all)
+    
+    # Ridge model to predict residuals
+    ridge = Ridge(alpha=1.0)
+    for tr_idx, val_idx in kf.split(X_desc_scaled):
+        X_train_r = X_desc_scaled[tr_idx]
+        X_val_r = X_desc_scaled[val_idx]
+        y_train_r = y_all[tr_idx]
+        
+        ridge.fit(X_train_r, y_train_r)
+        oof_res[val_idx] = y_train_r - ridge.predict(X_val_r)
+    
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred
+=======
+    # Out-of-fold residuals for XGB
+    kf = KFold(n_splits=5, shuffle=True, random_state=seed)
+    oof_res = np.zeros_like(y_all)
+    
+    # Ridge model to predict residuals
+    ridge = Ridge(alpha=1.0)
+    for tr_idx, val_idx in kf.split(X_desc_scaled):
+        X_train_r = X_desc_scaled[tr_idx]
+        X_val_r = X_desc_scaled[val_idx]
+        y_train_r = y_all[tr_idx]
+        
+        ridge.fit(X_train_r, y_train_r)
+        oof_res[val_idx] = y_all[val_idx] - ridge.predict(X_val_r)
+    
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred
+>>>>>>> REPLACE
+-----

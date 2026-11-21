@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+def desc_features(smiles):
+    X = np.array([[f(Chem.MolFromSmiles(s)) for _, f in Descriptors.descList] for s in smiles], dtype=np.float64)
+    X[~np.isfinite(X)] = 0.0
+    return np.clip(X, -1e6, 1e6)
+=======
+_DESC_CACHE = {}
+
+
+def desc_features(smiles):
+    rows = []
+    for s in smiles:
+        if s not in _DESC_CACHE:
+            m = Chem.MolFromSmiles(s)
+            _DESC_CACHE[s] = [f(m) for _, f in Descriptors.descList]
+        rows.append(_DESC_CACHE[s])
+    X = np.array(rows, dtype=np.float64)
+    X[~np.isfinite(X)] = 0.0
+    return np.clip(X, -1e6, 1e6)
+>>>>>>> REPLACE
+-----

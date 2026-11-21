@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+RADIUS = 2
+=======
+RADIUS = 3
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from sklearn.kernel_ridge import KernelRidge
+
+
+def minmax_kernel(A, B):
+    A = A.astype(np.float64)
+    B = B.astype(np.float64)
+    K = np.empty((len(A), len(B)))
+    sb = B.sum(1)
+    for i, a in enumerate(A):
+        mn = np.minimum(a, B).sum(1)
+        K[i] = mn / np.maximum(a.sum() + sb - mn, 1e-9)
+    return K
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    y = np.asarray(train_y, dtype=np.float64)
+=======
+    y = np.asarray(train_y, dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(Xtr[:, nd:], y)
+    p_rf = model.predict(Xte[:, nd:])
+=======
+    ym = y.mean()
+    krr = KernelRidge(alpha=0.5, kernel='precomputed')
+    krr.fit(minmax_kernel(Xtr[:, nd:], Xtr[:, nd:]), y - ym)
+    p_rf = krr.predict(minmax_kernel(Xte[:, nd:], Xtr[:, nd:])) + ym
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,101 @@
+<<<<<<< SEARCH
+RESTART_FRACTION = 0.3
+=======
+RESTART_FRACTION = 0.3
+T0 = 0.003
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _optimise(n, x0):
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _optimise(n, x0):
+    iu = np.triu_indices(n, 1)
+    pi, pj = iu
+    m = len(pi)
+    ar = np.arange(n)
+    rows = np.arange(m)
+    obj_jac = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[pi] - c[pj]) ** 2).sum(1)) - r[pi] - r[pj]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def cons_jac(v):
+        c = v[:2 * n].reshape(n, 2)
+        diff = c[pi] - c[pj]
+        dist = np.maximum(np.sqrt((diff ** 2).sum(1)), 1e-12)
+        u = diff / dist[:, None]
+        J = np.zeros((m + 5 * n, 3 * n))
+        J[rows, 2 * pi] = u[:, 0]
+        J[rows, 2 * pi + 1] = u[:, 1]
+        J[rows, 2 * pj] = -u[:, 0]
+        J[rows, 2 * pj + 1] = -u[:, 1]
+        J[rows, 2 * n + pi] = -1
+        J[rows, 2 * n + pj] = -1
+        k = m
+        J[k + ar, 2 * ar] = 1
+        J[k + ar, 2 * n + ar] = -1
+        k += n
+        J[k + ar, 2 * ar + 1] = 1
+        J[k + ar, 2 * n + ar] = -1
+        k += n
+        J[k + ar, 2 * ar] = -1
+        J[k + ar, 2 * n + ar] = -1
+        k += n
+        J[k + ar, 2 * ar + 1] = -1
+        J[k + ar, 2 * n + ar] = -1
+        k += n
+        J[k + ar, 2 * n + ar] = 1
+        return J
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, jac=lambda v: obj_jac, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons, "jac": cons_jac}, options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+=======
+    c, r = best
+    bc, br = c, r
+    t1 = time.process_time()
+    while True:   # remove-and-reinsert the smallest circle, with annealed acceptance of worse packings
+        frac = (time.process_time() - t1) / (budget - (t1 - t0))
+        if frac >= 1:
+            break
+        T = T0 * (1 - frac)
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        s, s2 = r.sum(), r2.sum()
+        if s2 > s or (s2 < s and T > 0 and rng.random() < np.exp((s2 - s) / T)):
+            c, r = c2, r2
+        if r.sum() > br.sum():
+            bc, br = c, r
+    return bc, br
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    path_gen = rdFingerprintGenerator.GetPathFingerprintGenerator(fpSize=N_BITS)
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    maccs_gen = MACCSkeys.GenMACCSKeys
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        mf = path_gen.GetFingerprintAsNumPy(mol)
+        mk = np.array(maccs_gen(mol), dtype=np.float32)
+        ap = ap_gen.GetFingerprintAsNumPy(mol)
+        features.append(np.concatenate([mf, mk, ap]))
+    return np.array(features, dtype=np.float32)
+=======
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        mf = Chem.GetMorganFingerprintAsNumPy(mol, 2, N_BITS)
+        mk = np.array(MACCSkeys.GenMACCSKeys(mol), dtype=np.float32)
+        ap = Chem.GetAtomPairFingerprintAsNumPy(mol, N_BITS)
+        features.append(np.concatenate([mf, mk, ap]))
+    return np.array(features, dtype=np.float32)
+>>>>>>> REPLACE
+-----

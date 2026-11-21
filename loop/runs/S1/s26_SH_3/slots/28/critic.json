@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: no file or network access, no pasted coordinates and no use of labels. The diff only retunes the simulated annealing (more steps, lower temperatures, smaller step sizes, 50% of moves aimed at the 5 smallest circles) and the time budgets. No veto.",
+  "Correctness: the new cur_r is updated whenever a move is accepted, so the bias toward small circles always uses the current radii. Nothing here makes the result meaningless.",
+  "Timing risk (not a bug): sa_centers now gets a fresh time.time() for each start, so each start's annealing can run up to 60 s. A third start can still begin at about 199 s, then 60 s of annealing plus optimize() is about 260 s or more. That goes past the card's 4-minute margin and moves toward the 300 s hard stop. The 230 s check only skips the shrink-and-grow cycles; it does not stop the start that is already running. This run finished, but later runs could time out depending on machine speed.",
+  "Numbers: candidate loss is -2.6286 and incumbent is -2.6304. Lower is better, so the candidate is worse by about 0.0018. Rejecting it matches the numbers.",
+  "z: only one run on each side, so there is no measured variance. The reported |z| of about 1291 implies a noise scale of about 0.0018/1291 \u2248 1.4e-6, which fits the stated replicate noise of about 1e-6. The sign shows that a negative z means worse here. Without the harness's sigma I cannot recompute z on my own, but the reject decision stands either way."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

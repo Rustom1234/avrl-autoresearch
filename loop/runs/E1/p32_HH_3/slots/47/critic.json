@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No attempt to get around the measurement. There is no file or network access, no pasted coordinates, and no use of labels. The change adds a screening step: a short SLSQP run (maxiter=25) from the perturbed start, followed by a full SLSQP run from the same x0 only if the repaired screened sum is within 0.01 of the best so far.",
+  "No bug that would make the result meaningless. The final result still goes through clip and _repair, so the harness's exact validity check still applies. The second solve gets x0 directly, so it does not use rng. Randomness still comes only from the seeded rng.",
+  "Minor timing risk, not a veto: each iteration now does up to two SLSQP calls. If the time check happens only at the top of the loop, one iteration can run past the 80% mark. That should still stay well under the 45 s void limit.",
+  "Recomputed z = (2.9353 - 2.9346) / (0.0034 * sqrt(1/1 + 1/2)) = 0.0007 / 0.00416 \u2248 0.17, which matches the harness's 0.169. The gain of 0.0007 is about 0.2 sd and comes from a single candidate run, so it is indistinguishable from noise. Rejecting is consistent with the numbers.",
+  "The extra 'maxiter' parameter and the screening branch add some complexity for no demonstrated gain. Under the simplicity rule that also argues against accepting it."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.168
+ }
+}

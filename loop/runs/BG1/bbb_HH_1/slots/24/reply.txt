@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from sklearn.model_selection import StratifiedKFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def tanimoto_knn_graph(X, k=10):
+    n = X.shape[0]
+    inter = X @ X.T
+    cnt = X.sum(axis=1)
+    sim = inter / np.maximum(cnt[:, None] + cnt[None, :] - inter, 1e-9)
+    np.fill_diagonal(sim, 0.0)
+    idx = np.argpartition(-sim, k, axis=1)[:, :k]
+    rows = np.repeat(np.arange(n), k)
+    W = np.zeros((n, n))
+    W[rows, idx.ravel()] = sim[rows, idx.ravel()]
+    W = np.maximum(W, W.T)
+    dinv = 1.0 / np.sqrt(np.maximum(W.sum(axis=1), 1e-9))
+    return dinv[:, None] * W * dinv[None, :]
+
+
+def spread_feature(train_smiles, train_y, test_smiles, seed):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in list(train_smiles) + list(test_smiles)]
+    X = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float64)
+    S = tanimoto_knn_graph(X)
+    y = np.asarray(train_y, dtype=np.float64)
+    n_tr, n = len(y), X.shape[0]
+
+    def run(labelled):
+        Y0 = np.zeros((n, 2))
+        Y0[labelled, 1] = y[labelled]
+        Y0[labelled, 0] = 1.0 - y[labelled]
+        F = Y0.copy()
+        for _ in range(30):
+            F = 0.8 * (S @ F) + 0.2 * Y0
+        return F[:, 1] / (F.sum(axis=1) + 1e-12)
+
+    out = np.zeros(n)
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+    for tr, ho in skf.split(np.zeros(n_tr), y.astype(int)):
+        out[ho] = run(tr)[ho]
+    out[n_tr:] = run(np.arange(n_tr))[n_tr:]
+    return out
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+    s = spread_feature(train_smiles, train_y, test_smiles, seed)
+    n_tr = len(train_smiles)
+    X_tr = np.hstack([featurize(train_smiles), s[:n_tr, None]])
+    X_te = np.hstack([featurize(test_smiles), s[n_tr:, None]])
+    model.fit(X_tr, np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(X_te)[:, 1]
+>>>>>>> REPLACE
+-----

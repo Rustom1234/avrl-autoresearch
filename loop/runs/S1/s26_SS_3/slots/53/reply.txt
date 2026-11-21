@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+        c, r = best
+        k = rng.choice(np.argsort(r)[:4])
+=======
+        c, r = best
+        if time.time() - t0 > 0.85 * time_budget:
+            rmx = np.maximum(r[iu], r[ju])
+            rmn = np.maximum(np.minimum(r[iu], r[ju]), 1e-9)
+            ok = rmx / rmn > 1.3
+            dpair = np.sqrt((c[iu, 0] - c[ju, 0]) ** 2 + (c[iu, 1] - c[ju, 1]) ** 2)
+            touch = ok & (dpair - (r[iu] + r[ju]) < 1e-6)
+            if rng.random() < 0.5 and touch.any():
+                cand = np.where(touch)[0]
+            else:
+                cand = np.where(ok & ~touch)[0]
+                if len(cand) == 0:
+                    cand = np.where(ok)[0]
+            if len(cand) == 0:
+                continue
+            kk = rng.choice(cand)
+            a, b = iu[kk], ju[kk]
+            c0 = c.copy()
+            c0[[a, b]] = c0[[b, a]]
+            r0 = r * 0.98
+            r0[a] = r0[b] = 0.9 * (r[a] + r[b]) / 2
+            z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+            try:
+                res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                               constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                               options={"maxiter": 300, "ftol": 1e-11})
+            except Exception:
+                continue
+            out = finalize(res.x)
+            if out is None:
+                continue
+            c2, r2 = out
+            if r2.sum() > best_val:
+                best_val = r2.sum()
+                best = (c2, r2)
+            continue
+        k = rng.choice(np.argsort(r)[:4])
+>>>>>>> REPLACE
+-----

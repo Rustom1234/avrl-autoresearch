@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    rng = np.random.RandomState(7)
+    T = 0.002
+=======
+    rng = np.random.RandomState(7)
+    T = 0.002
+    mom = np.zeros((_N, 2))
+    rej_run = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c = cur_c.copy()
+        if rng.rand() < 0.5:
+=======
+        c = np.clip(cur_c + 0.5 * mom, 0.0, 1.0)
+        if rng.rand() < 0.5:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > cur_s or rng.rand() < np.exp((s - cur_s) / T):
+            cur_c, cur_r, cur_s = c.copy(), rv.copy(), s
+            if s > best_s:
+                best_c, best_r, best_s = c.copy(), rv.copy(), s
+    return best_c, _make_valid(best_c, best_r)
+=======
+        if s > cur_s or rng.rand() < np.exp((s - cur_s) / T):
+            mom = 0.7 * mom + (c - cur_c)
+            rej_run = 0
+            cur_c, cur_r, cur_s = c.copy(), rv.copy(), s
+            if s > best_s:
+                best_c, best_r, best_s = c.copy(), rv.copy(), s
+        else:
+            rej_run += 1
+            if rej_run >= 3:
+                mom = np.zeros((_N, 2))
+                rej_run = 0
+    return best_c, _make_valid(best_c, best_r)
+>>>>>>> REPLACE
+-----

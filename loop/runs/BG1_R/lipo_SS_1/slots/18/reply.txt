@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def minmax_kernel(A, B, tmax=10):
+    A, B = np.minimum(A, tmax), np.minimum(B, tmax)
+    inter = np.zeros((len(A), len(B)), dtype=np.float32)
+    for t in range(1, tmax + 1):
+        inter += (A >= t).astype(np.float32) @ (B >= t).astype(np.float32).T
+    union = A.sum(1)[:, None] + B.sum(1)[None, :] - inter
+    return inter / np.maximum(union, 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * p_tree + 0.5 * p_mlp
+=======
+    from sklearn.kernel_ridge import KernelRidge
+    ym = y.mean()
+    Mtr, Mte = Xtr[:, :N_BITS], Xte[:, :N_BITS]
+    krr = KernelRidge(alpha=0.5, kernel="precomputed").fit(minmax_kernel(Mtr, Mtr), y - ym)
+    p_krr = krr.predict(minmax_kernel(Mte, Mtr)) + ym
+    return (p_tree + p_mlp + p_krr) / 3
+>>>>>>> REPLACE
+-----

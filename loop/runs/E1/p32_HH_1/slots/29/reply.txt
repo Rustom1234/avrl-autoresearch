@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+def _sym_init(n, rng):
+    """Random half-packing mirrored by one of the 8 square symmetries, so starts lie in symmetric families."""
+    half = rng.uniform(INIT_LOW, 1 - INIT_LOW, ((n + 1) // 2, 2))
+    s = rng.integers(8)
+    img = (half[:, ::-1] if s & 1 else half).copy()
+    if s & 2:
+        img[:, 0] = 1 - img[:, 0]
+    if s & 4:
+        img[:, 1] = 1 - img[:, 1]
+    return np.clip(np.vstack([half, img])[:n] + rng.normal(0, 0.01, (n, 2)), 0, 1)
+
+
+def _solve_once(n, rng, init=None):
+    base = _sym_init(n, rng) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+-----

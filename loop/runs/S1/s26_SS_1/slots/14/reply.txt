@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _syminit(rng):
+    n = _N
+    m = int(rng.choice([0, 2, 4]))
+    k = (n - m) // 2
+    if rng.random() < 0.5:
+        f = rng.uniform(0.03, 0.97, (k, 2))
+        mir = f[:, ::-1]
+        t = rng.uniform(0.05, 0.95, m)
+        ax = np.stack([t, t], 1)
+    else:
+        f = np.stack([rng.uniform(0.03, 0.5, k), rng.uniform(0.03, 0.97, k)], 1)
+        mir = np.stack([1 - f[:, 0], f[:, 1]], 1)
+        ax = np.stack([np.full(m, 0.5), rng.uniform(0.05, 0.95, m)], 1)
+    c = np.vstack([f, mir, ax])
+    for t_ in range(10):
+        d2 = ((_GRID[:, None, :] - c[None, :, :]) ** 2).sum(2)
+        lab = d2.argmin(1)
+        cnt = np.bincount(lab, minlength=n)
+        sx = np.bincount(lab, weights=_GRID[:, 0], minlength=n)
+        sy = np.bincount(lab, weights=_GRID[:, 1], minlength=n)
+        ok = cnt > 0
+        c[ok, 0] = sx[ok] / cnt[ok]
+        c[ok, 1] = sy[ok] / cnt[ok]
+    c = c + rng.normal(0, 0.003, c.shape)
+    return np.clip(c, 0.02, 0.98)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            if u < 0.25:
+                c = _hexgrid(rng)
+            elif u < 0.5:
+                c = _hexinit(rng)
+            elif u < 0.75:
+                c = _syminit(rng)
+            else:
+                c = _physics(rng)
+>>>>>>> REPLACE
+-----

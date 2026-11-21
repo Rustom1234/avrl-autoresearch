@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+def xgb_features(smiles):
+=======
+def atompair_features(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def xgb_features(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    Ptr, Pte = atompair_features(train_smiles), atompair_features(test_smiles)
+    K_tr = 0.5 * tanimoto(Xtr, Xtr) + 0.5 * tanimoto(Ptr, Ptr)
+    K_te = 0.5 * tanimoto(Xte, Xtr) + 0.5 * tanimoto(Pte, Ptr)
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(K_tr, (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(K_te)
+>>>>>>> REPLACE
+-----

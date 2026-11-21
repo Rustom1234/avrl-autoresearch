@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def _optimize(x0, y0, r0):
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    # staged radius growth: cap radii at 0.08, 0.10, 0.12, then uncapped,
+    # warm-starting each SLSQP stage from the previous solution
+    for cap in (0.08, 0.10, 0.12, None):
+        hi = None if cap is None else cap
+        bnds = [(None, None)] * (2 * _N) + [(0.0, hi)] * _N
+        z_prev = z
+        try:
+            res = minimize(_obj, z_prev, jac=_obj_grad, constraints=cons,
+=======
+def _optimize(x0, y0, r0, w=None):
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    # staged radius growth: cap radii at 0.08, 0.10, 0.12, then uncapped,
+    # warm-starting each SLSQP stage from the previous solution
+    for si, cap in enumerate((0.08, 0.10, 0.12, None)):
+        hi = None if cap is None else cap
+        bnds = [(None, None)] * (2 * _N) + [(0.0, hi)] * _N
+        z_prev = z
+        if w is not None and si < 2:
+            ww = w
+
+            def f_obj(zz, ww=ww):
+                return -np.sum(ww * zz[2 * _N:])
+
+            def g_obj(zz, ww=ww):
+                g = np.zeros(3 * _N)
+                g[2 * _N:] = -ww
+                return g
+        else:
+            f_obj, g_obj = _obj, _obj_grad
+        try:
+            res = minimize(f_obj, z_prev, jac=g_obj, constraints=cons,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x, y = _optimize(x0, y0, r0)
+=======
+        w = np.clip(1.0 + 0.1 * rng.standard_normal(_N), 0.8, 1.2)
+        x, y = _optimize(x0, y0, r0, w)
+>>>>>>> REPLACE
+-----

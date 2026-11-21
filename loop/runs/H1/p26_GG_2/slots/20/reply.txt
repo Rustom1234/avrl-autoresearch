@@ -1,0 +1,166 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints Wings{"type": "ineq", "fun": cons},
+                   options DW{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    if n == 26:
+        # Solve for 25 circles first
+        c_25, r_25 = _solve_once(25, rng)
+        # Find best spot for the 26th circle (largest min distance to others and boundaries)
+        best_c = np.zeros(2)
+        max_min_dist = -1
+        for _ in range(100):
+            cand_c = rng.uniform(0.1, 0.9, 2)
+            dists = np.linalg.norm(c_25 - cand_c, axis=1)
+            # Distance to edges
+            dist_to_edges = np.minimum(np.minimum(cand_c[0], 1 - cand_c[0]), np.minimum(cand_c[1], 1 - cand_c[1]))
+            min_d = np.minimum(np.min(dists), dist_to_edges)
+            if min_d > max_min_dist:
+                max_min_dist = min_d
+                best_c = cand_c
+        
+        # Initial state for 26 circles
+        c = np.vstack([c_25, best_c])
+        r = np.append(r_25, max_min_dist)
+        x0 = np.concatenate([c.flatten(), r])
+        
+        iu = np.triu_indices(n, 1)
+        def cons(v):
+            c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+            return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+        
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})\n        return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints=","type": "ineq", "fun": cons},
+                   options ={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    if n == 26:
+        c_25, r_25 = _solve_once(25, rng)
+        best_c = np.zeros(2)
+        max_min_dist = -1
+        for _ in range(50):
+            cand_c = rng.uniform(0.1, 0.9, 2)
+            dists = np.linalg.norm(c_25 - cand_c, axis=1)
+            dist_to_edges = np.minimum(np.minimum(cand_c[0], 1 - cand_c[0]), np.minimum(cand_c[1], 1 - cand_c[1]))
+            min_d = np.minimum(np.min(dists), dist_to_edges)
+            if min_d > max_min_dist:
+                max_min_dist = min_d
+                best_c = cand_c
+        
+        c = np.vstack([c_25, best_c])
+        r = np.append(r_25, max_min_dist)
+        x0 = np.concatenate([c.flatten(), r])
+
+        iu = np.triu_indices(n, 1)
+        def cons(v):
+            c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+            return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints=","type": "ineq", "fun": cons},
+                       options ={"maxiter": MAX_ITER})
+        return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints=","type": "ineq", "fun": cons},
+                   options ={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    if n == 26:
+        c_25, r_25 = _solve_once(25, rng)
+        best_c = np.zeros(2)
+        max_min_dist = -1
+        for _ in range(100):
+            cand_c = rng.uniform(INIT_LOW, 1 - INIT_LOW, 2)
+            dists = np.linalg.norm(c_25 - cand_c, axis=1)
+            dist_to_edges = np.minimum(np.minimum(cand_c[0], 1 - cand_c[0]), np.minimum(cand_c[1], 1 - cand_c[1]))
+            min_d = np.minimum(np.min(dists), dist_to_edges)
+            if min_d > max_min_dist:
+                max_min_dist = min_d
+                best_c = cand_c
+        
+        c = np.vstack([c_25, best_c])
+        r = np.append(r_25, max_min_dist)
+        x0 = np.concatenate([c.flatten(), r])
+
+        iu = np.triu_indices(n, 1)
+        def cons(v):
+            c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+            return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})
+        return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

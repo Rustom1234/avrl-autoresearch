@@ -1,0 +1,210 @@
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+def _refine_remove_reinsert(n, c, r, rng):
+    k = rng.integers(2, 5)
+    indices = np.argsort(r)[:k]
+    c_base = np.delete(c, indices, axis=0)
+    r_base = np.delete(r, indices)
+    
+    # Sample points and find best for removed circles
+    samples = rng.uniform(0, 1, (2000, 2))
+    # Precompute distances to boundary and existing circles
+    # Distance to boundary is min(x, 1-x, y, 1-y) -> we use max distance to margin
+    dist_to_margin = np.minimum(samples[:, 0], 1 - samples[:, 0])
+    dist_to_margin = np.minimum(dist_to_margin, np.minimum(samples[:, 1], 1 - samples[:, 1]))
+    
+    # Distance to centers (rough approximation for speed)
+    dists_to_centers = np.sum((samples[:, None, :] - c_base[None, :, :])**2, axis=2)
+    # For simplicity, we use a score: dist_to_margin + max(dist to centers)
+    # But to be more accurate, we use min distance to any circle surface
+    # dist = min(dist_to_center - r_base)
+    score = dist_to_margin + np.max(np.sqrt(dists_to_centers) - r_base, axis=1)
+    
+    best_points = samples[np.argsort(score)[-k:]]
+    
+    c_new = np.vstack([c_base, best_points])
+    r_new = np.concatenate([r_base, np.full(k, INIT_RADIUS)])
+    
+    x0 = np.concatenate([c_new.flatten(), r_new])
+    iu = np.triu_indices(n, 1)
+    def cons(v):
+        c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+    
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})\n    if res.success: return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+    return c, r
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _refine_remove_reinsert(n, c, r, rng):
+    k = rng.integers(2, 5)
+    indices = np.argsort(r)[:k]
+    c_base = np.delete(c, indices, axis=0)
+    r_base = np.delete(r, indices)
+
+    samples = rng.uniform(0, 1, (2000, 2))
+    # Distance to boundary
+    dist_to_margin = np.minimum(np.minimum(samples[:, 0], 1 - samples[:, 0]),
+                                  np.minimum(samples[:, 1], 1 - samples[:, 1]))
+    # Distance to centers minus radii
+    # We use a robust heuristic: score = dist to boundary + min distance to any circle
+    dists = np.sqrt(((samples[:, None, :] - c_base[None, :, :])**2).sum(2))
+    # Subtracting r_base is tricky since they belong to different circles, 
+    # so we use a surrogate distance to centers to find open space
+    scores = dist_to_margin + np.min(dists, axis=1)
+    
+    best_points = samples[np.argsort(scores)[-k:]]
+    
+    c_new = np.vstack([c_base, best_points])
+    r_new = np.concatenate([r_base, np.full(k, INIT_RADIUS)])
+    
+    x0 = np.concatenate([c_new.flatten(), r_new])
+    iu = np.triu_indices(n, 1)
+    
+    def cons(v):
+        c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]])**2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+    
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    
+    if res.success:
+        return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+    return c, r
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={`{"type": "ineq", "fun": cons}`},
+                   options={`{"maxiter": MAX_ITER}`})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={`{"type": "ineq", "fun": cons}`},
+                   options={`{"maxiter": MAX_ITER}`})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+=======
+    # Final polish: one try to reinsert the k smallest circles
+    c, r = _refine_remove_reinsert(n, c, r, rng)
+    return best
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    
+    if best is not None:
+        c, r = _refine_remove_reinsert(n, c, r, rng)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+
+
+def _refine_remove_reinsert(n, c, r, rng):
+    k = rng.integers(2, 5)
+    indices = np.argsort(r)[:k]
+    c_base = np.delete(c, indices, axis=0)
+    r_base = np.delete(r, indices)
+
+    samples = rng.uniform(0, 1, (2000, 2))
+    # Distance to boundary
+    dist_to_margin = np.minimum(np.minimum(samples[:, 0], 1 - samples[:, 0]),
+                                  np.minimum(samples[:, 1], 1 - samples[:, 1]))
+    # Distance to centers
+    dists = np.sqrt(((samples[:, None, :] - c_base[None, :, :])**2).sum(2))
+    scores = dist_to_margin + np.min(dists, axis=1)
+    
+    best_points = samples[np.argsort(scores)[-k:]]
+    
+    c_new = np.vstack([c_base, best_points])
+    r_new = np.concatenate([r_base, np.full(k, INIT_RADIUS)])
+    
+    x0 = np.concatenate([c_new.flatten(), r_new])
+    iu = np.triu_indices(n, 1)
+    
+    def cons(v):
+        c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]])**2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+    
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={`{"type": "ineq", "fun": cons}`},
+                   options={`{"maxiter": MAX_ITER}`})
+    
+    if res.success:
+        return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+    return c, r
+-----

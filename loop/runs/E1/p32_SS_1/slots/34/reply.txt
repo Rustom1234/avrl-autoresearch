@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    c, r = best
+    try:
+        from scipy.optimize import linprog
+        i, j = np.triu_indices(n, 1)
+        m = len(i)
+        A = np.zeros((m, n))
+        A[np.arange(m), i] = 1
+        A[np.arange(m), j] = 1
+        d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+        wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+        res = linprog(-np.ones(n), A_ub=A, b_ub=d - 1e-11,
+                      bounds=[(0, max(w - 1e-11, 0)) for w in wall], method="highs")
+        if res.status == 0:
+            r2 = np.maximum(res.x, 0)
+            ok = np.all(d - r2[i] - r2[j] >= 0) and np.all(r2 <= wall)
+            if ok and r2.sum() > r.sum():
+                best = (c, r2)
+    except Exception:
+        pass
+    return best
+>>>>>>> REPLACE
+-----

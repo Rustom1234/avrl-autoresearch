@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def _slsqp_refine(c, r, maxiter=150):
+=======
+def _slsqp_refine(c, r, maxiter=150, w=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        pair = d - rr[iu] - rr[ju]
+=======
+        pair = d - rr[iu] - rr[ju]
+        if w is not None:
+            pair = w * pair
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _two_phase():
+=======
+def _mw_refine(c, r, rounds=4, maxiter=150, eta=0.5):
+    """Multiplicative-weights pair emphasis: reweight near-active pairs between SLSQP rounds."""
+    n = c.shape[0]
+    iu, ju = np.triu_indices(n, 1)
+    w = np.ones(iu.shape[0])
+    best_c, best_r, best_s = None, None, -1.0
+    cc, rr = np.asarray(c, dtype=float).copy(), np.asarray(r, dtype=float).copy()
+    for _ in range(rounds):
+        cc, rr = _slsqp_refine(cc, rr, maxiter, w)
+        rv, s = _score(cc)
+        if rv is not None and s > best_s:
+            best_s, best_c, best_r = s, cc.copy(), rv
+        gap = np.sqrt(np.sum((cc[iu] - cc[ju]) ** 2, axis=1)) - rr[iu] - rr[ju]
+        act = gap < 1e-4
+        w = w * np.exp(eta * act)
+        w = w / w.mean()
+    if best_c is None:
+        return cc, rr
+    return best_c, best_r
+
+
+def _two_phase():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _slsqp_refine(c, r)
+=======
+        c, r = _mw_refine(c, r)
+>>>>>>> REPLACE
+-----

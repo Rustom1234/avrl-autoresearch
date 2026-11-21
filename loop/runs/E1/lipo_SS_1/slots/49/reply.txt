@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    p_mlp = np.mean([
+        MLPRegressor(hidden_layer_sizes=(512, 256), alpha=1e-2, early_stopping=True,
+                     max_iter=300, random_state=seed + k).fit(Dtr, y).predict(Dte)
+        for k in range(5)], axis=0)
+    keep = (Xtr[:, :N_BITS] > 0).sum(axis=0) >= 10
+    Mtr = np.hstack([np.log1p(Xtr[:, :N_BITS][:, keep]), Dtr])
+    Mte = np.hstack([np.log1p(Xte[:, :N_BITS][:, keep]), Dte])
+    p_fp = np.mean([
+        MLPRegressor(hidden_layer_sizes=(256, 128), alpha=1e-1, early_stopping=True,
+                     max_iter=300, random_state=seed + 100 + k).fit(Mtr, y).predict(Mte)
+        for k in range(3)], axis=0)
+=======
+    Dnoisy = Dtr + np.random.RandomState(seed).normal(0, 0.1, Dtr.shape)
+    y2 = np.concatenate([y, y])
+    p_mlp = np.mean([
+        MLPRegressor(hidden_layer_sizes=(512, 256), alpha=1e-2, early_stopping=True,
+                     max_iter=300, random_state=seed + k).fit(np.vstack([Dtr, Dnoisy]), y2).predict(Dte)
+        for k in range(5)], axis=0)
+    keep = (Xtr[:, :N_BITS] > 0).sum(axis=0) >= 10
+    Ftr = np.log1p(Xtr[:, :N_BITS][:, keep])
+    Mtr = np.vstack([np.hstack([Ftr, Dtr]), np.hstack([Ftr, Dnoisy])])
+    Mte = np.hstack([np.log1p(Xte[:, :N_BITS][:, keep]), Dte])
+    p_fp = np.mean([
+        MLPRegressor(hidden_layer_sizes=(256, 128), alpha=1e-1, early_stopping=True,
+                     max_iter=300, random_state=seed + 100 + k).fit(Mtr, y2).predict(Mte)
+        for k in range(3)], axis=0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,46 @@
+== mean held-out progress per task (loops) ==
+| task | N | GG | HG | GH | HH | SS |
+|---|---|---|---|---|---|---|
+| bbb_martins | 0.069 (2) | 0.674 (2) | 0.577 (2) | 0.711 (2) | 0.722 (2) | 0.822 (2) |
+| caco2_wang | 0.076 (2) | 0.583 (2) | 0.738 (2) | 0.634 (2) | 0.954 (2) | 0.858 (2) |
+| clearance_hepatocyte_az | 0.601 (2) | 0.457 (2) | 0.605 (2) | 0.671 (2) | 0.597 (2) | 0.742 (2) |
+| lipophilicity_astrazeneca | 0.155 (2) | 0.509 (2) | 0.555 (2) | 0.737 (2) | 0.942 (2) | 0.854 (2) |
+| pack26 | 0.000 (3) | 0.000 (3) | 0.205 (3) | 0.561 (3) | 0.728 (3) | 0.561 (3) |
+| pack32 | 0.000 (3) | 0.118 (3) | 0.854 (3) | 0.745 (3) | 0.819 (3) | 0.551 (3) |
+
+== model dollars per loop, and coder slot outcomes ==
+
+### admet
+progress: N 0.225, GG 0.556, HG 0.619, GH 0.688, HH 0.804, SS 0.819
+cost USD: N 0.00, GG 0.26, HG 0.30, GH 0.35, HH 0.45, SS 1.60
+  GG slots 283: reject 40%, invalid 30%, crash 16%, abort 7%, replicate 4%, accept 3%
+  HG slots 252: reject 31%, invalid 28%, crash 27%, abort 5%, accept 5%, replicate 4%
+  GH slots 464: abort 47%, reject 44%, replicate 5%, accept 4%, crash 1%
+  HH slots 330: reject 62%, abort 17%, replicate 8%, accept 7%, crash 6%, infra 0%
+G gap: GG / HH = 0.69 (needs <= 0.67), HH above GG p = 0.0036 -> FAILS
+P planner: gap recovered by HG = 0.25 (95% -0.30 to 0.59; needs >= 0.5) -> descriptive; extra cost share 0.22; thesis metric 0.04 (95% -0.48 to 0.32)
+C coder: gap recovered by GH = 0.53 (95% 0.29 to 0.68; needs >= 0.5) -> descriptive; extra cost share 0.48; thesis metric 0.06 (95% -0.23 to 0.25)
+HG above GG p = 0.2078; GH above GG p = 0.0252; GH above HG p = 0.1243; HH above GH p = 0.0231
+
+### packing
+progress: N 0.000, GG 0.059, HG 0.529, GH 0.653, HH 0.774, SS 0.556
+cost USD: N 0.00, GG 0.26, HG 0.27, GH 0.39, HH 0.49, SS 1.83
+  GG slots 218: invalid 45%, reject 34%, crash 13%, abort 6%, replicate 1%, infra 1%
+  HG slots 214: invalid 47%, reject 27%, crash 16%, abort 9%, replicate 1%, accept 0%
+  GH slots 405: abort 62%, reject 33%, replicate 4%, accept 1%
+  HH slots 237: reject 81%, abort 8%, replicate 8%, crash 1%, accept 1%
+G gap: GG / HH = 0.08 (needs <= 0.67), HH above GG p = 0.0031 -> HOLDS
+P planner: gap recovered by HG = 0.66 (95% 0.36 to 1.01; needs >= 0.5) -> HOLDS; extra cost share 0.01; thesis metric 0.65 (95% 0.27 to 1.05)
+C coder: gap recovered by GH = 0.83 (95% 0.59 to 1.14; needs >= 0.5) -> HOLDS; extra cost share 0.54; thesis metric 0.29 (95% -0.03 to 0.70)
+HG above GG p = 0.0226; GH above GG p = 0.0024; GH above HG p = 0.2405; HH above GH p = 0.1703
+
+== idea-gap predictions ==
+1. GH >= 2/3 HH in 5 of 6 tasks (needs 5): bbb_martins, clearance_hepatocyte_az, lipophilicity_astrazeneca, pack26, pack32 -> HOLDS
+2. pooled gap recovered: GH 0.71, HG 0.49 -> HOLDS
+3. Spearman(score, HH - GH) = 0.37 -> HOLDS
+   bbb_martins score 1.62, HH - GH 0.011
+   caco2_wang score 1.75, HH - GH 0.320
+   clearance_hepatocyte_az score 1.72, HH - GH -0.074
+   lipophilicity_astrazeneca score 2.21, HH - GH 0.204
+   pack26 score 1.67, HH - GH 0.167
+   pack32 score 2.24, HH - GH 0.074

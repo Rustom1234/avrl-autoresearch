@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+=======
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    # Transductive kNN smoothing over the test set (Morgan Tanimoto, no labels used)
+    fp = (test_sets[0] > 0).astype(np.float32)
+    inter = fp @ fp.T
+    cnt = fp.sum(axis=1)
+    sim = inter / (cnt[:, None] + cnt[None, :] - inter + 1e-12)
+    np.fill_diagonal(sim, 0.0)
+    smoothed = total.copy()
+    for i in range(len(total)):
+        idx = np.argsort(-sim[i])[:5]
+        w = np.where(sim[i, idx] > 0.3, sim[i, idx], 0.0)
+        if w.sum() > 0:
+            smoothed[i] = 0.7 * total[i] + 0.3 * np.sum(w * total[idx]) / w.sum()
+    smoothed = rankdata(smoothed)
+    return (smoothed - smoothed.min()) / (smoothed.max() - smoothed.min() + 1e-12)
+>>>>>>> REPLACE
+-----

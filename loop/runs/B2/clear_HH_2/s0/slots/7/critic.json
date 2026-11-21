@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: I found no way around the measurement. The candidate reads no files, uses no network and pastes in no answers. It never uses test labels. The out-of-fold LightGBM predictions and the residual GP are built only from train_smiles and train_y, and test inputs are used only as prediction inputs.",
+  "Validity: I found no bug that makes the result meaningless. Folds are grouped by Murcko scaffold, so the inner validation matches the harness design. The diff does not show imports of GroupKFold and MurckoScaffold. The job ran and the harness raised no integrity flags, so they are probably already imported.",
+  "Minor modelling point, not a veto: the residual GP reuses s2, which choose_sigma2 picked for the raw target y, not for the residuals (y - oof). Its test-time base is the full-data LightGBM, while its training residuals come from out-of-fold models. Both are reasonable approximations.",
+  "Cost and complexity: the candidate adds 5 extra LightGBM fits per fold and a hard-coded 0.5/0.5 rank blend. That is more code for no measured gain.",
+  "Numbers: the candidate scored 0.4994 against an incumbent mean of 0.4968, so it is 0.0026 worse. With sd 0.0070, the standard error of the difference is 0.0070*sqrt(1 + 1/2) = 0.00857, giving z = -0.30. This matches the reported -0.301, and rejecting is correct."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -0.303
+ }
+}

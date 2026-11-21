@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _drop_one_phase(rng, t0, deadline):
+    """Solve 27 circles, drop each circle in turn, re-solve the remaining 26 with SLSQP.
+    Returns (sum, centers, radii) of the best feasible 26-circle result, or (-1, None, None)."""
+    best_sum, best_c, best_r = -1.0, None, None
+    for _ in range(3):
+        if time.time() - t0 > deadline:
+            break
+        try:
+            c27 = rng.uniform(0.05, 0.95, size=(27, 2))
+            r27 = np.full(27, 0.07) * rng.uniform(0.9, 1.1, size=27)
+            c27, r27 = _optimize(c27, r27)
+            r27 = _repair(c27, r27)
+        except Exception:
+            continue
+        for drop in range(27):
+            if time.time() - t0 > deadline:
+                break
+            try:
+                c0 = np.delete(c27, drop, axis=0)
+                r0 = np.delete(r27, drop)
+                c, r = _optimize(c0, np.maximum(r0, 0.01))
+                r = _repair(c, r)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+    return best_sum, best_c, best_r
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+=======
+    # Drop-one from 27-circle optima; keeps the result only if it beats the multi-start best
+    ds, dc, dr = _drop_one_phase(rng, t0, 170)
+    if dc is not None and ds > best_sum:
+        best_sum, best_c, best_r = ds, dc, dr
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Crippen
+=======
+from rdkit.Chem import Crippen
+from rdkit.Chem import rdPartialCharges
+from rdkit.Chem.EState import Fingerprinter
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.array([_DESC_CACHE[s] for s in smiles])
+=======
+    return np.array([_DESC_CACHE[s] for s in smiles])
+
+
+_EG_CACHE = {}
+
+
+def estate_gast_matrix(smiles):
+    # EState fingerprint (counts and index sums) plus mean/min/max Gasteiger charge, cached per SMILES
+    missing = [s for s in set(smiles) if s not in _EG_CACHE]
+    for s in missing:
+        m = Chem.MolFromSmiles(s)
+        counts, sums = Fingerprinter.FingerprintMol(m)
+        rdPartialCharges.ComputeGasteigerCharges(m)
+        q = np.array([a.GetDoubleProp("_GasteigerCharge") for a in m.GetAtoms()])
+        q = np.nan_to_num(q, nan=0.0, posinf=0.0, neginf=0.0)
+        g = [q.mean(), q.min(), q.max()] if len(q) else [0.0, 0.0, 0.0]
+        _EG_CACHE[s] = np.concatenate([np.asarray(counts, dtype=np.float64), np.asarray(sums, dtype=np.float64), g])
+    return np.array([_EG_CACHE[s] for s in smiles])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = np.hstack([X, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Xte, np.clip(Dte, lo, hi).astype(np.float32)])
+=======
+    X = np.hstack([X, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Xte, np.clip(Dte, lo, hi).astype(np.float32)])
+    X = np.hstack([X, estate_gast_matrix(train_smiles).astype(np.float32)])
+    Xte = np.hstack([Xte, estate_gast_matrix(test_smiles).astype(np.float32)])
+>>>>>>> REPLACE
+-----

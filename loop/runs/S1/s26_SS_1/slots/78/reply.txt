@@ -1,0 +1,71 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _ringint(rng):
+    n = _N
+    k = int(rng.integers(10, 15))
+    ins = 0.08
+    L = 1 - 2 * ins
+    off = rng.uniform(0, L / k)
+    pts = []
+    for q in range(k):
+        s = ((q * L / k) + off) % L * 4
+        side = int(s // L) if False else int(min(3, (s // (L))))
+        t = s - side * L
+        if side == 0:
+            p = [ins + t, ins]
+        elif side == 1:
+            p = [1 - ins, ins + t]
+        elif side == 2:
+            p = [1 - ins - t, 1 - ins]
+        else:
+            p = [ins, 1 - ins - t]
+        pts.append(p)
+    m = n - k
+    ptsa = np.array(pts, float)
+    # perimeter parameter spans 4L; recompute positions evenly over 4L
+    pts = []
+    for q in range(k):
+        s = (q + rng.uniform(0, 1)) * 4 * L / k if q == 0 else (q + 0) * 4 * L / k
+        s = (s + off * 4) % (4 * L)
+        side = min(3, int(s // L))
+        t = s - side * L
+        if side == 0:
+            p = [ins + t, ins]
+        elif side == 1:
+            p = [1 - ins, ins + t]
+        elif side == 2:
+            p = [1 - ins - t, 1 - ins]
+        else:
+            p = [ins, 1 - ins - t]
+        pts.append(p)
+    ring = np.array(pts, float)
+    g = 0.2 + 0.6 * (np.arange(60) + 0.5) / 60
+    G = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    c = rng.uniform(0.2, 0.8, (m, 2))
+    for _ in range(15):
+        d2 = ((G[:, None, :] - c[None, :, :]) ** 2).sum(2)
+        lab = d2.argmin(1)
+        for a in range(m):
+            sel = lab == a
+            if sel.any():
+                c[a] = G[sel].mean(0)
+    c = c + rng.normal(0, 0.01, c.shape)
+    out = np.vstack([ring + rng.normal(0, 0.005, ring.shape), c])
+    return np.clip(out, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            u = rng.random()
+            if u < 0.3:
+                c = _ringint(rng)
+            else:
+                u = rng.random()
+                c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+>>>>>>> REPLACE
+-----

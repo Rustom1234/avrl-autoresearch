@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    from sklearn.linear_model import Ridge
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+=======
+    from lightgbm import LGBMClassifier
+    edges = np.quantile(y, np.linspace(0, 1, 9)[1:-1])
+    cls = np.digitize(y, edges)
+    clf = LGBMClassifier(objective="multiclass", n_estimators=300, learning_rate=0.05, num_leaves=15,
+                         colsample_bytree=0.3, subsample=0.8, subsample_freq=1, n_jobs=8,
+                         random_state=seed, verbose=-1)
+    clf.fit(Xtr, cls)
+    mids = (np.arange(8) + 0.5) / 8
+    score = clf.predict_proba(Xte) @ mids[clf.classes_]
+    preds.append(rankdata(score) / len(score))
+    from sklearn.linear_model import Ridge
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+>>>>>>> REPLACE
+-----

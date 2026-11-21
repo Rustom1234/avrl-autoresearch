@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+def optimized_packing():
+=======
+def _soft(c, rng):
+    n = _N
+    i, j = _IU
+    r0 = np.minimum(rng.lognormal(np.log(0.07), 0.4, n), 0.2)
+    x0 = np.concatenate([c[:, 0], c[:, 1], r0])
+    for mu in [10, 100, 1e3, 1e4, 1e5]:
+        def f(x, mu=mu):
+            X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+            dx = X[i] - X[j]
+            dy = Y[i] - Y[j]
+            d = np.sqrt(dx * dx + dy * dy) + 1e-12
+            ov = np.maximum(0, R[i] + R[j] - d)
+            wl = np.maximum(0, R - X)
+            wr = np.maximum(0, R + X - 1)
+            wb = np.maximum(0, R - Y)
+            wt = np.maximum(0, R + Y - 1)
+            val = -R.sum() + mu * ((ov ** 2).sum() + (wl ** 2).sum() + (wr ** 2).sum()
+                                   + (wb ** 2).sum() + (wt ** 2).sum())
+            g = np.zeros(3 * n)
+            g[2 * n:] = -1
+            gp = 2 * mu * ov
+            np.add.at(g, 2 * n + i, gp)
+            np.add.at(g, 2 * n + j, gp)
+            np.add.at(g, i, -gp * dx / d)
+            np.add.at(g, j, gp * dx / d)
+            np.add.at(g, n + i, -gp * dy / d)
+            np.add.at(g, n + j, gp * dy / d)
+            g[:n] += 2 * mu * (-wl + wr)
+            g[n:2 * n] += 2 * mu * (-wb + wt)
+            g[2 * n:] += 2 * mu * (wl + wr + wb + wt)
+            return val, g
+        res = minimize(f, x0, jac=True, method="L-BFGS-B",
+                       bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n,
+                       options={"maxiter": 300})
+        x0 = res.x
+    return np.clip(np.stack([x0[:n], x0[n:2 * n]], 1), 0.01, 0.99)
+
+
+def optimized_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+=======
+            if rng.random() < 0.5:
+                c = _soft(c, rng)
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+>>>>>>> REPLACE
+-----

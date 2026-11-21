@@ -1,0 +1,119 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (binary classification; return the probability of class 1).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from scipy.stats import rankdata
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import GroupKFold
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import QuantileTransformer
+import itertools
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+K_NN = 15
+N_DESC = len(Descriptors.descList)
+MEMBERS = ["rf", "lgb", "cat", "knn", "mlp"]
+_LFC = rdMolStandardize.LargestFragmentChooser()
+_UNC = rdMolStandardize.Uncharger()
+
+
+def standardize(s):
+    m = Chem.MolFromSmiles(s)
+    try:
+        m2 = _UNC.uncharge(_LFC.choose(m))
+        if m2 is not None and m2.GetNumAtoms() > 0:
+            return m2
+    except Exception:
+        pass
+    return m
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = standardize(s)
+        fp = gen.GetCountFingerprintAsNumPy(m).astype(np.float32)
+        desc = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        rows.append(np.concatenate([desc, fp]))
+    X = np.array(rows, dtype=np.float64)
+    X = np.nan_to_num(X, nan=0.0, posinf=1e6, neginf=-1e6)
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+
+
+def tanimoto_knn(B_tr, y, B_te, k):
+    B_tr = B_tr.astype(np.float32)
+    B_te = B_te.astype(np.float32)
+    inter = B_te @ B_tr.T
+    sim = inter / (B_te.sum(1)[:, None] + B_tr.sum(1)[None, :] - inter + 1e-9)
+    idx = np.argsort(-sim, axis=1)[:, :k]
+    return y[idx].mean(axis=1)
+
+
+def fit_member(name, seed, X, y, Xt):
+    if name == "knn":
+        return tanimoto_knn(X[:, N_DESC:] > 0, y.astype(np.float64), Xt[:, N_DESC:] > 0, K_NN)
+    if name == "mlp":
+        qt = QuantileTransformer(n_quantiles=200, output_distribution="normal", random_state=seed)
+        Z = qt.fit_transform(X)
+        model = MLPClassifier((256, 64), early_stopping=True, max_iter=500, random_state=seed)
+        model.fit(Z, y)
+        return model.predict_proba(qt.transform(Xt))[:, 1]
+    if name == "rf":
+        model = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES,
+                                       min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    elif name == "lgb":
+        model = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=31, subsample=0.8, subsample_freq=1,
+                               colsample_bytree=0.3, n_jobs=8, random_state=seed, verbose=-1)
+    else:
+        model = CatBoostClassifier(iterations=500, learning_rate=0.05, depth=6, rsm=0.2, thread_count=8,
+                                   random_seed=seed, verbose=0)
+    model.fit(X, y)
+    return model.predict_proba(Xt)[:, 1]
+
+
+def choose_weights(P, y):
+    M = P.shape[1]
+    uni = np.full(M, 1.0 / M)
+    cands = [np.eye(M)[i] for i in range(M)]
+    for r in (2, 3):
+        for sub in itertools.combinations(range(M), r):
+            w = np.zeros(M)
+            w[list(sub)] = 1.0 / r
+            cands.append(w)
+    cands.append(uni)
+    best = max(cands, key=lambda w: roc_auc_score(y, P @ w))
+    return 0.5 * best + 0.5 * uni
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    Xt = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    scaffolds = [MurckoScaffold.MurckoScaffoldSmiles(s) for s in train_smiles]
+    _, inv = np.unique(scaffolds, return_inverse=True)
+    groups = np.random.RandomState(seed).permutation(inv.max() + 1)[inv]
+    oof = np.zeros((len(y), len(MEMBERS)))
+    for tr, va in GroupKFold(n_splits=5).split(X, y, groups):
+        for j, name in enumerate(MEMBERS):
+            oof[va, j] = fit_member(name, seed, X[tr], y[tr], X[va])
+    P = np.column_stack([rankdata(oof[:, j]) / len(y) for j in range(len(MEMBERS))])
+    w = choose_weights(P, y)
+    ranks = []
+    for name in MEMBERS:
+        p = fit_member(name, seed, X, y, Xt)
+        ranks.append(rankdata(p) / len(p))
+    return w @ np.array(ranks)

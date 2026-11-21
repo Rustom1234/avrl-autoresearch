@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    T_train, R_train = tanimoto(X, X), rbf(D, D, gamma)
+    T_test, R_test = tanimoto(Xt, X), rbf(Dt, D, gamma)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    ranks = []
+    for w in (0.35, 0.5, 0.65):
+        model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+        model.fit(w * T_train + (1 - w) * R_train, (y - mu) / sd)
+        ranks.append(rankdata(model.predict(w * T_test + (1 - w) * R_test)))
+    return np.mean(ranks, axis=0) / len(test_smiles)
+>>>>>>> REPLACE
+-----

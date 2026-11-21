@@ -1,0 +1,232 @@
+<<<<<<< SEARCH
+import numpy as np
+=======
+import numpy as np
+from scipy.optimize import linprog
+
+N_CIRCLES = 26
+_MARGIN = 1e-9
+
+
+def _lp_radii(centers):
+    """Exact LP: maximise sum of radii for fixed centers."""
+    n = centers.shape[0]
+    rows, rhs = [], []
+    for i in range(n):
+        for j in range(i + 1, n):
+            row = np.zeros(n)
+            row[i] = 1.0
+            row[j] = 1.0
+            rows.append(row)
+            rhs.append(np.sqrt(np.sum((centers[i] - centers[j]) ** 2)))
+    x = centers[:, 0]
+    y = centers[:, 1]
+    ub = np.maximum(np.minimum.reduce([x, y, 1.0 - x, 1.0 - y]), 0.0)
+    bounds = np.column_stack([np.zeros(n), ub])
+    res = linprog(-np.ones(n), A_ub=np.array(rows), b_ub=np.array(rhs),
+                  bounds=bounds, method="highs")
+    if res.status != 0 or res.x is None:
+        return np.zeros(n)
+    return res.x
+
+
+def _make_valid(centers, radii):
+    """Clip radii to walls, enforce pair constraints exactly, add tiny margin."""
+    n = centers.shape[0]
+    x = centers[:, 0]
+    y = centers[:, 1]
+    r = np.maximum(np.minimum.reduce([radii, x, y, 1.0 - x, 1.0 - y]), 0.0)
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = np.sqrt(np.sum((centers[i] - centers[j]) ** 2))
+            s = r[i] + r[j]
+            if s > d:
+                f = d / s if s > 0 else 0.0
+                r[i] *= f
+                r[j] *= f
+    r = r * (1.0 - _MARGIN)
+    return np.maximum(r, 0.0)
+
+
+def _relax(c, r, steps, lr_c, lr_r):
+    """Physics-style inflation: repulsion from overlaps and walls moves centers,
+    radii grow where there is free space and shrink where overlapping."""
+    n = r.shape[0]
+    eye = np.eye(n)
+    for k in range(steps):
+        decay = 1.0 - 0.9 * k / max(steps - 1, 1)
+        diff = c[:, None, :] - c[None, :, :]
+        d = np.sqrt(np.sum(diff ** 2, axis=-1) + eye)
+        gap = d - (r[:, None] + r[None, :])
+        np.fill_diagonal(gap, np.inf)
+        ov = np.maximum(-gap, 0.0)
+        unit = diff / d[:, :, None]
+        f = np.sum(ov[:, :, None] * unit, axis=1)
+        gl = c[:, 0] - r
+        gr = 1.0 - c[:, 0] - r
+        gb = c[:, 1] - r
+        gt = 1.0 - c[:, 1] - r
+        f[:, 0] += np.maximum(-gl, 0.0) - np.maximum(-gr, 0.0)
+        f[:, 1] += np.maximum(-gb, 0.0) - np.maximum(-gt, 0.0)
+        c = np.clip(c + lr_c * decay * f, 0.0, 1.0)
+        g = np.minimum(np.minimum.reduce([gl, gr, gb, gt]), gap.min(axis=1))
+        r = np.maximum(r + lr_r * decay * g, 0.0)
+    return c, r
+
+
+def _search(seed=2024, starts=40, steps=1500, hops=400):
+    rng = np.random.RandomState(seed)
+    n = N_CIRCLES
+    best_c, best_r, best_s = None, None, -1.0
+    for _ in range(starts):
+        c = rng.uniform(0.1, 0.9, size=(n, 2))
+        r = np.full(n, 0.01)
+        c, r = _relax(c, r, steps, 0.3, 0.05)
+        rv = _make_valid(c, _lp_radii(c))
+        s = rv.sum()
+        if s > best_s:
+            best_s, best_c, best_r = s, c.copy(), rv
+    cur_c, cur_r, cur_s = best_c, best_r, best_s
+    for h in range(hops):
+        sig = 0.05 * (1.0 - h / hops) + 0.005
+        c = np.clip(cur_c + rng.normal(0.0, sig, size=(n, 2)), 0.01, 0.99)
+        c, _ = _relax(c, cur_r.copy(), 300, 0.2, 0.02)
+        rv = _make_valid(c, _lp_radii(c))
+        s = rv.sum()
+        if s > cur_s + 1e-12:
+            cur_c, cur_r, cur_s = c.copy(), rv, s
+    return cur_c, cur_r
+
+
+def construct_packing():
+    """Return (centers, radii) for 26 circles in the unit square."""
+    centers, radii = _search()
+    return centers, radii
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _legacy_construct():
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+def compute_max_radii(centers):
+=======
+def _legacy_compute_max_radii(centers):
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+# EVOLVE-BLOCK-END
+=======
+from scipy.optimize import linprog
+import time as _time
+
+_N = 26
+_MARGIN = 1e-9
+
+
+def _lp_radii(c):
+    """Exact LP: maximise sum of radii for fixed centers."""
+    n = c.shape[0]
+    iu, ju = np.triu_indices(n, 1)
+    m = iu.shape[0]
+    d = np.sqrt(np.sum((c[iu] - c[ju]) ** 2, axis=1))
+    A = np.zeros((m, n))
+    A[np.arange(m), iu] = 1.0
+    A[np.arange(m), ju] = 1.0
+    x, y = c[:, 0], c[:, 1]
+    ub = np.maximum(np.minimum.reduce([x, y, 1.0 - x, 1.0 - y]), 0.0)
+    bounds = np.column_stack([np.zeros(n), ub])
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=bounds, method="highs")
+    if res.status != 0 or res.x is None:
+        return None
+    return res.x
+
+
+def _make_valid(c, r):
+    """Clip radii to walls, enforce pair constraints exactly, add tiny margin."""
+    n = c.shape[0]
+    x, y = c[:, 0], c[:, 1]
+    r = np.maximum(np.minimum.reduce([r, x, y, 1.0 - x, 1.0 - y]), 0.0)
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = np.sqrt(np.sum((c[i] - c[j]) ** 2))
+            s = r[i] + r[j]
+            if s > d:
+                f = d / s if s > 0 else 0.0
+                r[i] *= f
+                r[j] *= f
+    r = r * (1.0 - _MARGIN)
+    return np.maximum(r, 0.0)
+
+
+def _relax(c, r, steps, lr_c, lr_r):
+    """Repulsion from overlaps and walls moves centers; radii grow into free space."""
+    n = r.shape[0]
+    eye = np.eye(n)
+    for k in range(steps):
+        decay = 1.0 - 0.9 * k / max(steps - 1, 1)
+        diff = c[:, None, :] - c[None, :, :]
+        d = np.sqrt(np.sum(diff ** 2, axis=-1) + eye)
+        gap = d - (r[:, None] + r[None, :])
+        np.fill_diagonal(gap, np.inf)
+        ov = np.maximum(-gap, 0.0)
+        unit = diff / d[:, :, None]
+        f = np.sum(ov[:, :, None] * unit, axis=1)
+        gl = c[:, 0] - r
+        gr = 1.0 - c[:, 0] - r
+        gb = c[:, 1] - r
+        gt = 1.0 - c[:, 1] - r
+        f[:, 0] += np.maximum(-gl, 0.0) - np.maximum(-gr, 0.0)
+        f[:, 1] += np.maximum(-gb, 0.0) - np.maximum(-gt, 0.0)
+        c = np.clip(c + lr_c * decay * f, 0.0, 1.0)
+        g = np.minimum(np.minimum.reduce([gl, gr, gb, gt]), gap.min(axis=1))
+        r = np.maximum(r + lr_r * decay * g, 0.0)
+    return c, r
+
+
+def _score(c):
+    r = _lp_radii(c)
+    if r is None:
+        return None, -1.0
+    rv = _make_valid(c, r)
+    return rv, float(rv.sum())
+
+
+def construct_packing():
+    """Inflation relaxation multistart, then basin hopping on the LP-scored packing."""
+    rng = np.random.RandomState(2024)
+    t0 = _time.time()
+    best_c = rng.uniform(0.1, 0.9, size=(_N, 2))
+    best_r = np.zeros(_N)
+    best_s = 0.0
+    for _ in range(30):
+        c = rng.uniform(0.1, 0.9, size=(_N, 2))
+        r = np.full(_N, 0.01)
+        c, r = _relax(c, r, 1200, 0.3, 0.05)
+        rv, s = _score(c)
+        if rv is not None and s > best_s:
+            best_s, best_c, best_r = s, c.copy(), rv
+        if _time.time() - t0 > 100:
+            break
+    cur_c, cur_r, cur_s = best_c.copy(), best_r.copy(), best_s
+    while _time.time() - t0 < 180:
+        c = cur_c.copy()
+        k = rng.randint(1, 4)
+        idx = rng.choice(_N, k, replace=False)
+        c[idx] = rng.uniform(0.05, 0.95, size=(k, 2))
+        c = np.clip(c + rng.normal(0.0, 0.01, size=c.shape), 0.0, 1.0)
+        r0 = np.maximum(cur_r * 0.8, 0.0)
+        c, _ = _relax(c, r0, 300, 0.1, 0.02)
+        rv, s = _score(c)
+        if rv is not None and s > cur_s + 1e-9:
+            cur_c, cur_r, cur_s = c.copy(), rv, s
+    centers = cur_c
+    radii = _make_valid(centers, cur_r)
+    return centers, radii
+
+
+# EVOLVE-BLOCK-END
+>>>>>>> REPLACE
+-----

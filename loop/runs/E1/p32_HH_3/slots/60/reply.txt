@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    sigma, hist = 0.02, []   # one-fifth rule: sigma adapts to the basin-hopping success rate
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, sigma, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, sigma, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        improved = r.sum() > best[1].sum()
+        if improved:
+            best = (c, r)
+        hist.append(improved)
+        if len(hist) % 20 == 0:
+            rate = np.mean(hist[-20:])
+            sigma = float(np.clip(sigma * (1.2 if rate > 0.2 else 0.85), 0.001, 0.1))
+    return best
+>>>>>>> REPLACE
+-----

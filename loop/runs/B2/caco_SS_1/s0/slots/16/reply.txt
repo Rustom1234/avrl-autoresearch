@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles)[:, :nd], y)
+    et = model.predict(featurize(test_smiles)[:, :nd])
+    knn = knn_predict(train_smiles, y, test_smiles)
+    return 0.75 * et + 0.25 * knn
+=======
+    Xtr = featurize(train_smiles)[:, :nd]
+    Xte = featurize(test_smiles)[:, :nd]
+    model.fit(Xtr, y)
+    et = model.predict(Xte)
+    knn = knn_predict(train_smiles, y, test_smiles)
+    from sklearn.linear_model import RidgeCV
+    lo, hi = np.percentile(Xtr, 1, axis=0), np.percentile(Xtr, 99, axis=0)
+    Xtr = np.clip(Xtr, lo, hi)
+    Xte = np.clip(Xte, lo, hi)
+    mu, sd = Xtr.mean(0), Xtr.std(0)
+    sd[sd < 1e-12] = 1.0
+    ridge = RidgeCV(alphas=np.logspace(-1, 3, 13)).fit((Xtr - mu) / sd, y)
+    lin = ridge.predict((Xte - mu) / sd)
+    return 0.65 * et + 0.20 * knn + 0.15 * lin
+>>>>>>> REPLACE
+-----

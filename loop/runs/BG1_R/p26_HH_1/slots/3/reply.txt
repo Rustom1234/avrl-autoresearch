@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+=======
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def cons_jac(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        ii, jj = iu
+        m, a, k = len(ii), np.arange(n), np.arange(len(ii))
+        J = np.zeros((m + 5 * n, 3 * n))
+        diff = c[ii] - c[jj]
+        u = diff / np.maximum(np.sqrt((diff ** 2).sum(1)), 1e-12)[:, None]
+        J[k, 2 * ii] = u[:, 0]
+        J[k, 2 * ii + 1] = u[:, 1]
+        J[k, 2 * jj] = -u[:, 0]
+        J[k, 2 * jj + 1] = -u[:, 1]
+        J[k, 2 * n + ii] = -1
+        J[k, 2 * n + jj] = -1
+        o = m + a
+        J[o, 2 * a] = 1
+        J[o, 2 * n + a] = -1
+        o = m + n + a
+        J[o, 2 * a + 1] = 1
+        J[o, 2 * n + a] = -1
+        o = m + 2 * n + a
+        J[o, 2 * a] = -1
+        J[o, 2 * n + a] = -1
+        o = m + 3 * n + a
+        J[o, 2 * a + 1] = -1
+        J[o, 2 * n + a] = -1
+        o = m + 4 * n + a
+        J[o, 2 * n + a] = 1
+        return J
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    jac_obj = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, jac=lambda v: jac_obj, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons, "jac": cons_jac}, options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+-----

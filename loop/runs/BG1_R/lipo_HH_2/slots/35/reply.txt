@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+N_ESTIMATORS = 800
+=======
+N_ESTIMATORS = 400
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(X):
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed)
+    meta = LinearRegression(positive=True).fit(oof, y)
+    return meta.predict(base_predict(X, y, Xte, seed)) + a + b * Lte
+=======
+    preds = []
+    for s in (seed, seed + 1000):
+        oof = np.zeros((len(y), 3))
+        for tr, va in KFold(5, shuffle=True, random_state=s).split(X):
+            oof[va] = base_predict(X[tr], y[tr], X[va], seed)
+        meta = LinearRegression(positive=True).fit(oof, y)
+        preds.append(meta.predict(base_predict(X, y, Xte, seed)))
+    return np.mean(preds, axis=0) + a + b * Lte
+>>>>>>> REPLACE
+-----

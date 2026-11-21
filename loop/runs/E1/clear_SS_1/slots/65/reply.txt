@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from rdkit import DataStructs
+from rdkit.ML.Cluster import Butina
+
+
+def smooth_target(smiles, y, thr=0.35, w=0.2):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+    fps = [gen.GetFingerprint(Chem.MolFromSmiles(s)) for s in smiles]
+    dists = []
+    for i in range(1, len(fps)):
+        sims = DataStructs.BulkTanimotoSimilarity(fps[i], fps[:i])
+        dists.extend(1.0 - np.asarray(sims))
+    clusters = Butina.ClusterData(dists, len(fps), thr, isDistData=True)
+    out = y.copy()
+    for c in clusters:
+        if len(c) > 1:
+            idx = list(c)
+            out[idx] = (1 - w) * y[idx] + w * y[idx].mean()
+    return rankdata(out) / len(out)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+=======
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    y = smooth_target(train_smiles, y)
+>>>>>>> REPLACE
+-----

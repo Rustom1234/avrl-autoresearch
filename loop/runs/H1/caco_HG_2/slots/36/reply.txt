@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred
+=======
+    # XGB ensemble on fingerprints + descriptors to predict residuals
+    xgb_models = []
+    for k in range(5):
+        m = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                           max_depth=6, subsample=0.8, colsample_bytree=0.3, 
+                           objective='reg:absoluteerror', n_jobs=-1, random_state=seed + k)
+        m.fit(X_all, oof_res)
+        xgb_models.append(m)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = np.mean([m.predict(X_test) for m in xgb_models], axis=0)
+    
+    return ridge_pred + xgb_res_pred
+-----
+<<<<<<< SEARCH
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred
+=======
+    # XGB ensemble on fingerprints + descriptors to predict residuals
+    xgb_models = []
+    for k in range(5):
+        m = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                           max_depth=6, subsample=0.8, colsample_bytree=0.3, 
+                           objective='reg:absoluteerror', n_jobs=-1, random_state=seed + k)
+        m.fit(X_all, oof_res)
+        xgb_models.append(m)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = np.mean([m.predict(X_test) for m in xgb_models], axis=0)
+    
+    return ridge_pred + xgb_res_pred
+>>>>>>> REPLACE
+-----

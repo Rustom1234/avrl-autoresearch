@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def leaf_onehot(leaves, width=31):
+    # one-hot encode (tree, leaf) pairs; width = num_leaves of the LightGBM model
+    n, T = leaves.shape
+    X = np.zeros((n, width * T))
+    X[np.arange(n)[:, None], leaves + width * np.arange(T)[None, :]] = 1.0
+    return X
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lgbm.fit(desc_features(train_smiles), y)
+    p_desc = lgbm.predict(desc_features(test_smiles))
+=======
+    D_tr, D_te = desc_features(train_smiles), desc_features(test_smiles)
+    lgbm.fit(D_tr, y)
+    p_desc = lgbm.predict(D_te)
+    L_tr = leaf_onehot(lgbm.predict(D_tr, pred_leaf=True))
+    L_te = leaf_onehot(lgbm.predict(D_te, pred_leaf=True))
+    K_leaf = tanimoto(L_tr, L_tr)
+    s2_leaf = choose_sigma2(K_leaf, y, train_smiles)
+    p_leaf = gp_mean(K_leaf, y, tanimoto(L_te, L_tr), s2_leaf)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    return (rankdata(p_desc) + rankdata(p_fp) + rankdata(p_leaf)) / (3 * n)
+>>>>>>> REPLACE
+-----

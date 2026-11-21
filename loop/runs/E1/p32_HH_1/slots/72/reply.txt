@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+=======
+def _solve_once(n, rng, init=None, skip=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+=======
+    pi, pj = np.triu_indices(n, 1)
+    if skip is not None:  # release one contact constraint
+        keep = ~((pi == skip[0]) & (pj == skip[1]))
+        pi, pj = pi[keep], pj[keep]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+=======
+        d = np.sqrt(((c[pi] - c[pj]) ** 2).sum(1)) - r[pi] - r[pj]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        skip = None
+        if guided:  # pick one contact pair of the incumbent to release
+            gap = np.sqrt(((best[0][:, None] - best[0][None]) ** 2).sum(-1)) - best[1][:, None] - best[1][None]
+            ii, jj = np.where(np.triu(gap < 1e-6, 1))
+            if len(ii):
+                k = rng.integers(len(ii))
+                skip = (ii[k], jj[k])
+        c, r = _solve_once(n, rng, best[0] if guided else None, skip)
+>>>>>>> REPLACE
+-----

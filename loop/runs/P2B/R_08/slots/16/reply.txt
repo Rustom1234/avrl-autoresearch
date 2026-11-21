@@ -1,0 +1,16 @@
+<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    # Layerwise gradient scaling: depths are scaled by depth_order/8 to balance gradients.
+    scaled_grads = []
+    for p, G in zip(model.parameters(), FAD.get_grad()):
+        d = FAD.layer_order if hasattr(FAD, 'layer_order') else 8
+        s = 1.0 / ((d + 1) / 8.0)
+        G.data = G * s
+        scaled_grads.append(G)
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+}
+-----

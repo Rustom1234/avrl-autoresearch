@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.svm import SVR
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * rankdata(p_rf) + 0.5 * rankdata(p_gbm)
+=======
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=200, random_state=seed)
+    Qtr = qt.fit_transform(Xtr[:, :nd])
+    Qte = qt.transform(Xte[:, :nd])
+    ys = (y - y.mean()) / (y.std() + 1e-9)
+    svr = SVR(C=1.0, epsilon=0.1, gamma='scale')
+    svr.fit(Qtr, ys)
+    p_svr = svr.predict(Qte)
+    return rankdata(p_rf) + rankdata(p_gbm) + rankdata(p_svr)
+>>>>>>> REPLACE
+-----

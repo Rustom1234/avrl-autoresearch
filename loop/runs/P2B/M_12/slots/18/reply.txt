@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+    def forward(self, idx, targets=None, reduction='mean'):
+=======
+    def forward(self, idx, targets=None, reduction='mean', byte_weighted=False):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+=======
+        if targets is not None and byte_weighted:
+            t = targets.view(-1)
+            valid = (t != -1).float()
+            per_tok = F.cross_entropy(logits.view(-1, logits.size(-1)), t,
+                                      ignore_index=-1, reduction='none')
+            w = self.byte_lens[t.clamp_min(0)] * valid
+            return (per_tok * w).sum() / w.sum().clamp_min(1.0)
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+# Per-token UTF-8 byte length lookup (used only for byte-weighted training loss)
+byte_lens = torch.tensor([len(tokenizer.decode([i]).encode("utf-8")) for i in range(vocab_size)],
+                         dtype=torch.float32, device=device)
+model.byte_lens = byte_lens
+
+model = torch.compile(model, dynamic=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            loss = model(x, y)
+=======
+            loss = model(x, y, byte_weighted=True)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    def forward(self, idx, targets=None, reduction='mean', byte_weighted=False):
+=======
+    def forward(self, idx, targets=None, reduction='mean'):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if targets is not None and byte_weighted:
+            t = targets.view(-1)
+            valid = (t != -1).float()
+            per_tok = F.cross_entropy(logits.view(-1, logits.size(-1)), t,
+                                      ignore_index=-1, reduction='none')
+            w = self.byte_lens[t.clamp_min(0)] * valid
+            return (per_tok * w).sum() / w.sum().clamp_min(1.0)
+        if targets is not None:
+=======
+        if targets is not None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        with autocast_ctx:
+            loss = model(x, y, byte_weighted=True)
+=======
+        with autocast_ctx:
+            logits = model(x)
+            t = y.view(-1)
+            valid = (t != -1).float()
+            per_tok = F.cross_entropy(logits.view(-1, logits.size(-1)), t,
+                                      ignore_index=-1, reduction='none')
+            w = byte_lens[t.clamp_min(0)] * valid
+            loss = (per_tok * w).sum() / w.sum().clamp_min(1.0)
+>>>>>>> REPLACE
+-----

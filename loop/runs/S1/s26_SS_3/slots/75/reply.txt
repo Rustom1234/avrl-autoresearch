@@ -1,0 +1,74 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    best = None
+    best_val = -1.0
+    it = 0
+    pool = []
+
+    def add_pool(v, c, r):
+        sr = np.sort(r)
+        for pv, pc, pr in pool:
+            if np.max(np.abs(np.sort(pr) - sr)) <= 1e-3:
+                return
+        if len(pool) < 8:
+            pool.append((v, c, r))
+        else:
+            w = min(range(len(pool)), key=lambda q: pool[q][0])
+            if v > pool[w][0]:
+                pool[w] = (v, c, r)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        v = r.sum()
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+    while best is not None and time.time() - t0 < time_budget:
+=======
+        v = r.sum()
+        add_pool(v, c, r)
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+    while pool and time.time() - t0 < time_budget:
+        _, pc, pr = pool[int(rng.integers(len(pool)))]
+        c0 = pc.copy()
+        r0 = pr.copy()
+        kk = int(rng.integers(3, 7))
+        if rng.random() < 0.5:
+            for _ in range(max(1, kk // 2)):
+                i = int(rng.integers(n))
+                j = int(rng.integers(n))
+                if abs(r0[i] - r0[j]) > 1e-3:
+                    c0[[i, j]] = c0[[j, i]]
+        else:
+            for k in rng.choice(n, kk, replace=False):
+                keep = np.arange(n) != k
+                P = rng.random((3000, 2))
+                dd = np.sqrt(((P[:, None, :] - c0[keep][None]) ** 2).sum(2)) - r0[keep][None]
+                clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+                top = np.argsort(-clear)[:10]
+                c0[k] = P[rng.choice(top)]
+                r0[k] = 0.03
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = r0 * 0.9
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 200, "ftol": 1e-11})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is None:
+            continue
+        c2, r2 = out
+        add_pool(r2.sum(), c2, r2)
+        if r2.sum() > best_val:
+            best_val = r2.sum()
+            best = (c2, r2)
+    while False:
+>>>>>>> REPLACE
+-----

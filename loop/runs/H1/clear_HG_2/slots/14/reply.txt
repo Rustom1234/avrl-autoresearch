@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+=======
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen_morgan = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    gen_atom_pair = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=1024)
+    gen_torsion = rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=1024)
+    
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp_morgan = gen_morgan.GetFingerprintAsNumPy(mol)
+        fp_atom_pair = gen_atom_pair.GetFingerprintAsNumPy(mol)
+        fp_torsion = gen_torsion.GetFingerprintAsNumPy(mol)
+        
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        
+        combined = np.concatenate([fp_morgan, fp_atom_pair, fp_torsion, desc])
+        feats.append(combined)
+    return np.array(feats, dtype=np.float32)
+>>>>>>> REPLACE
+-----

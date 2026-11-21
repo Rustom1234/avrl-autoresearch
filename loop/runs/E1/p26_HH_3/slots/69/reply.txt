@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _block(c, r, act):
+    """Optimise only the circles in act; the others stay fixed as obstacles."""
+    n, m = len(r), len(act)
+    iu = np.triu_indices(n, 1)
+    keep = np.isin(iu[0], act) | np.isin(iu[1], act)
+    pi, pj = iu[0][keep], iu[1][keep]
+
+    def full(v):
+        ca, ra = c.copy(), r.copy()
+        ca[act], ra[act] = v[:2 * m].reshape(m, 2), v[2 * m:]
+        return ca, ra
+
+    def cons(v):
+        ca, ra = full(v)
+        d = np.sqrt(((ca[pi] - ca[pj]) ** 2).sum(1)) - ra[pi] - ra[pj]
+        x, y = ca[act, 0], ca[act, 1]
+        rr = ra[act]
+        return np.concatenate([d, x - rr, y - rr, 1 - x - rr, 1 - y - rr, rr])
+
+    x0 = np.concatenate([c[act].ravel(), r[act]])
+    res = minimize(lambda v: -v[2 * m:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return full(res.x)
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+=======
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+            act = rng.choice(n, n // 2, replace=False)
+            c3, r3 = _block(c, r, act)
+            c3, r3 = _optimise(n, np.concatenate([np.clip(c3, 0, 1).ravel(), np.maximum(r3, 0)]))
+            c3 = np.clip(c3, 0, 1)
+            r3 = _repair(c3, r3)
+            if r3.sum() > r.sum():
+                c, r = c3, r3
+    return c, r
+>>>>>>> REPLACE
+-----

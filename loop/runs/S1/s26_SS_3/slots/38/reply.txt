@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 3 == 0:
+            r0 = np.array([0.13] * 4 + [0.11] * 8 + [0.09] * 14)
+            c0 = np.zeros((n, 2))
+            corners = [(0, 0), (1, 0), (0, 1), (1, 1)]
+            for q in range(n):
+                rq = r0[q]
+                for _t in range(300):
+                    if q < 4:
+                        cx, cy = corners[q]
+                        p = np.array([abs(cx - rq), abs(cy - rq)])
+                        p = p + rng.normal(0, 0.01, 2)
+                    elif q < 12:
+                        side = rng.integers(4)
+                        u = rng.random() * (1 - 2 * rq) + rq
+                        p = [np.array([u, rq]), np.array([u, 1 - rq]),
+                             np.array([rq, u]), np.array([1 - rq, u])][side]
+                    else:
+                        p = rng.random(2) * (1 - 2 * rq) + rq
+                    if q == 0:
+                        break
+                    dmin = np.sqrt(((c0[:q] - p) ** 2).sum(1)) - 0.8 * (r0[:q] + rq)
+                    if dmin.min() >= 0:
+                        break
+                c0[q] = np.clip(p, 0.02, 0.98)
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+>>>>>>> REPLACE
+-----

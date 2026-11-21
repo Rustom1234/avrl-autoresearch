@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS)])
+=======
+def _greedy_start(n, rng):
+    """Bottom-left greedy fill: random target radii, each circle placed on the grid point allowing the largest radius."""
+    g = np.linspace(0, 1, 20)
+    gx, gy = np.meshgrid(g, g)
+    pts = np.stack([gx.ravel(), gy.ravel()], 1)   # ordered by y then x, so argmax ties go bottom-left
+    wall = np.minimum(np.minimum(pts[:, 0], pts[:, 1]), np.minimum(1 - pts[:, 0], 1 - pts[:, 1]))
+    targets = rng.uniform(0.06, 0.2, n)[rng.permutation(n)]
+    c, r = np.zeros((0, 2)), np.zeros(0)
+    for t in targets:
+        free = wall
+        if len(r):
+            d = np.sqrt(((pts[:, None] - c[None]) ** 2).sum(-1))
+            free = np.minimum(wall, (d - r[None]).min(1))
+        i = np.argmax(free)
+        c = np.vstack([c, pts[i]])
+        r = np.append(r, max(min(t, free[i]), 0))
+    return c.ravel(), r
+
+
+def _solve_once(n, centers0, radii0=None):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS) if radii0 is None else radii0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for _, p in pool[:KEEP]:
+            c, r = _solve_once(n, p)
+=======
+        for _, p in pool[:KEEP]:
+            p, r0 = _greedy_start(n, rng) if rng.random() < 0.5 else (p, None)
+            c, r = _solve_once(n, p, r0)
+>>>>>>> REPLACE
+-----

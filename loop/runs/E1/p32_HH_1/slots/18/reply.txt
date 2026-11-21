@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+def _halton_pool(rng, m):
+    """m scrambled Halton points (bases 2 and 3) over [0.05, 0.95]^2; digit permutations and start index from rng."""
+    idx = rng.integers(1, 10000) + np.arange(m)
+    cols = []
+    for b in (2, 3):
+        perm = rng.permutation(b)
+        f, r, i = 1.0, np.zeros(m), idx.copy()
+        while i.any():
+            f /= b
+            r += f * perm[i % b]
+            i //= b
+        cols.append(r)
+    return 0.05 + 0.9 * np.column_stack(cols)
+
+
+def _solve_once(n, rng, init=None, pts=None):
+    base = pts if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    pool, k = _halton_pool(rng, 200 * n), 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        pts = pool[np.arange(k, k + n) % len(pool)]
+        k += n
+        c, r = _solve_once(n, rng, best[0] if guided else None, pts)
+>>>>>>> REPLACE
+-----

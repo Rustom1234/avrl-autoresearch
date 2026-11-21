@@ -1,0 +1,181 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors, AllChem
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles, seed=None):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        
+        # 3D Shape Descriptors
+        try:
+            mol = Chem.AddHs(mol)
+            params = AllChem.ETKDG() 
+                .SetSeed(seed) 
+                .SetParameter(AllChem.ETKDGParams.UseSoftSpJones, True)
+            AllChem.EmbedMolecule(mol, params, useExplicitSolvation=False)
+            AllChem.MMFFOptimizeMolecule(mol, max_iter=100)
+            
+            shape_desc = np.array([
+                Descriptors.CalcPBF(mol), Descriptors.CalcPMI1(mol), 
+                Descriptors.CalcPMI2(mol), Descriptors.CalcPMI3(mol),
+                Descriptors.CalcNPR1(mol), Descriptors.CalcNPR2(mol),
+                Descriptors.CalcRadiusOfGyration(mol), Descriptors.CalcSpherocityIndex(mol)
+            ])
+        except:
+            shape_desc = np.zeros(8)
+            
+        feats.append(np.concatenate([fp, desc, shape_desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles, seed=seed)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles, seed=seed))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors, AllChem
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles, seed=None):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        
+        try:
+            m_h = Chem.AddHs(mol)
+            params = AllChem.ETKDG()
+            if seed is not None: params.SetSeed(seed)
+            params.SetParameter(AllChem.ETKDGParams.UseSoftSpJones, True)
+            AllChem.EmbedMolecule(m_h, params, useExplicitSolvation=False)
+            AllChem.MMFFOptimizeMolecule(m_h, max_iter=100)
+            
+            shape_desc = np.array([Descriptors.CalcPBF(m_h), Descriptors.CalcPMI1(m_h),
+                                    Descriptors.CalcPMI2(m_h), Descriptors.CalcPMI3(m_h),
+                                    Descriptors.CalcNPR1(m_h), Descriptors.CalcNPR2(m_h),
+                                    Descriptors.CalcRadiusOfGyration(m_h), Descriptors.CalcSpherocityIndex(m_h)])
+        except:
+            shape_desc = np.zeros(8)
+            
+        feats.append(np.concatenate([fp, desc, shape_desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles, seed=seed)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles, seed=seed))
+>>>>>>> REPLACE
+-----

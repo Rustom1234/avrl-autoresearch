@@ -1,0 +1,25 @@
+<<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.model_selection import KFold
+from sklearn.base import clone
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+=======
+    oof = np.zeros(len(y))
+    for tr_idx, va_idx in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        oof[va_idx] = clone(model).fit(Xtr[tr_idx], y[tr_idx]).predict(Xtr[va_idx])
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y - oof)
+    return p_lgb + 0.7 * svr.predict(Ste)
+>>>>>>> REPLACE
+-----

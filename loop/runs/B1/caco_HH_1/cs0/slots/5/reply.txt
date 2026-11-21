@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    A = Xtr[:, :N_BITS].astype(np.float64)
+    B = Xte[:, :N_BITS].astype(np.float64)
+
+    def tani(P, Q):
+        K = np.empty((len(P), len(Q)))
+        sp, sq = P.sum(1), Q.sum(1)
+        for i in range(len(P)):
+            mn = np.minimum(P[i], Q).sum(1)
+            K[i] = mn / np.maximum(sp[i] + sq - mn, 1e-9)
+        return K
+
+    from sklearn.svm import SVR
+    svr = SVR(kernel='precomputed', C=1.0, epsilon=0.05).fit(tani(A, A), y - base_tr)
+    svr_pred = svr.predict(tani(B, A))
+    return base_te + 0.5 * stage2.predict(Xte) + 0.5 * svr_pred
+>>>>>>> REPLACE
+-----

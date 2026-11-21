@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    mlp = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True, max_iter=300,
+                        random_state=seed)
+    mlp.fit(Dq, y)
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+=======
+    p = np.zeros(len(Xt))
+    for k in range(3):
+        rng = np.random.RandomState(seed + k)
+        Da = np.vstack([Dq] + [Dq + rng.normal(0, 0.1, Dq.shape) for _ in range(2)])
+        ya = np.tile(y, 3)
+        mlp = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True, max_iter=300,
+                            random_state=seed + k)
+        mlp.fit(Da, ya)
+        p += mlp.predict_proba(Dtq)[:, 1] / 3
+    preds.append(rankdata(p) / len(Xt))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def _relocate(c, r, rng, trials=30):
+=======
+def _solve_sub(c, r, idx, rng):
+    """Optimise only the circles idx with all other circles fixed as obstacles."""
+    m = len(idx)
+    fixed = np.setdiff1d(np.arange(len(r)), idx)
+    cf, rf = c[fixed], r[fixed]
+    iu = np.triu_indices(m, 1)
+
+    def cons(v):
+        cs, rs = v[:2 * m].reshape(m, 2), v[2 * m:]
+        d = np.sqrt(((cs[iu[0]] - cs[iu[1]]) ** 2).sum(1)) - rs[iu[0]] - rs[iu[1]]
+        df = np.sqrt(((cs[:, None] - cf[None]) ** 2).sum(-1)) - rs[:, None] - rf[None]
+        return np.concatenate([d, df.ravel(), cs[:, 0] - rs, cs[:, 1] - rs, 1 - cs[:, 0] - rs, 1 - cs[:, 1] - rs, rs])
+
+    x0 = np.concatenate([c[idx].ravel(), r[idx]])
+    res = minimize(lambda v: -v[2 * m:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    cn, rn = c.copy(), r.copy()
+    cn[idx] = res.x[:2 * m].reshape(m, 2)
+    rn[idx] = res.x[2 * m:]
+    return cn, rn
+
+
+def _relocate(c, r, rng, trials=30):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        if rng.random() < 0.5:   # quadrant domain-decomposition move
+            cx, cy = rng.uniform(0.35, 0.65, 2)
+            qx, qy = rng.integers(2), rng.integers(2)
+            idx = np.flatnonzero(((bc[:, 0] >= cx) == qx) & ((bc[:, 1] >= cy) == qy))
+            if len(idx) >= 2:
+                c, r = _solve_sub(bc, br, idx, rng)
+                c = np.clip(c, 0, 1)
+                r = _repair(c, r)
+                if r.sum() > best[1].sum():
+                    best = (c, r)
+                    continue
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+>>>>>>> REPLACE
+-----

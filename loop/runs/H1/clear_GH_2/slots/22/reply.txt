@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y = np.log1p(np.asarray(train_y, dtype=np.float64))
+=======
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y = np.log1p(np.asarray(train_y, dtype=np.float64))
+    # Rank RDKit descriptor columns by |correlation| with the target on the training fold only
+    D = X_train[:, N_BITS:].astype(np.float64)
+    Dc = D - D.mean(axis=0)
+    yc = y - y.mean()
+    corr = (Dc * yc[:, None]).sum(axis=0) / (np.sqrt((Dc ** 2).sum(axis=0) * (yc ** 2).sum()) + 1e-12)
+    top = np.argsort(-np.abs(corr))[:10] + N_BITS
+    keep = np.concatenate([np.arange(N_BITS), top])
+    X_train = X_train[:, keep]
+    X_test = X_test[:, keep]
+>>>>>>> REPLACE
+-----

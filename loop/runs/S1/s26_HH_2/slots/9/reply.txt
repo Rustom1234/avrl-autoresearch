@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+def _template():
+=======
+def _penalty_refine(c, r, maxiter=80, mu=200.0):
+    """L-BFGS-B on -sum(r) + mu * squared pair/wall violations, with exact analytic gradient."""
+    n = c.shape[0]
+    iu, ju = np.triu_indices(n, 1)
+
+    def fg(z):
+        cc = z[:2 * n].reshape(n, 2)
+        rr = z[2 * n:]
+        diff = cc[iu] - cc[ju]
+        d = np.sqrt(np.sum(diff ** 2, axis=1) + 1e-18)
+        pv = np.maximum(rr[iu] + rr[ju] - d, 0.0)
+        x, y = cc[:, 0], cc[:, 1]
+        p1 = np.maximum(rr - x, 0.0)
+        p2 = np.maximum(rr - y, 0.0)
+        p3 = np.maximum(rr + x - 1.0, 0.0)
+        p4 = np.maximum(rr + y - 1.0, 0.0)
+        f = -np.sum(rr) + mu * (np.sum(pv ** 2) + np.sum(p1 ** 2 + p2 ** 2 + p3 ** 2 + p4 ** 2))
+        gr = -np.ones(n) + 2.0 * mu * (
+            np.bincount(iu, weights=pv, minlength=n) + np.bincount(ju, weights=pv, minlength=n)
+            + p1 + p2 + p3 + p4)
+        unit = diff / d[:, None]
+        gc = np.zeros((n, 2))
+        for k in range(2):
+            w = 2.0 * mu * pv * unit[:, k]
+            gc[:, k] = -np.bincount(iu, weights=w, minlength=n) + np.bincount(ju, weights=w, minlength=n)
+        gc[:, 0] += mu * (-2.0 * p1 + 2.0 * p3)
+        gc[:, 1] += mu * (-2.0 * p2 + 2.0 * p4)
+        return f, np.concatenate([gc.ravel(), gr])
+
+    z0 = np.concatenate([c.ravel(), np.maximum(r, 0.0)])
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    try:
+        res = _minimize(fg, z0, jac=True, method="L-BFGS-B", bounds=bounds,
+                        options={"maxiter": maxiter})
+        z = res.x
+    except Exception:
+        z = z0
+    cc = np.clip(z[:2 * n].reshape(n, 2), 0.0, 1.0)
+    rr = np.maximum(z[2 * n:], 0.0)
+    return cc, rr
+
+
+def _template():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, rr = _slsqp_refine(c, rr, 80)
+=======
+        c, rr = _penalty_refine(c, rr, 80)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _optimize(centers0, radii0):
+=======
+def _optimize(centers0, radii0, rcap=0.5):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+=======
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, rcap)] * n
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _relax(centers, radii, iters=150):
+=======
+def _optimize_staged(centers0, radii0, caps):
+    """Run _optimize in sequence with a rising per-circle radius cap, warm-starting each stage."""
+    c, r = centers0, radii0
+    for cap in caps:
+        r = np.minimum(np.maximum(np.asarray(r, dtype=float), 0.0), cap)
+        c, r = _optimize(c, r, rcap=cap)
+    return c, r
+
+
+def _relax(centers, radii, iters=150):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c, r = _optimize(c0, r0)
+=======
+            c, r = _optimize_staged(c0, r0, (0.09, 0.15, 0.5))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                c, r = _optimize(c0, np.maximum(cur_r, 0.01))
+=======
+                c, r = _optimize_staged(c0, np.maximum(cur_r, 0.01), (0.15, 0.5))
+>>>>>>> REPLACE
+-----

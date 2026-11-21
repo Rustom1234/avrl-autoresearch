@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+    def optimize(z0):
+        res = minimize(lambda z: -np.sum(z[2 * n:]), z0, jac=lambda z: obj_grad,
+                       constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+=======
+    def optimize(z0, order=None):
+        clist = [{"type": "ineq", "fun": cons, "jac": cjac}]
+        if order is not None:
+            ko = len(order)
+            ao = np.arange(ko)
+
+            def ocons(z):
+                return z[2 * n + order[:, 0]] - z[2 * n + order[:, 1]]
+
+            def ojac(z):
+                Jo = np.zeros((ko, 3 * n))
+                Jo[ao, 2 * n + order[:, 0]] = 1.0
+                Jo[ao, 2 * n + order[:, 1]] = -1.0
+                return Jo
+
+            clist.append({"type": "ineq", "fun": ocons, "jac": ojac})
+        res = minimize(lambda z: -np.sum(z[2 * n:]), z0, jac=lambda z: obj_grad,
+                       constraints=clist,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+=======
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+        # lexicographic pre-solve: chain r_(1)>=...>=r_(6) from current radii, then release
+        top = np.argsort(-cur[2 * n:])[:6]
+        order = np.array([[top[k], top[k + 1]] for k in range(5)], dtype=int)
+        zc = optimize(cur, order)
+        zo = optimize(zc)
+        if np.sum(zo[2 * n:]) > cur_val:
+            cur, cur_val = zo, np.sum(zo[2 * n:])
+>>>>>>> REPLACE
+-----

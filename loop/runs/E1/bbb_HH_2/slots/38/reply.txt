@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+from xgboost import XGBClassifier
+=======
+from xgboost import XGBClassifier
+from sklearn.ensemble import AdaBoostClassifier
+from sklearn.tree import DecisionTreeClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+=======
+    # SAMME AdaBoost on curated descriptors + 300 most frequent training Morgan bits
+    freq_idx = np.argsort(-train_sets[0].sum(axis=0))[:300]
+    ada_tr = np.hstack([featurize(train_smiles), train_sets[0][:, freq_idx]])
+    ada_te = np.hstack([featurize(test_smiles), test_sets[0][:, freq_idx]])
+    ada = AdaBoostClassifier(estimator=DecisionTreeClassifier(max_depth=2), n_estimators=300, learning_rate=0.1,
+                             algorithm='SAMME', random_state=seed)
+    ada.fit(ada_tr, y)
+    total += rankdata(ada.predict_proba(ada_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+>>>>>>> REPLACE
+-----

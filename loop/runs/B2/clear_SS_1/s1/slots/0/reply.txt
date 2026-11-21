@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata, spearmanr
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    ys = (y - y.mean()) / (y.std() + 1e-9)
+    Ktr = tanimoto(Xtr, Xtr)
+    best_c, best_s = 5.0, -np.inf
+    for c in [1.0, 2.0, 5.0, 10.0, 20.0]:
+        scores = []
+        for tr, va in KFold(5, shuffle=True, random_state=seed).split(Ktr):
+            m = SVR(kernel="precomputed", C=c, epsilon=0.1).fit(Ktr[np.ix_(tr, tr)], ys[tr])
+            scores.append(spearmanr(m.predict(Ktr[np.ix_(va, tr)]), ys[va])[0])
+        if np.mean(scores) > best_s:
+            best_c, best_s = c, np.mean(scores)
+    svr = SVR(kernel="precomputed", C=best_c, epsilon=0.1)
+    svr.fit(Ktr, ys)
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+>>>>>>> REPLACE
+-----

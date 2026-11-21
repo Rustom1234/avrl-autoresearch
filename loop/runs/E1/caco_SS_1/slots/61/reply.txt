@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    et = model.predict(Xte) + rte
+    knn = knn_predict(train_smiles, y, test_smiles)
+    return 0.75 * et + 0.25 * knn
+=======
+    et = model.predict(Xte) + rte
+    knn = knn_predict(train_smiles, y, test_smiles)
+    from sklearn.neural_network import MLPRegressor
+    from sklearn.preprocessing import QuantileTransformer
+    keep = Xtr.std(0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)),
+                             random_state=seed).fit(Xtr[:, keep])
+    Qtr = qt.transform(Xtr[:, keep])
+    Qte = qt.transform(Xte[:, keep])
+    mlp = np.zeros(len(Xte))
+    for i in range(5):
+        m = MLPRegressor(hidden_layer_sizes=(128, 64), alpha=1e-2, early_stopping=True,
+                         max_iter=500, random_state=seed + i)
+        m.fit(Qtr, y - rtr)
+        mlp += m.predict(Qte) / 5
+    mlp += rte
+    return 0.55 * et + 0.2 * mlp + 0.25 * knn
+>>>>>>> REPLACE
+-----

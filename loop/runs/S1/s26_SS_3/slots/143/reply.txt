@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+            pts = []
+            for ri, mm in enumerate(pat):
+                sh = (0.15 / mm) * (1 if ri % 2 else -1)
+                for jj in range(mm):
+                    pts.append([(jj + 0.5) / mm + sh, (ri + 0.5) / k])
+            pts = np.array(pts)
+            if len(pts) == n:
+                c0 = np.clip(pts + rng.normal(0, 0.02, pts.shape), 0.03, 0.97)
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+=======
+            nonuni = (it % 3 == 0)
+            if nonuni:
+                cs = np.concatenate([[0.0], np.cumsum(rng.uniform(0.14, 0.26, k - 1))])
+                ys = 0.07 + 0.86 * cs / cs[-1]
+            else:
+                ys = (np.arange(k) + 0.5) / k
+            pts = []
+            for ri, mm in enumerate(pat):
+                if nonuni:
+                    sh = rng.uniform(0, 0.5 / mm)
+                else:
+                    sh = (0.15 / mm) * (1 if ri % 2 else -1)
+                for jj in range(mm):
+                    pts.append([(jj + 0.5) / mm + sh, ys[ri]])
+            pts = np.array(pts)
+            if len(pts) == n:
+                c0 = np.clip(pts + rng.normal(0, 0.01 if nonuni else 0.02, pts.shape), 0.03, 0.97)
+        else:
+            nonuni = False
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if nonuni and len(pts) == n:
+            D = np.sqrt(((c0[:, None, :] - c0[None]) ** 2).sum(2)) + np.eye(n) * 10
+            r0 = np.clip(0.5 * D.min(1), 0.01, 0.2)
+>>>>>>> REPLACE
+-----

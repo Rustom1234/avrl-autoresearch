@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    return _optimise(n, x0)
+=======
+def _hex_start(n, rng):
+    """Random subset of a hexagonal lattice scaled into the square, with Gaussian jitter."""
+    k = int(np.ceil(np.sqrt(n * 2 / np.sqrt(3)))) + 2
+    g = np.array([(i + 0.5 * (j % 2), j * np.sqrt(3) / 2) for j in range(k) for i in range(k)])
+    g = (g - g.min(0)) / (g.max(0) - g.min(0))
+    g = INIT_LOW + (1 - 2 * INIT_LOW) * g
+    c = g[rng.choice(len(g), n, replace=False)] + rng.normal(0, 0.02, (n, 2))
+    return c.ravel()
+
+
+def _solve_once(n, rng, hexa=False):
+    c0 = _hex_start(n, rng) if hexa else rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n)
+    x0 = np.concatenate([c0, np.full(n, INIT_RADIUS)])
+    return _optimise(n, x0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < RESTART_FRACTION * budget or best is None:   # short random-restart phase
+        c, r = _solve_once(n, rng)
+=======
+    budget = TIME_FRACTION * time_limit
+    restarts = 0
+    while time.process_time() - t0 < RESTART_FRACTION * budget or best is None:   # short random-restart phase
+        c, r = _solve_once(n, rng, restarts % 2 == 1)
+        restarts += 1
+>>>>>>> REPLACE
+-----

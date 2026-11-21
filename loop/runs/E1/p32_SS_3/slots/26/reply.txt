@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+    rng, t0, best, cur, step = np.random.default_rng(seed), time.process_time(), None, None, 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best if late else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+        c, r = _solve_once(n, rng, cur if late else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if late:
+            step += 1
+            if r.sum() > cur[1].sum() or rng.random() < np.exp((r.sum() - cur[1].sum()) / 0.003):
+                cur = (c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        if not late or step % 15 == 0:
+            cur = best
+>>>>>>> REPLACE
+-----

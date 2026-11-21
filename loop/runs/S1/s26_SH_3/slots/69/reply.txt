@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def lp_radii(c):
+=======
+def ring_hex_init(rng):
+    """4 corners + 12 evenly spaced ring points (inset 0.1) + 10 jittered interior points."""
+    pts = [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]]
+    for t in (0.25, 0.5, 0.75):
+        pts.append([0.1 + 0.8 * t, 0.1])
+        pts.append([0.9, 0.1 + 0.8 * t])
+        pts.append([0.9 - 0.8 * t, 0.9])
+        pts.append([0.1, 0.9 - 0.8 * t])
+    inner = []
+    for y, cnt in zip((0.35, 0.5, 0.65), (3, 4, 3)):
+        for x in np.linspace(0.3, 0.7, cnt):
+            inner.append([x, y])
+    pts = np.array(pts + inner, dtype=float)
+    pts[16:] += rng.normal(0.0, 0.02, (10, 2))
+    return np.clip(pts, 0.05, 0.95)
+
+
+def lp_radii(c):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = hex_jitter(rng)
+=======
+        c0 = ring_hex_init(rng) if start % 2 == 1 else hex_jitter(rng)
+>>>>>>> REPLACE
+-----

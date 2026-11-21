@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+>>>>>>> REPLACE
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, EState
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+# Initialize EState fingerprinter
+ep_init = EState.Fingerprinter()
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        
+        # Morgan fingerprints
+        fp = gen.GetCountFingerprintAsNumPy(mol)
+        
+        # EState fingerprints
+        es_fp = ep_init.FingerprintMol(mol)
+        # Combine count and sum vectors (usually 200 elements each)
+        combined = np.concatenate([fp, es_fp.GetCountVector(), es_fp.GetSumVector()])
+        features.append(combined)
+        
+    return np.array(features, dtype=np.float32)
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+-----

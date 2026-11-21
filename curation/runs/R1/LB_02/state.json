@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/LB_02/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.8122308955135495
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random shuffle with a filter, dedup and rank pipeline that keeps only clean target-style (WikiText-like) articles.\n\n1. Dedup: drop exact and near duplicates by hashing the whitespace-normalised, lowercased first 300 characters plus the document length bucket. Keep the first occurrence.\n\n2. Hard junk filters: drop documents that are under 200 characters, have a non-ASCII-letter/space ratio above 0.4, or contain spam markers ('discount code', 'coupon', 'buy now', 'free shipping').\n\n3. Domain score: fit a TfidfVectorizer (word 1-2 grams, sublinear_tf, min_df=2, max_features about 200k) with LogisticRegression. Positives are the 200 target_sample docs, split into chunks of about 2000 characters. Negatives are equally sized chunks from a seeded random sample of about 3000 pool docs that do NOT start with '= '. Score each pool doc on its first 4000 characters as p_domain.\n\n4. Word-order score, to catch the shuffled-word articles that keep the '= Title =' header but have a scrambled body: build the set of word bigrams and trigrams from target_sample. For each doc compute the fraction of its body bigrams (skip the first line, use the first 600 tokens) that appear in the target bigram set. Also compute cheap grammar cues: the rate of sentence-initial fragments such as ' . in and ,', and the rate of the common function bigrams 'of the', 'in the', 'to the', ', and' per 100 tokens. Clean articles show roughly 3-4 such bigrams per 100 tokens; shuffled ones are near 0. Set the threshold at the valley of the bimodal distribution of function-bigram rate among '= '-header docs (fallback: 1.0 per 100 tokens) and drop docs below it.\n\n5. Keep docs with p_domain > 0.5 that pass the order filter, ranked by p_domain. Count tokens with tiktoken gpt2 (encode_ordinary_batch). If the kept set has at least T tokens, take the top-ranked docs up to about 1.0 T. If it has fewer, keep them all and let the trainer cycle; do NOT pad with junk.\n\n6. Shuffle the final list with random.Random(CURATE_SEED) and return it.",
+   "outcome": "dev 1.8122 against 1.9410 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace the TfidfVectorizer/LogisticRegression domain scoring with a more robust TF-IDF cosine similarity score, specifically targeting the 'Wikipedia-style' structure (presence of titles, categories, and structured headers) by weighting the scores of the first 1000 characters of each document.",
+   "outcome": "dev 2.0210 against 1.8122 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Implement a 'structural' filter that prioritizes documents containing Wikipedia-specific markers like '[1]', '[2]' (citations), or 'Categories:' at the end, while simultaneously enforcing a minimum 'cleanliness' score by penalizing documents with excessive special characters or repetitive consecutive words.",
+   "outcome": "dev 1.8113 against 1.8122 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the LogisticRegression domain score with a Dense Retrieval-style approach: instead of a full classifier, compute the average cosine similarity of the target_sample docs' first 1000 characters against each pool doc's first 1000 characters using a shared TfidfVectorizer, and rank by this average similarity.",
+   "outcome": "dev 1.8343 against 1.8122 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Refine the word-order filter to be more aggressive against 'scrambled' text by implementing a 'local coherence' score: for each document, calculate the percentage of bigrams that occur in the target_sample's bigram set, and reject documents where this percentage is significantly lower than the median of the 'passing' set, while also ensuring the function-bigram rate is at least 2.0 per 100 tokens.",
+   "outcome": "dev 1.8309 against 1.8122 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Refine the word-order filter by implementing a 'Local Coherence' score: instead of using a fixed valley threshold, calculate the bigram overlap ratio between each candidate and the average bigram distribution of the target_sample; reject any document where its bigram overlap ratio is less than 40% of the median overlap ratio of the target_sample.",
+   "outcome": "dev 1.8075 against 1.8122 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Implement a 'structural signal' weight: calculate the frequency of Wikipedia-specific syntax (e.g., [1], [2], 'Categories:', and '== Header ==') in each doc and use this as a multiplier for the p_domain score before ranking, while still enforcing the word-order threshold.",
+   "outcome": "dev 1.8163 against 1.8122 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Replace the LogisticRegression domain score with a 'Cluster-based Similarity' approach: use TfidfVectorizer to represent the first 1000 characters of both the target_sample and the candidate pool, then use the average cosine similarity of each candidate to its k-nearest neighbors (k=5) within the target_sample cluster. This should better capture the 'Wikipedia-style' manifold of the target domain than a binary classifier which might over-generalize on noisy labels.",
+   "outcome": "dev 1.8529 against 1.8122 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Implement a 'dense' keyword-based filtering step before the domain classifier: identify high-frequency unique 'anchor' words from the target_sample (e.g., specific dates, locations, or bracketed citations) and calculate a 'density score' for each candidate. Documents that possess a high density of these target-specific keywords should receive a significant boost in the p_domain score calculation or be prioritized in the final ranking.",
+   "outcome": "dev 1.8128 against 1.8122 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Replace the LogisticRegression classifier with a more nuanced 'Document Structure' scoring system: calculate a 'Wiki-structure' score based on the presence and density of specific markers (e.g., '==', '===', '[1]', 'Categories:', and links-style '[[') in the first 2000 characters, then use a TfidfVectorizer to compute the cosine similarity between each candidate and the centroid of the target_sample's first 1000 characters, using the Wiki-structure score as a weighting factor.",
+   "outcome": "dev 1.8496 against 1.8122 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Implement a 'Coherence and Density' filter that calculates the ratio of unique words to total words (Type-Token Ratio) in the first 500 tokens, specifically penalizing documents with very low TTR (potential repetition/garbage) and those with extremely high TTR (potential random character strings/non-natural language). Use a Gaussian-weighted scoring window based on the TTR of the target_sample to prioritize documents with a 'human-like' lexical variety.",
+   "outcome": "dev 1.8147 against 1.8122 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Replace the LogisticRegression domain scoring with a 'Local Neighborhood' similarity score: for each candidate document, calculate the average cosine similarity of its first 1000 characters against its 10 nearest neighbors in the target_sample (using a TfidfVectorizer with ngram_range=(1,3)). Use this average similarity as the primary ranking metric while maintaining the word-order filter to prune scrambled content.",
+   "outcome": "dev 1.8245 against 1.8122 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.5163068500000002,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.4813636,
+   "dev": 1.8122308955135495,
+   "inc": 1.9410047359168796,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.72279664235206,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003881699999999988,
+   "dev": 2.020956686838597,
+   "inc": 1.8122308955135495,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.72279664235206,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003122249999999993,
+   "dev": 1.8112651721748427,
+   "inc": 1.8122308955135495,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.72279664235206,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0029352000000000267,
+   "dev": 1.834275882341479,
+   "inc": 1.8122308955135495,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.72279664235206,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0028048500000000254,
+   "dev": 1.8308884704060655,
+   "inc": 1.8122308955135495,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.72279664235206,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0026356499999999894,
+   "dev": 1.8074646752410892,
+   "inc": 1.8122308955135495,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.72279664235206,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0032220000000000026,
+   "dev": 1.8163320938733019,
+   "inc": 1.8122308955135495,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.72279664235206,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0031290000000000484,
+   "dev": 1.8529455268816821,
+   "inc": 1.8122308955135495,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.72279664235206,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0034824000000001076,
+   "dev": 1.812758083094659,
+   "inc": 1.8122308955135495,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.72279664235206,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0032322000000000184,
+   "dev": 1.849639415257098,
+   "inc": 1.8122308955135495,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.72279664235206,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0035143499999999994,
+   "dev": 1.8146855953804246,
+   "inc": 1.8122308955135495,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.72279664235206,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0029836500000000044,
+   "dev": 1.8244727681910178,
+   "inc": 1.8122308955135495,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9410047359168796,
+ "inc_slot": 1
+}

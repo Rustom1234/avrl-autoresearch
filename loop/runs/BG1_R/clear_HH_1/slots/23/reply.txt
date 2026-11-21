@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+KNN = 7
+GAMMA_L = 0.5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    n = len(train_smiles)
+    XA = np.vstack([X, Xt])
+    DA = np.vstack([D, Dt])
+    K = 0.5 * (tanimoto(XA, XA) + rbf(DA, DA, gamma))
+    N = K.shape[0]
+    np.fill_diagonal(K, 0.0)
+    idx = np.argsort(-K, axis=1)[:, :KNN]
+    rows = np.repeat(np.arange(N), KNN)
+    W = np.zeros_like(K)
+    W[rows, idx.ravel()] = K[rows, idx.ravel()]
+    W = np.maximum(W, W.T)
+    dinv = 1.0 / np.sqrt(W.sum(axis=1) + 1e-9)
+    L = np.eye(N) - dinv[:, None] * W * dinv[None, :]
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    y = (y - y.mean()) / (y.std() + 1e-9)
+    s = np.zeros(N)
+    s[:n] = 1.0
+    yext = np.zeros(N)
+    yext[:n] = y
+    f = np.linalg.solve(np.diag(s) + GAMMA_L * L, s * yext)
+    return f[n:]
+>>>>>>> REPLACE
+-----

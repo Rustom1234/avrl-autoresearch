@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def mp_feats(m):
+    Chem.rdPartialCharges.ComputeGasteigerCharges(m)
+    q = [a.GetDoubleProp("_GasteigerCharge") for a in m.GetAtoms()]
+    lp = [c[0] for c in Chem.rdMolDescriptors._CalcCrippenContribs(m)]
+    ar = [float(a.GetIsAromatic()) for a in m.GetAtoms()]
+    P = np.nan_to_num(np.column_stack([q, lp, ar]).astype(np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    A = Chem.GetAdjacencyMatrix(m).astype(np.float64)
+    A = A / np.maximum(A.sum(1, keepdims=True), 1.0)
+    out = []
+    for _ in range(3):
+        out += [P.sum(0), P.max(0)]
+        P = 0.5 * P + 0.5 * (A @ P)
+    return np.concatenate(out)
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([fp, desc]))
+=======
+        rows.append(np.concatenate([fp, desc, mp_feats(m).astype(np.float32)]))
+>>>>>>> REPLACE
+-----

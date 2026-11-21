@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: 
+            features.append(np.zeros(N_BITS + 4, dtype=np.float32))
+            continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add 4 descriptors: MolWt, LogP (RDKit estimate), NumDonors, NumAcceptors
+        descriptors = np.array([ 
+            Descriptors.MolWt(mol),
+            Descriptors.MolLogP(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol)
+        ], dtype=np.float32)
+        features.append(np.concatenate([fp, descriptors]))
+    return np.array(features, dtype=np.float32)
+=======
+from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem import rdFingerprintGenerator, Descriptors, MACCSkeys
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: 
+            features.append(np.zeros(N_BITS + 166 + 4, dtype=np.float32))
+            continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        maccs = np.array(MACCSkeys.GetMorganKeysFromSmiles(s)) # This is a placeholder, need correct RDKit API
+        # Correct RDKit MACCS keys usage:
+        maccs = np.array(MACCSkeys.GetMACCSKeys(mol), dtype=np.float32)
+        # Add 4 descriptors: MolWt, LogP (RDKit estimate), NumDonors, NumAcceptors
+        descriptors = np.array([ 
+            Descriptors.MolWt(mol),
+            Descriptors.MolLogP(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol)
+        ], dtype=np.float32)
+        features.append(np.concatenate([fp, maccs, descriptors]))
+    return np.array(features, dtype=np.float32)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,322 @@
+[
+ {
+  "id": "b001",
+  "title": "Add MACCS keys and RDKit atom-pair / topological-torsion count fingerprints",
+  "spec": "Extend featurize() so each molecule's row also contains: the 167 MACCS keys (rdkit.Chem.MACCSkeys.GenMACCSKeys converted to a numpy array), an atom-pair count fingerprint of 1024 bins (rdFingerprintGenerator.GetAtomPairGenerator(fpSize=1024).GetCountFingerprintAsNumPy) and a topological-torsion count fingerprint of 1024 bins (rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=1024).GetCountFingerprintAsNumPy). Concatenate them after the existing Morgan bits and descriptors, as float32. Build the generators once per featurize() call, not once per molecule. Leave the models and the rank-average blend unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8633705377578735,
+  "sim_tried_bge": 0.8633705377578735,
+  "sim_hist_mini": 0.6813976168632507,
+  "sources": [
+   [
+    "fable",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Smoother forest: larger leaves and sqrt feature fraction",
+  "spec": "Retune only the RandomForest member: set MIN_SAMPLES_LEAF = 3, MAX_FEATURES = 'sqrt', and N_TREES = 600, leaving LightGBM, the features and the rank-average blend untouched. Rationale: with max_features=0.3 of roughly 2250 columns each split scans ~675 features and leaves hold a single molecule, so the forest produces spiky, over-confident probabilities; AUROC rewards well-ordered graded scores, so coarser leaves give smoother ranks, and a smaller feature fraction with more trees increases tree diversity, which is the usual way a forest gains on wide sparse-plus-dense matrices. Keep random_state=seed and n_jobs=-1.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8383656740188599,
+  "sim_tried_bge": 0.8225921392440796,
+  "sim_hist_mini": 0.6593499183654785,
+  "sources": [
+   [
+    "fable",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Add a descriptor-only LightGBM as a third blend member",
+  "spec": "Fit a third model, an LGBMClassifier (n_estimators=400, learning_rate=0.05, num_leaves=15, colsample_bytree=0.6, min_child_samples=20, random_state=seed, n_jobs=8, verbose=-1), on the descriptor columns alone, that is the 11 physchem features plus the clipped full descList block with no Morgan bits, and return 0.4 * scaled_rank(rf) + 0.4 * scaled_rank(gb_full) + 0.2 * scaled_rank(gb_desc). Rationale: descriptors are what produced every accepted gain, but in the full matrix they compete with 2048 sparse bits for column subsampling, so a member that cannot see the fingerprint is forced to model physicochemistry only; because blood-brain-barrier penetration is largely driven by size, lipophilicity and polarity, this member should generalize across unseen scaffolds and decorrelate the two fingerprint-aware members.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8411972522735596,
+  "sim_tried_bge": 0.8411972522735596,
+  "sim_hist_mini": 0.7167223691940308,
+  "sources": [
+   [
+    "fable",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Add CatBoost as a third blend member",
+  "spec": "In fit_predict, after fitting the RF and LightGBM models, fit a CatBoostClassifier(iterations=600, learning_rate=0.05, depth=6, rsm=0.1, random_seed=seed, thread_count=8, verbose=0) on the same X_train, y. Return the equal-weight mean of the three scaled_rank prediction vectors (RF, LightGBM, CatBoost) instead of the two-way mean. If the job gets close to the 10-minute limit, reduce iterations to 400. No other changes.",
+  "family": "architecture",
+  "sim_hist_bge": 0.7799844741821289,
+  "sim_tried_bge": 0.7799844741821289,
+  "sim_hist_mini": 0.6656033992767334,
+  "sources": [
+   [
+    "fable",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Drop constant and near-duplicate features before fitting",
+  "spec": "In fit_predict, after building X_train and X_test, compute a column mask from X_train only: remove columns that are constant, and remove Morgan-bit columns (the first N_BITS columns) that are non-zero in fewer than 3 training molecules. Apply the same mask to X_test. Then fit the RF and LightGBM as now. This removes noise columns that waste the per-split feature sampling (max_features=0.3, colsample_bytree=0.3).",
+  "family": "regularization",
+  "sim_hist_bge": 0.8430244326591492,
+  "sim_tried_bge": 0.8145777583122253,
+  "sim_hist_mini": 0.679516613483429,
+  "sources": [
+   [
+    "fable",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Stronger regularized LightGBM: more trees, lower rate, row subsampling",
+  "spec": "Change only the LGBMClassifier settings to: n_estimators=1000, learning_rate=0.02, num_leaves=8, min_child_samples=10, colsample_bytree=0.2, subsample=0.7, subsample_freq=1, reg_lambda=5.0, random_state=seed, n_jobs=8, verbose=-1. Leave the RF and the rank-average blend untouched.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8606592416763306,
+  "sim_tried_bge": 0.8606592416763306,
+  "sim_hist_mini": 0.7655233144760132,
+  "sources": [
+   [
+    "fable",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Average three seeds per blend member",
+  "spec": "Inside fit_predict, fit the RandomForest and the LGBMClassifier three times each with random_state = seed, seed + 1, seed + 2 (all other hyperparameters unchanged), average the three predicted probability vectors within each family, then rank-scale each family average and combine the two with the existing equal weights. Keep n_jobs as they are and, if runtime is a concern, drop RF n_estimators to 200 per seed so total tree count is similar. Rationale: a large part of the run-to-run spread noted for the incumbent is estimator-level randomness (bootstrap draws, feature subsampling, LightGBM tie-breaking), and seed averaging reduces that variance at no bias cost, which should both lower the mean loss slightly and make future deltas easier to read.",
+  "family": "batch",
+  "sim_hist_bge": 0.9114538431167603,
+  "sim_tried_bge": 0.8273968696594238,
+  "sim_hist_mini": 0.7301837205886841,
+  "sources": [
+   [
+    "fable",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Replace RandomForest with ExtraTrees plus keep RF (three-way blend)",
+  "spec": "Add an sklearn.ensemble.ExtraTreesClassifier(n_estimators=500, max_features=0.2, min_samples_leaf=1, n_jobs=-1, random_state=seed) fitted on the same X_train, y as a third model. Return the equal-weight mean of scaled_rank of the RF, LightGBM and ExtraTrees class-1 probabilities. Keep the existing RF and LightGBM settings as they are.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8614394068717957,
+  "sim_tried_bge": 0.8614394068717957,
+  "sim_hist_mini": 0.7157116532325745,
+  "sources": [
+   [
+    "fable",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Balanced class weights in both models",
+  "spec": "The dataset is imbalanced (most molecules are class 1). Pass class_weight='balanced_subsample' to RandomForestClassifier and class_weight='balanced' to LGBMClassifier. Change nothing else. The output is rank-averaged, so calibration shift does not matter; the aim is better ranking of the minority class.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8713387250900269,
+  "sim_tried_bge": 0.7770471572875977,
+  "sim_hist_mini": 0.5990571975708008,
+  "sources": [
+   [
+    "fable",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Smooth final predictions over Tanimoto neighbours of the test set",
+  "spec": "After computing the blended rank score for the test molecules, post-process it once: build Morgan radius-2 2048-bit fingerprints for the test molecules, compute the test-test Tanimoto similarity matrix, and for each test molecule replace its score by 0.75 * own score + 0.25 * (similarity-weighted mean of the scores of its 5 most similar other test molecules, weights = similarity cubed, falling back to the own score if the top similarity is below 0.2). Return the smoothed vector. Rationale: this is a transductive consistency prior saying close analogues should receive close scores, it uses no test labels, and it damps idiosyncratic single-molecule errors from the tree members; keep the mixing weight and k as module-level constants and leave training completely unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.935285210609436,
+  "sim_tried_bge": 0.8799071907997131,
+  "sim_hist_mini": 0.8198223114013672,
+  "sources": [
+   [
+    "fable",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Seed-bag the LightGBM member",
+  "spec": "Replace the single LightGBM fit with 5 fits that differ only in random_state (seed, seed+1, ..., seed+4), each with subsample=0.8, subsample_freq=1 added to the current settings so that the seeds actually produce different models. Average the 5 class-1 probability vectors, then apply scaled_rank to that average and blend 50/50 with scaled_rank of the RF predictions as now.",
+  "family": "other",
+  "sim_hist_bge": 0.852527916431427,
+  "sim_tried_bge": 0.812209963798523,
+  "sim_hist_mini": 0.7635639905929565,
+  "sources": [
+   [
+    "fable",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Separate feature views: fingerprint model and descriptor model",
+  "spec": "Instead of fitting both models on the single concatenated matrix, build two views inside fit_predict: view F = Morgan bits only (the first N_BITS columns), view D = the 11 hand descriptors plus the clipped full RDKit descriptor block. Fit four models: RF on F, RF on D, LightGBM on F, LightGBM on D, each with the current hyperparameters (for the D view use max_features='sqrt' in the RF and colsample_bytree=0.5 in LightGBM, because D has only about 230 columns). Return the mean of scaled_rank over the four prediction vectors. The reason: in the concatenated matrix the 2048 sparse bits dilute the per-split sampling of the informative descriptors.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8538966178894043,
+  "sim_tried_bge": 0.8410786390304565,
+  "sim_hist_mini": 0.7042015790939331,
+  "sources": [
+   [
+    "fable",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Add a scaled logistic-regression member on descriptors plus fingerprints",
+  "spec": "Add a linear third model to the blend. Build its input from the same X_train/X_test: standardize the non-fingerprint columns (everything after the first N_BITS columns) with sklearn StandardScaler fitted on the training rows after applying np.sign(x)*np.log1p(np.abs(x)) to them; leave the Morgan bit columns as 0/1. Fit sklearn.linear_model.LogisticRegression(C=0.05, penalty='l2', solver='lbfgs', max_iter=2000, random_state=seed). Return the weighted mean of scaled ranks: 0.4 RF + 0.4 LightGBM + 0.2 logistic regression.",
+  "family": "architecture",
+  "sim_hist_bge": 0.824467658996582,
+  "sim_tried_bge": 0.824467658996582,
+  "sim_hist_mini": 0.6269891262054443,
+  "sources": [
+   [
+    "fable",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Replace raw fingerprint bits with a truncated-SVD embedding",
+  "spec": "In fit_predict, split the feature matrix into the Morgan bit block and the descriptor blocks. Fit sklearn.decomposition.TruncatedSVD(n_components=64, random_state=seed) on the training Morgan block only, transform both train and test, and feed [SVD64 | 11 physchem | clipped descList] to the unchanged RF and LightGBM members with the unchanged rank-average blend. Rationale: the SVD components are dense linear combinations of correlated substructure bits, so a single tree split on a component can express a structural concept that otherwise needs many sparse splits, and the 64-column block no longer swamps the descriptor columns during feature subsampling. Fit the SVD on train only to keep the fold honest.",
+  "family": "data",
+  "sim_hist_bge": 0.9398444294929504,
+  "sim_tried_bge": 0.8076367378234863,
+  "sim_hist_mini": 0.815118670463562,
+  "sources": [
+   [
+    "fable",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "Drop rare fingerprint bits inside each fold",
+  "spec": "After building X_train and X_test in fit_predict but before fitting, compute the column-wise count of nonzero entries over the Morgan bit block of X_train only and keep only bits set in at least 5 training molecules; apply the same boolean mask to the test matrix. Leave the 11 physchem columns and the clipped descList columns always kept, and implement the mask with a single numpy boolean index so the code stays short. Rationale: most of the 2048 bits fire in a handful of molecules, carry almost no generalizable signal across unseen Murcko scaffolds, and act as noise draws in both the forest's feature subsampling and LightGBM's colsample_bytree; removing them raises the informative fraction of every candidate split set without touching the descriptor signal that drives the current gain.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8311328291893005,
+  "sim_tried_bge": 0.8130718469619751,
+  "sim_hist_mini": 0.7001409530639648,
+  "sources": [
+   [
+    "fable",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Replicate the incumbent to firm up the baseline",
+  "spec": "Make no functional change: the only edit is to add a short comment line near the Settings block (for example '# replicate run: no functional change'). The purpose is a third measurement of the current RF+LightGBM blend with full descList descriptors, whose two existing runs differ by ~0.01 (twice the stated noise sd), so the incumbent mean is poorly pinned down. Keep fit_predict, the feature pipeline, both members and the equal-weight rank average exactly as they are, and keep using the seed argument for both estimators. This slot buys a tighter baseline so that later single-run deltas of 0.005-0.01 can be judged.",
+  "family": "other",
+  "sim_hist_bge": 0.7731881141662598,
+  "sim_tried_bge": 0.7507519721984863,
+  "sim_hist_mini": 0.6472097635269165,
+  "sources": [
+   [
+    "fable",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Retuned LightGBM member: slower, deeper, thinner columns",
+  "spec": "Change only the LGBMClassifier settings in fit_predict to n_estimators=800, learning_rate=0.02, num_leaves=31, min_child_samples=20, colsample_bytree=0.15, subsample=0.8, subsample_freq=1, keeping random_state=seed, n_jobs=8, verbose=-1. The RandomForest, the features and the equal-weight rank average stay as they are. Rationale: earlier LightGBM experiments changed the boosting algorithm (DART, lgb.train, extra_trees, monotone constraints) rather than the basic capacity/shrinkage trade-off, and the current member is a fairly fast, shallow fit; with a wide mixed sparse-plus-dense matrix a smaller learning rate with many more rounds, row subsampling for variance reduction, and a thinner column fraction is the standard setting that extracts more from dense descriptor columns. Check the job still fits the 10-minute limit; if not, cut n_estimators to 600.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8528280258178711,
+  "sim_tried_bge": 0.8514152765274048,
+  "sim_hist_mini": 0.6797434091567993,
+  "sources": [
+   [
+    "fable",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Add count-based Morgan fingerprint block",
+  "spec": "In featurize(), in addition to the existing binary Morgan bits, append a count-based Morgan fingerprint (radius 2, fpSize 2048) obtained with gen.GetCountFingerprintAsNumPy(mol) from the same rdFingerprintGenerator Morgan generator. Clip counts at 15 and store as float32. Keep everything else (the 11 hand descriptors, the full RDKit descriptor block, RF + LightGBM rank-average) unchanged. The purpose is to let the trees split on how many times a substructure occurs, not only on presence.",
+  "family": "data",
+  "sim_hist_bge": 0.9046169519424438,
+  "sim_tried_bge": 0.9046169519424438,
+  "sim_hist_mini": 0.714608907699585,
+  "sources": [
+   [
+    "fable",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Shrink the Morgan block to 512 bits",
+  "spec": "Change N_BITS from 2048 to 512 (keep RADIUS = 2) so the Morgan hashed-bit block is a quarter of its current width while the 11 physchem descriptors and the full clipped descList block are unchanged. Nothing else in fit_predict changes. Rationale: the recorded gains all came from descriptors, and with only ~1300 training molecules per fold a 2048-bit sparse block mostly contributes near-constant, scaffold-specific columns that dilute the column subsampling of both the forest (max_features=0.3) and LightGBM (colsample_bytree=0.3); a narrower, denser-on-average fingerprint should raise the chance that each split candidate is informative and should also cut runtime.",
+  "family": "data",
+  "sim_hist_bge": 0.8161476850509644,
+  "sim_tried_bge": 0.8161476850509644,
+  "sim_hist_mini": 0.6652250289916992,
+  "sources": [
+   [
+    "fable",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Tune the blend weight toward LightGBM",
+  "spec": "Keep both members and the feature pipeline unchanged but replace the equal-weight rank average with a weighted one: return 0.35 * scaled_rank(rf_prob) + 0.65 * scaled_rank(gb_prob). Expose the weight as a module-level constant W_GB = 0.65 so it is easy to re-tune later. Rationale: the descriptor block (full descList, clipped) is dense and continuous, which boosting exploits better than a fingerprint-oriented random forest, so the optimal mixture is probably not 50/50; the forest is kept at non-trivial weight because it decorrelates the boosting errors. Change nothing else, and keep passing seed to both estimators.",
+  "family": "other",
+  "sim_hist_bge": 0.824812650680542,
+  "sim_tried_bge": 0.824812650680542,
+  "sim_hist_mini": 0.7170861959457397,
+  "sources": [
+   [
+    "fable",
+    "c",
+    1
+   ]
+  ]
+ }
+]

@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+    iu = np.triu_indices(n, 1)
+    if start is None:
+        def cons_eq(v):
+=======
+def _solve_once(n, rng, start=None, grow=True, maxiter=MAX_ITER):
+    iu = np.triu_indices(n, 1)
+    if start is None and grow:
+        c, r = _solve_once(n - 4, rng, None, False, 60)
+        c, r = list(np.clip(c, 0.01, 0.99)), list(np.maximum(r, 0.01))
+        for _ in range(4):
+            p = rng.uniform(0, 1, (2000, 2))
+            cl = np.minimum(p, 1 - p).min(1)
+            for ci, ri in zip(c, r):
+                cl = np.minimum(cl, np.sqrt(((p - ci) ** 2).sum(1)) - ri)
+            c.append(np.clip(p[np.argmax(cl)], 0.02, 0.98))
+            r.append(0.02)
+        x0 = np.concatenate([np.array(c).ravel(), np.array(r)])
+    elif start is None:
+        def cons_eq(v):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n]
+=======
+                   options={"maxiter": maxiter})
+    return res.x[:2 * n]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+    iu = np.triu_indices(n, 1)
+    if start is None:
+        def cons_eq(v):
+=======
+def _solve_once(n, rng, start=None, grow=True, maxiter=MAX_ITER):
+    iu = np.triu_indices(n, 1)
+    if start is None and grow:
+        c, r = _solve_once(n - 4, rng, None, False, 60)
+        c, r = list(np.clip(c, 0.01, 0.99)), list(np.maximum(r, 0.01))
+        for _ in range(4):
+            p = rng.uniform(0, 1, (2000, 2))
+            cl = np.minimum(p, 1 - p).min(1)
+            for ci, ri in zip(c, r):
+                cl = np.minimum(cl, np.sqrt(((p - ci) ** 2).sum(1)) - ri)
+            c.append(np.clip(p[np.argmax(cl)], 0.02, 0.98))
+            r.append(0.02)
+        x0 = np.concatenate([np.array(c).ravel(), np.array(r)])
+    elif start is None:
+        def cons_eq(v):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+-----

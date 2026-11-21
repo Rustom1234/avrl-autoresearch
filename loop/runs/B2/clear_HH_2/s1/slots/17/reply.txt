@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+
+    n = len(p_desc)
+=======
+    K_te = tanimoto(X_te, X_tr)
+    p_global = gp_mean(K_tr, y, K_te, s2)
+    k = min(150, len(y))
+    p_local = np.zeros(len(test_smiles))
+    for i in range(len(test_smiles)):
+        idx = np.argsort(-K_te[i])[:k]
+        p_local[i] = gp_mean(K_tr[np.ix_(idx, idx)], y[idx], K_te[i:i + 1, idx], s2)[0]
+    p_fp = 0.5 * rankdata(p_global) / len(p_global) + 0.5 * rankdata(p_local) / len(p_local)
+
+    n = len(p_desc)
+>>>>>>> REPLACE
+-----

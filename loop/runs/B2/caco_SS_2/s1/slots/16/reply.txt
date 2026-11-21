@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+ACID_PATS = [Chem.MolFromSmarts(s) for s in [
+    "[CX3](=O)[OX2H1,OX1-]", "c1nn[nH]n1", "c1n[nH]nn1", "C(=O)[NH]S(=O)(=O)",
+    "P(=O)[OH]", "S(=O)(=O)[OH]"]]
+BASE_PATS = [Chem.MolFromSmarts(s) for s in [
+    "[NX3;!$(N-[!CX4])]", "[CX3](=[NX2;!a;!$(N-[O,S])])[NX3;!a;!$(NC=O)]", "[NX4+]"]]
+
+
+def ion_features(smiles):
+    out = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        na = sum(len(m.GetSubstructMatches(p)) for p in ACID_PATS)
+        nb = sum(len(m.GetSubstructMatches(p)) for p in BASE_PATS)
+        tpsa = Descriptors.TPSA(m)
+        ha = m.GetNumHeavyAtoms()
+        hbd = Descriptors.NumHDonors(m)
+        logp = Descriptors.MolLogP(m)
+        out.append([na, nb, nb - na, float(na > 0 and nb > 0), float(na == 0 and nb == 0),
+                    tpsa, Descriptors.MolWt(m), hbd / max(ha, 1), logp - tpsa / 50.0])
+    return np.array(out, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+=======
+    Xtr = np.hstack([featurize(train_smiles), ion_features(train_smiles)])
+    Xte = np.hstack([featurize(test_smiles), ion_features(test_smiles)])
+>>>>>>> REPLACE
+-----

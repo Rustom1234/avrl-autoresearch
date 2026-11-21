@@ -1,0 +1,47 @@
+{
+ "problem": "bio_L2_s2",
+ "model": "haiku",
+ "budget": 14,
+ "n_parents": 3,
+ "ok": true,
+ "error": null,
+ "error_class": null,
+ "t_start": 1795085132.2868295,
+ "wall_s": 66.27770686149597,
+ "cost_usd": 0.011930070000000001,
+ "num_turns": 14,
+ "usage": {
+  "input": 28,
+  "output": 13322,
+  "cache_read": 141747,
+  "cache_write": 19244
+ },
+ "models_used": [
+  "claude-haiku-5-5"
+ ],
+ "reply": "essential; a pure polynomial in P and t stalls around 1e-4 to 1e-5.\n- Simple logistic, Allee, Gompertz, and sinusoidal-forcing forms all failed (NMSE 3e-2 to 1e-1).\n- At low P the rate turns negative at late times, while at high P it stays nearly flat, so the time dependence is strongly P-dependent.",
+ "stop": "success",
+ "n_calls": 13,
+ "n_evals": 1,
+ "best": {
+  "code": "\nimport numpy as np\ndef equation(t, P, params):\n    L = np.log(P)\n    c = {\n    'P':[6.779525,-0.124043,0.018337,0.000257],\n    'P2':[1.229703,-0.044208,0.006453,-0.000272],\n    'PL':[-4.771774,0.121148,-0.017783,0.000523],\n    'P2L':[-0.275511,0.011004,-0.001604,0.000069],\n    'iP':[-0.095064,0.012600,-0.001815,0.000122],\n    'L':[-1.465474,0.092819,-0.013676,0.001084],\n    '1':[-3.701259,0.155862,-0.082511,0.002425],\n    }\n    T = [np.ones_like(t), t, t**2, t**3]\n    def s(v): return sum(v[k]*T[k] for k in range(4))\n    out = (s(c['P'])*P + s(c['P2'])*P**2 + s(c['PL'])*P*L + s(c['P2L'])*P**2*L\n           + s(c['iP'])/P + s(c['L'])*L + s(c['1']))\n    return params[0]*out\n",
+  "train_nmse": 5.120516092164119e-07,
+  "call": 12
+ },
+ "val": 3.7252246167728875e-07,
+ "test_id": 5.35474824147243e-07,
+ "test_ood": 8.213358166864437e-06,
+ "path": [
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku",
+  "haiku"
+ ],
+ "rep": 2,
+ "parent_best": 0.0001398291509039507
+}

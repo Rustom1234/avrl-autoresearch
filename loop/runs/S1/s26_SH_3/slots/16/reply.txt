@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best_val = -1.0
+    best_c = None
+    best_r = None
+    for start in range(4):
+        if start > 0 and time.time() - t0 > 150:
+            break
+        c0 = hex_jitter(rng)
+        c0 = sa_centers(c0, rng, t0)
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+        # shrink-and-grow cycles
+        for cyc in range(8):
+            if time.time() - t0 > 180:
+                break
+            zs = cur.copy()
+            zs[2 * n:] *= 0.9
+            zs[:2 * n] = np.clip(zs[:2 * n] + rng.normal(0, 0.02, 2 * n), 0.0, 1.0)
+            zn = optimize(zs)
+            v = np.sum(zn[2 * n:])
+            if v > cur_val:
+                cur, cur_val = zn, v
+=======
+    rng = np.random.default_rng(12345)
+    best_val = -1.0
+    best_c = None
+    best_r = None
+    tabu_sigs = []
+
+    def sig_of(r):
+        return tuple(np.round(np.sort(r), 3))
+
+    for start in range(4):
+        if start > 0 and time.time() - t0 > 150:
+            break
+        c0 = hex_jitter(rng)
+        c0 = sa_centers(c0, rng, t0)
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+        # tabu: skip restarts that converge to an already found optimum
+        if sig_of(cur[2 * n:]) in tabu_sigs:
+            continue
+        tabu_sigs.append(sig_of(cur[2 * n:]))
+        # shrink-and-grow cycles, perturbation magnitude grows with cycle index
+        for cyc in range(8):
+            if time.time() - t0 > 180:
+                break
+            scale = 0.02 * (1.0 + 0.5 * cyc)
+            zs = cur.copy()
+            zs[2 * n:] *= 0.9
+            zs[:2 * n] = np.clip(zs[:2 * n] + rng.normal(0, scale, 2 * n), 0.0, 1.0)
+            zn = optimize(zs)
+            v = np.sum(zn[2 * n:])
+            sg = sig_of(zn[2 * n:])
+            if sg in tabu_sigs:
+                continue
+            tabu_sigs.append(sg)
+            if v > cur_val:
+                cur, cur_val = zn, v
+>>>>>>> REPLACE
+-----

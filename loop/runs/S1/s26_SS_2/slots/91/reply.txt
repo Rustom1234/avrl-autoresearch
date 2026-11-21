@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    def pen(v, mu):
+=======
+    def pen(v, mu, lam=0.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        f = -r.sum() + mu * np.sum(ov ** 2)
+        gx = np.zeros(n); gy = np.zeros(n); gr = -np.ones(n)
+=======
+        f = -r.sum() + mu * np.sum(ov ** 2)
+        gx = np.zeros(n); gy = np.zeros(n); gr = -np.ones(n)
+        if lam > 0:
+            f += -lam * np.sum(np.log(np.maximum(r, 0) + 1e-3))
+            gr -= lam / (np.maximum(r, 0) + 1e-3)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+            v = minimize(pen, v, args=(mu,), jac=True, method="L-BFGS-B",
+                         bounds=bounds, options={"maxiter": 400}).x
+=======
+        use_reg = rng.random() < 0.5
+        for k, mu in enumerate((10, 100, 1e3, 1e4, 1e5)):
+            lam = 0.01 * (1 - k / 4.0) if use_reg else 0.0
+            v = minimize(pen, v, args=(mu, lam), jac=True, method="L-BFGS-B",
+                         bounds=bounds, options={"maxiter": 400}).x
+>>>>>>> REPLACE
+-----

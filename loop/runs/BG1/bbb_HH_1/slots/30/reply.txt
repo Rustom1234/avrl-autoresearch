@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors, rdFingerprintGenerator
+=======
+from rdkit.Chem import Descriptors, rdFingerprintGenerator, rdPartialCharges
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def charge_feats(mols):
+    rows = []
+    for m in mols:
+        rdPartialCharges.ComputeGasteigerCharges(m)
+        q = np.array([a.GetDoubleProp("_GasteigerCharge") for a in m.GetAtoms()])
+        q = np.nan_to_num(q, nan=0.0, posinf=0.0, neginf=0.0)
+        het = [a.GetIdx() for a in m.GetAtoms() if a.GetSymbol() in ("N", "O")]
+        polar = float(q[max(het, key=lambda i: abs(q[i]))]) if het else 0.0
+        rows.append([q.max(), q.min(), np.abs(q).sum(), q[q > 0].sum(), q[q < 0].sum(), polar])
+    return np.array(rows, dtype=np.float32)
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.hstack([fp, desc.astype(np.float32)])
+=======
+    return np.hstack([fp, desc.astype(np.float32), charge_feats(mols)])
+>>>>>>> REPLACE
+-----

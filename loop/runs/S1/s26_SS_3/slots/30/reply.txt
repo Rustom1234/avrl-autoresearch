@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+        c, r = best
+        k = rng.choice(np.argsort(r)[:4])
+=======
+        c, r = best
+        if time.time() - t0 < t0_swap_end:
+            dm = np.sqrt(((c[iu] - c[ju]) ** 2).sum(1))
+            ratio = np.maximum(r[iu], r[ju]) / np.maximum(np.minimum(r[iu], r[ju]), 1e-9)
+            if rng.random() < 0.5:
+                cand = np.where((dm - r[iu] - r[ju] < 1e-7) & (ratio > 1.2))[0]
+            else:
+                cand = np.where((dm - r[iu] - r[ju] >= 1e-7) & (ratio > 1.1))[0]
+            if len(cand) == 0:
+                cand = np.where(ratio > 1.05)[0]
+            if len(cand) == 0:
+                continue
+            q = rng.choice(cand)
+            a, b = iu[q], ju[q]
+            c0 = c.copy()
+            c0[a], c0[b] = c[b].copy(), c[a].copy()
+            r0 = r.copy()
+            avg = 0.5 * (r[a] + r[b])
+            r0[a] = 0.5 * avg + 0.5 * r[a]
+            r0[b] = 0.5 * avg + 0.5 * r[b]
+            r0 = r0 * 0.97
+            c0 = np.clip(c0 + rng.normal(0, 0.001, c0.shape), 0.01, 0.99)
+            z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+            try:
+                res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                               constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                               options={"maxiter": 300, "ftol": 1e-11})
+            except Exception:
+                continue
+            out = finalize(res.x)
+            if out is None:
+                continue
+            c2, r2 = out
+            if r2.sum() > best_val:
+                best_val = r2.sum()
+                best = (c2, r2)
+            continue
+        k = rng.choice(np.argsort(r)[:4])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while best is not None and time.time() - t0 < time_budget:
+=======
+    t0_swap_end = 0.7 * time_budget + 0.5 * 0.3 * time_budget
+    while best is not None and time.time() - t0 < time_budget:
+>>>>>>> REPLACE
+-----

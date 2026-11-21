@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+def _grid_init(n, rng):
+    """Jittered grid start with a random row/column layout, so that restarts cover several plausible layouts."""
+    rows, cols = [(6, 6), (5, 7), (7, 5), (6, 5), (4, 8), (8, 4)][rng.integers(6)]
+    X, Y = np.meshgrid((np.arange(cols) + 0.5) / cols, (np.arange(rows) + 0.5) / rows)
+    if rng.random() < 0.5:
+        X = X + (np.arange(rows)[:, None] % 2) * 0.5 / cols
+    pts = np.stack([X.ravel(), Y.ravel()], 1)[rng.permutation(rows * cols)[:n]]
+    if len(pts) < n:
+        pts = np.vstack([pts, rng.uniform(0, 1, (n - len(pts), 2))])
+    pts = pts + rng.normal(0, 0.25, (n, 2)) * np.array([1 / cols, 1 / rows])
+    return np.clip(pts, 0.02, 0.98)
+
+
+def _solve_once(n, rng, init=None, grid=False):
+    if grid:
+        base = _grid_init(n, rng)
+    else:
+        base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        grid = not guided and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None, grid)
+>>>>>>> REPLACE
+-----

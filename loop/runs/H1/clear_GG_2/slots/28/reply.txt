@@ -1,0 +1,206 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+
+    rf = RandomForestRegressor(n_estimators=N_TREES_RF, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    return np.expm1(preds)
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    combined_smiles = list(set(train_smiles + test_smiles))
+    X_all = featurize(combined_smiles)
+    
+    # Re-align X_train and X_test based on the original order of inputs
+    smiles_to_idx = {s: i for i, s in enumerate(combined_smiles)}
+    X_train = np.array([X_all[smiles_to_idx[s]] for s in train_smiles], dtype=np.float32)
+    X_test = np.array([X_all[smiles_to_idx[s]] for s in test_smiles], dtype=np.float32)
+    
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+
+    rf = RandomForestRegressor(n_estimators=N_TREES_RF, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    return np.expm1(preds)
+>>>>>>>
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    maccs_gen = MACCSkeys.GenMACCSKeys
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        mf = gen.GetFingerprintAsNumPy(mol)
+        mk = np.array(maccs_gen(mol), dtype=np.float32)
+        ap = ap_gen.GetFingerprintAsNumPy(mol)
+        features.append(np.concatenate([mf, mk, ap]))
+    
+    X = np.array(features, dtype=np.float32)
+    # Remove bits with zero variance across the dataset
+    variances = np.var(X, axis=0)
+    mask = variances > 1e-6
+    return X[:, mask]
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+
+    rf = RandomForestRegressor(n_estimators=N_TREES_RF, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    return np.expm1(preds)
+}
+=======
+def featurize_raw(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    maccs_gen = MACCSkeys.GenMACCSKeys
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        mf = gen.GetFingerprintAsNumPy(mol)
+        mk = np.array(maccs_gen(mol), dtype=np.float32)
+        ap = ap_gen.GetFingerprintAsNumPy(mol)
+        features.append(np.concatenate([mf, mk, ap]))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train_raw = featurize_raw(train_smiles)
+    X_test_raw = featurize_raw(test_smiles)
+    
+    # Use combined data to find variance mask so both sets have same dims
+    X_combined = np.concatenate([X_train_raw, X_test_raw], axis=0)
+    mask = np.var(X_combined, axis=0) > 1e-6
+    
+    X_train = X_train_raw[:, mask]
+    X_test = X_test_raw[:, mask]
+    
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+
+    rf = RandomForestRegressor(n_estimators=N_TREES_RF, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    return np.expm1(preds)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    maccs_gen = MACCSkeys.GenMACCSKeys
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        mf = gen.GetFingerprintAsNumPy(mol)
+        mk = np.array(maccs_gen(mol), dtype=np.float32)
+        ap = ap_gen.GetFingerprintAsNumPy(mol)
+        features.append(np.concatenate([mf, mk, ap]))
+    
+    X = np.array(features, dtype=np.float32)
+    # Remove bits with zero variance across the dataset
+    variances = np.var(X, axis=0)
+    mask = variances > 1e-6
+    return X[:, mask]
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+
+    rf = RandomForestRegressor(n_estimators=N_TREES_RF, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    return np.expm1(preds)
+সন্ধ───────
+def featurize(smiles, mask=None):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    maccs_gen = MACCSkeys.GenMACCSKeys
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        mf = gen.GetFingerprintAsNumPy(mol)
+        mk = np.array(maccs_gen(mol), dtype=np.float32)
+        ap = ap_gen.GetFingerprintAsNumPy(mol)
+        features.append(np.concatenate([mf, mk, ap]))
+    
+    X = np.array(features, dtype=np.float32)
+    if mask is None:
+        variances = np.var(X, axis=0)
+        mask = variances > 1e-6
+    return X[:, mask]
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train_raw = featurize(train_smiles)
+    X_test_raw = featurize(test_smiles)
+    
+    # Combine to find a global mask so both sets have the same features
+    X_combined = np.concatenate([X_train_raw, X_test_raw], axis=0)
+    mask = np.var(X_combined, axis=0) > 1e-6
+    
+    X_train = featurize(train_smiles, mask=mask)
+    X_test = featurize(test_smiles, mask=mask)
+    
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+
+    rf = RandomForestRegressor(n_estimators=N_TREES_RF, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    return np.expm1(preds)
+>>>>>>> REPLACE
+-----

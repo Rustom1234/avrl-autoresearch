@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    import lightgbm as lgb
+    nd = len(Descriptors.descList) + 2
+    model = lgb.LGBMRegressor(objective='huber', n_estimators=500, learning_rate=0.03, num_leaves=15,
+                              subsample=0.8, subsample_freq=1, colsample_bytree=0.5,
+                              min_child_samples=10, random_state=seed, n_jobs=8, verbose=-1)
+    model.fit(featurize(train_smiles)[:, :nd], y)
+    et = model.predict(featurize(test_smiles)[:, :nd])
+    knn = knn_predict(train_smiles, y, test_smiles)
+    return 0.75 * et + 0.25 * knn
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    import lightgbm as lgb
+    from sklearn.model_selection import KFold
+    nd = len(Descriptors.descList) + 2
+    Xtr = featurize(train_smiles)[:, :nd]
+    Xte = featurize(test_smiles)[:, :nd]
+
+    def make():
+        return lgb.LGBMRegressor(objective='huber', n_estimators=500, learning_rate=0.03, num_leaves=15,
+                                 subsample=0.8, subsample_freq=1, colsample_bytree=0.5,
+                                 min_child_samples=10, random_state=seed, n_jobs=8, verbose=-1)
+
+    model = make().fit(Xtr, y)
+    base = model.predict(Xte)
+    oof = np.zeros(len(y))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        oof[va] = make().fit(Xtr[tr], y[tr]).predict(Xtr[va])
+    resid = y - oof
+    corr = knn_predict(train_smiles, resid, test_smiles)
+    return base + 0.5 * corr
+>>>>>>> REPLACE
+-----

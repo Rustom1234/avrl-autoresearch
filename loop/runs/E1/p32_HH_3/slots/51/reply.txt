@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _sigma(c, r):
+    """Per-circle kick scale from contact count: loose circles (likely rattlers) move more, rigid core less."""
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    touch = d < r[:, None] + r[None] + 1e-3
+    np.fill_diagonal(touch, False)
+    wall = (np.stack([c[:, 0], c[:, 1], 1 - c[:, 0], 1 - c[:, 1]], 1) < 1e-3).sum(1)
+    k = touch.sum(1) + wall
+    return np.where(k <= 1, 0.03, np.where(k >= 4, 0.01, 0.02))
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+=======
+        sig = _sigma(bc, br)
+        c0 = np.clip(bc + rng.normal(0, 1, bc.shape) * sig[:, None], 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 1, br.shape) * sig, 0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+    n = _N
+    i, j = _IU
+    m = len(i)
+    x0 = np.concatenate([c[:, 0], c[:, 1], r])
+=======
+def _polish(c, r, maxiter=300, cut=None):
+    n = _N
+    i, j = _IU
+    if cut is not None:
+        dd = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+        mk = dd < cut
+        i, j = i[mk], j[mk]
+    m = len(i)
+    x0 = np.concatenate([c[:, 0], c[:, 1], r])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": 300, "ftol": 1e-12})
+=======
+                   options={"maxiter": maxiter, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+=======
+    cands = []
+    while time.time() - t0 < 80:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            r = _lp_radii(c)
+            c2 = np.clip(_polish(c, r, maxiter=60, cut=0.35), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        cands.append((s, c2, r2))
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    cands.sort(key=lambda t: -t[0])
+    k = max(1, int(0.08 * len(cands)))
+    for s0, c2, r2 in cands[:k]:
+        if time.time() - t0 > 200:
+            break
+        try:
+            c3 = np.clip(_polish(c2, r2), 0, 1)
+            r3 = _lp_radii(c3)
+        except Exception:
+            continue
+        if r3.sum() > best_s:
+            best_s, best = r3.sum(), (c3, r3)
+>>>>>>> REPLACE
+-----

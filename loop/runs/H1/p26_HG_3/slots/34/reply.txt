@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    # Stage 1: Find a good spread using equal radii
+    x0_eq = np.hstack([c0, np.full((n, 1), INIT_RADIUS).flatten()]).flatten()
+    res_eq = minimize(lambda v: -v[2*n:].sum(), x0_eq, method="SLSQP", 
+                       constraints={"type": "ineq", "fun": cons_eq}, 
+                       options={"maxiter": MAX_ITER // 2})
+    
+    # Stage 2: Optimize individual radii starting from warm centers
+    c_warm = res_eq.x[:2*n].reshape(n, 2)
+    x0 = np.concatenate([c_warm.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+    # Stage 1: Find a good spread using equal radii
+    x0_eq = np.concatenate([c0.flatten(), np.full(n, INIT_RADIUS)])
+    res_eq = minimize(lambda v: -v[2*n:].sum(), x0_eq, method="SLSQP", 
+                       constraints={"type": "ineq", "fun": cons_eq}, 
+                       options={"maxiter": MAX_ITER // 2})
+    
+    # Stage 2: Optimize individual radii starting from warm centers
+    c_warm = res_eq.x[:2*n].reshape(n, 2)
+    x0 = np.concatenate([c_warm.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+-----

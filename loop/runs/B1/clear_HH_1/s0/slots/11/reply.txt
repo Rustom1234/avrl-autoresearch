@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    mu, sd = y.mean(), y.std() + 1e-9
+    z = (y - mu) / sd
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, z)
+    oof = np.zeros(len(z))
+    for tr, va in KFold(n_splits=5, shuffle=True, random_state=seed).split(z):
+        inner = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+        inner.fit(K_train[np.ix_(tr, tr)], z[tr])
+        oof[va] = inner.predict(K_train[np.ix_(va, tr)])
+    resid = z - oof
+    gbm = lgb.LGBMRegressor(learning_rate=0.05, n_estimators=300, num_leaves=7, min_child_samples=20,
+                            random_state=seed, verbose=-1)
+    gbm.fit(D, resid)
+    return model.predict(K_test) + 0.5 * gbm.predict(Dt)
+>>>>>>> REPLACE
+-----

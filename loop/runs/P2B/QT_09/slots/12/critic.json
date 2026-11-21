@@ -1,0 +1,14 @@
+{
+ "ok": false,
+ "issues": [
+  "Rotary slicing was removed. `cos_sin = self.cos, self.sin` passes the full precomputed rotary buffers, which are usually allocated at a multiple of sequence_len (for example 10x). They will not broadcast against q/k of length T in apply_rotary_emb, so the run will most likely crash and waste a slot. The `assert T <= self.cos.size(1)` guard was also deleted. If the buffer length happened to equal T exactly it would run, but any shorter sequence at eval would then break.",
+  "The logit noise is not gated by `self.training`. `torch.rand_like` noise is added inside `forward`, which is the same path the harness uses to recompute val_bpb. Evaluation becomes stochastic: it is affected by RNG state and not reproducible, and the loss is computed on corrupted logits. This does not directly cheat the metric. It changes what the model computes at eval time and makes the result noisy, which is close to meaningless.",
+  "The comment 'Residual dropout' is misleading. The change is a convex mix with uniform [0,1) noise (non-zero mean 0.025), applied at both train and eval. It is not dropout, and it is not 'non-linearly processed'.",
+  "No harness numbers are available yet (lint repair, no GPU run), so z cannot be recomputed and no claims can be checked.",
+  "Data, seed lines, the evaluation call and the summary printing are untouched."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

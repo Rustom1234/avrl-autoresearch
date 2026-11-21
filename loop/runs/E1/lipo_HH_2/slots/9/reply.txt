@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+=======
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+_DESC_CACHE = {}
+
+
+def desc_matrix(smiles):
+    # RDKit 2D descriptors, cached per SMILES so repeated fits do not recompute them
+    missing = [s for s in set(smiles) if s not in _DESC_CACHE]
+    for s in missing:
+        vals = Descriptors.CalcMolDescriptors(Chem.MolFromSmiles(s))
+        v = np.array(list(vals.values()), dtype=np.float64)
+        _DESC_CACHE[s] = np.nan_to_num(v, nan=0.0, posinf=0.0, neginf=0.0)
+    return np.array([_DESC_CACHE[s] for s in smiles])
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    Xte = featurize(test_smiles)
+=======
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    Xte = featurize(test_smiles)
+    Dtr = desc_matrix(train_smiles)
+    Dte = desc_matrix(test_smiles)
+    lo, hi = np.percentile(Dtr, 1, axis=0), np.percentile(Dtr, 99, axis=0)
+    X = np.hstack([X, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Xte, np.clip(Dte, lo, hi).astype(np.float32)])
+>>>>>>> REPLACE
+-----

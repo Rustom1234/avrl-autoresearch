@@ -1,0 +1,962 @@
+[
+ {
+  "id": "b001",
+  "title": "Tune SVR C and epsilon",
+  "spec": "In fit_predict, change the SVR hyperparameters from C=5.0, epsilon=0.05 to C=2.0, epsilon=0.1 (a smaller C gives more regularization). Keep everything else unchanged. If it helps, a follow-up can try C=10.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8539650440216064,
+  "sim_tried_bge": 0.7227072715759277,
+  "sim_hist_mini": 0.6621758937835693,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Curated physicochemical descriptor block replacing the full descList",
+  "spec": "The current code feeds all ~210 RDKit descriptors into an RBF kernel after z-scoring, which lets dozens of near-duplicate counts dominate the distance metric. Replace it with a curated block of roughly 15-25 descriptors known to drive hepatic metabolism: MolLogP, MolMR, TPSA, MolWt, NumHDonors, NumHAcceptors, NumRotatableBonds, FractionCSP3, NumAromaticRings, NumAliphaticRings, NumSaturatedRings, RingCount, HeavyAtomCount, NHOHCount, NOCount, BertzCT, BalabanJ, qed, plus counts of halogen, nitrogen and sulfur atoms and the number of aromatic nitrogen atoms. Z-score and clip as before, set gamma = 1/n_features, and keep the 0.5/0.5 mix with the Tanimoto kernel and the SVR unchanged. Rationale: an RBF kernel is a distance in the standardised descriptor space, so redundant and noisy descriptors directly degrade it; a compact mechanistically chosen block should give a sharper, better-conditioned similarity.",
+  "family": "data",
+  "sim_hist_bge": 0.8581581115722656,
+  "sim_tried_bge": 0.8581581115722656,
+  "sim_hist_mini": 0.6200234293937683,
+  "sources": [
+   [
+    "opus",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Salt stripping and largest-fragment canonicalization",
+  "spec": "In featurize and descriptors, parse each SMILES, keep only the largest fragment using rdkit.Chem.rdmolops.GetMolFrags(asMols=True) choosing the one with most heavy atoms, then compute fingerprints and descriptors on it. Use a shared helper function get_mol(s).",
+  "family": "data",
+  "sim_hist_bge": 0.7914626598358154,
+  "sim_tried_bge": 0.722898006439209,
+  "sim_hist_mini": 0.6209090352058411,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "PCA-whitened descriptor embedding before the RBF kernel",
+  "spec": "After the existing descriptor clip-and-standardize step, fit sklearn PCA(n_components=20, whiten=True, random_state=seed) on the training descriptor matrix D only, then transform both D and Dt. Clip the whitened components to [-5, 5]. Compute the RBF kernel on this 20-dimensional embedding with gamma = 1/20 instead of 1/n_descriptors. The Morgan Tanimoto kernel, the 0.5/0.5 mix, the SVR (C=5.0, epsilon=0.05) and the rank-normalized target are unchanged. This tests whether decorrelating the many redundant RDKit descriptors helps the RBF part of the kernel.",
+  "family": "other",
+  "sim_hist_bge": 0.8808852434158325,
+  "sim_tried_bge": 0.8724964261054993,
+  "sim_hist_mini": 0.7437161207199097,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Probit (normal-score) rank target",
+  "spec": "Replace the uniform rank target with a normal-score target. Compute r = (rankdata(y) - 0.5)/len(y) as now, then map it through scipy.stats.norm.ppf to obtain a roughly Gaussian target. Standardize it with mean and std as in the current code (mu, sd from the training targets), fit the SVR(kernel='precomputed', C=5.0, epsilon=0.05) on the standardized values, and return model.predict(K_test). The kernel and everything else are unchanged. Since Spearman depends only on ranks, the extra tail stretching changes the fit only through the loss weighting of the SVR tube.",
+  "family": "data",
+  "sim_hist_bge": 0.8463435173034668,
+  "sim_tried_bge": 0.8463435173034668,
+  "sim_hist_mini": 0.6317861676216125,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Bagged SVR on 80% subsamples",
+  "spec": "Fit 8 SVRs, each on a random 80% subset of training rows (rng from seed, indices sliced from K_train and K_test columns), and average the predictions. Keep the kernels and SVR parameters the same.",
+  "family": "batch",
+  "sim_hist_bge": 0.852716326713562,
+  "sim_tried_bge": 0.7963591814041138,
+  "sim_hist_mini": 0.7681137919425964,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Descriptor RBF gamma scaling",
+  "spec": "Change gamma = 1.0 / D.shape[1] to gamma = 0.5 / D.shape[1] so the descriptor RBF kernel is smoother. Nothing else changes.",
+  "family": "other",
+  "sim_hist_bge": 0.8360229730606079,
+  "sim_tried_bge": 0.8117556571960449,
+  "sim_hist_mini": 0.5865192413330078,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Add LightGBM on descriptors, rank-averaged with SVR",
+  "spec": "After computing the SVR predictions, also fit lgb.LGBMRegressor on the standardized descriptors D plus the fingerprints (n_estimators=400, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3, subsample=0.8, subsample_freq=1, random_state=seed, verbose=-1). Fit it on the rank-transformed y. Return 0.6*rank(SVR) + 0.4*rank(LGBM), where rank uses rankdata on the test predictions.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8345563411712646,
+  "sim_tried_bge": 0.8345563411712646,
+  "sim_hist_mini": 0.6217625141143799,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Combine the pharmacophore kernel with the physchem ridge prior",
+  "spec": "Two earlier changes each gave a borderline gain on their own but were never tried together; combine them in one script. First, add a Gobbi 2D pharmacophore fingerprint kernel: build the pharmacophore fingerprint with rdkit.Chem.Pharm2D (Generate.Gen2DFingerprint with the Gobbi_Pharm2D factory), fold it to 4096 bits with a simple modulo hash into a 0/1 numpy array, compute its Tanimoto kernel, and average it equally with the existing Morgan-Tanimoto kernel and the descriptor RBF kernel so the mix is (1/3, 1/3, 1/3). Second, before fitting the SVR, fit a Ridge(alpha=10) on seven standardized physchem descriptors (MolWt, MolLogP, TPSA, NumHDonors, NumHAcceptors, NumRotatableBonds, RingCount) to the rank-normalized target, subtract its in-sample prediction from the target, fit the SVR on that residual, and add the ridge prediction back on the test molecules. Keep everything else (rank target, C=5, epsilon=0.05) unchanged.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9422423243522644,
+  "sim_tried_bge": 0.9422423243522644,
+  "sim_hist_mini": 0.8489843606948853,
+  "sources": [
+   [
+    "opus",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "SVR C and epsilon retune",
+  "spec": "In train.py, keep the kernel mix unchanged and change the SVR hyperparameters to C=2.0 and epsilon=0.1 (target is rank-normalized and standardized, so these are sensible). Only change those two numbers in the SVR constructor.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8314827680587769,
+  "sim_tried_bge": 0.7284748554229736,
+  "sim_hist_mini": 0.6577361822128296,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Gasteiger partial-charge histogram descriptors",
+  "spec": "Compute Gasteiger partial charges with rdkit.Chem.rdPartialCharges.ComputeGasteigerCharges(mol) for each molecule. From the per-atom values of the heavy atoms, build a 6-element feature vector: counts of atoms with charge below -0.25, between -0.25 and -0.05, between -0.05 and 0.05, between 0.05 and 0.25, above 0.25, and the maximum absolute charge. Replace NaN charges by 0. Append these 6 columns to the standardized RDKit descriptor matrix D before the descriptor RBF kernel is built (standardize and clip them the same way). Gamma stays 1/n_descriptors computed on the enlarged matrix. The rest of the pipeline is unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.7847355604171753,
+  "sim_tried_bge": 0.7847355604171753,
+  "sim_hist_mini": 0.6092501282691956,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Add a truncated-SVD compression of the Morgan bits to the descriptor kernel",
+  "spec": "The Morgan bits currently reach the model only through the Tanimoto kernel, which is a similarity on sparse exact-substructure overlap and is weak when a test scaffold shares no bits with training. Give the smooth part of the model access to the same information in dense form: fit sklearn.decomposition.TruncatedSVD(n_components=64, random_state=seed) on the training Morgan bit matrix, transform both train and test, standardize those 64 components the same way as the descriptors, concatenate them with the standardized clipped RDKit descriptor block, and build the RBF kernel on the concatenation with gamma = 1.0 / (total number of columns). Keep the Morgan-Tanimoto kernel and the 0.5/0.5 mix, the rank-normalized target and the SVR settings unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8267025947570801,
+  "sim_tried_bge": 0.8267025947570801,
+  "sim_hist_mini": 0.65285325050354,
+  "sources": [
+   [
+    "opus",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Rank-average blend of the kernel SVR with LightGBM",
+  "spec": "Keep the current kernel SVR exactly as is, and add a second, structurally different model: a LightGBM regressor (objective='regression', learning_rate=0.03, n_estimators=600, num_leaves=15, min_child_samples=10, feature_fraction=0.5, bagging_fraction=0.8, bagging_freq=1, random_state=seed, n_jobs=8, verbose=-1) trained on the concatenation of the 2048 Morgan bits and the standardized clipped RDKit descriptors against the same rank-normalized target. Convert each model's test predictions to ranks with scipy.stats.rankdata and return 0.7 * rank(SVR) + 0.3 * rank(LightGBM), rescaled by dividing by the number of test molecules. Tree ensembles and kernel methods make different errors, and rank averaging is the natural combiner for a Spearman loss.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8722367286682129,
+  "sim_tried_bge": 0.8722367286682129,
+  "sim_hist_mini": 0.6599158048629761,
+  "sources": [
+   [
+    "opus",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Kernel mix weight 0.4/0.6",
+  "spec": "Change the kernel combination to 0.4*Tanimoto + 0.6*descriptor RBF in both K_train and K_test, since the descriptor kernel provided the largest gain.",
+  "family": "other",
+  "sim_hist_bge": 0.830685555934906,
+  "sim_tried_bge": 0.830685555934906,
+  "sim_hist_mini": 0.6394397020339966,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "Add atom-pair and topological-torsion fingerprint kernels",
+  "spec": "Compute atom-pair fingerprints (rdFingerprintGenerator.GetAtomPairGenerator, fpSize 2048) as binary vectors. Compute a Tanimoto kernel on them. Average it with the existing kernels (three-way mean: Morgan, atom pair, descriptor RBF).",
+  "family": "data",
+  "sim_hist_bge": 0.8693814873695374,
+  "sim_tried_bge": 0.8693814873695374,
+  "sim_hist_mini": 0.7070837020874023,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Count-based Morgan fingerprints at radius 3",
+  "spec": "In featurize(), replace the bit-vector output of GetMorganGenerator with occurrence counts: use gen.GetCountFingerprintAsNumPy(mol), and set RADIUS = 3 with N_BITS = 2048. The Tanimoto function already accepts non-negative real vectors, so the kernel code needs no change. Count fingerprints keep how often each substructure occurs, which often helps when the property scales with molecular size and substructure multiplicity.",
+  "family": "data",
+  "sim_hist_bge": 0.8753072619438171,
+  "sim_tried_bge": 0.8753072619438171,
+  "sim_hist_mini": 0.6872183084487915,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Scaffold-stratified target smoothing via a kNN prior on the Tanimoto kernel",
+  "spec": "Before fitting the SVR, replace each training target with a shrunken version: for each training molecule, average the rank targets of its k=5 nearest training neighbors under the Tanimoto similarity (excluding itself), and blend 0.8 * own rank + 0.2 * neighbor mean. Fit the SVR on these smoothed targets and predict the test set as before. The smoothing dampens label noise between near analogs, which is common in clearance assays. Keep k and the blend weight as module-level constants.",
+  "family": "data",
+  "sim_hist_bge": 0.9068359136581421,
+  "sim_tried_bge": 0.8503444194793701,
+  "sim_hist_mini": 0.7905852198600769,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Add MACCS keys and atom-pair counts to the kernel input",
+  "spec": "In featurize(), build a second fingerprint block: 167 MACCS keys (rdkit.Chem.MACCSkeys.GenMACCSKeys, converted to a numpy array) and hashed atom-pair count fingerprints (rdFingerprintGenerator.GetAtomPairGenerator with fpSize=1024, GetCountFingerprintAsNumPy). Concatenate them with the Morgan bits and use the same Tanimoto kernel on the concatenated vector. Leave the descriptor RBF kernel and the 0.5 mixing weight unchanged. This gives the kernel a wider view of structure than Morgan alone.",
+  "family": "data",
+  "sim_hist_bge": 0.8593854308128357,
+  "sim_tried_bge": 0.8593854308128357,
+  "sim_hist_mini": 0.767365574836731,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Lipophilicity interaction features for the descriptor kernel",
+  "spec": "Hepatocyte clearance is driven largely by lipophilicity moderated by size, polarity and ionization, and those interactions are multiplicative rather than additive, which a plain RBF kernel on raw descriptors represents poorly. Before the existing standardize-and-clip step, append a small block of explicitly constructed cross terms computed from RDKit descriptors: MolLogP*MolLogP, MolLogP*TPSA, MolLogP/(1+NumRotatableBonds), MolLogP - 0.01*MolWt (a crude ligand-efficiency-like term), TPSA/MolWt, NumAromaticRings*MolLogP, and FractionCSP3*MolLogP. Guard every division with a small epsilon and nan_to_num the block. Standardize and clip the extended matrix exactly as the current code does, and update gamma to 1.0 / (number of kept columns). Nothing else changes.",
+  "family": "data",
+  "sim_hist_bge": 0.8036977052688599,
+  "sim_tried_bge": 0.8036977052688599,
+  "sim_hist_mini": 0.5673692226409912,
+  "sources": [
+   [
+    "opus",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Out-of-fold stacking of three base models",
+  "spec": "Replace the single model with a proper stack. Base models: (1) kernel SVR on the current combined kernel, (2) LightGBM on Morgan fingerprint + descriptors, (3) RandomForestRegressor(n_estimators=500, max_features=0.3, min_samples_leaf=2, n_jobs=8, random_state=seed) on the same matrix. Generate out-of-fold predictions for all three using an inner 5-fold KFold(shuffle=True, random_state=seed) on the training set, convert each column of OOF predictions to within-fold ranks, and fit a non-negative least squares or Ridge(alpha=1.0, positive=True) meta-model on the rank-transformed y. Refit each base model on the full training set, rank-transform their test predictions, and apply the learned meta weights. Rationale: hand-set blend weights are guesses; learned non-negative weights let the data decide how much each family is worth, and the ranks keep the meta-problem well scaled.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8438166975975037,
+  "sim_tried_bge": 0.8438166975975037,
+  "sim_hist_mini": 0.6838865876197815,
+  "sources": [
+   [
+    "opus",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b021",
+  "title": "Tune the SVR C and epsilon with inner cross-validation",
+  "spec": "Inside fit_predict, run a small grid over C in {1, 5, 20} and epsilon in {0.02, 0.05, 0.1} using 4-fold KFold on the training data only (shuffle=True, random_state=seed). Each candidate reuses the precomputed training kernel, sliced by index, so the cost is small. Score each candidate by Spearman between out-of-fold predictions and the true values, refit the SVR with the best (C, epsilon) on all training data, and predict the test set. Do not look at the test fold during tuning.",
+  "family": "regularization",
+  "sim_hist_bge": 0.9006668329238892,
+  "sim_tried_bge": 0.8096432685852051,
+  "sim_hist_mini": 0.7463985681533813,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b022",
+  "title": "Multi-fingerprint Tanimoto kernel",
+  "spec": "Keep the SVR-on-precomputed-kernel structure but widen the fingerprint part of the kernel. Instead of one Morgan radius-2 2048-bit fingerprint, compute three binary fingerprints per molecule with RDKit: Morgan radius 2 (2048 bits), Morgan radius 3 with features/pharmacophore-style invariants (GetMorganGenerator(radius=3, fpSize=2048, atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen())), and the RDKit path fingerprint (rdFingerprintGenerator.GetRDKitFPGenerator(fpSize=2048, maxPath=6)). Compute a Tanimoto similarity matrix for each and average the three into one structural kernel, then combine with the existing RBF-on-descriptors kernel as 0.5*K_struct + 0.5*K_rbf (same as now, just with the richer K_struct). Everything else, including the rank target transform and SVR(C=5, epsilon=0.05), stays identical. Rationale: single-radius ECFP is a narrow view of structure and path-based plus pharmacophore-typed fingerprints capture metabolic soft spots differently; averaging kernels is a cheap, well-conditioned way to combine them.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8893022537231445,
+  "sim_tried_bge": 0.8893022537231445,
+  "sim_hist_mini": 0.8135461211204529,
+  "sources": [
+   [
+    "opus",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b023",
+  "title": "LightGBM residual correction on out-of-fold SVR residuals",
+  "spec": "Fit the current kernel SVR as it stands, then learn what it systematically misses. Inside fit_predict, run a 5-fold KFold(shuffle=True, random_state=seed) over the training molecules to get out-of-fold SVR predictions (refitting the same precomputed-kernel SVR on each inner training subset, slicing the already-computed train-train kernel). Compute the residual r = y_rank_normalized - oof_prediction, fit a small LightGBM model (learning_rate=0.05, n_estimators=300, num_leaves=7, min_child_samples=20, random_state=seed, verbose=-1) on the standardized RDKit descriptors to predict r, and return full_svr_prediction + 0.5 * residual_model_prediction(test descriptors). The 0.5 shrinkage keeps the correction conservative. The inner CV only re-solves a 776-row precomputed-kernel SVR five times, which is cheap.",
+  "family": "other",
+  "sim_hist_bge": 0.8781800270080566,
+  "sim_tried_bge": 0.8387063145637512,
+  "sim_hist_mini": 0.6542171835899353,
+  "sources": [
+   [
+    "opus",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b024",
+  "title": "Huber loss in LightGBM on the rank target",
+  "spec": "Train a LightGBM regressor on the rank-transformed target (y - 0.5) / len(y) using objective='huber' with alpha=0.2 (LightGBM huber delta), along with min_child_samples=20, reg_lambda=5.0, colsample_bytree=0.3, and n_estimators=500 with learning_rate=0.03. The Huber loss reduces the influence of extreme clearance values, which the rank target only partly removes. Use the descriptors plus Morgan bits as features, and return the raw predictions. This is a standalone model that replaces the SVR.",
+  "family": "regularization",
+  "sim_hist_bge": 0.9119070768356323,
+  "sim_tried_bge": 0.9119070768356323,
+  "sim_hist_mini": 0.7468498349189758,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b025",
+  "title": "Descriptor correlation pruning",
+  "spec": "After dropping constant descriptors and before standardizing, remove descriptors that have absolute Pearson correlation above 0.95 with an earlier kept column (computed on training data only; apply the same column mask to test). Then gamma = 1/number of remaining columns.",
+  "family": "data",
+  "sim_hist_bge": 0.8983475565910339,
+  "sim_tried_bge": 0.784371018409729,
+  "sim_hist_mini": 0.8033370971679688,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b026",
+  "title": "Count-based Morgan fingerprints with MinMax kernel",
+  "spec": "Change featurize to use GetCountFingerprintAsNumPy with radius 2 and 2048 bits, which gives count vectors. Replace tanimoto with the MinMax kernel: sum(min(a,b)) / sum(max(a,b)). Compute it with a loop over test rows, or with the identity min(a,b) = (a+b-|a-b|)/2 in chunks. Use it in K_train and K_test in place of the binary Tanimoto.",
+  "family": "data",
+  "sim_hist_bge": 0.8698393702507019,
+  "sim_tried_bge": 0.8698393702507019,
+  "sim_hist_mini": 0.7266112565994263,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b027",
+  "title": "NuSVR head in place of epsilon-SVR",
+  "spec": "Swap sklearn.svm.SVR for sklearn.svm.NuSVR with kernel='precomputed', nu=0.5, C=5.0, leaving the kernel construction and rank-normalized target untouched. NuSVR directly controls the fraction of support vectors rather than a fixed epsilon tube, which adapts the tube width to the spread of the rank-normalized target instead of fixing it at 0.05. If it helps, it is a one-line change with no extra cost; the run time should be essentially identical to the current script.",
+  "family": "regularization",
+  "sim_hist_bge": 0.7485024929046631,
+  "sim_tried_bge": 0.7204214334487915,
+  "sim_hist_mini": 0.5251116752624512,
+  "sources": [
+   [
+    "opus",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b028",
+  "title": "Local SVR specialist per test molecule",
+  "spec": "Keep the combined kernel K = 0.5*(tanimoto + rbf) on the Morgan bits and standardized RDKit descriptors. For each test molecule, take its 300 most similar training molecules by the combined kernel value (the kernel diagonal is 1 for the RBF part, so use the mean of the two kernel values as similarity). Fit a fresh SVR(kernel='precomputed', C=5.0, epsilon=0.05) on only those 300 training molecules using the rank-normalized target standardized as before, then predict that single test molecule with it. Loop over test molecules. Fits are small (300 samples), so the 10-minute limit is not at risk. The global SVR is not used.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8783398866653442,
+  "sim_tried_bge": 0.8431521654129028,
+  "sim_hist_mini": 0.7448649406433105,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b029",
+  "title": "Density-based sample weights for the SVR",
+  "spec": "Compute a local density for each training molecule as the number of other training molecules whose combined kernel value K_train[i, j] exceeds 0.6 (excluding the diagonal), then set weight w_i = 1/(1 + density_i/median(density)). Normalize the weights to mean 1. Pass them through SVR.fit(K_train, y_std, sample_weight=w) so that molecules in crowded regions of chemical space (many near-analogues) contribute less to the fit. Use the same C=5.0 and epsilon=0.05, same kernel and same rank target. This is different from scaffold-frequency weighting because it uses the kernel similarity itself.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8352614641189575,
+  "sim_tried_bge": 0.8253598213195801,
+  "sim_hist_mini": 0.6486719846725464,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b030",
+  "title": "Tune kernel mixing weight and SVR C by inner CV",
+  "spec": "Keep the current model but stop hard-coding the 0.5/0.5 kernel mix and C=5.0. Inside fit_predict, run a small inner 5-fold KFold (shuffle=True, random_state=seed) over the training molecules only, and grid-search the structural/descriptor mixing weight w in {0.25, 0.4, 0.5, 0.6, 0.75} and C in {1, 3, 10, 30}, scoring each candidate by mean Spearman correlation on the inner held-out folds. Compute the full train-train kernel matrices once outside the loop and index submatrices with np.ix_ so the search costs almost nothing. Refit on all training data with the best (w, C) and predict. Keep epsilon=0.05 and the rank target fixed to limit the search to 20 cells. Rationale: the current constants were never validated; the relative value of descriptor versus structural similarity is dataset-specific, and the inner search adapts it per fold at negligible runtime cost.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8835872411727905,
+  "sim_tried_bge": 0.84624183177948,
+  "sim_hist_mini": 0.7333807945251465,
+  "sources": [
+   [
+    "opus",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b031",
+  "title": "RBF gamma tuning",
+  "spec": "Change the descriptor RBF gamma from 1/n_features to 0.5/n_features. Also reduce the clip range of the standardized descriptors from 5 to 3 to limit outliers. Test both changes together.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8082431554794312,
+  "sim_tried_bge": 0.7581709623336792,
+  "sim_hist_mini": 0.57893967628479,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b032",
+  "title": "Kernel ridge / GP instead of SVR",
+  "spec": "Replace SVR with sklearn KernelRidge(kernel='precomputed', alpha=0.5) fit on the standardized rank targets. Alpha is the ridge strength. Return its predictions for K_test.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8122057318687439,
+  "sim_tried_bge": 0.8012022376060486,
+  "sim_hist_mini": 0.6260499954223633,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b033",
+  "title": "Extended reduced-graph (ErG) fingerprint kernel",
+  "spec": "Add RDKit's ErG pharmacophore-style fingerprint: from rdkit.Chem import rdReducedGraphs, call rdReducedGraphs.GetErGFingerprint(mol) for each molecule (train and test), giving a real-valued vector of length 315. Standardize it using the training mean and std (std floor 1e-9, clip to [-5, 5]). Build an RBF kernel on the standardized ErG vectors with gamma = 1/315 and use the mean of three kernels: K = (1/3)*(tanimoto_morgan + rbf_descriptors + rbf_erg). Keep the SVR C=5.0, epsilon=0.05 and the rank-normalized target unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8262820243835449,
+  "sim_tried_bge": 0.8262820243835449,
+  "sim_hist_mini": 0.727385938167572,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b034",
+  "title": "Avalon fingerprint Tanimoto kernel in the mix",
+  "spec": "Add a second binary fingerprint from RDKit's Avalon toolkit: from rdkit.Avalon import pyAvalonTools, call pyAvalonTools.GetAvalonFP(mol, nBits=1024) for each molecule in train and test, and convert to a float numpy array. Define the Tanimoto kernel on these bits with the existing tanimoto() helper. Then set K = (1/3)*(tanimoto_morgan + tanimoto_avalon + rbf_descriptors), with the same gamma = 1/n_descriptors and the same SVR settings and rank target. Only the three-way average of kernels changes. If the Avalon import fails in the harness, fall back to the current two-kernel mix.",
+  "family": "data",
+  "sim_hist_bge": 0.856082558631897,
+  "sim_tried_bge": 0.856082558631897,
+  "sim_hist_mini": 0.635364830493927,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b035",
+  "title": "Rank-average ensemble of SVR and gradient boosting",
+  "spec": "Build a two-model ensemble inside fit_predict and average their predictions after converting each to ranks. Model A is exactly the current kernel SVR. Model B is a LightGBM regressor (n_estimators=700, learning_rate=0.03, num_leaves=15, min_child_samples=10, feature_fraction=0.4, bagging_fraction=0.8, bagging_freq=1, lambda_l2=5.0, n_jobs=8, random_state=seed, verbose=-1) trained on the concatenation of the 2048-bit Morgan fingerprint and the standardised RDKit descriptor block, with the same rank-transformed target. Final prediction = 0.5*rankdata(pred_A)/n + 0.5*rankdata(pred_B)/n. Since the metric is Spearman, averaging ranks rather than raw values is the right pooling and makes the two models' scales irrelevant. Rationale: a smooth similarity-based model and an axis-aligned tree model make largely decorrelated errors on scaffold-split data, so their rank average usually beats either alone.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8599737286567688,
+  "sim_tried_bge": 0.8572098612785339,
+  "sim_hist_mini": 0.6955660581588745,
+  "sources": [
+   [
+    "opus",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b036",
+  "title": "Log-transformed descriptors and feature selection",
+  "spec": "Before standardizing, apply a signed log1p transform, sign(x)*log1p(|x|), to the descriptor matrix D and Dt to tame heavy tails. Then drop descriptors whose absolute Spearman correlation with the rank target is below 0.05, computed on the training data only. Then proceed with the RBF kernel.",
+  "family": "data",
+  "sim_hist_bge": 0.794989287853241,
+  "sim_tried_bge": 0.794989287853241,
+  "sim_hist_mini": 0.6985067129135132,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b037",
+  "title": "Fingerprint bagging over seeds and bit sizes",
+  "spec": "Make the structural kernel an average over several independent fingerprint views instead of one. For b in {1024, 2048, 4096} and radius in {2, 3}, build the Morgan fingerprint, compute its Tanimoto matrix, and average all six matrices into K_struct; different hash sizes collide different substructure pairs, so averaging cancels a chunk of the folding noise that a single 2048-bit fingerprint bakes in. Combine with the descriptor RBF kernel as before (0.5/0.5) and leave the SVR unchanged. This is pure variance reduction on the kernel itself, costs a few seconds, and adds no hyperparameters. Rationale: hash collisions in a folded fingerprint act like random feature corruption; ensembling over fold sizes and radii is the cheapest available antidote.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8699826598167419,
+  "sim_tried_bge": 0.8699826598167419,
+  "sim_hist_mini": 0.6473090648651123,
+  "sources": [
+   [
+    "opus",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b038",
+  "title": "Residual kNN correction",
+  "spec": "After fitting the SVR, compute train-set out-of-sample-free residuals r = standardized y minus SVR train predictions is biased, so instead skip residuals and blend: final = 0.8*SVR prediction + 0.2*similarity-weighted mean of the training rank targets over the top 5 nearest training molecules by K_test (the mixed kernel), weights K_test values. Normalize both parts to ranks (rankdata/len) before blending.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9132398366928101,
+  "sim_tried_bge": 0.8054260611534119,
+  "sim_hist_mini": 0.8249787092208862,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b039",
+  "title": "Add GP-style kernel ridge ensemble member",
+  "spec": "Besides the SVR, fit sklearn KernelRidge(kernel='precomputed', alpha=0.5) on the same kernel and standardized target. Return the average of the rank-normalized predictions (rankdata) of the SVR and KernelRidge.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8239521980285645,
+  "sim_tried_bge": 0.7988336086273193,
+  "sim_hist_mini": 0.6560531854629517,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b040",
+  "title": "Rank-average over three kernel mixing weights",
+  "spec": "The 0.5/0.5 split between the Morgan-Tanimoto kernel and the descriptor RBF kernel was never tuned, and picking a single weight by inner CV is noisy on fewer than 800 molecules. Instead, hedge: build K = w * Tanimoto + (1-w) * RBF for w in {0.35, 0.5, 0.65}, fit the same SVR (C=5, epsilon=0.05) on each of the three kernels, convert each set of test predictions to ranks with scipy.stats.rankdata, and return the mean of the three rank vectors divided by the number of test molecules. This costs three SVR solves (a few seconds) and should be at least as good as the best single weight while being far less sensitive to which weight that is.",
+  "family": "batch",
+  "sim_hist_bge": 0.8768219947814941,
+  "sim_tried_bge": 0.8667047023773193,
+  "sim_hist_mini": 0.7799321413040161,
+  "sources": [
+   [
+    "opus",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b041",
+  "title": "Learning-rate and tree-count schedule with early stopping on inner validation",
+  "spec": "Train LightGBM on the rank target with learning_rate=0.05 and up to 2000 trees. Hold out a stratified 15% of the training fold as validation (split by rank bins, random_state=seed). Use early_stopping(100) on the validation Spearman via a custom eval metric, or on l2 loss if simpler. Then refit on the full training fold with the best iteration count scaled by 1/0.85. This replaces the fixed N_TREES with a data-driven stopping point, which is the main regularizer for boosted trees here.",
+  "family": "schedule",
+  "sim_hist_bge": 0.9336986541748047,
+  "sim_tried_bge": 0.9336986541748047,
+  "sim_hist_mini": 0.7904676198959351,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b042",
+  "title": "Rank-averaged ensemble of the SVR kernel model and LightGBM",
+  "spec": "Keep the existing SVR prediction on the combined kernel. Also train a LightGBM regressor on the standardized descriptors plus Morgan bits (n_estimators=600, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3, subsample=0.8 with subsample_freq=1, random_state=seed). Convert both prediction vectors to ranks within the test set with rankdata, then return the average of the two rank vectors scaled to [0, 1]. Rank averaging avoids having to calibrate the two model scales against each other.",
+  "family": "other",
+  "sim_hist_bge": 0.8716203570365906,
+  "sim_tried_bge": 0.8716203570365906,
+  "sim_hist_mini": 0.6951315999031067,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b043",
+  "title": "Heavy-atom-size tertile specialist SVRs",
+  "spec": "Compute the heavy-atom count for every training and test molecule (m.GetNumHeavyAtoms()). Split the training set into three groups by its tertiles (cut points from the training data only). For each test molecule, assign it to the group of its size tertile and predict with an SVR(kernel='precomputed', C=5.0, epsilon=0.05) trained only on that group's training molecules, using the usual kernel K = 0.5*(tanimoto + rbf) and rank-normalized target standardized as before. Each group needs its own kernel submatrix (index selection on K_train). If a group has fewer than 30 molecules, fall back to the global SVR for that group.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8080161213874817,
+  "sim_tried_bge": 0.7992010116577148,
+  "sim_hist_mini": 0.6265854239463806,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b044",
+  "title": "Count-based Morgan with MinMax kernel",
+  "spec": "Replace the binary Morgan fingerprint and its Tanimoto kernel with a count-based (hashed) Morgan fingerprint of radius 2 and 2048 bins (gen.GetCountFingerprintAsNumPy) and use the MinMax kernel, i.e. K(a,b) = sum_i min(a_i,b_i) / sum_i max(a_i,b_i), which is the natural generalisation of Tanimoto to counts. Implement it efficiently without a Python double loop: because counts are small, you can compute sum(min) via a loop over the handful of distinct count values, or just accept an O(n_train*n_test*2048) numpy broadcast in chunks of ~200 rows (970 molecules, this is fast enough). Keep everything else the same: descriptor RBF kernel, 0.5/0.5 mixing, rank target, SVR. Rationale: for clearance, the number of occurrences of a labile substructure (e.g. several benzylic positions) matters, and binary folding throws that away; MinMax preserves multiplicity while keeping the kernel positive semi-definite.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8790149688720703,
+  "sim_tried_bge": 0.8790149688720703,
+  "sim_hist_mini": 0.7235490083694458,
+  "sources": [
+   [
+    "opus",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b045",
+  "title": "PCA-whitened descriptors before the RBF kernel",
+  "spec": "The RDKit descriptor block is highly redundant (many descriptors are near-duplicates), so the Euclidean distance that feeds the RBF kernel is dominated by whichever descriptor family happens to have the most members. After the existing standardize-and-clip step, fit sklearn.decomposition.PCA(n_components=50, whiten=True, random_state=seed) on the training descriptor matrix, transform both train and test, and build the RBF kernel on the whitened 50-dimensional scores with gamma = 1.0 / 50. Everything else (Morgan-Tanimoto kernel, 0.5/0.5 mix, rank target, SVR settings) is unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8603761196136475,
+  "sim_tried_bge": 0.8448909521102905,
+  "sim_hist_mini": 0.7055016756057739,
+  "sources": [
+   [
+    "opus",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b046",
+  "title": "Add a scaffold-aware kNN similarity prior",
+  "spec": "Add a third, very simple predictor and blend it in by rank. Using the Morgan Tanimoto similarity between test and train molecules, predict each test molecule as the similarity-weighted mean of the rank-transformed y of its k=15 nearest training neighbours, with weights sim**3 to sharpen the kernel and a floor so that a molecule with no close neighbour falls back to the training mean. Blend this kNN prediction with the existing SVR prediction as 0.75*rank(SVR) + 0.25*rank(kNN). Also return, implicitly, more robustness on the scaffold-split folds where the SVR extrapolates. Rationale: on scaffold-held-out folds the local similarity signal is weak but unbiased, while the global SVR can drift; a small weight on an explicit nearest-neighbour term is a cheap stabiliser and often adds a point of Spearman.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8877625465393066,
+  "sim_tried_bge": 0.8438681364059448,
+  "sim_hist_mini": 0.7198452949523926,
+  "sources": [
+   [
+    "opus",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b047",
+  "title": "Seed-bagged LightGBM with row and column subsampling",
+  "spec": "Train 5 LightGBM regressors on the descriptors plus Morgan bits, each with a different seed derived from the seed argument (seed + k for k in 0..4). Use subsample=0.7 with subsample_freq=1, colsample_bytree=0.3, learning_rate=0.03, and num_leaves=15, and set n_estimators to 400. Average the five predictions on the rank target. Bagging over row and column subsamples lowers variance on a dataset of about 800 training molecules, and the seed argument stays the only source of randomness.",
+  "family": "batch",
+  "sim_hist_bge": 0.8640772104263306,
+  "sim_tried_bge": 0.8640772104263306,
+  "sim_hist_mini": 0.6596437692642212,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b048",
+  "title": "Inner-seed bagged SVR ensemble with different C",
+  "spec": "Fit SVR models at C in [1, 3, 10] on the same precomputed kernels. Average their predictions after rank-normalizing each one. This is a cheap ensemble that reduces sensitivity to C.",
+  "family": "other",
+  "sim_hist_bge": 0.8687376379966736,
+  "sim_tried_bge": 0.7848367691040039,
+  "sim_hist_mini": 0.7376836538314819,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b049",
+  "title": "Add 3D-free shape/size count features to descriptor kernel",
+  "spec": "Append to the descriptor matrix D (before standardization) log1p of heavy atom count, number of rotatable bonds, and fraction of sp3 carbons duplicated once more as extra columns, effectively upweighting size/flexibility in the RBF kernel. Use Descriptors.HeavyAtomCount, NumRotatableBonds, FractionCSP3 for train and test.",
+  "family": "data",
+  "sim_hist_bge": 0.796911358833313,
+  "sim_tried_bge": 0.796911358833313,
+  "sim_hist_mini": 0.6078001260757446,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b050",
+  "title": "Target transform study: log-clearance vs rank-uniform",
+  "spec": "The script currently maps y to rank-uniform values in [0,1] before fitting. Replace that with a monotone log transform of the raw measured value: y_t = log10(np.clip(y, small_positive, None)) where the clip floor is the 1st percentile of the positive training values, then standardise. Since Spearman only cares about ordering, any monotone transform is admissible, but the choice changes how the squared-error-based learner distributes its effort: rank-uniform spreads mass evenly, whereas log-clearance preserves the real gaps between fast and slow turnover compounds and can let the model focus on the chemically meaningful extremes. Keep the model, kernel and all hyperparameters identical so the comparison is clean, and report which transform wins.",
+  "family": "data",
+  "sim_hist_bge": 0.7940969467163086,
+  "sim_tried_bge": 0.7940969467163086,
+  "sim_hist_mini": 0.5996396541595459,
+  "sources": [
+   [
+    "opus",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b051",
+  "title": "NuSVR head instead of epsilon-SVR",
+  "spec": "In fit_predict, replace SVR(kernel='precomputed', C=5.0, epsilon=0.05) with sklearn NuSVR(kernel='precomputed', C=5.0, nu=0.5). Keep the same kernel K_train = 0.5*(tanimoto + rbf), the same rank-normalized target and the same standardization of the target (y-mu)/sd before fitting. Predictions are returned unchanged with model.predict(K_test). Nu controls the fraction of support vectors, so nu replaces epsilon as the sparsity knob. Use nu=0.5 as the only setting in this job, with C=5.0 left as is.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8117209076881409,
+  "sim_tried_bge": 0.7672587633132935,
+  "sim_hist_mini": 0.7130223512649536,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b052",
+  "title": "Replace SVR with kernel ridge regression on the same combined kernel",
+  "spec": "Keep K_train and K_test exactly as they are (0.5 * Tanimoto on Morgan bits + 0.5 * RBF on standardized descriptors). Swap the SVR for sklearn.kernel_ridge.KernelRidge(kernel='precomputed', alpha=1.0) and fit it on the standardized rank target (y - mu) / sd. Kernel ridge uses every training point with a squared loss, which can rank more smoothly than epsilon-insensitive SVR on small datasets. Choose alpha from {0.1, 0.3, 1, 3} by inner 5-fold CV on the training fold only, maximizing Spearman.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8462925553321838,
+  "sim_tried_bge": 0.8323169946670532,
+  "sim_hist_mini": 0.6993105411529541,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b053",
+  "title": "Larger radius and feature-based Morgan added to the kernel",
+  "spec": "Add a second Tanimoto kernel from count-free binary FCFP (GetMorganFeatureAtomInvGen, radius 3, 2048 bits). Average three kernels equally: ECFP Tanimoto, FCFP Tanimoto and descriptor RBF.",
+  "family": "data",
+  "sim_hist_bge": 0.8531947731971741,
+  "sim_tried_bge": 0.8531947731971741,
+  "sim_hist_mini": 0.6437520980834961,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b054",
+  "title": "Sharpened Tanimoto kernel power",
+  "spec": "In fit_predict, apply an elementwise power 1.5 to the Tanimoto kernel matrices (both train and test) before averaging with the RBF descriptor kernel: tanimoto(X,X)**1.5 and tanimoto(Xt,X)**1.5. Leave the rest unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.9015359282493591,
+  "sim_tried_bge": 0.8542630672454834,
+  "sim_hist_mini": 0.7881985902786255,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b055",
+  "title": "Mixing-weight sweep for the combined kernel",
+  "spec": "Replace the fixed 0.5 weight in K = w * Tanimoto + (1 - w) * RBF with a choice of w from {0.25, 0.5, 0.75}. For each w, run inner 4-fold CV on the training fold with the existing SVR settings and measure Spearman of the out-of-fold predictions. Refit with the best w on the full training fold and predict the test set. Compute the descriptor-RBF kernel once and reuse it across the sweep, because only the mixing changes between candidates.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8640959858894348,
+  "sim_tried_bge": 0.8498978614807129,
+  "sim_hist_mini": 0.7730278372764587,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b056",
+  "title": "Normal-score target transform instead of uniform ranks",
+  "spec": "The target is currently mapped to uniform (rank-0.5)/n values. Replace that with a van der Waerden normal-score transform: y = scipy.stats.norm.ppf((rankdata(y) - 0.5) / n), then standardize as now before fitting the SVR. This keeps the rank order (so the Spearman score is unaffected by the monotone change itself) but spreads the extreme molecules further apart and compresses the dense middle, which changes which samples become support vectors under the epsilon-insensitive loss. Only the two lines that build the transformed target need to change; the kernel mix, C=5 and epsilon=0.05 stay as they are.",
+  "family": "data",
+  "sim_hist_bge": 0.8352916240692139,
+  "sim_tried_bge": 0.8352916240692139,
+  "sim_hist_mini": 0.6195014715194702,
+  "sources": [
+   [
+    "opus",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b057",
+  "title": "Explicit-hydrogen Morgan fingerprint",
+  "spec": "In featurize(), call Chem.AddHs(mol) on each parsed molecule before computing the Morgan fingerprint with the existing generator (radius 2, 2048 bits, bit vectors). Hydrogens are then counted as neighbours, so the environments differ for CH3, CH2 and CH groups. The rest of the pipeline is unchanged: the tanimoto helper, the descriptor RBF kernel (descriptors still computed from the heavy-atom molecule), the 0.5/0.5 kernel mix, and the SVR settings with the rank-normalized target. Only the Morgan input graph changes.",
+  "family": "data",
+  "sim_hist_bge": 0.8097035884857178,
+  "sim_tried_bge": 0.79253089427948,
+  "sim_hist_mini": 0.7282285690307617,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b058",
+  "title": "Add a cosine kernel on descriptors as a third kernel",
+  "spec": "The descriptor side currently enters only through a local RBF kernel, which decays quickly and gives almost no signal for test molecules far from the training set, a common situation under scaffold splits. Add a third kernel: L2-normalize the standardized, clipped descriptor rows and take their dot product (a cosine/linear kernel, values in [-1,1], optionally shifted to [0,1] by (1+cos)/2). Mix the three kernels with equal weights 1/3 Morgan-Tanimoto, 1/3 descriptor RBF, 1/3 descriptor cosine, for both the train-train and test-train matrices. The cosine term is global and smooth and should extrapolate better to unseen scaffolds. Keep the rank-normalized target and the SVR (C=5, epsilon=0.05).",
+  "family": "architecture",
+  "sim_hist_bge": 0.8092734813690186,
+  "sim_tried_bge": 0.8092734813690186,
+  "sim_hist_mini": 0.6362686157226562,
+  "sources": [
+   [
+    "opus",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b059",
+  "title": "Kernel ridge instead of epsilon-insensitive SVR",
+  "spec": "Swap SVR(kernel='precomputed') for sklearn.kernel_ridge.KernelRidge(kernel='precomputed', alpha=...) on the exact same combined kernel and rank-transformed target, choosing alpha by a short inner 5-fold CV over {0.03, 0.1, 0.3, 1.0, 3.0} scored by Spearman. KernelRidge has a closed-form solution, uses every training point (no epsilon tube discarding the middle of the distribution), and is deterministic and fast on 970 molecules. Rationale: with a rank-uniform target the epsilon=0.05 insensitive tube ignores roughly the central band of the response, which is exactly the region where Spearman accumulates most of its pairwise comparisons; ridge regression on ranks optimises squared rank error, a much closer surrogate to Spearman.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8345603942871094,
+  "sim_tried_bge": 0.8345603942871094,
+  "sim_hist_mini": 0.6707595586776733,
+  "sources": [
+   [
+    "opus",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b060",
+  "title": "Weighted kernel mix",
+  "spec": "Change the kernel mix from 0.5/0.5 to a weighted one. Use 0.35 for Tanimoto and 0.65 for the RBF on descriptors. Descriptors usually matter more for clearance, which depends on lipophilicity and similar properties. Make the weight a constant W_FP.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8509572744369507,
+  "sim_tried_bge": 0.8509572744369507,
+  "sim_hist_mini": 0.6769517064094543,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    3
+   ]
+  ]
+ }
+]

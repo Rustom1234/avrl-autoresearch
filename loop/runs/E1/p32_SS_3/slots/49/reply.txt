@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+        r0 = start[1]
+        x0 = np.concatenate([c0.ravel(), r0])
+=======
+        r0 = start[1].copy()
+        sc, sr = start
+        dd = np.sqrt(((sc[:, None] - sc[None]) ** 2).sum(-1)) - sr[:, None] - sr[None]
+        np.fill_diagonal(dd, 1)
+        wall = np.concatenate([sc - sr[:, None], 1 - sc - sr[:, None]], 1)
+        cnt = (dd < 1e-6).sum(1) + (wall < 1e-6).sum(1)
+        for k in np.where(cnt <= 2)[0]:
+            others = np.arange(n) != k
+            p = rng.uniform(0, 1, (500, 2))
+            g = np.sqrt(((p[:, None] - c0[others][None]) ** 2).sum(-1)) - r0[others][None]
+            g = np.minimum(g.min(1), np.minimum(p, 1 - p).min(1))
+            b = np.argmax(g)
+            c0[k] = np.clip(p[b], 0.01, 0.99)
+            r0[k] = max(g[b], 0.01)
+        x0 = np.concatenate([c0.ravel(), r0])
+>>>>>>> REPLACE
+-----

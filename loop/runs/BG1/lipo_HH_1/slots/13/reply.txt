@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+import lightgbm as lgb
+=======
+import lightgbm as lgb
+from catboost import CatBoostRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_lgb = fit_lgb(featurize(train_smiles), y, featurize(test_smiles), seed)
+    return (p_rf + p_svr + p_lgb) / 3.0
+=======
+    p_lgb = fit_lgb(featurize(train_smiles), y, featurize(test_smiles), seed)
+    F_tr, F_te = featurize(train_smiles)[:, :N_BITS], featurize(test_smiles)[:, :N_BITS]
+    cb = CatBoostRegressor(loss_function='MAE', iterations=1000, learning_rate=0.05, depth=6, random_seed=seed,
+                           verbose=0, thread_count=8)
+    cb.fit(np.hstack([F_tr, D_tr]), y)
+    p_cb = cb.predict(np.hstack([F_te, D_te]))
+    return (p_rf + p_svr + p_lgb + p_cb) / 4.0
+>>>>>>> REPLACE
+-----

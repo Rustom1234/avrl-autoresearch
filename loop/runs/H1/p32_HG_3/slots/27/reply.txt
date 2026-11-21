@@ -1,0 +1,87 @@
+<<<<<<< SEARCH
+    SCALE = 10.0
+    def cons(v):
+        c, r_scaled = v[:2 * n].reshape(n, 2), v[2 * n:]
+        r = r_scaled / SCALE
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    SCALE = 10.0
+    def cons(v):
+        c, r_scaled = v[:2 * n].reshape(n, 2), v[2 * n:]
+        r = r_scaled / SCALE
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:] / SCALE
+=======
+    SCALE = 10.0
+    def cons(v):
+        c, r_scaled = v[:2 * n].reshape(n, 2), v[2 * n:]
+        r = r_scaled / SCALE
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def penalty_obj(v):
+        c_v = v[:2 * n].reshape(n, 2)
+        r_v = v[2 * n:] / SCALE
+        # Sum of radii (maximize = minimize negative sum)
+        obj = -np.sum(r_v)
+        # Penalties
+        d_pairs = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1))
+        overlap = np.maximum(0, r_v[iu[0]] + r_v[iu[1]] - d_pairs)**2
+        wall = np.sum(np.maximum(0, r_v - c_v[:, 0])**2 + 
+                       np.maximum(0, r_v - (1 - c_v[:, 0]))**2 + 
+                       np.maximum(0, r_v - c_v[:, 1])**2 + 
+                       np.maximum(0, r_v - (1 - c_v[:, 1]))**2)
+        return obj + 1000.0 * (np.sum(overlap) + np.sum(wall))
+
+    # Soft-penalty warm start
+    res_pre = minimize(penalty_obj, x0, method="L-BFGS-B", options={"maxiter":        200})
+    
+    # Refine with SLSQP
+    res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), res_pre.x, method="SLSQP", 
+                   constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})\n    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:] / SCALE
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    SCALE = 10.0
+    def cons(v):
+        c, r_scaled = v[:2 * n].reshape(n, 2), v[2 * n:]
+        r = r_scaled / SCALE
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:] / SCALE
+=======
+    SCALE = 10.0
+    def cons(v):
+        c, r_scaled = v[:2 * n].reshape(n, 2), v[2 * n:]
+        r = r_scaled / SCALE
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def penalty_obj(v):
+        c_v = v[:2 * n].reshape(n, 2)
+        r_v = v[2 * n:] / SCALE
+        obj = -np.sum(r_v)
+        d_pairs = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1))
+        overlap = np.maximum(0, r_v[iu[0]] + r_v[iu[1]] - d_pairs)**2
+        wall = np.sum(np.maximum(0, r_v - c_v[:, 0])**2 + 
+                       np.maximum(0, r_v - (1 - c_v[:, 0]))**2 + 
+                       np.maximum(0, r_v - c_v[:, 1])**2 + 
+                       np.maximum(0, r_v - (1 - c_v[:, 1]))**2)
+        return obj + 1000.0 * (np.sum(overlap) + np.sum(wall))
+
+    res_pre = minimize(penalty_obj, x0, method="L-BFGS-B", options={"maxiter":         100})
+    res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), res_pre.x, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:] / SCALE
+-----

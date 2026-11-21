@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+=======
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        self.vr_lambdas = nn.Parameter(torch.full((config.n_layer,), 0.5))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.x0_lambdas.fill_(0.1)
+=======
+        self.x0_lambdas.fill_(0.1)
+        self.vr_lambdas.fill_(0.5)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+=======
+    def forward(self, x, ve, cos_sin, window_size, v_first, lam):
+        B, T, C = x.size()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        cos, sin = cos_sin
+        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
+=======
+        # Value residual from first layer: later layers mix in block 0's value tensor
+        if v_first is not None:
+            v = (1 - lam) * v + lam * v_first
+        cos, sin = cos_sin
+        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        y = self.c_proj(y)
+        return y
+=======
+        y = self.c_proj(y)
+        return y, v
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(norm(x))
+        return x
+=======
+    def forward(self, x, ve, cos_sin, window_size, v_first, lam):
+        a, v = self.attn(norm(x), ve, cos_sin, window_size, v_first, lam)
+        x = x + a
+        x = x + self.mlp(norm(x))
+        return x, v
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0_params = [self.x0_lambdas]
+=======
+        x0_params = [self.x0_lambdas, self.vr_lambdas]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+        x0 = x
+        v_first = None
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x, v = block(x, ve, cos_sin, self.window_sizes[i], v_first, self.vr_lambdas[i])
+            if v_first is None:
+                v_first = v
+>>>>>>> REPLACE
+-----

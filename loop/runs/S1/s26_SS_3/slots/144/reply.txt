@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    best = None
+    best_val = -1.0
+    it = 0
+    h = 13
+    iu2, ju2 = np.triu_indices(h, 1)
+
+    def cons13(z):
+        x = z[:h]
+        y = z[h:2 * h]
+        r = z[2 * h:]
+        dx = x[iu2] - x[ju2]
+        dy = y[iu2] - y[ju2]
+        s = r[iu2] + r[ju2]
+        return np.concatenate([dx * dx + dy * dy - s * s,
+                               x - r, 1 - x - r, y - r, 1 - y - r])
+
+    b13 = [(0, 1)] * (2 * h) + [(0, 0.5)] * h
+    while time.time() - t0 < 0.15 * time_budget:
+        try:
+            p0 = rng.random((h, 2)) * 0.8 + 0.1
+            z0 = np.concatenate([p0[:, 0], p0[:, 1], np.full(h, 0.08)])
+            res13 = minimize(lambda z: -np.sum(z[2 * h:]), z0, method="SLSQP",
+                             bounds=b13,
+                             constraints=[{"type": "ineq", "fun": cons13}],
+                             options={"maxiter": 150, "ftol": 1e-9})
+            z13 = res13.x
+            px, py, pr = z13[:h], z13[h:2 * h], z13[2 * h:]
+            th = rng.random(h) * np.pi
+            ux, uy = np.cos(th), np.sin(th)
+            off = 0.25 * pr
+            cx = np.concatenate([px + off * ux, px - off * ux])
+            cy = np.concatenate([py + off * uy, py - off * uy])
+            c0 = np.clip(np.stack([cx, cy], axis=1), 0.01, 0.99)
+            r0 = np.concatenate([0.6 * pr, 0.6 * pr])
+            r0 = np.maximum(r0, 0.01)
+            z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is None:
+            continue
+        v = out[1].sum()
+        if v > best_val:
+            best_val = v
+            best = out
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+            c0 = cur_c.copy()
+            k = int(rng.integers(1, 4))
+            pick = rng.choice(n, size=k, replace=False)
+            c0[pick] = np.clip(c0[pick] + rng.normal(0.0, 0.1, size=(k, 2)), 0.0, 1.0)
+=======
+            c0 = cur_c.copy()
+            moved = False
+            if rng.random() < 0.3:
+                bnd = np.minimum(np.minimum(c0[:, 0], c0[:, 1]), np.minimum(1 - c0[:, 0], 1 - c0[:, 1]))
+                touch = np.where(bnd - cur_r < 1e-3)[0]
+                if len(touch) > 0:
+                    i = int(rng.choice(touch))
+                    rr = float(cur_r[i])
+                    dists = np.array([c0[i, 0], 1 - c0[i, 0], c0[i, 1], 1 - c0[i, 1]])
+                    w = int(np.argmin(dists))
+                    lo, hi = min(rr, 0.5), max(1 - rr, 0.5)
+                    if w < 2:
+                        c0[i, 1] = rng.uniform(lo, hi)
+                    else:
+                        c0[i, 0] = rng.uniform(lo, hi)
+                    c0 = np.clip(c0, 0.0, 1.0)
+                    moved = True
+            if not moved:
+                k = int(rng.integers(1, 4))
+                pick = rng.choice(n, size=k, replace=False)
+                c0[pick] = np.clip(c0[pick] + rng.normal(0.0, 0.1, size=(k, 2)), 0.0, 1.0)
+>>>>>>> REPLACE
+-----

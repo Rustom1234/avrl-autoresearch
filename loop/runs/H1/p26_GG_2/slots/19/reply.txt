@@ -1,0 +1,184 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints是一位{"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    def get_initial_guess(num_circles, r_gen):
+        return np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * num_circles), 
+                               np.full(num_circles, r_gen)])
+
+    # Stage 1: Solve for a smaller subset to get a stable core
+    k = max(1, n // 2)
+    x0_sub = get_initial_guess(k, INIT_RADIUS)
+    iu_sub = np.triu_indices(k, 1)
+    
+    def cons(v):
+        curr_n = len(v) // 2
+        c_v, r_v = v[:2 * curr_n].reshape(curr_n, 2), v[2 * curr_n:]
+        # Constraint indexing depends on the current size of v
+        ii = np.triu_indices(curr_n, 1)
+        d = np.sqrt(((c_v[ii[0]] - c_v[ii[1]]) ** 2).sum(1)) - r_v[ii[0]] - r_v[ii[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+
+    # Solve subset
+    res_sub = minimize(lambda v: -v[2 * k:].sum(), x0_sub, method="SLSQP", 
+                        constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+    
+    c_sub = res_sub.x[:2 * k].reshape(k, 2)
+    r_sub = res_sub.x[2 * k:]
+    
+    # Stage 2: Add remaining circles greedily into largest gaps
+    c = np.vstack([c_sub, np.zeros((n - k, 2))])
+    r = np.concatenate([r_sub, np.full(n - k, INIT_RADIUS * 0.5)])
+    
+    for i in range(k, n):
+        best_pos = np.array([0.5, 0.5])
+        best_dist = float('inf')
+        # Sample random points and find the one furthest from all existing circle boundaries
+        for _ in range(20):
+            p = rng.uniform(0, 1, 2)
+            dist = np.min(np.linalg.norm(c[:i] - p, axis=1) - r[:i])
+            if dist > best_dist:
+                best_dist = dist
+                best_pos = p
+        c[i] = best_pos
+    
+    # Final stage: Full optimization
+    x0 = np.concatenate([c.flatten(), r])
+    iu = np.triu_indices(n, 1)
+    
+    def cons_full(v):
+        cv, rv = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((cv[iu[0]] - cv[iu[1]]) ** 2).sum(1)) - rv[iu[0]] - rv[iu[1]]
+        return np.concatenate([d, cv[:, 0] - rv, cv[:, 1] - rv, 1 - cv[:, 0] - rv, 1 - cv[:, 1] - rv, rv])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                    constraints={"type": "ineq", "fun": cons_full}, options={"maxiter": MAX_ITER})\n    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    # Stage 1: Solve for a subset to get a stable core
+    k = max(1, n // 2)
+    x0_sub = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * k), np.full(k, INIT_RADIUS)])
+    iu_sub = np.triu_indices(k, 1)
+
+    def cons_sub(v):
+        c_v, r_v = v[:2 * k].reshape(k, 2), v[2 * k:]
+        d = np.sqrt(((c_v[iu_sub[0]] - c_v[iu_sub[1]]) ** 2).sum(1)) - r_v[iu_sub[0]] - r_v[iu_sub[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+
+    res_sub = minimize(lambda v: -v[2 * k:].sum(), x0_sub, method="SLSQP", 
+                        constraints={"type": "ineq", "fun": cons_sub}, options={"maxiter": MAX_ITER})
+    c_sub = res_sub.x[:2 * k].reshape(k, 2)
+    r_sub = res_sub.x[2 * k:]
+
+    # Stage 2: Greedy placement for the rest
+    c = np.vstack([c_sub, np.zeros((n - k, 2))])
+    r = np.concatenate([r_sub, np.full(n - k, INIT_RADIUS * 0.5)])
+
+    for i in range(k, n):
+        best_pos = np.array([0.5, 0.5])
+        best_dist = -1.0
+        for _ in range(15):
+            p = rng.uniform(0, 1, 2)
+            dists = np.linalg.norm(c[:i] - p, axis=1) - r[:i]
+            dist = np.min(dists)
+            if dist > best_dist:
+                best_dist = dist
+                best_pos = p
+        c[i] = best_pos
+
+    # Final Stage: Full optimization
+    x0 = np.concatenate([c.flatten(), r])
+    iu = np.triu_indices(n, 1)
+
+    def cons_full(v):
+        cv, rv = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((cv[iu[0]] - cv[iu[1]]) ** 2).sum(1)) - rv[iu[0]] - rv[iu[1]]
+        return np.concatenate([d, cv[:, 0] - rv, cv[:, 1] - rv, 1 - cv[:, 0] - rv, 1 - cv[:, 1] - rv, rv])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                    constraints={"type": "ineq", "fun": cons_full}, options={"maxiter": MAX_ITER})\n    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    k = max(1, n // 2)
+    # Stage 1: Solve for a subset
+    x0_sub = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * k), np.full(k, INIT_RADIUS)])
+    iu_sub = np.triu_indices(k, 1)
+
+    def cons_sub(v):
+        c_v, r_v = v[:2 * k].reshape(k, 2), v[2 * k:]
+        d = np.sqrt(((c_v[iu_sub[0]] - c_v[iu_sub[1]]) ** 2).sum(1)) - r_v[iu_sub[0]] - r_v[iu_sub[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+
+    res_sub = minimize(lambda v: -v[2 * k:].sum(), x0_sub, method="SLSQP", 
+                        constraints={"type": "ineq", "fun": cons_sub}, options={"maxiter": MAX_ITER})
+    c_sub, r_sub = res_sub.x[:2 * k].reshape(k, 2), res_sub.x[2 * k:]
+
+    # Stage 2: Greedy placement for the rest
+    c = np.vstack([c_sub, np.zeros((n - k, 2))])
+    r = np.concatenate([r_sub, np.full(n - k, INIT_RADIUS * 0.5)])
+
+    for i in range(k, n):
+        best_p = np.array([0.5, 0.5])
+        best_d = -1.0
+        for _ in range(10):
+            p = rng.uniform(0, 1, 2)
+            dists = np.linalg.norm(c[:i] - p, axis=1) - r[:i]
+            dist = np.min(dists)
+            if dist > best_d:
+                best_d = dist
+                best_p = p
+        c[i] = best_p
+
+    # Final Stage: Full optimization
+    x0 = np.concatenate([c.flatten(), r])
+    iu = np.triu_indices(n, 1)
+
+    def cons_full(v):
+        cv, rv = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((cv[iu[0]] - cv[iu[1]]) ** 2).sum(1)) - rv[iu[0]] - rv[iu[1]]
+        return np.concatenate([d, cv[:, 0] - rv, cv[:, 1] - rv, 1 - cv[:, 0] - rv, 1 - cv[:, 1] - rv, rv])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                    constraints={"type": "ineq", "fun": cons_full}, options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

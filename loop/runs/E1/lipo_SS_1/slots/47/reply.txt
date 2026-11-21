@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from scipy.linalg import cho_factor, cho_solve
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.4 * p_tree + 0.3 * p_mlp + 0.3 * p_fp
+=======
+    A, B = Xtr[:, :N_BITS].astype(np.float64), Xte[:, :N_BITS].astype(np.float64)
+    na, nb = (A * A).sum(1), (B * B).sum(1)
+    dot = A @ A.T
+    K = dot / (na[:, None] + na[None, :] - dot + 1e-9)
+    dotb = B @ A.T
+    Ks = dotb / (nb[:, None] + na[None, :] - dotb + 1e-9)
+    mu = y.mean()
+    alpha = cho_solve(cho_factor(K + 0.3 * np.eye(len(y))), y - mu)
+    p_gp = mu + Ks @ alpha
+    return 0.3 * p_tree + 0.25 * p_mlp + 0.25 * p_fp + 0.2 * p_gp
+>>>>>>> REPLACE
+-----

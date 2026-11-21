@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def cross_terms(D):
+    names = [n for n, _ in Descriptors.descList]
+    idx = {n: i for i, n in enumerate(names)}
+    logp = D[:, idx["MolLogP"]]
+    tpsa = D[:, idx["TPSA"]]
+    rot = D[:, idx["NumRotatableBonds"]]
+    mw = D[:, idx["MolWt"]]
+    arom = D[:, idx["NumAromaticRings"]]
+    fsp3 = D[:, idx["FractionCSP3"]]
+    eps = 1e-6
+    T = np.column_stack([
+        logp * logp,
+        logp * tpsa,
+        logp / (1.0 + rot + eps),
+        logp - 0.01 * mw,
+        tpsa / (mw + eps),
+        arom * logp,
+        fsp3 * logp,
+    ])
+    return np.nan_to_num(T, nan=0.0, posinf=0.0, neginf=0.0)
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    D = descriptors(train_smiles)
+    Dt = descriptors(test_smiles)
+=======
+    D = descriptors(train_smiles)
+    Dt = descriptors(test_smiles)
+    D = np.hstack([D, cross_terms(D)])
+    Dt = np.hstack([Dt, cross_terms(Dt)])
+>>>>>>> REPLACE
+-----

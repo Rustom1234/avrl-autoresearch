@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    return model.predict(K_test)
+=======
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    svr_preds = model.predict(K_test)
+    
+    # kNN prediction: average nearest training targets weighted by similarity^3
+    # K_test is (n_test, n_train) where each entry is a Tanimoto similarity
+    # We take the top 10 similarities for each test molecule
+    sorted_indices = np.argsort(-K_test, axis=1)[:, :10]
+    
+    # Gather similarities and targets
+    # K_test[np.arange(n_test)[:, None], sorted_indices] shape: (n_test, 10)
+    sim_k10 = K_test[np.arange(len(test_smiles))[:, None], sorted_indices]
+    targets_k10 = np.asarray(train_y)[sorted_indices]
+    
+    # Weighted average: sum(sim^3 * target) / sum(sim^3)
+    weights = np.power(sim_k10, 3)
+    knn_preds = np.sum(weights * targets_k10, axis=1) / (np.sum(weights, axis=1) + 1e-9)
+    
+    return 0.8 * svr_preds + 0.2 * knn_preds
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    best = (c, _repair(c, r))
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    best = (c, _repair(c, r))
+    cur, stall = best, 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping chain
+        if stall > 40:   # reheated restart: fresh random start for the chain, global best kept
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            cur, stall = (c, _repair(c, r)), 0
+        bc, br = cur
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        stall += 1
+        if r.sum() > cur[1].sum():
+            cur = (c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+            stall = 0
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors, MACCSkeys, rdFingerprintGenerator, rdMolDescriptors
+=======
+from rdkit.Chem import Descriptors, MACCSkeys, rdFingerprintGenerator, rdMolDescriptors, rdReducedGraphs
+from rdkit.Chem.Pharm2D import Gobbi_Pharm2D, Generate
+from rdkit.Avalon import pyAvalonTools
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fingerprints(smiles):
+=======
+GOBBI_BITS = 2048
+AVALON_BITS = 1024
+ERG_LEN = 315
+
+
+def _erg(m):
+    try:
+        return np.asarray(rdReducedGraphs.GetErGFingerprint(m), dtype=np.float32)
+    except Exception:
+        return np.zeros(ERG_LEN, dtype=np.float32)
+
+
+def _gobbi(m):
+    row = np.zeros(GOBBI_BITS, dtype=np.float32)
+    try:
+        fp = Generate.Gen2DFingerprint(m, Gobbi_Pharm2D.factory)
+        for b in fp.GetOnBits():
+            row[b % GOBBI_BITS] = 1
+    except Exception:
+        pass
+    return row
+
+
+def _avalon(m):
+    row = np.zeros(AVALON_BITS, dtype=np.float32)
+    try:
+        fp = pyAvalonTools.GetAvalonCountFP(m, nBits=AVALON_BITS)
+        for k, v in fp.GetNonzeroElements().items():
+            row[k] = v
+    except Exception:
+        pass
+    return row
+
+
+def fingerprints(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return [x_morgan, x_pair, x_maccs]
+=======
+    x_erg = np.array([_erg(m) for m in mols], dtype=np.float32)
+    x_gobbi = np.array([_gobbi(m) for m in mols], dtype=np.float32)
+    x_avalon = np.array([_avalon(m) for m in mols], dtype=np.float32)
+    return [x_morgan, x_pair, x_maccs, x_erg, x_gobbi, x_avalon]
+>>>>>>> REPLACE
+-----

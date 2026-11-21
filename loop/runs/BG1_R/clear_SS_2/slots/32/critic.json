@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing in the diff gets around the measurement. There is no file or network access and no hardcoded answers. The test molecules are used only as features to build the kernel between test and training molecules (minmax_kernel(B, A)), and the model is fit on training labels only.",
+  "The randomness is tied to the seed argument: col_sets comes from RandomState(seed). Centering y before kernel ridge has no effect on the result, because the predictions are converted to ranks.",
+  "The diff calls minmax_kernel but does not define it. It must already exist in the incumbent file, which I could not check. If it doesn't, the job will crash with a NameError. That would waste a slot but would not make a result meaningless.",
+  "Memory and runtime risk. Each training fold has about 776 molecules and 1228 kept columns. If minmax_kernel builds a full (n, m, d) broadcast array, that is about 5.9 GB in float64 and would go over the 6 GB limit. A kernel built from loops or matrix products is fine. Ten bags \u00d7 2 kernels \u00d7 15 fits should fit inside 10 minutes if the kernel is vectorised efficiently.",
+  "This assumes the last N_BITS columns of Xtr hold Morgan counts. The existing Ridge line (log1p on Xtr[:, -N_BITS:]) makes the same assumption, so the two are consistent.",
+  "There are no numbers yet, so I cannot check any claim or compute z."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

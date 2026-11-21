@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+CRIPPEN_GROUPS = {6: 0, 7: 2, 8: 3, 16: 4, 9: 5, 17: 6, 35: 7, 53: 8, 15: 9}
+
+
+def crippen_feats(m):
+    out = np.zeros((11, 2), dtype=np.float32)
+    for a, (lp, mr) in zip(m.GetAtoms(), rdMolDescriptors._CalcCrippenContribs(m)):
+        z = a.GetAtomicNum()
+        g = CRIPPEN_GROUPS.get(z, 10)
+        if z == 6 and a.GetIsAromatic():
+            g = 1
+        out[g] += (lp, mr)
+    return out.ravel()
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.hstack([morgan, desc])
+=======
+    crip = np.array([crippen_feats(m) for m in mols], dtype=np.float32)
+    return np.hstack([morgan, desc, crip])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+            c0 = cur_c.copy()
+            k = int(rng.integers(1, 4))
+            pick = rng.choice(n, size=k, replace=False)
+            c0[pick] = np.clip(c0[pick] + rng.normal(0.0, 0.1, size=(k, 2)), 0.0, 1.0)
+            try:
+                c, r = _optimize(c0, np.maximum(cur_r, 0.01))
+=======
+            c0 = cur_c.copy()
+            r0 = np.maximum(cur_r, 0.01)
+            if rng.random() < 0.25:
+                # Ruin: remove circles whose centers lie inside a random disk
+                center = rng.uniform(0.0, 1.0, size=2)
+                rad = rng.uniform(0.2, 0.35)
+                inside = np.where(np.hypot(c0[:, 0] - center[0], c0[:, 1] - center[1]) < rad)[0]
+                if len(inside) > 0:
+                    # Recreate: place each removed circle at the candidate maximising its feasible radius
+                    keep = np.setdiff1d(np.arange(n), inside).tolist()
+                    cand = rng.uniform(0.0, 1.0, size=(500, 2))
+                    wall = np.minimum(np.minimum(cand[:, 0], cand[:, 1]),
+                                      np.minimum(1 - cand[:, 0], 1 - cand[:, 1]))
+                    placed = keep
+                    for i in inside:
+                        feas = wall.copy()
+                        for j in placed:
+                            d = np.hypot(cand[:, 0] - c0[j, 0], cand[:, 1] - c0[j, 1])
+                            feas = np.minimum(feas, d - r0[j])
+                        best = int(np.argmax(feas))
+                        c0[i] = cand[best]
+                        r0[i] = max(feas[best], 0.01)
+                        placed = placed + [int(i)]
+            else:
+                k = int(rng.integers(1, 4))
+                pick = rng.choice(n, size=k, replace=False)
+                c0[pick] = np.clip(c0[pick] + rng.normal(0.0, 0.1, size=(k, 2)), 0.0, 1.0)
+            try:
+                c, r = _optimize(c0, r0)
+>>>>>>> REPLACE
+-----

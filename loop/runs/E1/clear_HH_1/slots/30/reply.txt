@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def sidechain_featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        core = MurckoScaffold.GetScaffoldForMol(m)
+        match = m.GetSubstructMatch(core) if core.GetNumAtoms() > 0 else ()
+        rw = Chem.RWMol(m)
+        for idx in sorted(match, reverse=True):
+            rw.RemoveAtom(idx)
+        if rw.GetNumAtoms() == 0:
+            rows.append(np.zeros(N_BITS, dtype=np.float32))
+            continue
+        side = rw.GetMol()
+        side.UpdatePropertyCache(strict=False)
+        Chem.GetSymmSSSR(side)
+        rows.append(gen.GetFingerprintAsNumPy(side))
+    return np.array(rows, dtype=np.float32)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+=======
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+    S = sidechain_featurize(train_smiles).astype(np.float64)
+    St = sidechain_featurize(test_smiles).astype(np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    K_train = (tanimoto(X, X) + tanimoto(S, S) + rbf(D, D, gamma)) / 3.0
+    K_test = (tanimoto(Xt, X) + tanimoto(St, S) + rbf(Dt, D, gamma)) / 3.0
+>>>>>>> REPLACE
+-----

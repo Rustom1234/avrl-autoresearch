@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+N_TREES = 600
+LEARNING_RATE = 0.03
+NUM_LEAVES = 31
+FEATURE_FRACTION = 0.3
+BAGGING_FRACTION = 0.8
+BAGGING_FREQ = 1
+MIN_CHILD_SAMPLES = 10
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMClassifier(
+        n_estimators=N_TREES,
+        learning_rate=LEARNING_RATE,
+        num_leaves=NUM_LEAVES,
+        feature_fraction=FEATURE_FRACTION,
+        bagging_fraction=BAGGING_FRACTION,
+        bagging_freq=BAGGING_FREQ,
+        min_child_samples=MIN_CHILD_SAMPLES,
+        random_state=seed,
+        n_jobs=8,
+        verbose=-1
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+N_TREES = 300
+LEARNING_RATE = 0.03
+NUM_LEAVES = 31
+FEATURE_FRACTION = 0.5
+SUB_SAMPLE = 0.7
+MIN_CHILD_SAMPLES = 10
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+    X_test = featurize(test_smiles)
+    
+    probs = []
+    for i in range(5):
+        model = LGBMClassifier(
+            n_estimators=N_TREES,
+            learning_rate=LEARNING_RATE,
+            num_leaves=NUM_LEAVES,
+            feature_fraction=FEATURE_FRACTION,
+            subsample=SUB_SAMPLE,
+            subsample_freq=1,
+            min_child_samples=MIN_CHILD_SAMPLES,
+            random_state=seed + i,
+            n_jobs=8,
+            verbose=-1
+        )
+        model.fit(X_train, y_train)
+        probs.append(model.predict_proba(X_test)[:, 1])
+        
+    return np.mean(probs, axis=0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+=======
+    def barrier(c0):
+        from scipy.optimize import minimize as mn
+        dm = np.sqrt(((c0[:, None, :] - c0[None]) ** 2).sum(2))
+        dm[np.arange(n), np.arange(n)] = 9.0
+        wall = np.minimum.reduce([c0[:, 0], c0[:, 1], 1 - c0[:, 0], 1 - c0[:, 1]])
+        r0 = 0.45 * np.minimum(dm.min(1), 2 * wall)
+        z = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if np.any(r0 <= 1e-6):
+            return None
+
+        def mk(t):
+            def f(zz):
+                s = cons(zz)
+                if np.any(s <= 0):
+                    return 1e10, np.zeros(N3)
+                val = -np.sum(zz[2 * n:]) - t * np.sum(np.log(s))
+                gr = g - t * (jac(zz).T @ (1.0 / s))
+                return val, gr
+            return f
+
+        for t in [1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7]:
+            try:
+                res = mn(mk(t), z, jac=True, method="L-BFGS-B", bounds=bounds,
+                         options={"maxiter": 150})
+            except Exception:
+                break
+            if np.all(cons(res.x) > 0):
+                z = res.x
+        return z
+
+    best = None
+    best_val = -1.0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if it % 3 == 0:
+            zb = barrier(c0)
+            if zb is not None:
+                z0 = zb
+>>>>>>> REPLACE
+-----

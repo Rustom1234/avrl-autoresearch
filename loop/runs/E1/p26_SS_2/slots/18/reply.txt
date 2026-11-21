@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and time.process_time() - t0 > 0.3 * time_limit:
+            c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, pool = np.random.default_rng(seed), time.process_time(), []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        perturb = len(pool) > 0 and time.process_time() - t0 > 0.3 * time_limit
+        if perturb:
+            w = 1.0 / (1 + np.arange(len(pool)))
+            src = pool[rng.choice(len(pool), p=w / w.sum())]
+            c, r = _solve_once(n, rng, src, rng.choice([0.005, 0.01, 0.02, 0.05]))
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        s = r.sum()
+        if any(abs(s - p[1].sum()) <= 1e-4 for p in pool):
+            continue
+        if len(pool) < 5 or s > pool[-1][1].sum():
+            pool.append((c, r))
+            pool.sort(key=lambda p: -p[1].sum())
+            pool = pool[:5]
+    return pool[0]
+>>>>>>> REPLACE
+-----

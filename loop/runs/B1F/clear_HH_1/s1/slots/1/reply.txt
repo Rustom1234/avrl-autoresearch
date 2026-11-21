@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata, spearmanr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    Kt_train = tanimoto(X, X)
+    Kd_train = rbf(D, D, gamma)
+    Kt_test = tanimoto(Xt, X)
+    Kd_test = rbf(Dt, D, gamma)
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    z = (y - mu) / sd
+    # inner 5-fold CV over kernel mixing weight w and SVR C
+    best_score, best_cfg = -np.inf, (0.5, 5.0)
+    inner = KFold(n_splits=5, shuffle=True, random_state=seed)
+    for w in (0.3, 0.5, 0.7):
+        K_train = w * Kt_train + (1.0 - w) * Kd_train
+        for C in (1.0, 5.0, 20.0):
+            oof = np.zeros(len(z))
+            for tr, va in inner.split(z):
+                m = SVR(kernel="precomputed", C=C, epsilon=0.05)
+                m.fit(K_train[np.ix_(tr, tr)], z[tr])
+                oof[va] = m.predict(K_train[np.ix_(va, tr)])
+            score = spearmanr(oof, y).correlation
+            if score > best_score:
+                best_score, best_cfg = score, (w, C)
+    w, C = best_cfg
+    K_train = w * Kt_train + (1.0 - w) * Kd_train
+    K_test = w * Kt_test + (1.0 - w) * Kd_test
+    model = SVR(kernel="precomputed", C=C, epsilon=0.05)
+    model.fit(K_train, z)
+    return model.predict(K_test)
+>>>>>>> REPLACE
+-----

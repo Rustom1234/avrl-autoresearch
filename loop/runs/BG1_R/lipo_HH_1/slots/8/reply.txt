@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+# Ionisable-group SMARTS (pKa-relevant at pH 7.4). Counts are distinct matched first atoms.
+IONIZABLE_PATTS = [Chem.MolFromSmarts(p) for p in [
+    "[CX3](=O)[OX2H1,OX1-]",                                     # carboxylic acid
+    "[#6]1:[#7]:[#7]:[#7]:[#7]:1",                               # tetrazole
+    "[#6]C(=O)[NH]S(=O)(=O)",                                    # acyl sulfonamide
+    "[NX3;H2;!$(N-a);!$(N-C=[O,S,N]);!$(N-S)][CX4]",             # primary aliphatic amine
+    "[NX3;H1;!$(N-a);!$(N-C=[O,S,N]);!$(N-S)]([CX4])[CX4]",      # secondary aliphatic amine
+    "[NX3;H0;!$(N-a);!$(N-C=[O,S,N]);!$(N-S)]([CX4])([CX4])[CX4]",  # tertiary aliphatic amine
+    "[NX3;!$(NC=O)][CX3](=[NX2;!$(NC=O);!a])[NX3,#6]",           # amidine / guanidine
+    "[NX4+]",                                                    # quaternary nitrogen
+    "c[OX2H1]",                                                  # phenol
+]]
+
+
+def ion_counts(mol):
+    return [len(set(m[0] for m in mol.GetSubstructMatches(p))) for p in IONIZABLE_PATTS]
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([ecfp.GetFingerprintAsNumPy(mol), fcfp.GetFingerprintAsNumPy(mol)]))
+=======
+        rows.append(np.concatenate([ecfp.GetFingerprintAsNumPy(mol), fcfp.GetFingerprintAsNumPy(mol),
+                                    np.array(ion_counts(mol), dtype=np.float32)]))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    Xtr = np.hstack([descriptors(train_smiles), erg(train_smiles), featurize(train_smiles)])
+    Xte = np.hstack([descriptors(test_smiles), erg(test_smiles), featurize(test_smiles)])
+=======
+    Ftr, Fte = featurize(train_smiles), featurize(test_smiles)
+    Ktr = minmax_kernel(Ftr, Ftr)
+    np.fill_diagonal(Ktr, -1.0)
+    Kte = minmax_kernel(Fte, Ftr)
+
+    def knn_feats(K):
+        idx = np.argsort(-K, axis=1)[:, :20]
+        s = np.take_along_axis(K, idx, 1)
+        v = y[idx]
+        return np.column_stack([v[:, :5].mean(1), s[:, 0], (s * v).sum(1) / np.maximum(s.sum(1), 1e-9)])
+
+    Xtr = np.hstack([descriptors(train_smiles), erg(train_smiles), knn_feats(Ktr), Ftr]).astype(np.float32)
+    Xte = np.hstack([descriptors(test_smiles), erg(test_smiles), knn_feats(Kte), Fte]).astype(np.float32)
+>>>>>>> REPLACE
+-----

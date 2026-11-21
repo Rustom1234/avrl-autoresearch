@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        # Spatial grid to speed up overlap check
+        grid_size = np.max(r) * 2
+        if grid_size <= 0: grid_size = 0.1
+        grid = {}
+        for i, (cx, cy) in enumerate(c):
+            gx, gy = int(cx / grid_size), int(cy / grid_size)
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    key = (gx + dx, gy + dy)
+                    if key in grid:
+                        for neighbor_idx in grid[key]:
+                            d = np.sqrt((c[i,0] - c[neighbor_idx,0])**2 + (c[i,1] - c[neighbor_idx,1])**2)
+                            over_val = r[i] + r[neighbor_idx] - d
+                            if over_val > 0:
+                                s = d / (r[i] + r[neighbor_idx])
+                                r[i] *= s
+                                r[neighbor_idx] *= s
+                                break
+            grid.setdefault((gx, gy), []).append(i)
+        if not any(r[i] + r[j] - np.sqrt(np.sum((c[i]-c[j])**2)) > 0 for i in range(len(r)) for j in range(i+1, len(r))):
+            break
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----

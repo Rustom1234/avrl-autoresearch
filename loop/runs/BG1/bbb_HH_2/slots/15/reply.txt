@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+=======
+def ensemble_scores(sets_tr, y, sets_te, seed):
+    total = np.zeros(len(sets_te[0]))
+    for x_tr, x_te in zip(sets_tr, sets_te):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    return (total - total.min()) / (total.max() - total.min() + 1e-12)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    # Pass 1: score test molecules with the base ensemble
+    score = ensemble_scores(train_sets, y, test_sets, seed)
+    k = int(round(0.15 * len(test_smiles)))
+    order = np.argsort(score)
+    neg_idx, pos_idx = order[:k], order[len(order) - k:]
+    # Pass 2: append confident test pseudo-labels and refit the same ensemble
+    aug_sets = [np.vstack([tr, te[pos_idx], te[neg_idx]]) for tr, te in zip(train_sets, test_sets)]
+    aug_y = np.concatenate([y, np.ones(k, dtype=np.int64), np.zeros(k, dtype=np.int64)])
+    return ensemble_scores(aug_sets, aug_y, test_sets, seed)
+>>>>>>> REPLACE
+-----

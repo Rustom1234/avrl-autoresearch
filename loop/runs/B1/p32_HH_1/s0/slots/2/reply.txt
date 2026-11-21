@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+POOL_K = 5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, pool = np.random.default_rng(seed), time.process_time(), []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = pool and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        start = pool[rng.integers(len(pool))][0] if guided else None
+        c, r = _solve_once(n, rng, start)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        s = r.sum()
+        if (len(pool) < POOL_K or s > pool[-1][1].sum()) and all(abs(s - q[1].sum()) > 1e-9 for q in pool):
+            pool.append((c, r))
+            pool.sort(key=lambda p: -p[1].sum())
+            del pool[POOL_K:]
+    return pool[0]
+>>>>>>> REPLACE
+-----

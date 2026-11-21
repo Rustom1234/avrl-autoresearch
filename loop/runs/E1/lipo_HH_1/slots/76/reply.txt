@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+def count_featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float64)
+
+
+def l1_dist(A, B):
+    # sum|a-b| = sum a + sum b - 2 * sum_k [a>=k][b>=k]  (exact for non-negative integer counts)
+    D = A.sum(axis=1)[:, None] + B.sum(axis=1)[None, :]
+    top = int(max(A.max(), B.max()))
+    for k in range(1, top + 1):
+        D -= 2.0 * ((A >= k).astype(np.float64) @ (B >= k).astype(np.float64).T)
+    return D
+
+
+_DESC_CACHE = {}
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+=======
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed, Ca, Cb):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([p_rf, p_lgb, p_krr])
+=======
+    Daa = l1_dist(Ca, Ca)
+    s = np.median(Daa[~np.eye(len(ya), dtype=bool)])
+    w_lap = np.linalg.solve(np.exp(-Daa / s) + 0.5 * np.eye(len(ya)), ya - mu)
+    p_lap = np.exp(-l1_dist(Cb, Ca) / s) @ w_lap + mu
+    return np.column_stack([p_rf, p_lgb, p_krr, p_lap])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ftr, Fte = featurize(train_smiles), featurize(test_smiles)
+=======
+    Ftr, Fte = featurize(train_smiles), featurize(test_smiles)
+    Ctr, Cte = count_featurize(train_smiles), count_featurize(test_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    oof = np.zeros((len(y), 4))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+=======
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed, Ctr[tr], Ctr[va])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+=======
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed, Ctr, Cte)
+>>>>>>> REPLACE
+-----

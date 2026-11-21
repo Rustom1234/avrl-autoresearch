@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+=======
+    desc_tr = featurize(train_smiles)
+    desc_te = featurize(test_smiles)
+    # Feature order: TPSA, MolWt, MolLogP, HBD, HBA, RotBonds, Fsp3, FormalCharge, acid count, basic amine count
+    mono = (-1, -1, 1, -1, -1, 0, 1, 0, -1, 0)
+    mono_model = XGBClassifier(n_estimators=300, max_depth=3, learning_rate=0.05, monotone_constraints=mono,
+                               eval_metric='logloss', random_state=seed, n_jobs=8)
+    mono_model.fit(desc_tr, y)
+    total += 1.5 * rankdata(mono_model.predict_proba(desc_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+>>>>>>> REPLACE
+-----

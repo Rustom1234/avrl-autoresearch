@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, pool = np.random.default_rng(seed), time.process_time(), []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = pool and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, pool[rng.integers(len(pool))][0] if guided else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        s = r.sum()
+        if any(abs(s - p[1].sum()) < 1e-7 for p in pool):
+            continue
+        if len(pool) < 5 or s > pool[-1][1].sum():
+            pool.append((c, r))
+            pool.sort(key=lambda p: -p[1].sum())
+            del pool[5:]
+    return pool[0]
+>>>>>>> REPLACE
+-----

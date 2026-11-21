@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+t_start_training = time.time()
+smooth_train_loss = 0
+=======
+t_start_training = time.time()
+smooth_train_loss = 0
+AVG_START = 0.7         # progress at which weight averaging begins
+avg_sum = None          # float32 running sum of parameters (on GPU)
+avg_count = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+    if progress >= AVG_START:
+        with torch.no_grad():
+            cur = [p.detach().float() for p in model.parameters()]
+            if avg_sum is None:
+                avg_sum = [c.clone() for c in cur]
+            else:
+                torch._foreach_add_(avg_sum, cur)
+        avg_count += 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+print()  # newline after \r training log
+=======
+print()  # newline after \r training log
+
+if avg_count > 0:
+    with torch.no_grad():
+        for p, s in zip(model.parameters(), avg_sum):
+            p.copy_(s / avg_count)
+    print(f"Loaded uniform average of {avg_count} snapshots")
+>>>>>>> REPLACE
+-----

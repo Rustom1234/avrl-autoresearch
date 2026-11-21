@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+def _barrier_obj(v, n, iu, mu):
+    """Objective -sum(r) - mu * sum(log(slack)) with analytic gradient; slacks are pair gaps and wall gaps."""
+    c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+    dx = c[iu[0]] - c[iu[1]]
+    d = np.sqrt((dx ** 2).sum(1))
+    s = d - r[iu[0]] - r[iu[1]]
+    w = np.stack([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+    if s.min() <= 0 or w.min() <= 0:
+        return 1e12, np.zeros_like(v)
+    f = -r.sum() - mu * (np.log(s).sum() + np.log(w).sum())
+    gc, gr = np.zeros((n, 2)), -np.ones(n)
+    a = mu / s
+    u = (dx / d[:, None]) * a[:, None]
+    np.add.at(gc, iu[0], -u)
+    np.add.at(gc, iu[1], u)
+    np.add.at(gr, iu[0], a)
+    np.add.at(gr, iu[1], a)
+    b = mu / w
+    gc[:, 0] += -b[0] + b[2]
+    gc[:, 1] += -b[1] + b[3]
+    gr += b.sum(0)
+    return f, np.concatenate([gc.ravel(), gr])
+
+
+def _barrier_start(n, p):
+    """Log-barrier continuation (mu = 1e-2, then /10 for 4 stages) from a small feasible start."""
+    iu = np.triu_indices(n, 1)
+    v = np.concatenate([np.clip(p, 1e-3, 1 - 1e-3), np.full(n, 1e-3)])
+    bounds = [(0, 1)] * (2 * n) + [(1e-6, None)] * n
+    mu = 1e-2
+    for _ in range(4):
+        res = minimize(_barrier_obj, v, args=(n, iu, mu), jac=True, method="L-BFGS-B", bounds=bounds,
+                       options={"maxiter": 200})
+        if res.fun >= 1e11:
+            break
+        v = res.x
+        mu /= 10
+    return v[:2 * n], v[2 * n:]
+
+
+def _solve_once(n, centers0):
+    c0, r0 = _barrier_start(n, centers0)
+    x0 = np.concatenate([c0, r0])
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+-----

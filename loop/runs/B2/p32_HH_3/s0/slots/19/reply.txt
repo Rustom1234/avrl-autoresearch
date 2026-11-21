@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+FORCE_PROB = 0.3
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _relocate(c, r, rng, trials=30):
+=======
+def _relocate(c, r, rng, trials=30, force=False):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    _, p, rk = best
+    c[k], r[k] = p, rk
+    return c, r
+=======
+    _, p, rk = best
+    if force:
+        d = np.sqrt(((c - p) ** 2).sum(1))
+        d[k] = np.inf
+        rk = min(np.median(r), p.min(), (1 - p).min())
+        hit = d < rk + r
+        r[hit] = np.maximum(d[hit] - rk, 0.2 * r[hit])
+    c[k], r[k] = p, rk
+    return c, r
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0, r0 = _relocate(c0, r0, rng)
+=======
+        c0, r0 = _relocate(c0, r0, rng, force=rng.uniform() < FORCE_PROB)
+>>>>>>> REPLACE
+-----

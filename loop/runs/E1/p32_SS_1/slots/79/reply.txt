@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _unfold(v, m):
+    p, q = v[:2 * m].reshape(m, 2), v[2 * m:]
+    c = np.vstack([p, np.column_stack([1 - p[:, 0], p[:, 1]])])
+    return c, np.concatenate([q, q])
+
+
+def _solve_sym(n, rng):
+    m = n // 2
+    x0 = np.concatenate([np.column_stack([rng.uniform(INIT_LOW, 0.5, m), rng.uniform(INIT_LOW, 1 - INIT_LOW, m)]).ravel(),
+                         np.full(m, INIT_RADIUS)])
+    iu = np.triu_indices(2 * m, 1)
+
+    def cons(v):
+        c, r = _unfold(v, m)
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -2 * v[2 * m:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x, -res.fun
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pool = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+=======
+    pool = []
+    sym = []
+    while time.process_time() - t0 < 0.4 * time_limit:   # mirror-symmetric search
+        sym.append(_solve_sym(n, rng))
+    sym.sort(key=lambda s: -s[1])
+    for v, _ in sym[:3]:
+        c, r = _solve_once(n, rng, np.concatenate([_unfold(v, n // 2)[0].ravel(), _unfold(v, n // 2)[1]]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((c, r))
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    pool.sort(key=lambda p: -p[1].sum())
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+>>>>>>> REPLACE
+-----

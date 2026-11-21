@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+            nn.MaxPool2d(3),
+=======
+            nn.AdaptiveMaxPool2d(1),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lr_factor2_base = 1.0 / total_train_steps
+=======
+    lr_factor2_base = 1.0 / total_train_steps
+    low_res_steps = int(0.4 * total_train_steps)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    @torch.compile(mode="max-autotune", fullgraph=True)
+    def forward_step(inputs, labels, whiten_bias_grad):
+=======
+    @torch.compile(mode="max-autotune", fullgraph=True, dynamic=False)
+    def forward_step(inputs, labels, whiten_bias_grad):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            # Execute training step
+            loss = forward_step(inputs, labels, whiten_bias_grad)
+=======
+            # Execute training step (low resolution during the first 40% of steps)
+            if step < low_res_steps:
+                inputs = F.interpolate(
+                    inputs.float(), size=(24, 24), mode="bilinear", antialias=True
+                ).half().contiguous(memory_format=torch.channels_last)
+            loss = forward_step(inputs, labels, whiten_bias_grad)
+>>>>>>> REPLACE
+-----

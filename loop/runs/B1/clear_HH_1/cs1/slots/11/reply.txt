@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def featurize(smiles):
+    gens = [
+        rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS),
+        rdFingerprintGenerator.GetMorganGenerator(
+            radius=3, fpSize=N_BITS,
+            atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()),
+        rdFingerprintGenerator.GetRDKitFPGenerator(fpSize=N_BITS, maxPath=6),
+    ]
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    return [np.array([g.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float64) for g in gens]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+=======
+    Xs = featurize(train_smiles)
+    Xts = featurize(test_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    S_train = np.mean([tanimoto(X, X) for X in Xs], axis=0)
+    S_test = np.mean([tanimoto(Xt, X) for X, Xt in zip(Xs, Xts)], axis=0)
+    K_train = 0.5 * (S_train + rbf(D, D, gamma))
+    K_test = 0.5 * (S_test + rbf(Dt, D, gamma))
+>>>>>>> REPLACE
+-----

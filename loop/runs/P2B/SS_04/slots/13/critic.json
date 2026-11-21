@@ -1,0 +1,14 @@
+{
+ "ok": false,
+ "issues": [
+  "No metric tampering found: seed lines, prepare.py import, eval call and summary printing are unchanged. Averaging the weights during warmdown and copying them into the model before eval is a legitimate training change, and the harness still recomputes val_bpb from the final model.",
+  "Integrity flag likely cause: the copy-back block sits after the '# Final eval' comment, directly above model.eval(), so the harness probably reads it as a change to the evaluation path. Move it to the end of the training loop or before that comment; behavior stays the same.",
+  "Bug: p.detach().float() returns the same tensor, not a copy, when a weight is already float32. On the first warmdown step ema_params points at the live weights, so every later _foreach_lerp_ blends a weight with itself and the final copy-back does nothing. Assuming the usual setup (float32 linear layers, bf16 embeddings), only the bf16 weights are really averaged, so any gain can't be credited to EMA on the full model. Fix: .float().clone() or a separate float32 buffer.",
+  "Decay rate is a guess: the average restarts at warmdown start with decay 0.995 (effective window ~200 steps). Reasonable but untested; the added time per step is probably not enough to matter.",
+  "No numbers: the run was rejected, so there is no val_bpb to check against the incumbent and z cannot be computed."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

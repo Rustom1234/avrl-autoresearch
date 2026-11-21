@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+    tt_gen = rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=2048)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fp = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    ap = np.array([ap_gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    tt = np.array([tt_gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    return np.hstack([fp, smarts_counts(smiles), ap, tt])
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS, includeChirality=True)
+    feat_gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, fpSize=N_BITS,
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen())
+    ap_gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+    tt_gen = rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=2048)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fp = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    feat = np.array([feat_gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    ap = np.array([ap_gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    tt = np.array([tt_gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    return np.hstack([fp, smarts_counts(smiles), ap, tt, feat])
+>>>>>>> REPLACE
+-----

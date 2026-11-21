@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+def _window_hop(c, r, rng, m=8):
+    """Re-optimise a random circle and its m nearest neighbours with all other circles frozen."""
+    n = len(r)
+    k = rng.integers(n)
+    idx = np.argsort(np.hypot(*(c - c[k]).T))[:m + 1]
+    w = len(idx)
+    fixed = np.setdiff1d(np.arange(n), idx)
+    cf, rf = c[fixed], r[fixed]
+    cw0 = c[idx] + rng.normal(0, 0.04, (w, 2))
+    x0 = np.concatenate([cw0.ravel(), 0.6 * r[idx]])
+    iu = np.triu_indices(w, 1)
+
+    def cons(v):
+        cc, rr = v[:2 * w].reshape(w, 2), v[2 * w:]
+        dd = np.sqrt(((cc[iu[0]] - cc[iu[1]]) ** 2).sum(1)) - rr[iu[0]] - rr[iu[1]]
+        df = np.sqrt(((cc[:, None, :] - cf[None]) ** 2).sum(-1)) - rr[:, None] - rf[None]
+        return np.concatenate([dd, df.ravel(), cc[:, 0] - rr, cc[:, 1] - rr, 1 - cc[:, 0] - rr, 1 - cc[:, 1] - rr, rr])
+
+    res = minimize(lambda v: -v[2 * w:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": 150})
+    c, r = c.copy(), r.copy()
+    c[idx] = res.x[:2 * w].reshape(w, 2)
+    r[idx] = res.x[2 * w:]
+    return c, r
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, None if explore else best)
+=======
+        if not explore and rng.random() < 0.5:
+            c, r = _window_hop(best[0], best[1], rng)
+        else:
+            c, r = _solve_once(n, rng, None if explore else best)
+>>>>>>> REPLACE
+-----

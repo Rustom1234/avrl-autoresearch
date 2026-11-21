@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import OneHotEncoder
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    leaves_train = gb.booster_.predict(X_train, pred_leaf=True)
+    leaves_test = gb.booster_.predict(X_test, pred_leaf=True)
+    enc = OneHotEncoder(handle_unknown="ignore")
+    Z_train = enc.fit_transform(leaves_train)
+    Z_test = enc.transform(leaves_test)
+    lr = LogisticRegression(C=0.3, max_iter=2000, random_state=seed)
+    lr.fit(Z_train, y)
+    return (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1])
+            + scaled_rank(lr.predict_proba(Z_test)[:, 1])) / 3.0
+>>>>>>> REPLACE
+-----

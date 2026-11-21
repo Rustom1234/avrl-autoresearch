@@ -1,0 +1,93 @@
+<<<<<<< SEARCH
+def _best_packing():
+    """Multi-start over bimodal radius initializations; keep the best feasible packing."""
+=======
+def _best_packing():
+    """UCB1 bandit over three start families: mirror-symmetric search, random multi-start,
+    and basin hopping from the current best. Reward = best-sum gain per unit cost."""
+    n = 26
+    rng = np.random.default_rng(12345)
+    t0 = time.time()
+    st = {"s": -1.0, "c": None, "r": None}
+
+    def offer(c, r):
+        s = float(np.sum(r))
+        if s > st["s"]:
+            st["s"], st["c"], st["r"] = s, c, r
+
+    def sym_pull():
+        c, r = _sym_search(rng)
+        c, r = _optimize(c, r)
+        return _repair(c, r)
+
+    def rand_pull():
+        c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+        k = (4, 6, 8, 10)[int(rng.integers(4))]
+        r0 = np.full(n, 0.07)
+        r0[:k] = 0.12
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+        c0, r0 = _relax(c0, r0)
+        c, r = _optimize(c0, r0)
+        return _repair(c, r)
+
+    def basin_pull():
+        cur_c, cur_r = st["c"].copy(), st["r"].copy()
+        cur_s = float(np.sum(cur_r))
+        for _ in range(10):
+            if time.time() - t0 > 190:
+                break
+            c0 = cur_c.copy()
+            k = int(rng.integers(1, 4))
+            pick = rng.choice(n, size=k, replace=False)
+            c0[pick] = np.clip(c0[pick] + rng.normal(0.0, 0.1, size=(k, 2)), 0.0, 1.0)
+            try:
+                c, r = _optimize(c0, np.maximum(cur_r, 0.01))
+                r = _repair(c, r)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            offer(c, r)
+            if s > cur_s or rng.random() < np.exp((s - cur_s) / 0.01):
+                cur_c, cur_r, cur_s = c, r, s
+
+    costs = [1.0, 1.0, 10.0]
+    counts = np.zeros(3)
+    sums = np.zeros(3)
+    tie_order = list(rng.permutation(3))
+    c_explore = 0.5
+    for t in range(1, 31):
+        if time.time() - t0 > 190:
+            break
+        untried = [a for a in tie_order if counts[a] == 0]
+        if untried:
+            arm = int(untried[0])
+        else:
+            ucb = sums / counts + c_explore * np.sqrt(np.log(t) / counts)
+            cands = np.flatnonzero(ucb >= np.max(ucb) - 1e-12)
+            arm = int(cands[int(rng.integers(len(cands)))])
+        before = st["s"] if st["c"] is not None else 0.0
+        try:
+            if arm == 0:
+                offer(*(lambda cr: (cr[0], cr[1]))(sym_pull()))
+            elif arm == 1 or st["c"] is None:
+                offer(*(lambda cr: (cr[0], cr[1]))(rand_pull()))
+            else:
+                basin_pull()
+        except Exception:
+            pass
+        after = st["s"] if st["c"] is not None else 0.0
+        gain = max(0.0, after - before)
+        counts[arm] += 1
+        sums[arm] += gain / costs[arm]
+    best_c, best_r, best_sum = st["c"], st["r"], st["s"]
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+        best_c = np.clip(c, 0.0, 1.0)
+        best_r = _repair(best_c, np.zeros(n))
+    return np.clip(best_c, 0.0, 1.0), best_r
+
+
+def _best_packing_old():
+    """Multi-start over bimodal radius initializations; keep the best feasible packing."""
+>>>>>>> REPLACE
+-----

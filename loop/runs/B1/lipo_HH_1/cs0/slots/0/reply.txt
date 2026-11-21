@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+    return np.column_stack([p_rf, p_lgb, p_krr])
+=======
+    Tb = tanimoto(Fb, Fa)
+    p_krr = (Tb + wr * rbf(Zb, Za)) @ w + mu
+    idx = np.argpartition(-Tb, 10, axis=1)[:, :10]
+    sims = np.take_along_axis(Tb, idx, axis=1)
+    wk = sims ** 3
+    ws = wk.sum(axis=1)
+    p_knn = np.where(sims.max(axis=1) > 0, (wk * ya[idx]).sum(axis=1) / np.maximum(ws, 1e-12), mu)
+    return np.column_stack([p_rf, p_lgb, p_krr, p_knn])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    oof = np.zeros((len(y), 4))
+>>>>>>> REPLACE
+-----

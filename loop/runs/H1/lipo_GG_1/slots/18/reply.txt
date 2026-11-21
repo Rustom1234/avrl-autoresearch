@@ -1,0 +1,124 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMRegressor(n_estimators=N_TREES, 
+                             feature_fraction=FEATURE_FRACTION, 
+                             bag_fraction=BAG_FRACTION, 
+                             random_state=seed, 
+                             n_jobs=-1, 
+                             verbosity=-1)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+<<<<<<< REPLACE
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator,rdGetSymmHelpers
+from rdkit.Chem import Descriptors
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add ring count as an additional feature
+        ring_count =mol.GetNumRings()
+        features.append(np.append(fp, [ring_count]))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMRegressor(n_estimators=N_TREES, 
+                             feature_fraction=FEATURE_FRACTION, 
+                             bag_fraction=BAG_FRACTION, 
+                             random_state=seed, 
+                             n_jobs=-1, 
+                             verbosity=-1)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMRegressor(n_estimators=N_TREES, 
+                             feature_fraction=FEATURE_FRACTION, 
+                             bag_fraction=BAG_FRACTION, 
+                             random_state=seed, 
+                             n_jobs=-1, 
+                             verbosity=-1)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is not None:
+            fp = gen.GetFingerprintAsNumPy(mol)
+            ring_count = mol.GetNumRings()
+            features.append(np.append(fp, [ring_count]))
+        else:
+            features.append(np.zeros(N_BITS + 1, dtype=np.float32))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMRegressor(n_estimators=N_TREES, 
+                             feature_fraction=FEATURE_FRACTION, 
+                             bag_fraction=BAG_FRACTION, 
+                             random_state=seed, 
+                             n_jobs=-1, 
+                             verbosity=-1)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMRegressor(n_estimators=N_TREES, 
+                             feature_fraction=FEATURE_FRACTION, 
+                             bag_fraction=BAG_FRACTION, 
+                             random_state=seed, 
+                             n_jobs=-1, 
+                             verbosity=-1)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+<<<<<<< REPLACE
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is not None:
+            fp = gen.GetFingerprintAsNumPy(mol)
+            ring_count = mol.GetNumRings()
+            features.append(np.append(fp, [ring_count]))
+        else:
+            features.append(np.zeros(N_BITS + 1, dtype=np.float32))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMRegressor(n_estimators=N_TREES, 
+                             feature_fraction=FEATURE_FRACTION, 
+                             bag_fraction=BAG_FRACTION, 
+                             random_state=seed, 
+                             n_jobs=-1, 
+                             verbosity=-1)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+-----

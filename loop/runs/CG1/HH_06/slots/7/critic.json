@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "Measurement integrity: no problems found. The diff removes one line (`self.weight.requires_grad = False`), so the batch norm scale is now learned. It adds no state carried between runs, no work in the untimed first call, no seeding, no use of test images and no file access.",
+  "Possible silent no-op: the diff doesn't show how the optimiser parameter groups are built. If they are chosen by name, by shape or from an explicit list, the newly trainable BN weights may be in no group or in the wrong one. In that case the scale never moves away from 1, and the run only pays for computing the extra gradients. The result would still be a valid measurement, so this is not a veto. It is worth checking before anyone retries the idea.",
+  "Matches the numbers: the candidate costs 0.0776 against -0.0621 for the incumbent, a difference of +0.1397, which is worse. It is plausible that learned scales add time and do not help accuracy here. Rejecting it is consistent with the data.",
+  "Recomputed z: (-0.0621 - 0.0776) / sqrt(0.026\u00b2 + 0.026\u00b2) = -0.1397 / 0.0368 \u2248 -3.80. This matches the harness's -3.83 if its sd is about 0.0258, which rounds to the 0.026 stated in the card. The evidence is one run on each side, so it rests on that assumed sd."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -3.8
+ }
+}

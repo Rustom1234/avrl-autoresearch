@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    def jac(v):
+        c = v[:2 * n].reshape(n, 2)
+        i, j = iu
+        dxy = c[i] - c[j]
+        d = np.maximum(np.sqrt((dxy ** 2).sum(1)), 1e-12)
+        u = dxy / d[:, None]
+        P = len(i)
+        k = np.arange(n)
+        J = np.zeros((P + 5 * n, 3 * n))
+        rows = np.arange(P)
+        J[rows, 2 * i] = u[:, 0]
+        J[rows, 2 * i + 1] = u[:, 1]
+        J[rows, 2 * j] = -u[:, 0]
+        J[rows, 2 * j + 1] = -u[:, 1]
+        J[rows, 2 * n + i] = -1
+        J[rows, 2 * n + j] = -1
+        b = P
+        J[b + k, 2 * k] = 1
+        J[b + k, 2 * n + k] = -1
+        J[b + n + k, 2 * k + 1] = 1
+        J[b + n + k, 2 * n + k] = -1
+        J[b + 2 * n + k, 2 * k] = -1
+        J[b + 2 * n + k, 2 * n + k] = -1
+        J[b + 3 * n + k, 2 * k + 1] = -1
+        J[b + 3 * n + k, 2 * n + k] = -1
+        J[b + 4 * n + k, 2 * n + k] = 1
+        return J
+
+    def obj_grad(v):
+        g = np.zeros(3 * n)
+        g[2 * n:] = -1
+        return g
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, jac=obj_grad, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons, "jac": jac}, options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+-----

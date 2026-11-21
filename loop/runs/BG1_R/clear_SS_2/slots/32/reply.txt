@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+    from sklearn.linear_model import Ridge
+=======
+    from sklearn.kernel_ridge import KernelRidge
+    from concurrent.futures import ThreadPoolExecutor
+    rs = np.random.RandomState(seed)
+    Mtr, Mte = Xtr[:, -N_BITS:], Xte[:, -N_BITS:]
+    col_sets = [rs.choice(N_BITS, int(0.6 * N_BITS), replace=False) for _ in range(10)]
+
+    def bag(cols):
+        A, B = Mtr[:, cols], Mte[:, cols]
+        k = KernelRidge(alpha=0.7, kernel="precomputed").fit(minmax_kernel(A, A), y - y.mean())
+        return k.predict(minmax_kernel(B, A))
+
+    with ThreadPoolExecutor(8) as ex:
+        kp = np.mean(list(ex.map(bag, col_sets)), axis=0)
+    preds.append(rankdata(kp) / len(kp))
+    from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    from concurrent.futures import ThreadPoolExecutor
+    rs = np.random.RandomState(seed)
+=======
+    rs = np.random.RandomState(seed)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    with ThreadPoolExecutor(8) as ex:
+        kp = np.mean(list(ex.map(bag, col_sets)), axis=0)
+=======
+    kp = np.mean([bag(c) for c in col_sets], axis=0)
+>>>>>>> REPLACE
+-----

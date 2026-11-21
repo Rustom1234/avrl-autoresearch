@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    total = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < 0.5 * total:   # random restarts for half of the time
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    t1 = time.process_time()
+    span = max(total - (t1 - t0), 1e-9)
+    while time.process_time() - t0 < total:   # basin hopping from the best packing, perturbation decays linearly
+        frac = min((time.process_time() - t1) / span, 1.0)
+        scale = 0.1 + (0.005 - 0.1) * frac
+        c, r = best
+        c0 = np.clip(c + scale * rng.standard_normal(c.shape), 0, 1)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    total = TIME_FRACTION * time_limit
+    pool = []
+    while time.process_time() - t0 < 0.4 * total:   # coarse screening: many restarts with few SLSQP iterations
+        c, r = _solve_once(n, rng, maxiter=60)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((r.sum(), c, r))
+    pool.sort(key=lambda p: -p[0])
+    top = [(c, r) for _, c, r in pool[:3]]
+    k = 0
+    while time.process_time() - t0 < total:   # fine refinement of the top packings in turn
+        c, r = top[k % len(top)]
+        c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]), maxiter=400)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > top[k % len(top)][1].sum():
+            top[k % len(top)] = (c, r)
+        k += 1
+    return max(top, key=lambda p: p[1].sum())
+>>>>>>> REPLACE
+-----

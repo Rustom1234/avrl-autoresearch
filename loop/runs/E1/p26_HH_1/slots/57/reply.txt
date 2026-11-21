@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None:   # first start: a random restart
+            c, r = _solve_once(n, rng)
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    kicks = []  # (kick [px, py, R], packing sum) for every local kick
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        kick = None
+        if best is None:   # first start: a random restart
+            c, r = _solve_once(n, rng)
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            elite = [k for k, s in kicks if s >= best[1].sum() - 0.002][-30:]
+            if len(kicks) < 10 or len(elite) < 2:
+                kick = np.r_[rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)]
+            else:  # sample the kick from a Gaussian fitted to the elite kicks, variance floored
+                E = np.array(elite)
+                kick = rng.multivariate_normal(E.mean(0), np.cov(E.T) + 1e-4 * np.eye(3))
+                kick = np.clip(kick, [0, 0, 0.05], [1, 1, 0.5])
+            p, R = kick[:2], kick[2]
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        if kick is not None:
+            kicks.append((kick, r.sum()))
+    return best
+>>>>>>> REPLACE
+-----

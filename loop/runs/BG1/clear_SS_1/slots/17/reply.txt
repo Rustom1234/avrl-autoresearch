@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import GroupKFold
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    rf = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                               n_jobs=-1, random_state=seed).fit(mixed_features(train_smiles), y)
+    gb = lgb.LGBMRegressor(n_estimators=300, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                           colsample_bytree=0.3, min_child_samples=5, random_state=seed, n_jobs=8,
+                           verbose=-1).fit(Xtr, y)
+    svr = SVR(kernel="precomputed", C=5.0).fit(tanimoto(Xtr, Xtr), y)
+    preds = [rf.predict(mixed_features(test_smiles)), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr))]
+    return np.mean([rankdata(p) / len(p) for p in preds], axis=0)
+=======
+def base_ranks(Xtr, Mtr, y, Xte, Mte, seed, n_trees):
+    rf = RandomForestRegressor(n_estimators=n_trees, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                               n_jobs=-1, random_state=seed).fit(Mtr, y)
+    gb = lgb.LGBMRegressor(n_estimators=300, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                           colsample_bytree=0.3, min_child_samples=5, random_state=seed, n_jobs=8,
+                           verbose=-1).fit(Xtr, y)
+    svr = SVR(kernel="precomputed", C=5.0).fit(tanimoto(Xtr, Xtr), y)
+    preds = [rf.predict(Mte), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr))]
+    return np.column_stack([rankdata(p) / len(p) for p in preds])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_smiles = list(train_smiles)
+    X, M = featurize(train_smiles), mixed_features(train_smiles)
+    Xte, Mte = featurize(test_smiles), mixed_features(test_smiles)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    groups = [MurckoScaffold.MurckoScaffoldSmiles(s) for s in train_smiles]
+    oof = np.zeros((len(y), 3))
+    for tr, va in GroupKFold(n_splits=5).split(X, y, groups):
+        oof[va] = base_ranks(X[tr], M[tr], y[tr], X[va], M[va], seed, 200)
+    w = LinearRegression(positive=True).fit(oof, y).coef_
+    if w.sum() <= 0:
+        w = np.ones(3)
+    w = w / w.sum()
+    return base_ranks(X, M, y, Xte, Mte, seed, N_TREES) @ w
+>>>>>>> REPLACE
+-----

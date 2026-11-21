@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    try:
+        n = _N
+        i, j = _IU
+
+        def cons(x):
+            X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+            dx = X[i] - X[j]
+            dy = Y[i] - Y[j]
+            pair = np.sqrt(dx * dx + dy * dy) - (R[i] + R[j])
+            return np.concatenate([pair, X - R, 1 - X - R, Y - R, 1 - Y - R])
+
+        x0 = np.concatenate([c[:, 0], c[:, 1], r])
+        act = np.where(cons(x0) < 1e-7)[0]
+        res = minimize(lambda x: -x[2 * n:].sum(), x0,
+                       jac=lambda x: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                       method="SLSQP",
+                       constraints=[{"type": "eq", "fun": lambda x: cons(x)[act]},
+                                    {"type": "ineq", "fun": cons}],
+                       bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n,
+                       options={"maxiter": 100, "ftol": 1e-15})
+        x = res.x
+        c3 = np.clip(np.stack([x[:n], x[n:2 * n]], 1), 0, 1)
+        r3 = _lp_radii(c3)
+        if r3.sum() > r.sum():
+            c, r = c3, r3
+    except Exception:
+        pass
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import GroupKFold
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def member_probs(X_fit, y_fit, X_pred, seed):
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_fit, y_fit)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_fit, y_fit)
+    return rf.predict_proba(X_pred)[:, 1], gb.predict_proba(X_pred)[:, 1]
+
+
+def choose_weight(X, y, smiles, seed):
+    scaf = [MurckoScaffold.MurckoScaffoldSmiles(smiles=s) or s for s in smiles]
+    ids = {}
+    groups = np.array([ids.setdefault(g, len(ids)) for g in scaf])
+    oof_rf = np.zeros(len(y))
+    oof_gb = np.zeros(len(y))
+    for tr, va in GroupKFold(n_splits=3).split(X, y, groups):
+        p_rf, p_gb = member_probs(X[tr], y[tr], X[va], seed)
+        oof_rf[va] = scaled_rank(p_rf)
+        oof_gb[va] = scaled_rank(p_gb)
+    # Grid ordered so that ties resolve toward 0.5
+    grid = sorted(np.round(np.arange(0.0, 1.01, 0.1), 2), key=lambda w: abs(w - 0.5))
+    aucs = [roc_auc_score(y, w * oof_rf + (1 - w) * oof_gb) for w in grid]
+    return float(grid[int(np.argmax(aucs))])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    w = choose_weight(X_train, y, train_smiles, seed)
+    p_rf, p_gb = member_probs(X_train, y, X_test, seed)
+    return w * scaled_rank(p_rf) + (1 - w) * scaled_rank(p_gb)
+>>>>>>> REPLACE
+-----

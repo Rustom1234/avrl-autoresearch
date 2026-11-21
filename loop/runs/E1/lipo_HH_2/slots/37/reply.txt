@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    meta = LinearRegression(positive=True).fit(oof, y)
+    return meta.predict(base_predict(X, y, Xte, seed)) + a + b * Lte
+=======
+    meta = LinearRegression(positive=True).fit(oof, y)
+    resid = y - meta.predict(oof)
+    S = tanimoto(Xte[:, :N_BITS], X[:, :N_BITS])
+    idx = np.argsort(-S, axis=1)[:, :5]
+    sims = np.take_along_axis(S, idx, 1)
+    w = np.where(sims > 0.1, sims, 0.0)
+    denom = w.sum(1)
+    corr = np.where(denom > 0, (w * resid[idx]).sum(1) / np.maximum(denom, 1e-9), 0.0)
+    return meta.predict(base_predict(X, y, Xte, seed)) + 0.5 * corr + a + b * Lte
+>>>>>>> REPLACE
+-----

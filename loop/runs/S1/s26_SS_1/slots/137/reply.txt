@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 140:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    try:
+        n = _N
+        i, j = _IU
+        d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+        pa = np.where(d - r[i] - r[j] < 1e-7)[0]
+        wl = []
+        for k in range(n):
+            for ax in range(2):
+                if c[k, ax] - r[k] < 1e-7:
+                    wl.append((k, ax, 0))
+                if 1 - c[k, ax] - r[k] < 1e-7:
+                    wl.append((k, ax, 1))
+        v = np.concatenate([c[:, 0], c[:, 1], r])
+        for _ in range(6):
+            X, Y, R = v[:n], v[n:2 * n], v[2 * n:]
+            F = []
+            J = np.zeros((len(pa) + len(wl), 3 * n))
+            for q, p in enumerate(pa):
+                a, b = i[p], j[p]
+                dx, dy = X[a] - X[b], Y[a] - Y[b]
+                dd = np.sqrt(dx * dx + dy * dy) + 1e-18
+                F.append(dd - R[a] - R[b])
+                J[q, a] = dx / dd
+                J[q, b] = -dx / dd
+                J[q, n + a] = dy / dd
+                J[q, n + b] = -dy / dd
+                J[q, 2 * n + a] = -1
+                J[q, 2 * n + b] = -1
+            for q, (k, ax, s) in enumerate(wl):
+                row = len(pa) + q
+                pos = v[ax * n + k]
+                if s == 0:
+                    F.append(pos - R[k])
+                    J[row, ax * n + k] = 1
+                else:
+                    F.append(1 - pos - R[k])
+                    J[row, ax * n + k] = -1
+                J[row, 2 * n + k] = -1
+            step = np.linalg.lstsq(J, -np.array(F), rcond=None)[0]
+            v = v + step
+        c2 = np.clip(np.stack([v[:n], v[n:2 * n]], 1), 0, 1)
+        r2 = _lp_radii(c2)
+        if r2.sum() > r.sum() + 1e-12:
+            c, r = c2, r2
+    except Exception:
+        pass
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,13 @@
+<<<<<<< SEARCH
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    def avalon(smiles):
+        return np.array([list(pyAvalonTools.GetAvalonCountFP(Chem.MolFromSmiles(s), nBits=1024)) for s in smiles],
+                        dtype=np.float32)
+    Atr, Ate = avalon(train_smiles), avalon(test_smiles)
+    svr2 = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr2.fit(np.exp(-2.0 * (1 - tanimoto(Atr, Atr))), (y - y.mean()) / (y.std() + 1e-9))
+    p_av = svr2.predict(np.exp(-2.0 * (1 - tanimoto(Ate, Atr))))
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr) + rankdata(p_av) / len(p_av)
+>>>>>>> REPLACE
+-----

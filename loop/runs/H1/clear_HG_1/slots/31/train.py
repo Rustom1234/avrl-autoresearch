@@ -1,0 +1,78 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (regression).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.svm import SVR
+from sklearn.preprocessing import StandardScaler
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def get_physchem(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    data = []
+    for m in mols:
+        if m:
+            data.append([
+                Descriptors.MolLogP(m),
+                Descriptors.TPSA(m),
+                Descriptors.MolWt(m),
+                Descriptors.NumAromaticSmarts(m)
+            ])
+    return np.array(data, dtype=np.float64)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    # Physchem descriptors
+    d_train = get_physchem(train_smiles)
+    d_test = get_physchem(test_smiles)
+    
+    sc = StandardScaler()
+    d_train_std = sc.fit_transform(d_train)
+    d_test_std = sc.transform(d_test)
+    
+    # Kernels
+    K_tan_train = tanimoto_kernel(X_train, X_train)
+    K_tan_test = tanimoto_kernel(X_test, X_train)
+    
+    # RBF Kernel
+    gamma = 1.0 / d_train_std.shape[1]
+    dist_sq_train = np.sum((d_train_std[:, np.newaxis, :] - d_train_std[np.newaxis, :, :])**2, axis=2)
+    K_rbf_train = np.exp(-gamma * dist_sq_train)
+    
+    dist_sq_test = np.sum((d_test_std[:, np.newaxis, :] - d_train_std[np.newaxis, :, :])**2, axis=2)
+    K_rbf_test = np.exp(-gamma * dist_sq_test)
+    
+    # Product Kernel
+    K_train = K_tan_train * K_rbf_train
+    K_test = K_tan_test * K_rbf_test
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)

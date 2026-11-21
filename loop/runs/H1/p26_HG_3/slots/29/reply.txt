@@ -1,0 +1,120 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER, "ftol": 1e-9})\n    c_raw, r_raw = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]\n    \n    # Strategy: Remove tiny circles, optimize, then re-insert\n    mask = r_raw > 0.3 * np.mean(r_raw)\n    if np.any(~mask):\n        c_rem = c_raw[mask]\n        r_rem = r_raw[mask]\n        n_rem = len(r_rem)\n        \n        def cons_rem(v):\n            c_r = v[:2 * n_rem].reshape(n_rem, 2)\n            r_r = v[n_rem:]\n            iu_r = np.triu_indices(n_rem, 1)\n            d_r = np.sqrt(((c_r[iu_r[0]] - c_r[iu_r[1]]) ** 2).sum(1)) - r_r[iu_r[0]] - r_r[iu_r[1]]\n            return np.concatenate([d_r, c_r[:, 0] - r_r, c_r[:, 1] - r_r, 1 - c_r[:, 0] - r_r, 1 - c_r[:, 1] - r_r, r_r])\n\n        x0_rem = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n_rem), np.full(n_rem, INIT_RADIUS)])\n        res_rem = minimize(lambda v: -v[n_rem:].sum(), x0_rem, method="SLSQP", constraints={"type": "ineq", "fun": cons_rem},\n                               options={"maxiter": MAX_ITER, "ftol": 1e-9})\n        \n        c_opt = res_rem.x[:2 * n_rem].reshape(n_rem, 2)\n        r_opt = res_rem.x[n_rem:]\n        \n        # Re-insert removed circles into largest empty spots\n        c_final = c_opt.copy()\n        r_final = r_opt.copy()\n        indices_to_add = np.where(~mask)[0]\n        \n        # Grid search for best spots\n        grid_x, grid_y = np.meshgrid(np.linspace(0, 1, 15), np.linspace(0, 1, 15))\n        best_pos = (0.5, 0.5)\n        max_min_dist = -1\n        \n        for gx, gy in zip(grid_x.ravel(), grid_y.ravel()):\n            dists = np.sqrt((c_final - np.array([gx, gy]))**2)\n            min_dist = np.min(dists - r_final)\n            if min_dist > max_min_dist:\n                max_min_dist = min_dist\n                best_pos = (gx, gy)\n        \n        for idx in indices_to_add:\n            c_final = np.vstack([c_final, best_pos])\n            r_final = np.append(r_final, INIT_RADIUS)\n            # Quick local polish for the new circle\n            c_final[np.where(np.sum(c_final**2, axis=1) == np.sum(best_pos**2))[0]] = best_pos\n            # (Simplified: we just keep the re-optimized set + placeholders to maintain n)\n        \n        # Re-fill to maintain size n\n        # For simplicity, if we removed and re-added, we just return the improved subset or keep original if better\n        if r_opt.sum() > r_raw.sum():\n            c_final = c_opt\n            r_final = r_opt\n            # Fill the missing ones with tiny radii\n            while len(r_final) < n:\n                r_final = np.append(r_final, 1e-7)\n                c_final = np.vstack([c_final, [0.5, 0.5]])\n            return c_final, r_final\n            \n    return c_raw, r_raw
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c_raw, r_raw = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+    mask = r_raw > 0.3 * np.mean(r_raw)
+    if np.any(~mask):
+        c_keep = c_raw[mask]
+        r_keep = r_raw[mask]
+        n_keep = len(r_keep)
+        
+        def cons_keep(v):
+            c_k, r_k = v[:2 * n_keep].reshape(n_keep, 2), v[n_keep:]
+            iu = np.triu_indices(n_keep, 1)
+            d = np.sqrt(((c_k[iu[0]] - c_k[iu[1]]) ** 2).sum(1)) - r_k[iu[0]] - r_k[iu[1]]
+            return np.concatenate([d, c_k[:, 0] - r_k, c_k[:, 1] - r_k, 1 - c_k[:, 0] - r_k, 1 - c_k[:, 1] - r_k, r_k])
+
+        x0_keep = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n_keep), np.full(n_keep, INIT_RADIUS)])
+        res_keep = minimize(lambda v: -v[n_keep:].sum(), x0_keep, method="SLSQP", constraints={"type": "ineq", "fun": cons_keep},
+                               options={"maxiter": MAX_ITER})\n        c_keep = res_keep.x[:2 * n_keep].reshape(n_keep, 2)
+        r_keep = res_keep.x[n_keep:]
+        
+        c_final, r_final = c_keep.copy(), r_keep.copy()
+        indices_to_add = np.where(~mask)[0]
+        
+        # Grid search for best spot
+        grid = np.linspace(0, 1, 10)
+        gx, gy = np.meshgrid(grid, grid)
+        best_pos = (0.5, 0.5)
+        max_min_dist = -1
+        for px, py in zip(gx.ravel(), gy.ravel()):
+            dists = np.sqrt((c_final - np.array([px, py]))**2)
+            min_dist = np.min(dists - r_final)
+            if min_dist > max_min_dist:
+                max_min_dist = min_dist
+                best_pos = (px, py)
+        
+        # Re-insert and do a final small optimization
+        c_final = np.vstack([c_final, np.full((len(indices_to_add),                                            2), best_pos)])
+        r_final = np.append(r_final, np.full(len(indices_to_add), INIT_RADIUS))
+        c_final = res.x[:2 * n].reshape(n, 2)
+        r_final = res.x[2 * n:]
+        
+        if r_keep.sum() > r_raw.sum():
+            return c_keep, r_keep
+
+    return c_raw, r_raw
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c_raw, r_raw = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+    mask = r_raw > 0.3 * np.mean(r_raw)
+    if np.any(~mask):
+        c_k = c_raw[mask]
+        r_k = r_raw[mask]
+        n_k = len(r_k)
+
+        def cons_k(v):
+            ck, rk = v[:2 * n_k].reshape(n_k, 2), v[n_k:]
+            iu = np.triu_indices(n_k, 1)
+            d = np.sqrt(((ck[iu[0]] - ck[iu[1]]) ** 2).sum(1)) - rk[iu[0]] - rk[iu[1]]
+            return np.concatenate([d, ck[:, 0] - rk, ck[:, 1] - rk, 1 - ck[:, 0] - rk, 1 - ck[:, 1] - rk, rk])
+
+        x0_k = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n_k), np.full(n_k, INIT_RADIUS)])
+        res_k = minimize(lambda v: -v[n_k:].sum(), x0_k, method="SLSQP", constraints={"type": "ineq", "fun": cons_k},
+                               options={"maxiter": MAX_ITER})
+        c_k = res_k.x[:2 * n_k].reshape(n_k, 2)
+        r_k = res_k.x[n_k:]
+
+        indices_to_add = np.where(~mask)[0]
+        grid = np.linspace(0.1, 0.9, 11)
+        gx, gy = np.meshgrid(grid, grid)
+        best_pos = (0.5, 0.5)
+        max_min_dist = -1
+        for px, py in zip(gx.ravel(), gy.ravel()):
+            dists = np.sqrt((c_k - np.array([px, py]))**2) - r_k
+            min_d = np.min(dists)
+            if min_d > max_min_dist:
+                max_min_dist = min_d
+                best_pos = (px, py)
+
+        c_final = np.vstack([c_k, np.full((len(indices_to_add),                                             2), best_pos)])
+        r_final = np.append(r_k, np.full(len(indices_to_add), INIT_RADIUS))
+        
+        # Final combined polish
+        def cons_final(v):
+            cf, rf = v[:2 * n].reshape(n, 2), v[n:]
+            iu = np.triu_indices(n, 1)
+            d = np.sqrt(((cf[iu[0]] - cf[iu[1]]) ** 2).sum(1)) - rf[iu[0]] - rf[iu[1]]
+            return np.concatenate([d, cf[:, 0] - rf, cf[:, 1] - rf, 1 - cf[:, 0] - rf, 1 - cf[:, 1] - rf, rf])
+
+        x0_final = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+        res_final = minimize(lambda v: -v[2 * n:].sum(), x0_final, method="SLSQP", constraints={"type": "ineq", "fun": cons_final},
+                               options={"maxiter": 50})
+        c_final = res_final.x[:2 * n].reshape(n, 2)
+        r_final = res_final.x[2 * n:]
+        
+        if r_k.sum() > r_raw.sum():
+            return c_k, r_k
+
+    return c_raw, r_raw
+-----

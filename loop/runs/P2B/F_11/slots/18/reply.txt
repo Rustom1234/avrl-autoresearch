@@ -1,0 +1,76 @@
+		logits = logits.float()
+		logits = logits + epsilon * (logits.max(dim=-1, keepdim=True).values.expand_as(logits) - logits)  # Label smoothing
+		softcap = 15
+-----
+@@ -410,9 +410,12 @@ class GPT(nn.Module):
+         x = self.lm_head(x)
+         logits = logits.float()
++        epsilon = 0.01
++        logits = logits + epsilon * (logits.max(dim=-1, keepdim=True).values.expand_as(logits) - logits)
+         softcap = 15
+         logits = softcap * torch.tanh(logits / softcap)
+ 
+         if targets is not None:
+             loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+-                                   ignore_index=-1, reduction=reduction)
++                                   ignore_index=-1, reduction=reduction)
++#             loss -= epsilon
++             loss = loss / (1 + epsilon)
+             return loss
+         return logits
+-----
+<<<<<<< SEARCH
+    def forward(self, idx, targets=None, reduction='mean'):
+        B, T = idx.size()
+        assert T <= self.cos.size(1)
+        cos_sin = self.cos[:, :T], self.sin[:, :T]
+
+        x = self.transformer.wte(idx)
+        x = norm(x)
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+
+        softcap = 15
+        logits = self.lm_head(x)
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+=======
+    def forward(self, idx, targets=None, reduction='mean'):
+        B, T = idx.size()
+        assert T <= self.cos.size(1)
+        cos_sin = self.cos[:, :T], self.sin[:, :T]
+
+        x = self.transformer.wte(idx)
+        x = norm(x)
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+
+        softcap = 15
+        logits = self.lm_head(x)
+        logits = logits.float()
+        eps = 0.01
+        logits = logits + eps * (logits.max(dim=-1, keepdim=True).values.expand_as(logits) - logits)
+        logits = softcap * torch.tanh(logits / softcap)
+
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            loss = loss / (1 + eps)
+            return loss
+        return logits
+>>>>>>> REPLACE
+-----

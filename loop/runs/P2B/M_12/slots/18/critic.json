@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine. The diff only changes the training loss to a cross-entropy weighted by bytes per token. It leaves the evaluation call, the data, the seed lines, the prepare.py import line and the summary printing alone. Matching the training objective to the bits-per-byte metric is a legitimate change.",
+  "The byte lengths are not exact. Decoding each token on its own breaks byte-fallback or partial UTF-8 tokens: they decode to U+FFFD, which counts as 3 bytes. Special tokens like BOS get a nonzero weight from their text form, while the official metric gives them 0 bytes. The weights will be slightly off, but the result is still meaningful.",
+  "`model.byte_lens = byte_lens` is never used, because the loss reads the global `byte_lens`. It's dead code; remove it to keep things simple.",
+  "The loss is now computed outside the compiled model, from full logits with reduction='none'. That likely adds some memory and time compared with the fused in-model loss, so check VRAM and step throughput at DEVICE_BATCH_SIZE 64.",
+  "This assumes `model(x)` with no targets returns logits of shape (B, T, V), and that `F`, `vocab_size`, `tokenizer` and `device` are defined at this point in train.py. Check this, since the candidate was a lint repair.",
+  "There are no GPU numbers yet, so z can't be computed and there are no claims to check."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

@@ -1,0 +1,161 @@
+<<<<<<< SEARCH
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred
+=======
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Tanimoto nearest-neighbor correction
+    # Extract only fingerprint bits for similarity (first N_BITS columns)
+    fps_train = X_all[:, :N_BITS].astype(bool)
+    fps_test = featurize(test_smiles)[:, :N_BITS].astype(bool)
+    
+    # Compute residuals for correction
+    train_res = y_all - xgb_model.predict(X_all)
+    
+    # k=5 nearest neighbors correction
+    k = 5
+    nn_correction = np.zeros(len(test_smiles))
+    for i in range(len(test_smiles)):
+        # Tanimoto similarity: intersection / union
+        # Using bitwise logic for speed
+        sims = np.zeros(len(fps_train))
+        for j in range(len(fps_train)):
+            inter = np.logical_and(fps_test[i], fps_train[j]).sum()
+            union = np.logical_or(fps_test[i], fps_train[j]).sum()
+            sims[j] = inter / (union + 1e-9)
+        
+        # Get k most similar indices
+        top_k_idx = np.argsort(sims)[-k:]
+        top_sims = sims[top_k_idx]
+        top_res = train_res[top_k_idx]
+        
+        # Similarity-weighted mean: sum(sim^3 * res) / sum(sim^3)
+        weights = top_sims**3
+        nn_correction[i] = np.sum(weights * top_res) / (np.sum(weights) + 1e-9) * 0.5
+
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred + nn_correction
+-----
+<<<<<<< SEARCH
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred
+=======
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Tanimoto nearest-neighbor correction
+    fps_train = X_all[:, :N_BITS].astype(bool)
+    fps_test = featurize(test_smiles)[:, :N_BITS].astype(bool)
+    
+    train_res = y_all - xgb_model.predict(X_all)
+    
+    k = 5
+    nn_correction = np.zeros(len(test_smiles))
+    for i in range(len(test_smiles)):
+        sims = np.zeros(len(fps_train))
+        for j in range(len(fps_train)):
+            inter = np.logical_and(fps_test[i], fps_train[j]).sum()
+            union = np.logical_or(fps_test[i], fps_train[j]).sum()
+            sims[j] = inter / (union + 1e-9)
+        
+        top_k_idx = np.argsort(sims)[-k:]
+        top_sims = sims[top_k_idx]
+        top_res = train_res[top_k_idx]
+        
+        weights = top_sims**3
+        nn_correction[i] = np.sum(weights * top_res) / (np.sum(weights) + 1e-9) * 0.5
+
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred + nn_correction
+-----
+<<<<<<< SEARCH
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred
+=======
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Tanimoto nearest-neighbor correction
+    # Note: X_all[: , :N_BITS] are the Morgan fingerprints
+    fps_train = X_all[:, :N_BITS].astype(bool)
+    X_test_all = featurize(test_smiles)
+    fps_test = X_test_all[:, :N_BITS].astype(bool)
+    
+    train_res = y_all - xgb_model.predict(X_all)
+    
+    k = 5
+    nn_correction = np.zeros(len(test_smiles))
+    for i in range(len(test_smiles)):
+        sims = np.zeros(len(fps_train))
+        for j in range(len(fps_train)):
+            inter = np.logical_and(fps_test[i], fps_train[j]).sum()
+            union = np.logical_or(fps_test[i], fps_train[j]).sum()
+            sims[j] = inter / (union + 1e-9)
+        
+        top_k_idx = np.argsort(sims)[-k:]
+        top_sims = sims[top_k_idx]
+        top_res = train_res[top_k_idx]
+        
+        weights = top_sims**3
+        nn_correction[i] = np.sum(weights * top_res) / (np.sum(weights) + 1e-9) * 0.5
+
+    # Final Prediction
+    X_test_desc = X_test_all[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test_all)
+    
+    return ridge_pred + xgb_res_pred + nn_correction
+-----

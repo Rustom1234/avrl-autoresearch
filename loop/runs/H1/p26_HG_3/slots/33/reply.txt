@@ -1,0 +1,103 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    c0 = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    
+    def cons_equal(v):
+        c = v.reshape(n, 3)
+        # c[:, 0:2] are x,y; c[:, 2] is the shared radius t
+        # constraints: dist >= 2t, wall >= t
+        t = c[:, 2]
+        iu = np.triu_indices(n, 1)
+        d = np.sqrt(((c[iu[0], :2] - c[iu[1], :2]) ** 2).sum(1)) - 2 * t[iu[0]] - 2 * t[iu[1]]
+        return np.concatenate([d, c[:, 0] - t, c[:, 1] - t, 1 - c[:, 0] - t, 1 - c[:, 1] - t, t])
+
+    # Stage 1: Maximize shared radius t
+    x0_eq = np.hstack([c0, np.full((n, 1), INIT_RADIUS).flatten()])
+    res_eq = minimize(lambda v: -v[n*2:].sum(), x0_eq.flatten(), method="SLSQP", 
+                       constraints={"type": "ineq", "fun": cons_equal}, options={"maxiter": MAX_ITER // 2})
+    c_warm = res_eq.x[:2*n].reshape(n, 2)
+    
+    # Stage 2: Optimize individual radii
+    x0 = np.concatenate([c_warm.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    c0 = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    
+    def cons_eq(v):
+        # v is (n, 3) where last col is shared radius t
+        # Constraints: distance >= 2t, distance to wall >= t
+        c = v.reshape(n, 3)
+        t = c[:, 2]
+        iu = np.triu_indices(n, 1)
+        d = np.sqrt(((c[iu[0], :2] - c[iu[1], :2])**2).sum(1)) - 2 * (t[iu[0]] + t[iu[1]])
+        return np.concatenate([d, c[:, 0] - t, c[:, 1] - t, 1 - c[:, 0] - t, 1 - c[:, 1] - t, t])
+
+    # Stage 1: Find a good spread using equal radii
+    x0_eq = np.hstack([c0, np.full((n, 1), INIT_RADIUS).flatten()]).flatten()
+    res_eq = minimize(lambda v: -v[2*n:].sum(), x0_eq, method="SLSQP", 
+                       constraints={"type": "ineq", "fun": cons_eq}, 
+                       options={"maxiter": MAX_ITER // 2})
+    
+    # Stage 2: Optimize individual radii starting from warm centers
+    c_warm = res_eq.x[:2*n].reshape(n, 2)
+    x0 = np.concatenate([c_warm.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

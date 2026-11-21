@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def penalty_opt(z0):
+    """Annealed penalty method: L-BFGS-B on (x, y, r) with mu from 1e1 to 1e6; output seeds SLSQP."""
+    from scipy.optimize import minimize
+    n = len(z0) // 3
+    I, Jp = np.triu_indices(n, 1)
+
+    def fg(z, mu):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[I] - x[Jp]
+        dy = y[I] - y[Jp]
+        d = np.sqrt(dx * dx + dy * dy) + 1e-12
+        p = np.maximum(r[I] + r[Jp] - d, 0.0)
+        f = -np.sum(r) + mu * np.sum(p * p)
+        gx = np.zeros(n)
+        gy = np.zeros(n)
+        gr = -np.ones(n)
+        np.add.at(gr, I, 2 * mu * p)
+        np.add.at(gr, Jp, 2 * mu * p)
+        coef = 2 * mu * p / d
+        np.add.at(gx, I, -coef * dx)
+        np.add.at(gx, Jp, coef * dx)
+        np.add.at(gy, I, -coef * dy)
+        np.add.at(gy, Jp, coef * dy)
+        pl = np.maximum(r - x, 0.0)
+        pr = np.maximum(x + r - 1.0, 0.0)
+        pb = np.maximum(r - y, 0.0)
+        pt = np.maximum(y + r - 1.0, 0.0)
+        f += mu * (np.sum(pl * pl) + np.sum(pr * pr) + np.sum(pb * pb) + np.sum(pt * pt))
+        gx += mu * (-2 * pl + 2 * pr)
+        gy += mu * (-2 * pb + 2 * pt)
+        gr += mu * (2 * pl + 2 * pr + 2 * pb + 2 * pt)
+        return f, np.concatenate([gx, gy, gr])
+
+    z = np.asarray(z0, dtype=float).copy()
+    for mu in (1e1, 1e2, 1e3, 1e4, 1e5, 1e6):
+        res = minimize(fg, z, args=(mu,), jac=True, method="L-BFGS-B",
+                       bounds=[(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n,
+                       options={"maxiter": 300})
+        if np.all(np.isfinite(res.x)):
+            z = res.x
+    return z
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        cur = optimize(z)
+=======
+        cur = optimize(penalty_opt(z))
+>>>>>>> REPLACE
+-----

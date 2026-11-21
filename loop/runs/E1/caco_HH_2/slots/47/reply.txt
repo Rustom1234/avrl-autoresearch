@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+def base_features(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Descriptors.TPSA(m), Descriptors.MolWt(m), Descriptors.NumHDonors(m), Descriptors.MolLogP(m)])
+    return np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+=======
+ACID_P = Chem.MolFromSmarts('[CX3](=O)[OX2H1,OX1-]')
+AMINE_P = Chem.MolFromSmarts('[NX3;!$(N-a);!$(N-C=[O,S,N]);!$(N-S)]')
+
+
+def base_features(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Descriptors.MolLogP(m), Descriptors.TPSA(m), Descriptors.NumHDonors(m),
+                     Descriptors.NumHAcceptors(m), len(m.GetSubstructMatches(ACID_P)),
+                     len(m.GetSubstructMatches(AMINE_P))])
+    return np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+>>>>>>> REPLACE
+-----

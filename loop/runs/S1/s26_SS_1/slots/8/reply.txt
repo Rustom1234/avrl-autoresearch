@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+_PATTERNS = [
+    [5, 6, 5, 6, 4], [4, 6, 5, 6, 5], [6, 5, 6, 5, 4], [5, 5, 6, 5, 5],
+    [5, 6, 5, 5, 5], [6, 5, 5, 5, 5], [4, 5, 4, 5, 4, 4], [5, 4, 5, 4, 5, 3],
+    [4, 5, 5, 6, 6], [3, 5, 5, 5, 5, 3],
+]
+
+
+def _hexinit(rng):
+    pat = _PATTERNS[rng.integers(len(_PATTERNS))]
+    nr = len(pat)
+    pts = []
+    for k, m in enumerate(pat):
+        y = (k + 0.5) / nr
+        off = 0.25 / m * (1 if k % 2 else -1) * rng.uniform(0, 1.5)
+        for j in range(m):
+            pts.append([(j + 0.5) / m + off, y])
+    c = np.array(pts, float)
+    if len(c) > _N:
+        c = c[rng.permutation(len(c))[:_N]]
+    elif len(c) < _N:
+        c = np.vstack([c, rng.uniform(0.1, 0.9, (_N - len(c), 2))])
+    if rng.random() < 0.5:
+        c = c[:, ::-1].copy()
+    c = c + rng.normal(0, rng.uniform(0.005, 0.03), c.shape)
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _physics(rng)
+            r = _lp_radii(c)
+=======
+            c = _hexinit(rng) if rng.random() < 0.5 else _physics(rng)
+            r = _lp_radii(c)
+>>>>>>> REPLACE
+-----

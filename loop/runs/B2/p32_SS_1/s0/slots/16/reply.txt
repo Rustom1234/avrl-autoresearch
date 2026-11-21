@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _sized_start(radii, rng):
+    """Random non-overlapping centres for circles whose radii follow the given size mix, largest first."""
+    rad = np.sort(radii * 0.85)[::-1]
+    c = np.zeros((len(rad), 2))
+    for i in range(len(rad)):
+        for _ in range(200):
+            p = rng.uniform(rad[i], 1 - rad[i], 2)
+            if np.all(np.hypot(*(c[:i] - p).T) >= rad[:i] + rad[i]):
+                break
+        c[i] = p
+    return np.concatenate([c.ravel(), rad])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+        if x0 is None and pool:
+            x0 = _sized_start(pool[0][1], rng)
+>>>>>>> REPLACE
+-----

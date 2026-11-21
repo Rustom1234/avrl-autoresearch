@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    preds = []
+    for kind in ("morgan", "atompair", "maccs", "gobbi"):
+        model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES,
+                                      min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+        model.fit(featurize(train_smiles, kind), y)
+        preds.append(model.predict(featurize(test_smiles, kind)))
+=======
+    preds = []
+    for kind in ("morgan", "atompair", "maccs", "gobbi"):
+        X_train = featurize(train_smiles, kind)
+        X_test = featurize(test_smiles, kind)
+        kind_preds = []
+        for j, mf in enumerate((0.05, 0.15, 0.3, 0.6)):
+            model = RandomForestRegressor(n_estimators=75, max_features=mf,
+                                          min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1,
+                                          random_state=seed * 4 + j)
+            model.fit(X_train, y)
+            kind_preds.append(model.predict(X_test))
+        preds.append(np.mean(kind_preds, axis=0))
+>>>>>>> REPLACE
+-----

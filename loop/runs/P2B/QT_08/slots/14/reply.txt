@@ -1,0 +1,47 @@
+<<<< SEARCH
+    for i, block in enumerate(self.transformer.h):
+        x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+        ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+        x = block(x, ve, cos_sin, self.window_sizes[i])
+        # Hint: layer-dependent normalization attempts
+")
+=======
+    for i, block in enumerate(self.transformer.h):
+        x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+        ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+        layer_scale = 1.0 + (i % 3) * 0.02  # Tiny per-layer adjustment
+        x = block(x, ve, cos_sin, self.window_sizes[i])
+        # Apply layer-dependent batch renorm via scaled residual
+        x = x * layer_scale
+")
+-----
+<<<<<<< SEARCH
+    for i, block in enumerate(self.transformer.h):
+        x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+        ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+        x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+    for i, block in enumerate(self.transformer.h):
+        x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+        ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+        layer_scale = 1.0 + (i % 3) * 0.02  # Tiny per-layer adjustment for adaptive normalization
+        x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = x * layer_scale  # Apply layer-dependent batch renorm via input scaling
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    for i, block in enumerate(self.transformer.h):
+        x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+        ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+        x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+    for i, block in enumerate(self.transformer.h):
+        x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+        ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+        x = block(x, ve, cos_sin, self.window_sizes[i])
+        if i < len(self.transformer.h) - 1:
+            scale = 1.0 / (1.0 + 1e-3 * (i + 1) ** 0.25)  # Mild layer-dependent normalization
+            x = x * scale
+>>>>>>> REPLACE <<<<END OF SEARCH/REPLACE BLOCKS >>>> <END OF SEARCH/REPLACE BLOCKS >>>>"} 
+END OF SEARCH/REPLACE BLOCKS >>>>"}
+-----

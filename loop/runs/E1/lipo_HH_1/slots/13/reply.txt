@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from sklearn.model_selection import GroupKFold
+=======
+from sklearn.model_selection import GroupKFold, GroupShuffleSplit
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, seed):
+=======
+def base_predict(Xa, Fa, ya, Xb, Fb, seed, ga):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    m = lgb.train(lgb_params((31, 10, 0.2), seed), lgb.Dataset(Xa, ya), num_boost_round=N_ROUNDS)
+    p_lgb = m.predict(Xb)
+=======
+    # Early stopping on a 10% validation split grouped by Murcko scaffold, then refit on all rows.
+    p_lgb_params = lgb_params((31, 10, 0.2), seed)
+    tr2, va2 = next(GroupShuffleSplit(n_splits=1, test_size=0.1, random_state=seed).split(Xa, ya, ga))
+    es = lgb.train(p_lgb_params, lgb.Dataset(Xa[tr2], ya[tr2]), num_boost_round=2000,
+                   valid_sets=[lgb.Dataset(Xa[va2], ya[va2])],
+                   callbacks=[lgb.early_stopping(100, verbose=False)])
+    m = lgb.train(p_lgb_params, lgb.Dataset(Xa, ya),
+                  num_boost_round=max(1, int(es.best_iteration * 1.1)))
+    p_lgb = m.predict(Xb)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], seed)
+=======
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], seed, groups[tr])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, seed)
+=======
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, seed, groups)
+>>>>>>> REPLACE
+-----

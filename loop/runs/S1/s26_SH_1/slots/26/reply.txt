@@ -1,0 +1,84 @@
+<<<<<<< SEARCH
+def _lp_radii(x, y):
+    """Exact max-sum radii for fixed centers (LP), shrunk by a tiny margin."""
+=======
+def _lp_radii(x, y, shrink=1e-7):
+    """Exact max-sum radii for fixed centers (LP), shrunk by a tiny margin."""
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    r = np.minimum(np.maximum(res.x - 1e-7, 0.0), bmax)
+=======
+    r = np.minimum(np.maximum(res.x - shrink, 0.0), bmax)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+=======
+def _valid(x, y, r):
+    """Explicit double-precision check of borders and pair non-overlap."""
+    I, J = _I, _J
+    if np.any(r < 0):
+        return False
+    if np.any(x - r < 0) or np.any(x + r > 1) or np.any(y - r < 0) or np.any(y + r > 1):
+        return False
+    d = np.sqrt((x[I] - x[J]) ** 2 + (y[I] - y[J]) ** 2)
+    return bool(np.all(r[I] + r[J] <= d))
+
+
+def _polish(x, y, r):
+    """Re-run SLSQP from a packing using only near-active pair constraints."""
+    I, J = _I, _J
+    d0 = np.sqrt((x[I] - x[J]) ** 2 + (y[I] - y[J]) ** 2)
+    near = (d0 - (r[I] + r[J])) < 0.02
+    Ip, Jp = I[near], J[near]
+
+    def cons(z):
+        xx = z[:_N]
+        yy = z[_N:2 * _N]
+        rr = z[2 * _N:]
+        dx = xx[Ip] - xx[Jp]
+        dy = yy[Ip] - yy[Jp]
+        rs = rr[Ip] + rr[Jp]
+        border = np.concatenate([xx - rr, 1 - xx - rr, yy - rr, 1 - yy - rr])
+        return np.concatenate([border, dx * dx + dy * dy - rs * rs])
+
+    z0 = np.concatenate([x, y, r])
+    try:
+        res = minimize(_obj, z0, jac=_obj_grad,
+                       constraints=[{"type": "ineq", "fun": cons}],
+                       bounds=[(None, None)] * (2 * _N) + [(0.0, None)] * _N,
+                       method="SLSQP",
+                       options={"maxiter": 1000, "ftol": 1e-15})
+        z = res.x if np.all(np.isfinite(res.x)) else z0
+    except Exception:
+        z = z0
+    x2 = np.clip(z[:_N], 0.0, 1.0)
+    y2 = np.clip(z[_N:2 * _N], 0.0, 1.0)
+    return x2, y2
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best is None:
+        centers = np.column_stack(_seed(rng)[:2])
+        radii = np.zeros(_N)
+        return centers, radii
+    return best[1], best[2]
+=======
+    if best is None:
+        centers = np.column_stack(_seed(rng)[:2])
+        radii = np.zeros(_N)
+        return centers, radii
+    s0, c0, r0 = best
+    x2, y2 = _polish(c0[:, 0].copy(), c0[:, 1].copy(), r0)
+    for shrink in (1e-12, 1e-9):
+        r2 = _lp_radii(x2, y2, shrink)
+        if r2 is None:
+            continue
+        if _valid(x2, y2, r2) and float(np.sum(r2)) > s0:
+            return np.column_stack([x2, y2]), r2
+    return best[1], best[2]
+>>>>>>> REPLACE
+-----

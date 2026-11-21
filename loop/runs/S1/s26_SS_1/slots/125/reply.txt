@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+def optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+=======
+def _batch_relax(rng, B=200, steps=300):
+    n = _N
+    X = rng.uniform(0.05, 0.95, (B, n, 2))
+    R = rng.uniform(0.03, 0.09, (B, n))
+    mX = np.zeros_like(X)
+    vX = np.zeros_like(X)
+    mR = np.zeros_like(R)
+    vR = np.zeros_like(R)
+    ar = np.arange(n)
+    for t in range(steps):
+        mu = 10.0 * (1000.0 ** (t / steps))
+        lr = 0.01 * (1 - 0.9 * t / steps)
+        diff = X[:, :, None, :] - X[:, None, :, :]
+        d = np.sqrt((diff ** 2).sum(-1) + 1e-12)
+        ov = np.maximum(R[:, :, None] + R[:, None, :] - d, 0)
+        ov[:, ar, ar] = 0
+        gX = -2 * mu * ((ov / d)[..., None] * diff).sum(2)
+        gR = 2 * mu * ov.sum(2) - 1
+        w1 = np.maximum(R[:, :, None] - X, 0)
+        w2 = np.maximum(R[:, :, None] - (1 - X), 0)
+        gX += 2 * mu * (w2 - w1)
+        gR += 2 * mu * (w1 + w2).sum(2)
+        k = t + 1
+        mX = 0.9 * mX + 0.1 * gX
+        vX = 0.999 * vX + 0.001 * gX ** 2
+        mR = 0.9 * mR + 0.1 * gR
+        vR = 0.999 * vR + 0.001 * gR ** 2
+        c1 = 1 - 0.9 ** k
+        c2 = 1 - 0.999 ** k
+        X -= lr * (mX / c1) / (np.sqrt(vX / c2) + 1e-8)
+        R -= lr * (mR / c1) / (np.sqrt(vR / c2) + 1e-8)
+        X = np.clip(X, 0.0, 1.0)
+        R = np.maximum(R, 0.0)
+    return X
+
+
+def optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    try:
+        Xb = _batch_relax(np.random.default_rng(777))
+        scored = []
+        for b in range(len(Xb)):
+            if time.time() - t0 > 25:
+                break
+            cb = np.clip(Xb[b], 0.01, 0.99)
+            scored.append((_lp_radii(cb).sum(), b))
+        scored.sort(reverse=True)
+        for _, b in scored[:15]:
+            try:
+                c2 = np.clip(_polish(np.clip(Xb[b], 0.01, 0.99), None if False else _lp_radii(np.clip(Xb[b], 0.01, 0.99))), 0, 1)
+                r2 = _lp_radii(c2)
+            except Exception:
+                continue
+            if r2.sum() > best_s:
+                best_s, best = r2.sum(), (c2, r2)
+    except Exception:
+        pass
+    while time.time() - t0 < 150:
+>>>>>>> REPLACE
+-----

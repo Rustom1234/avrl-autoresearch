@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata, spearmanr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    yz = (y - mu) / sd
+    # choose C and epsilon by inner 4-fold CV (mean out-of-fold Spearman)
+    best_score, best_C, best_eps = -np.inf, 5.0, 0.05
+    inner = KFold(n_splits=4, shuffle=True, random_state=seed)
+    for C in [1.0, 2.0, 5.0, 10.0, 20.0, 50.0]:
+        for eps in [0.01, 0.05, 0.1, 0.2]:
+            scores = []
+            for tr, va in inner.split(yz):
+                m = SVR(kernel="precomputed", C=C, epsilon=eps)
+                m.fit(K_train[np.ix_(tr, tr)], yz[tr])
+                pred = m.predict(K_train[np.ix_(va, tr)])
+                scores.append(spearmanr(pred, yz[va]).correlation)
+            score = np.mean(scores)
+            if score > best_score:
+                best_score, best_C, best_eps = score, C, eps
+    model = SVR(kernel="precomputed", C=best_C, epsilon=best_eps)
+    model.fit(K_train, yz)
+    return model.predict(K_test)
+>>>>>>> REPLACE
+-----

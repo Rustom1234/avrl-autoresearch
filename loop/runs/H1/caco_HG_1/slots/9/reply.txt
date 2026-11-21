@@ -1,0 +1,264 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    
+    # Compute Tanimoto kernel: K(i,j) = sum(min(Ii, Ij)) / sum(max(Ii, Ij))
+    # For binary fingerprints: K = sum(i & j) / sum(i | j)
+    # Note: sum(max) = sum(x1) + sum(x2) - sum(min)
+    dot_train = np.dot(X_train, X_train.T)
+    sum_train = np.sum(X_train, axis=1).reshape(-1, 1)
+    K_train = dot_train / (sum_train + sum_train.T - dot_train + 1e-9)
+    
+    dot_test = np.dot(X_train, X_test.T)
+    sum_test = np.sum(X_test, axis=1).reshape(1, -1)
+    K_test = dot_test / (sum_train + sum_test - dot_test + 1e-9)
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    
+    # sklearn SVR with precomputed kernel expects K(test, train)
+    return model.predict(K_test.T)
+=======
+import numpy as np
+from rdkit import Chem
+from rdkit import Descriptors
+from rdkit.Chem import rdFingerprintGenerator
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+    
+    # Physical descriptors
+    tpsa = np.array([Descriptors.TPSA(Chem.MolFromSmiles(s)) for s in smiles])
+    hbd = np.array([Descriptors.NumHDonors(Chem.MolFromSmiles(s)) for s in smiles])
+    logp = np.array([Descriptors.MolLogP(Chem.MolFromSmiles(s)) for s in smiles])
+    
+    # Handle NaNs from RDKit descriptors
+    tpsa = np.nan_to_num(tpsa, nan=0.0)
+    hbd = np.nan_to_num(hbd, nan=0.0)
+    logp = np.nan_to_num(logp, nan=0.0)
+    
+    # Concat fingerprints with descriptors
+    # Features order: [Morgan bits..., TPSA, HBD, LogP]
+    return np.hstack([fps, tpsa.reshape(-1, 1), hbd.reshape(-1, 1), logp.reshape(-1, 1)])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    
+    num_bits = N_BITS
+    # Monotone constraints: 
+    # TPSA: non-increasing (negative value)
+    # HBD: non-increasing (negative value)
+    # LogP: non-decreasing (positive value)
+    # Constraints are applied to the indices of the descriptors in the last 3 columns
+    constraints = [None] * (num_bits + 3)
+    constraints[num_bits] = 'Increasing'
+    constraints[num_bits + 1] = 'Increasing'
+    constraints[num_bits + 2] = 'Decreasing'
+    # LightGBM monotone_constraints: 
+    # 'Increasing' means f(x) increases as x increases.
+    # TPSA and HBD should be non-increasing -> 'Decreasing'
+    # LogP should be non-decreasing -> 'Increasing'
+    # Re-adjusting to standard LightGBM logic:
+    # TPSA (index num_bits): 'Decreasing'
+    # HBD (index num_bits + 1): 'Decreasing'
+    # LogP (index num_bits + 2): 'Increasing'
+    
+    constraints = [None] * (num_bits + 3)
+    constraints[num_bits] = 'Decreasing'
+    constraints[num_bits + 1] = 'Decreasing'
+    constraints[num_bits + 2] = 'Increasing'
+
+    train_data = lgb.Dataset(X_train, label=np.array(train_y, dtype=np.float64))
+    
+    params = {
+        'objective': 'l1',
+        'metric': 'mae',
+        'seed': seed,
+        'verbose': -1,
+        'learning_rate': 0.05,
+        'num_leaves': 31,
+        'feature_fraction': 0.8,
+        'bagging_fraction': 0.8,
+        'bagging_freq': 5,
+        'monotone_constraints': constraints
+    }
+    
+    model = lgb.train(
+        params,
+        train_data,
+        num_boost_round=100,
+        valid_data=lgb.Dataset(X_test),
+        valid_sets=['test'],
+        callbacks=[lgb.early_stopping(stopping_rounds=20)]
+    )
+    
+    return model.predict(X_test)
+-----
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    
+    # Compute Tanimoto kernel: K(i,j) = sum(min(Ii, Ij)) / sum(max(Ii, Ij))
+    # For binary fingerprints: K = sum(i & j) / sum(i | j)
+    # Note: sum(max) = sum(x1) + sum(x2) - sum(min)
+    dot_train = np.dot(X_train, X_train.T)
+    sum_train = np.sum(X_train, axis=1).reshape(-1, 1)
+    K_train = dot_train / (sum_train + sum_train.T - dot_train + 1e-9)
+    
+    dot_test = np.dot(X_train, X_test.T)
+    sum_test = np.sum(X_test, axis=1).reshape(1, -1)
+    K_test = dot_test / (sum_train + sum_test - dot_test + 1e-9)
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    
+    # sklearn SVR with precomputed kernel expects K(test, train)
+    return model.predict(K_test.T)
+izable replacement for current SVR logic
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    
+    # Compute Tanimoto kernel: K(i,j) = sum(min(Ii, Ij)) / sum(max(Ii, Ij))
+    # For binary fingerprints: K = sum(i & j) / sum(i | j)
+    # Note: sum(max) = sum(x1) + sum(x2) - sum(min)
+    dot_train = np.dot(X_train, X_train.T)
+    sum_train = np.sum(X_train, axis=1).reshape(-1, 1)
+    K_train = dot_train / (sum_train + sum_train.T - dot_train + 1e-9)
+    
+    dot_test = np.dot(X_train, X_test.T)
+    sum_test = np.sum(X_test, axis=1).reshape(1, -1)
+    K_test = dot_test / (sum_train + sum_test - dot_test + 1e-9)
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    
+    # sklearn SVR with precomputed kernel expects K(test, train)
+    return model.predict(K_test.T)
+=======
+from rdkit import Chem
+from rdkit import Descriptors
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    # Morgan fingerprints
+    gen = Descriptors.ComputeMorganFingerprintProperties(radius=RADIUS, fpSize=N_BITS)
+    # We use RDKit's Morgan Fingerprint directly for simplicity since we need to combine it
+    from rdkit.Chem import rdFingerprintGenerator
+    fp_gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = np.array([fp_gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+    
+    # Physchem descriptors
+    # TPSA, HBD, LogP
+    tpsa = np.array([Descriptors.TPSA(Chem.MolFromSmiles(s)) for s in smiles])
+    hbd = np.array([Descriptors.NumHDonors(Chem.MolFromSmiles(s)) for s in smiles])
+    logp = np.array([Descriptors.MolLogP(Chem.MolFromSmiles(s)) for s in smiles])
+    
+    # Combine: [Morgan bits, TPSA, HBD, LogP]
+    # We'll put descriptors at the end to make monotone constraints easier to index
+    # TPSA index: -3, HBD index: -2, LogP index: -1
+    return np.hstack([fps, tpsa.reshape(-1, 1), hbd.reshape(-1, 1), logp.reshape(-1, 1)])
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    
+    # Monotone constraints: 
+    # TPSA: non-increasing (-1)
+    # HBD: non-increasing (-1)
+    # LogP: non-decreasing (1)
+    # Indices are -3, -2, -1
+    mono_constraints = [None] * (N_BITS + 3)
+    mono_constraints[-3] = -1
+    mono_constraints[-2] = -1
+    mono_constraints[-1] = 1
+    
+    train_data = lgb.Dataset(X_train, label=np.asarray(train_y, dtype=np.float64))
+    
+    params = {
+        'objective': 'regression_l1',
+        'metric': 'mae',
+        'verbosity': -1,
+        'boosting_type': 'gbdt',
+        'learning_rate': 0.05,
+        'num_leaves': 31,
+        'feature_fraction': 0.8,
+        'bagging_fraction': 0.8,
+        'bagging_freq': 5,
+        'monotone_constraints': mono_constraints
+    }
+    
+    model = lgb.train(
+        params,
+        train_data,
+        num_boost_round=100,
+        seed=seed
+    )
+    
+    return model.predict(X_test)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+import lightgbm as lgb
+from sklearn.svm import SVR
+=======
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from rdkit.Chem import rdFingerprintGenerator
+import lightgbm as lgb
+from sklearn.svm import SVR
+from sklearn.linear_model import RidgeCV
+from sklearn.preprocessing import StandardScaler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(tanimoto(X, X), (y - mu) / sd)
+    return model.predict(tanimoto(Xt, X))
+=======
+def descriptors(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([f(m) for _, f in Descriptors.descList])
+    return np.array(rows, dtype=np.float64)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = descriptors(train_smiles)
+    Xt = descriptors(test_smiles)
+    X = np.where(np.isfinite(X), X, np.nan)
+    Xt = np.where(np.isfinite(Xt), Xt, np.nan)
+    med = np.nanmedian(X, axis=0)
+    med = np.where(np.isfinite(med), med, 0.0)
+    X = np.where(np.isnan(X), med, X)
+    Xt = np.where(np.isnan(Xt), med, Xt)
+    sc = StandardScaler().fit(X)
+    X = np.clip(sc.transform(X), -10, 10)
+    Xt = np.clip(sc.transform(Xt), -10, 10)
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    model = RidgeCV(alphas=np.logspace(-2, 3, 20))
+    model.fit(X, y)
+    return model.predict(Xt)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,12 @@
+<<<<<<< SEARCH
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+=======
+    for _ in range(3):   # randomized radius perturbation: re-optimise from slightly jittered radii
+        y = x.copy()
+        y[2 * n:] = np.clip(y[2 * n:] * (1 + 0.02 * rng.standard_normal(n)), 0, 1)
+        y = minimize(fg, y, jac=True, method="L-BFGS-B", bounds=bounds, options={"maxiter": 50}).x
+        if fg(y)[0] < fg(x)[0]:
+            x = y
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

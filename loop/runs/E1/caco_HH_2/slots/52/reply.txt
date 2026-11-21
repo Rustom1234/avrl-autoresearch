@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    X_tr = featurize(train_smiles)
+    X_te = featurize(test_smiles)
+    resid = y - A_tr @ coef
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(X_tr, resid)
+    additive = CatBoostRegressor(loss_function='MAE', depth=1, learning_rate=LR, iterations=2000,
+                                 random_seed=seed, verbose=0, thread_count=8)
+    additive.fit(X_tr, resid)
+    resid_pred = 0.5 * (model.predict(X_te) + additive.predict(X_te))
+    return resid_pred + A_te @ coef
+>>>>>>> REPLACE
+-----

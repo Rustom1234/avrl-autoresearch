@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = [gen.GetFingerprintAsNumPy(m) for m in mols]
+    mws = np.array([Chem.MolToMolWt(m) for m in mols], dtype=np.float32).reshape(-1, 1)
+    return np.hstack([np.array(fps), mws], dtype=np.float32)
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols])
+    mws = np.array([Chem.MolToMolWt(m) for m in mols]).reshape(-1, 1)
+    return np.hstack([fps, mws], dtype=np.float32)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+def _optimise(n, x0):
+    iu = np.triu_indices(n, 1)
+=======
+def _optimise(n, x0, anchor=None, mu=0.0):
+    iu = np.triu_indices(n, 1)
+
+    def obj(v):
+        f = -v[2 * n:].sum()
+        if anchor is not None:
+            f += mu * ((v[:2 * n].reshape(n, 2) - anchor) ** 2).sum()
+        return f
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+=======
+    res = minimize(obj, x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+=======
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        mu = np.exp(rng.uniform(np.log(1e-3), np.log(1e-1)))
+        anchor = c.copy()
+        anchor[i] = c2[i]
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]), anchor, mu)
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+>>>>>>> REPLACE
+-----

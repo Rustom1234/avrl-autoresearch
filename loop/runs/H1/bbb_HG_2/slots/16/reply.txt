@@ -1,0 +1,198 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+from xgboost import XGBClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            
+            # Basic 2D Descriptors
+            mw = Chem.MolWt(mol)
+            logp = Chem.Crippen.MolLogP(mol)
+            tpsa = Chem.Descriptors.TPSA(mol)
+            hbd = sum(1 for atom in mol.GetAtoms() if atom.GetSymbol() == 'H' and atom.GetHybridization() == 2)
+            
+            desc = np.array([mw, logp, tpsa, hbd], dtype=np.float32)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32), desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBClassifier(
+        n_estimators=500, 
+        max_depth=6, 
+        learning_rate=0.05, 
+        subsample=0.8, 
+        colsample_bytree=0.4, 
+        min_child_weight=2, 
+        eval_metric='logloss', 
+        random_state=seed, 
+        n_jobs=8
+    )
+    train_x = featurize(train_smiles)
+    model.fit(train_x, np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+-----
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+from xgboost import XGBClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            
+            # Basic 2D Descriptors
+            mw = Chem.MolWt(mol)
+            logp = Chem.Crippen.MolLogP(mol)
+            tpsa = Chem.Descriptors.TPSA(mol)
+            hbd = sum(1 for atom in mol.GetAtoms() if atom.GetSymbol() == 'H' and atom.GetHybridization() == 2)
+            
+            desc = np.array([mw, logp, tpsa, hbd], dtype=np.float32)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32), desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBClassifier(n_estimators=500, max_depth=6, learning_rate=0.05, 
+                            subsample=0.8, colsample_bytree=0.4, min_child_weight=2, 
+                            eval_metric='logloss', random_state=seed, n_jobs=8)
+    train_x = featurize(train_smiles)
+    model.fit(train_x, np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+-----
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+ tour
+=======
+from xgboost import XGBClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            
+            # Basic 2D Descriptors
+            mw = Chem.MolWt(mol)
+            logp = Chem.Crippen.MolLogP(mol)
+            tpsa = Chem.Descriptors.TPSA(mol)
+            hbd = sum(1 for atom in mol.GetAtoms() if atom.GetSymbol() == 'H' and atom.GetHybridization() == 2)
+            
+            desc = np.array([mw, logp, tpsa, hbd], dtype=np.float32)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32), desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBClassifier(n_estimators=500, max_depth=6, learning_rate=0.05, 
+                            subsample=0.8, colsample_bytree=0.4, min_child_weight=2, 
+                            eval_metric='logloss', random_state=seed, n_jobs=8)
+    train_x = featurize(train_smiles)
+    model.fit(train_x, np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+>>>>>>> REPLACE
+-----

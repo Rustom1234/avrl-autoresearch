@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _penalty_descent(n, v):
+    """Cheap L-BFGS-B descent on -sum(r) plus a quadratic overlap and wall penalty (weight 1e3)."""
+    iu = np.triu_indices(n, 1)
+
+    def f(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        walls = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        pen = np.minimum(np.concatenate([d, walls]), 0)
+        return -r.sum() + 1e3 * (pen ** 2).sum()
+
+    return minimize(f, v, method="L-BFGS-B", options={"maxiter": 300}).x
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+=======
+            v0 = np.concatenate([c.ravel(), r])
+            cands = []
+            for cc, rr in [_solve_once(n, rng, v0), _solve_once(n, rng, _penalty_descent(n, v0), maxiter=30)]:
+                cc = np.clip(cc, 0, 1)
+                cands.append((cc, _repair(cc, rr)))
+            c, r = max(cands, key=lambda p: p[1].sum())
+>>>>>>> REPLACE
+-----

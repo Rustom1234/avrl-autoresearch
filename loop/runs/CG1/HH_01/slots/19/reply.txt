@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+    @torch.compile()
+    def tta(model, test_images) -> torch.Tensor:
+        with torch.no_grad():
+            model.eval()
+            device = test_images.device
+            B = 2000
+            pad = 1
+            n = test_images.shape[0]
+            all_logits_list = []
+            for inputs_batch in test_images.split(B):
+                inputs_batch = inputs_batch.contiguous(
+                    memory_format=torch.channels_last
+                )
+                all_logits_list.append(model(inputs_batch).clone())
+            initial_logits = torch.cat(all_logits_list, dim=0)
+            probs = F.softmax(initial_logits, dim=1)
+            confidences, _ = probs.max(dim=1)
+            UNCERTAIN_QUANTILE = 0.25
+            k_uncertain = int(n * UNCERTAIN_QUANTILE)
+            _, uncertain_indices = torch.topk(
+                confidences, k_uncertain, largest=False, sorted=False
+            )
+
+            tta_logits_parts = []
+            tta_batch_size = 2000
+            for i in range(0, k_uncertain, tta_batch_size):
+                cur_batch_size = min(tta_batch_size, k_uncertain - i)
+                batch_indices = uncertain_indices[i : i + cur_batch_size]
+                images_batch = test_images[batch_indices]
+                logits_batch = _get_tta_logits(
+                    model,
+                    images_batch.contiguous(memory_format=torch.channels_last),
+                    pad,
+                )
+                tta_logits_parts.append(logits_batch)
+
+            if tta_logits_parts:
+                all_tta_logits_for_uncertain = torch.cat(tta_logits_parts, dim=0)
+                final_logits = initial_logits.clone()
+                final_logits[uncertain_indices] = all_tta_logits_for_uncertain
+                return final_logits
+            return initial_logits
+=======
+    @torch.compile()
+    def tta(model, test_images) -> torch.Tensor:
+        with torch.no_grad():
+            model.eval()
+            pad = 1
+            logits_parts = []
+            for i in range(0, test_images.shape[0], 2000):
+                images_batch = test_images[i : i + 2000]
+                logits_parts.append(
+                    _get_tta_logits(
+                        model,
+                        images_batch.contiguous(memory_format=torch.channels_last),
+                        pad,
+                    )
+                )
+            return torch.cat(logits_parts, dim=0)
+>>>>>>> REPLACE
+-----

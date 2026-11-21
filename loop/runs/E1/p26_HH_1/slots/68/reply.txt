@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+=======
+    def cons(v, delta=0.0):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d - delta, c[:, 0] - r - delta, c[:, 1] - r - delta,
+                               1 - c[:, 0] - r - delta, 1 - c[:, 1] - r - delta, r])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Phase 2: release the radii and run the full free-radius SLSQP
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    # Phase 2: release the radii and run the free-radius SLSQP in stages with a shrinking constraint margin
+    x = x2
+    for delta in (0.01, 0.005, 0.0025, 0.00125, 0.000625, 0.0):
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v: cons(v, delta)}, options={"maxiter": MAX_ITER})
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

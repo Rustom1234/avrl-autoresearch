@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if it % 4 == 0:
+            try:
+                md, kp = 4, 11
+                nw = md * 2 + kp * 3
+                A = np.zeros((N3, nw))
+                bw = []
+                col = 0
+                for a in range(md):
+                    A[a, col] = 1
+                    A[n + a, col] = 1
+                    A[2 * n + a, col + 1] = 1
+                    bw += [(0, 1), (0, 0.5)]
+                    col += 2
+                for p in range(kp):
+                    i = md + 2 * p
+                    j = i + 1
+                    A[i, col] = 1
+                    A[n + i, col + 1] = 1
+                    A[j, col + 1] = 1
+                    A[n + j, col] = 1
+                    A[2 * n + i, col + 2] = 1
+                    A[2 * n + j, col + 2] = 1
+                    bw += [(0, 1), (0, 1), (0, 0.5)]
+                    col += 3
+                w0 = np.linalg.lstsq(A, z0, rcond=None)[0]
+                resw = minimize(lambda w: obj(A @ w), w0,
+                                jac=lambda w: A.T @ g, method="SLSQP",
+                                bounds=bw,
+                                constraints=[{"type": "ineq",
+                                              "fun": lambda w: cons(A @ w),
+                                              "jac": lambda w: jac(A @ w) @ A}],
+                                options={"maxiter": 200, "ftol": 1e-10})
+                zs = A @ resw.x
+                if np.all(np.isfinite(zs)):
+                    z0 = zs
+            except Exception:
+                pass
+>>>>>>> REPLACE
+-----

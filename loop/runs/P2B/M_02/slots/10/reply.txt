@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)
+=======
+# Batch-size ramp-up strategy: start small, ramp up to maximize early samples
+target_batch_size = 2**19 # Full batch size (initial max)
+RAMP_START_SIZE = 2**17   # Initial effective batch size
+NUM_RAMP_STEPS = 2        # Number of ramp-up phases
+
+@dataclass
+class BatchConfig:
+    current_batch: int = RAMP_START_SIZE
+    target_batch: int = target_batch
+    num_ramp_steps: int = NUM_RAMP_STEPS
+
+current_batch_config = BatchConfig()
+
+predictions = []
+=======
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step/step
+EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)
+>>>>>>> REPLACE
+-----
+<<<<<< SEARCH
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)
+U_CHUNK_SIZE = 2**17   # ~outstanding: Up front batch size configuration
+#######
+>>>>>>> REPLACE
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)
+
+# Batch-size ramp-up to maximize early training samples
+# Base batch is reduced by factor of 2, then ramped up at 25% and 50% steps
+RAMP_FACTOR = 0.5
+RAMP_AT_FRACTIONS = [0.25, 0.5]
+RAMP_TO_MAX_BATCH = True
+-----
+<<<<<<< SEARCH
+from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb
+
+
+cap = torch.cuda.get_device_capability()
+=======
+from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb
+
+RAMP_FACTOR = 0.5
+RAMP_AT_FRACTIONS = [0.25, 0.5]
+RAMP_TO_MAX_BATCH = True
+
+cap = torch.cuda.get_device_capability()
+>>>>>>> REPLACE
+-----

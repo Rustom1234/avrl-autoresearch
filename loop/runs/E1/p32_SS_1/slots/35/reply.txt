@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _lp(c):
+    from scipy.optimize import linprog
+    n = len(c)
+    iu = np.triu_indices(n, 1)
+    d = np.maximum(np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)), 0)
+    A = np.zeros((len(d), n))
+    A[np.arange(len(d)), iu[0]] = 1
+    A[np.arange(len(d)), iu[1]] = 1
+    w = np.maximum(np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])), 0)
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=list(zip(np.zeros(n), w)), method="highs")
+    return res.x if res.success else None
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    for c, r in list(pool[:3]):
+        for _ in range(3):
+            r2 = _lp(c)
+            if r2 is None:
+                break
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r2]))
+            c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

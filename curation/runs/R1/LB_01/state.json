@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/LB_01/cand/s02_0.py",
+ "inc_scores": {
+  "11": 1.8148744252797415,
+  "12": 1.8084257300818702
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random order with filter + rank + dedupe, using a word-order-sensitive score so that the word-shuffled wiki articles are also rejected.\n\n1. Dedupe: drop exact duplicates by hashing whitespace-normalised text, and near-duplicates by hashing the first 300 characters. Keep the first occurrence.\n2. Target bigram set: split every target_sample document on whitespace and collect the set of all adjacent word bigrams and the set of unigrams.\n3. Score each pool document on its first ~2000 whitespace tokens:\n   - bigram_hit = fraction of its adjacent word bigrams that are in the target bigram set.\n   - unigram_hit = fraction of its tokens that are in the target unigram set.\n   - score = bigram_hit / (unigram_hit + 0.05) + 0.5 * bigram_hit. Shuffled-word articles have a high unigram_hit but a low bigram_hit, so they score low; spam, code and Q&A have low bigram_hit.\n   - Add +0.1 if the document starts with '= ' and its first line ends with ' ='.\n4. Hard junk filters: drop documents with fewer than 200 characters, a non-ASCII-letter character ratio above 0.4, or a match on the spam templates ('discount code |', 'online store |', 'Click here to order', 'free shipping on all').\n5. Calibrate a threshold: compute the same score for each target_sample document with leave-one-out (bigram and unigram sets built from the other 199). Set the threshold to the 5th percentile of those scores.\n6. Select: take all surviving documents at or above the threshold. If they total less than T tokens (estimate tokens as len(text)/4, or count with tiktoken if time allows), append the next-highest-scoring survivors in descending score order until about 1.0 T is reached. If they total more than T, keep the top-scoring ones up to T.\n7. Order: shuffle the selected indices with random.Random(CURATE_SEED) and return them.",
+   "outcome": "dev 1.9131 against 1.9407 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Stop topping up with off-domain text: keep only documents that look like clean target-domain articles, and let the trainer cycle them if they total less than T. Everything else in the pipeline (dedupe, junk filters, scoring) stays as is.\n\n1. Define the 'in-domain' set as survivors that satisfy both conditions:\n   - the document has a '= Title =' header (_has_header is true);\n   - its score is at or above a leave-one-out threshold from target_sample. Use the 2nd percentile of the leave-one-out scores instead of the 5th, so few real articles are lost.\n2. Add a word-order guard to reject shuffled articles that kept their header: require bigram_hit / unigram_hit to be at least 0.5 times the 2nd percentile of that same ratio over the leave-one-out target documents.\n3. Count the tokens of the in-domain set with tiktoken.\n   - If it is at least T: keep the top-scoring documents up to T, as now.\n   - If it is between 0.4 T and T: return only the in-domain set, shuffled with the seed, and do not append lower-scoring documents.\n   - If it is below 0.4 T: append the next-highest-scoring survivors until 0.4 T is reached, as a safeguard.\n4. Print the number of documents and tokens in the in-domain set as a diagnostic.",
+   "outcome": "dev 1.8149 against 1.9131 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 3,
+   "idea": "Replace the hard-coded `len(docs[i]) // 4` fallback with a more accurate estimation based on the average of the target_sample's token counts, and implement a 'top-K' selection for the in-domain set based on a sliding window of tokens to more precisely hit the T limit.",
+   "outcome": "dev 1.8151 against 1.8149 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Implement a 'high-quality' filter that specifically targets the target_sample's style by measuring the 'diversity' of bigrams; reject documents where the bigram_hit/unigram_hit ratio is significantly lower than the average of the target_sample (e.g., by 2 standard deviations).",
+   "outcome": "dev 1.8121 against 1.8149 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Implement a dynamic weighting for bigrams vs unigrams in the scoring function. Instead of fixed coefficients, use the ratio of (bigram_hit / unigram_hit) found in the target_sample to scale the bigram_hit component of the score, effectively normalizing the scoring metric to the target domain's linguistic profile.",
+   "outcome": "dev 1.8075 against 1.8149 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the 'in-domain' thresholding logic with a strict 'top-N' selection based on a percentile of scores (e.g., top 10% of all survivors) while ensuring at least 0.5T tokens are included, and then fill the remaining capacity up to T using the highest-scoring survivors not already included.",
+   "outcome": "dev 1.8524 against 1.8149 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Implement a more aggressive 'deduplication' and 'near-duplicate' filter by increasing the NEAR_DUP_CHARS from 300 to 1000 and using a sliding window (e.g., checking 3 consecutive 500-character blocks) to catch documents that share middle content but different headers.",
+   "outcome": "dev 1.8038 against 1.8149 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Refine the scoring function and in-domain criteria to specifically reward documents with high bigram density and 'narrative' structure by penalizing high unigram counts without corresponding bigram hits (shuffled text), and use a 1.5x multiplier on the bigram_hit component for documents that pass a minimum length check of 1000 characters.",
+   "outcome": "dev 1.8020 against 1.8149 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Instead of a single score, calculate a 'coherence' score for each document as the ratio of bigram_hits to unigram_hits (bigram_hit / (unigram_hit + 0.01)) and use this to weight the final score, specifically penalizing documents where this ratio falls more than 1 standard deviation below the target_sample's mean.",
+   "outcome": "dev 1.8026 against 1.8149 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Improve the selection logic to perform a 'Greedy Fill' towards exactly T tokens: first, select all in-domain documents (filtered by score and ratio) sorted by score; if the total exceeds T, take only the top-scoring ones; if the total is less than 0.5T, append the highest-scoring survivors (not already in the in-domain set) until the total is as close to T as possible without overshooting by more than 10%.",
+   "outcome": "dev 1.9025 against 1.8149 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Adjust the 'in-domain' scoring to use a soft-penalty for noise: calculate the 'vocabulary overlap' (the ratio of words in a document that appear in the target_sample or are common English words) and penalize documents that have high bigram/unigram hits but also contain high proportions of very rare/unique words not found in the target sample or common corpora. Additionally, replace the 0.4T fallback with a more conservative 0.2T, as providing too much 'noisy but high-scoring' survivor text can dilute the high-quality in-domain signal.",
+   "outcome": "dev 1.8103 against 1.8149 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Implement a 'diversity' filter to reduce redundancy in the final selection by penalizing the inclusion of documents that share a high Jaccard similarity (e.g., > 0.3) of their top 100 unique words, ensuring that the training set covers a broader range of topics within the target domain rather than repeating the same high-scoring 'cluster'.",
+   "outcome": "dev 1.8156 against 1.8149 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.4729452,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.3102756,
+   "dev": 1.913059337230863,
+   "inc": 1.940665542242174,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.7993676040890225,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.13527645,
+   "dev": 1.8148744252797415,
+   "inc": 1.913059337230863,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.312292452853345,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00268725000000003,
+   "dev": 1.8150586258683006,
+   "inc": 1.8148744252797415,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.312292452853345,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00243270000000001,
+   "dev": 1.8121224097581672,
+   "inc": 1.8148744252797415,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.312292452853345,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002703150000000043,
+   "dev": 1.807505377646061,
+   "inc": 1.8148744252797415,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.312292452853345,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003839849999999978,
+   "dev": 1.8524333871730143,
+   "inc": 1.8148744252797415,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.312292452853345,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002825399999999978,
+   "dev": 1.803815803909528,
+   "inc": 1.8148744252797415,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.312292452853345,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002445300000000039,
+   "dev": 1.8020199787949702,
+   "inc": 1.8148744252797415,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.312292452853345,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0025613999999999915,
+   "dev": 1.8026267058768353,
+   "inc": 1.8148744252797415,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.312292452853345,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002543699999999982,
+   "dev": 1.9024744913320257,
+   "inc": 1.8148744252797415,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.312292452853345,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0026594999999999813,
+   "dev": 1.8102769240520746,
+   "inc": 1.8148744252797415,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.312292452853345,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0026949,
+   "dev": 1.8156056160315464,
+   "inc": 1.8148744252797415,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.940665542242174,
+ "inc_slot": 2
+}

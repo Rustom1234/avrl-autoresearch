@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors, rdMolDescriptors, rdPartialCharges
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+_CACHE = {}
+=======
+_CACHE = {}
+
+
+def charge_one(m):
+    rdPartialCharges.ComputeGasteigerCharges(m)
+    q = np.array([a.GetDoubleProp('_GasteigerCharge') if a.HasProp('_GasteigerCharge') else np.nan
+                  for a in m.GetAtoms()], dtype=np.float64)
+    t = np.array(rdMolDescriptors._CalcTPSAContribs(m), dtype=np.float64)
+    ok = np.isfinite(q)
+    q = q[ok]
+    t = t[ok]
+    if q.size == 0:
+        return [0.0] * 6
+    feats = [q.max(), q.min(), q[q > 0].sum(), q[q < 0].sum(),
+             float((np.abs(q) > 0.25).sum()), float((np.abs(q) * t).sum())]
+    return [float(v) for v in np.nan_to_num(feats, nan=0.0, posinf=0.0, neginf=0.0)]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        _CACHE[smi] = np.concatenate([fp, desc])
+=======
+        _CACHE[smi] = np.concatenate([fp, desc, np.array(charge_one(m), dtype=np.float32)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return vals + [arom]
+=======
+    return vals + [arom] + charge_one(m)
+>>>>>>> REPLACE
+-----

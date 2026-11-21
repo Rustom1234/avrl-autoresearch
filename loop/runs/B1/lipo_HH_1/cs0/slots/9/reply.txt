@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    groups = np.array([MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles])
+    oof = np.zeros((len(y), 3))
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+    k = oof.shape[1]
+    res = minimize(lambda w: np.abs(oof @ w - y).mean(), np.full(k, 1.0 / k), method="SLSQP",
+                   bounds=[(0.0, 1.0)] * k, constraints=[{"type": "eq", "fun": lambda w: w.sum() - 1.0}])
+    w = np.clip(res.x, 0.0, None)
+    w = w / w.sum()
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return base_te @ w
+=======
+    groups = np.array([MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles])
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return base_te.mean(axis=1)
+>>>>>>> REPLACE
+-----

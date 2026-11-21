@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _compress(n, rng):
+    """Lubachevsky-Stillinger-style growth: grow radii, push overlaps apart, halve the growth rate when jammed."""
+    c_ok, r_ok = rng.uniform(0.05, 0.95, (n, 2)), np.full(n, 1e-3)
+    g = 0.1
+    for _ in range(2000):
+        if g < 1e-6:
+            break
+        c, r = c_ok.copy(), r_ok * (1 + g)
+        ok = False
+        for _ in range(150):
+            d = c[:, None] - c[None]
+            dist = np.sqrt((d ** 2).sum(-1)) + np.eye(n)
+            over = np.maximum(r[:, None] + r[None] - dist, 0)
+            np.fill_diagonal(over, 0)
+            wl = np.maximum(r[:, None] - c, 0)
+            wr = np.maximum(c + r[:, None] - 1, 0)
+            if (over ** 2).sum() + (wl ** 2).sum() + (wr ** 2).sum() < 1e-12:
+                ok = True
+                break
+            grad = -2 * ((over / dist)[:, :, None] * d).sum(1) + 2 * (wr - wl)
+            c = c - 0.1 * grad
+        if ok:
+            c_ok, r_ok = c, r
+        else:
+            g /= 2
+            c_ok = np.clip(c_ok + rng.normal(0, 1e-3, c_ok.shape), 0, 1)
+    return c_ok, r_ok
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = _solve_once(n, rng)
+=======
+    c, r = _compress(n, rng)
+    c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+>>>>>>> REPLACE
+-----

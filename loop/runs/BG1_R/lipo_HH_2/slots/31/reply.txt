@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from sklearn.model_selection import KFold
+=======
+from sklearn.model_selection import KFold
+from scipy import sparse
+from scipy.optimize import linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    meta = LinearRegression(positive=True).fit(oof, y)
+    return meta.predict(base_predict(X, y, Xte, seed)) + a + b * Lte
+=======
+    # MAE-optimal non-negative meta-learner: min sum|y - (oof @ w + c)| s.t. w >= 0, solved as an LP
+    n, k = oof.shape
+    cost = np.r_[np.zeros(k), 0.0, np.ones(n)]
+    ones = sparse.csr_matrix(np.ones((n, 1)))
+    eye = sparse.identity(n, format="csr")
+    O = sparse.csr_matrix(oof)
+    A_ub = sparse.vstack([sparse.hstack([-O, -ones, -eye]),
+                          sparse.hstack([O, ones, -eye])]).tocsr()
+    b_ub = np.r_[-y, y]
+    bounds = [(0, None)] * k + [(None, None)] + [(0, None)] * n
+    res = linprog(cost, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method="highs")
+    if res.status == 0:
+        w, c0 = res.x[:k], res.x[k]
+    else:
+        meta = LinearRegression(positive=True).fit(oof, y)
+        w, c0 = meta.coef_, meta.intercept_
+    return base_predict(X, y, Xte, seed) @ w + c0 + a + b * Lte
+>>>>>>> REPLACE
+-----

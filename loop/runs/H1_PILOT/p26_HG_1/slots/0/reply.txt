@@ -1,0 +1,85 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    best = None
+    current_time = time.process_time()
+    limit = TIME_FRACTION * time_limit
+    exploration_limit = 0.4 * limit
+
+    while time.process_time() - t0 < current_time + exploration_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+    if best is None: return np.zeros((n, 2)), np.zeros(n)
+
+    # Exploitation phase
+    start_exp = time.process_time()
+    while time.process_time() - t0 < current_time + limit:
+        c_best, r_best = best
+        # Perturb slightly
+        scale = 0.05 * (1.0 - (time.process_time() - start_exp) / (limit * 0.6)) 
+            * (1.0 - (time.process_time() - start_exp) / (limit * 0.6))
+        scale = max(scale, 0.005)
+        
+        c_new = c_best + rng.standard_normal(best[0].shape) * scale
+        r_new = r_best + rng.standard_normal(best[1].shape) * scale
+        
+        c_new = np.clip(c_new, 0, 1)
+        r_new = _repair(c_new, r_new)
+        
+        if r_new.sum() > best[1].sum():
+            best = (c_new, r_new)
+
+    return best
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+========
+    limit = TIME_FRACTION * time_limit
+    exp_limit = 0.4 * limit
+    current_time = time.process_time()
+
+    while time.process_time() - t0 < current_time + exp_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+    if best is None: return np.zeros((n, 2)), np.zeros(n)
+
+    # Exploitation phase
+    start_exp = time.process_time()
+    while time.process_time() - t0 < current_time + limit:
+        c_best, r_best = best
+        elapsed_exp = time.process_time() - start_exp
+        scale = max(0.005, 0.05 * (1.0 - elapsed_exp / (limit * 0.6)))
+        
+        c_new = c_best + rng.standard_normal(c_best.shape) * scale
+        r_new = r_best + rng.standard_normal(r_best.shape) * scale
+        
+        c_new = np.clip(c_new, 0, 1)
+        r_new = _repair(c_new, r_new)
+        
+        if r_new.sum() > best[1].sum():
+            best = (c_new, r_new)
+
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+from xgboost import XGBClassifier
+=======
+from scipy.stats import rankdata
+from sklearn.ensemble import ExtraTreesClassifier
+from sklearn.preprocessing import QuantileTransformer
+from xgboost import XGBClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+ELEMENTS = ['C', 'N', 'O', 'F', 'S', 'Cl', 'Br', 'I', 'P']
+
+
+def crippen_element_features(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        contribs = rdMolDescriptors._CalcCrippenContribs(m)
+        counts = np.zeros(len(ELEMENTS) + 1)
+        logp = np.zeros(len(ELEMENTS) + 1)
+        for atom, (lp, _) in zip(m.GetAtoms(), contribs):
+            sym = atom.GetSymbol()
+            k = ELEMENTS.index(sym) if sym in ELEMENTS else len(ELEMENTS)
+            counts[k] += 1
+            logp[k] += lp
+        rows.append(np.concatenate([counts, logp]))
+    return np.array(rows, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+=======
+    et_train = np.hstack([featurize(train_smiles), crippen_element_features(train_smiles)])
+    et_test = np.hstack([featurize(test_smiles), crippen_element_features(test_smiles)])
+    qt = QuantileTransformer(n_quantiles=200, output_distribution='uniform', random_state=seed)
+    x_tr = qt.fit_transform(et_train)
+    x_te = qt.transform(et_test)
+    et = ExtraTreesClassifier(n_estimators=500, max_features=0.3, min_samples_leaf=2, random_state=seed, n_jobs=8)
+    et.fit(x_tr, y)
+    total += rankdata(et.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,381 @@
+<<<<<<< SEARCH
+from rdkit import DataStructs
+from rdkit.Chem import Descriptors
+from scipy.stats import norm
+from scipy.stats import rankdata
+
+# Settings
+N_BITS = 2048
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Filter out None
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    fps = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # Basic Physicochemical Descriptors
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    # Handle NaNs by replacing with 0
+    desc_array = np.nan_to_num(desc_array)
+    
+    # Concatenate Atom-Pair + Descriptors
+    return np.hstack([fps, desc_array])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    train_y = np.asarray(train_y, dtype=np.float64)
+    
+    # Rank-preserving target transform
+    sorted_y = np.sort(train_y)
+    r = rankdata(train_y) / (len(train_y) + 1)
+    train_y_norm = norm.ppf(r)
+    
+    model = CatBoostRegressor(
+        iterations=1000,
+        learning_rate=0.05,
+        depth=6,
+        loss_function='RMSE',
+        random_seed=seed,
+        verbose=0
+    )
+    
+    model.fit(X_train, train_y_norm)
+    
+    preds_norm = model.predict(X_test)
+    
+    # Back-map predictions
+    q = norm.cdf(preds_norm)
+    # Clamp q to avoid extrapolation outside the training data range
+    q = np.clip(q, 1e-6, 1 - 1e-6)
+    return np.interp(q, np.linspace(0, 1, len(sorted_y)), sorted_y)
+=======
+from rdkit import DataStructs
+from rdkit.Chem import Descriptors
+from scipy.stats import norm
+from scipy.stats import rankdata
+from sklearn.kernel_learning import minmax_kernel_transform
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+
+# Settings
+N_BITS = 2048
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Filter out None
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    fps = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # Basic Physicochemical Descriptors
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    # Handle NaNs by replacing with 0
+    desc_array = np.nan_to_num(desc_array)
+    
+    # Concatenate Atom-Pair + Descriptors
+    return np.hstack([fps, desc_array])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    train_y = np.asarray(train_y, dtype=np.float64)
+    
+    # Stacked SVR Feature
+    # Extract fingerprints only for kernel (atom-pair counts)
+    fps_train = X_train[:, :N_BITS]
+    fps_test = X_test[:, :N_BITS]
+    
+    # Compute Tanimoto kernel via minmax_kernel_transform
+    # Note: Tanimoto is equivalent to MinMax on binary/count fingerprints
+    # We use a small subset of training points for the kernel to save memory
+    k_train = minmax_kernel_transform(fps_train, fps_train)
+    
+    # Out-of-fold SVR predictions
+    oof_svr = np.zeros(len(train_y))
+    kf = KFold(n_splits=5, shuffle=True, random_state=seed)
+    for tr_idx, val_idx in kf.split(X_train):
+        X_tr_sub = X_train[tr_idx]
+        y_tr_sub = train_y[tr_idx]
+        
+        # Train SVR on the kernelized subset
+        # Use low C and epsilon for stability
+        svr = SVR(kernel='linear', C=1.0, epsilon=0.1)
+        # We re-calculate kernel for the subset to ensure valid dimensions
+        k_sub = minmax_kernel_transform(fps_train[tr_idx], fps_train[tr_idx])
+        svr.fit(k_sub, y_tr_sub)
+        
+        # Predict for the validation set
+        # To keep it efficient, we approximate the kernel for the validation points
+        k_val = minmax_kernel_transform(fps_train[val_idx], fps_train[tr_idx])
+        oof_svr[val_idx] = svr.predict(k_val)
+        
+    X_train_stacked = np.hstack([X_train, oof_svr.reshape(-1, 1)])
+    
+    # Full SVR for test set
+    svr_full = SVR(kernel='linear', C=1.0, epsilon=0.1)
+    svr_full.fit(k_train, train_y)
+    k_test = minmax_kernel_transform(fps_test, fps_train)
+    test_svr_feat = svr_full.predict(k_test).reshape(-1, 1)
+    X_test_stacked = np.hstack([X_test, test_svr_feat])
+    
+    # Rank-preserving target transform
+    sorted_y = np.sort(train_y)
+    r = rankdata(train_y) / (len(train_y) + 1)
+    train_y_norm = norm.ppf(r)
+    
+    model = CatBoostRegressor(
+        iterations=1000,
+        learning_rate=0.05,
+        depth=6,
+        loss_function='RMSE',
+        random_seed=seed,
+        verbose=0
+    )
+    
+    model.fit(X_train_stacked, train_y_norm)
+    
+    preds_norm = model.predict(X_test_stacked)
+    
+    # Back-map predictions
+    q = norm.cdf(preds_norm)
+    # Clamp q to avoid extrapolation outside the training data range
+    q = np.clip(q, 1e-6, 1 - 1e-6)
+    return np.interp(q, np.linspace(0, 1, len(sorted_y)), sorted_y)"
+-----
+<<<<<<< SEARCH
+from rdkit import DataStructs
+from rdkit.Chem import Descriptors
+from scipy.stats import norm
+from scipy.stats import rankdata
+
+# Settings
+N_BITS = 2048
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Filter out None
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    fps = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # Basic Physicochemical Descriptors
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    # Handle NaNs by replacing with 0
+    desc_array = np.nan_to_num(desc_array)
+    
+    # Concatenate Atom-Pair + Descriptors
+    return np.hstack([fps, desc_array])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    train_y = np.asarray(train_y, dtype=np.float64)
+    
+    # Rank-preserving target transform
+    sorted_y = np.sort(train_y)
+    r = rankdata(train_y) / (len(train_y) + 1)
+    train_y_norm = norm.ppf(r)
+    
+    model = CatBoostRegressor(
+        iterations=1000,
+        learning_rate=0.05,
+        depth=6,
+        loss_function='RMSE',
+        random_seed=seed,
+        verbose=0
+    )
+    
+    model.fit(X_train, train_y_norm)
+    
+    preds_norm = model.predict(X_test)
+    
+    # Back-map predictions
+    q = norm.cdf(preds_norm)
+    # Clamp q to avoid extrapolation outside the training data range
+    q = np.clip(q, 1e-6, 1 - 1e-6)
+    return np.interp(q, np.linspace(0, 1, len(sorted_y)), sorted_y)
+ lama
+<<<<<<< SEARCH
+from rdkit import DataStructs
+from rdkit.Chem import Descriptors
+from scipy.stats import norm
+from scipy.stats import rankdata
+
+# Settings
+N_BITS = 2048
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Filter out None
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    fps = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # Basic Physicochemical Descriptors
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    # Handle NaNs by replacing with 0
+    desc_array = np.nan_to_num(desc_array)
+    
+    # Concatenate Atom-Pair + Descriptors
+    return np.hstack([fps, desc_array])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    train_y = np.asarray(train_y, dtype=np.float64)
+    
+    # Rank-preserving target transform
+    sorted_y = np.sort(train_y)
+    r = rankdata(train_y) / (len(train_y) + 1)
+    train_y_norm = norm.ppf(r)
+    
+    model = CatBoostRegressor(
+        iterations=1000,
+        learning_rate=0.05,
+        depth=6,
+        loss_function='RMSE',
+        random_seed=seed,
+        verbose=0
+    )
+    
+    model.fit(X_train, train_y_norm)
+    
+    preds_norm = model.predict(X_test)
+    
+    # Back-map predictions
+    q = norm.cdf(preds_norm)
+    # Clamp q to avoid extrapolation outside the training data range
+    q = np.clip(q, 1e-6, 1 - 1e-6)
+    return np.interp(q, np.linspace(0, 1, len(sorted_y)), sorted_y)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from rdkit import DataStructs
+from rdkit.Chem import Descriptors
+from scipy.stats import norm
+from scipy.stats import rankdata
+
+# Settings
+N_BITS = 2048
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Filter out None
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    fps = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # Basic Physicochemical Descriptors
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    # Handle NaNs by replacing with 0
+    desc_array = np.nan_to_num(desc_array)
+    
+    # Concatenate Atom-Pair + Descriptors
+    return np.hstack([fps, desc_array])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    train_y = np.asarray(train_y, dtype=np.float64)
+    
+    # Rank-preserving target transform
+    sorted_y = np.sort(train_y)
+    r = rankdata(train_y) / (len(train_y) + 1)
+    train_y_norm = norm.ppf(r)
+    
+    model = CatBoostRegressor(
+        iterations=1000,
+        learning_rate=0.05,
+        depth=6,
+        loss_function='RMSE',
+        random_seed=seed,
+        verbose=0
+    )
+    
+    model.fit(X_train, train_y_norm)
+    
+    preds_norm = model.predict(X_test)
+    
+    # Back-map predictions
+    q = norm.cdf(preds_norm)
+    # Clamp q to avoid extrapolation outside the training data range
+    q = np.clip(q, 1e-6, 1 - 1e-6)
+    return np.interp(q, np.linspace(0, 1, len(sorted_y)), sorted_y)
+-----

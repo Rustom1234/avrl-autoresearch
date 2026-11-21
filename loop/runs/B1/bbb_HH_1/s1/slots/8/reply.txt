@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+
+    def base_probs(Xa, ya, Xb, n_trees):
+        rf = RandomForestClassifier(n_estimators=n_trees, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                    n_jobs=-1, random_state=seed)
+        rf.fit(Xa, ya)
+        gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                            random_state=seed, n_jobs=8, verbose=-1)
+        gb.fit(Xa, ya)
+        return np.column_stack([rf.predict_proba(Xb)[:, 1], gb.predict_proba(Xb)[:, 1]])
+
+    oof = np.zeros((len(y), 2))
+    for tr, va in StratifiedKFold(n_splits=5, shuffle=True, random_state=seed).split(X_train, y):
+        oof[va] = base_probs(X_train[tr], y[tr], X_train[va], 200)
+    Z = np.column_stack([scaled_rank(oof[:, 0]), scaled_rank(oof[:, 1])])
+    stacker = LogisticRegression(C=1.0, max_iter=2000).fit(Z, y)
+
+    P = base_probs(X_train, y, X_test, N_TREES)
+    R = np.column_stack([scaled_rank(P[:, 0]), scaled_rank(P[:, 1])])
+    if np.all(stacker.coef_[0] > 0):
+        return stacker.predict_proba(R)[:, 1]
+    return 0.5 * R.sum(axis=1)
+>>>>>>> REPLACE
+-----

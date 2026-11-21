@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+=======
+def _grow(n, rng):
+    """Solve n-1 circles, then add one circle at the largest empty spot among 2000 random candidates."""
+    c, r = _solve_once(n - 1, rng)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    cand = rng.uniform(0, 1, (2000, 2))
+    d = np.sqrt(((cand[:, None] - c[None]) ** 2).sum(-1))
+    free = np.minimum(np.minimum(cand, 1 - cand).min(1), (d - r[None]).min(1))
+    k = np.argmax(free)
+    return np.concatenate([np.vstack([c, cand[k]]).ravel(), np.append(r, max(free[k], 0))])
+
+
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+    c, r = _solve_once(n, rng, _grow(n, rng))
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if r.sum() > best[1].sum():
+        best = (c, r)
+>>>>>>> REPLACE
+-----

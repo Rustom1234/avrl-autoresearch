@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _anneal(c, r, rng, iters=2000, t0=0.01, sigma=0.03):
+    """Jitter one centre, reset its radius to the largest feasible value, accept by temperature; keep the best."""
+    n = len(r)
+    best = (c.copy(), r.copy())
+    for k in range(iters):
+        temp = t0 * (1 - k / iters) + 1e-12
+        i = rng.integers(n)
+        p = np.clip(c[i] + rng.normal(0, sigma, 2), 0, 1)
+        d = np.sqrt(((c - p) ** 2).sum(1))
+        d[i] = np.inf
+        rn = max(min(p.min(), (1 - p).min(), (d - r).min()), 0)
+        delta = rn - r[i]
+        if delta >= 0 or rng.random() < np.exp(delta / temp):
+            c[i], r[i] = p, rn
+            if r.sum() > best[1].sum():
+                best = (c.copy(), r.copy())
+    return best
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+=======
+        r = _repair(c, r)
+        c, r = _anneal(c, r, rng)
+        if best is None or r.sum() > best[1].sum():
+>>>>>>> REPLACE
+-----

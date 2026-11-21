@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    return best
+=======
+    try:
+        from scipy.optimize import NonlinearConstraint, Bounds
+        c0, r0 = best
+        v0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        nc = NonlinearConstraint(cons, 0, np.inf, jac=cjac)
+        def cb(xk, state):
+            return time.time() - t0 > 235
+        res = minimize(lambda z: -z[2 * n:].sum(), v0,
+                       jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                       hess=lambda z: np.zeros((3 * n, 3 * n)),
+                       method="trust-constr", bounds=Bounds(np.zeros(3 * n), np.concatenate([np.ones(2 * n), np.full(n, 0.5)])),
+                       constraints=[nc], callback=cb,
+                       options={"gtol": 1e-12, "xtol": 1e-14, "maxiter": 2000})
+        c, r = finalize(res.x)
+        if r.sum() > bs:
+            bs = r.sum(); best = (c, r)
+    except Exception:
+        pass
+    return best
+>>>>>>> REPLACE
+-----

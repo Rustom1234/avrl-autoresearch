@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _graded(rng):
+    n = _N
+    r0 = rng.uniform(0.11, 0.15)
+    k = rng.uniform(0.2, 0.6)
+    pts, rads = [], []
+    tries = 0
+    while len(pts) < n and tries < 20000:
+        tries += 1
+        p = rng.uniform(0.04, 0.96, 2)
+        d = np.hypot(p[0] - 0.5, p[1] - 0.5)
+        rr = r0 * (1 - k * d / 0.7071) * rng.uniform(0.85, 1.15)
+        ok = True
+        for q, rq in zip(pts, rads):
+            if np.hypot(p[0] - q[0], p[1] - q[1]) < (rr + rq) * rng.uniform(0.8, 1.0):
+                ok = False
+                break
+        if ok:
+            pts.append(p)
+            rads.append(rr)
+        if tries % 2000 == 0:
+            r0 *= 0.92
+    c = np.array(pts, float).reshape(-1, 2)
+    if len(c) < n:
+        c = np.vstack([c, rng.uniform(0.1, 0.9, (n - len(c), 2))])
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            if u < 0.2:
+                c = _graded(rng)
+            else:
+                c = _hexgrid(rng) if u < 0.4 else (_hexinit(rng) if u < 0.7 else _physics(rng))
+>>>>>>> REPLACE
+-----

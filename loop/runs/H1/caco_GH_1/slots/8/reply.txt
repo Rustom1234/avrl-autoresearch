@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import PolynomialFeatures
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    # Pairwise products of the 8 descriptor columns (the last 8 columns); keep only the product terms.
+    poly = PolynomialFeatures(degree=2, interaction_only=True, include_bias=False)
+    Xtr = np.hstack([Xtr, poly.fit_transform(Xtr[:, -8:])[:, 8:]])
+    Xte = np.hstack([Xte, poly.transform(Xte[:, -8:])[:, 8:]])
+    model.fit(Xtr, np.asarray(train_y, dtype=np.float64))
+    return model.predict(Xte)
+>>>>>>> REPLACE
+-----

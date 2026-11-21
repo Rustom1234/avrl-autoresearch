@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from sklearn.model_selection import train_test_split
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    idx_fit, idx_val = train_test_split(np.arange(len(y)), test_size=0.15, stratify=y, random_state=seed)
+    params = dict(max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                  min_child_weight=2, random_state=seed, n_jobs=8)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        probe = XGBClassifier(n_estimators=2000, eval_metric='auc', early_stopping_rounds=50, **params)
+        probe.fit(x_tr[idx_fit], y[idx_fit], eval_set=[(x_tr[idx_val], y[idx_val])])
+        n_rounds = max(1, int(round(probe.best_iteration / 0.85)))
+        model = XGBClassifier(n_estimators=n_rounds, eval_metric='logloss', **params)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+>>>>>>> REPLACE
+-----

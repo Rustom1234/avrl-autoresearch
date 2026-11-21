@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    pr = r.predict(np.log1p(Xte[:, -N_BITS:]))
+    return 0.7 * np.mean(preds, axis=0) + 0.3 * rankdata(pr) / len(pr)
+=======
+    pr = r.predict(np.log1p(Xte[:, -N_BITS:]))
+    from sklearn.cross_decomposition import PLSRegression
+    from sklearn.preprocessing import StandardScaler
+    sc = StandardScaler().fit(Xtr[:, :-N_BITS])
+    Ztr = np.clip(sc.transform(Xtr[:, :-N_BITS]), -5, 5)
+    Zte = np.clip(sc.transform(Xte[:, :-N_BITS]), -5, 5)
+    pls = PLSRegression(n_components=12, scale=False).fit(Ztr, y)
+    pp = pls.predict(Zte).ravel()
+    return 0.6 * np.mean(preds, axis=0) + 0.25 * rankdata(pr) / len(pr) + 0.15 * rankdata(pp) / len(pp)
+>>>>>>> REPLACE
+-----

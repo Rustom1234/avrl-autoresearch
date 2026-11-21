@@ -1,0 +1,120 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+from rdkit import DataStructs
+from rdkit.Chem import Descriptors
+from scipy.stats import norm
+from scipy.stats import rankdata
+=======
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import StandardScaler
+from rdkit import DataStructs
+from rdkit.Chem import Descriptors
+from scipy.stats import norm
+from scipy.stats import rankdata
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Filter out None
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    fps = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # Basic Physicochemical Descriptors
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    # Handle NaNs by replacing with 0
+    desc_array = np.nan_to_num(desc_array)
+    
+    # Concatenate Atom-Pair + Descriptors
+    return np.hstack([fps, desc_array])
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    fps = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    desc_array = np.nan_to_num(desc_array)
+    
+    return np.hstack([fps, desc_array])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Rank-preserving target transform
+    sorted_y = np.sort(train_y)
+    r = rankdata(train_y) / (len(train_y) + 1)
+    train_y_norm = norm.ppf(r)
+    
+    model = CatBoostRegressor(
+        iterations=1000,
+        learning_rate=0.05,
+        depth=6,
+        loss_function='RMSE',
+        random_seed=seed,
+        verbose=0
+    )
+    
+    model.fit(X_train, train_y_norm)
+    
+    preds_norm = model.predict(X_test)
+    
+    # Back-map predictions
+    q = norm.cdf(preds_norm)
+    # Clamp q to avoid extrapolation outside the training data range
+    q = np.clip(q, 1e-6, 1 - 1e-6)
+    return np.interp(q, np.linspace(0, 1, len(sorted_y)), sorted_y)
+=======
+    # Scale features
+    X_train_scaled = StandardScaler().fit_transform(X_train)
+    X_test_scaled = StandardScaler().transform(X_test)
+    
+    # Standardise target
+    y_mean = np.mean(train_y)
+    y_std = np.std(train_y)
+    train_y_scaled = (train_y - y_mean) / (y_std if y_std != 0 else 1.0)
+    
+    model = MLPRegressor(
+        hidden_layer_sizes=(256, 64),
+        alpha=1e-2,
+        early_stopping=True,
+        validation_fraction=0.15,
+        max_iter=500,
+        random_state=seed
+    )
+    
+    model.fit(X_train_scaled, train_y_scaled)
+    
+    preds_scaled = model.predict(X_test_scaled)
+    
+    # Invert target scaling
+    return preds_scaled * y_std + y_mean
+>>>>>>> REPLACE
+-----

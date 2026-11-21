@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def ard_fit_predict(X_tr, t, X_te, n_iter=50):
+    # Sparse Bayesian ARD linear regression (MacKay updates), solved in sample space via Woodbury.
+    n, d = X_tr.shape
+    t = t - t.mean()
+    alpha = np.ones(d)
+    beta = 1.0 / max(np.var(t), 1e-6)
+    keep = np.ones(d, dtype=bool)
+    mu = np.zeros(d)
+    for _ in range(n_iter):
+        Xk = X_tr * keep
+        D = np.where(keep, 1.0 / alpha, 0.0)
+        C = np.eye(n) / beta + (Xk * D) @ Xk.T
+        M = np.linalg.solve(C, Xk)
+        u = D * (Xk.T @ t)
+        mu = beta * (u - D * (Xk.T @ (M @ u)))
+        sig = D - D ** 2 * np.sum(Xk * M, axis=0)
+        gamma = np.where(keep, np.clip(1.0 - alpha * sig, 0.0, 1.0), 0.0)
+        alpha = np.where(keep, gamma / np.maximum(mu ** 2, 1e-12), alpha)
+        keep = keep & (alpha <= 1e8)
+        resid = t - (X_tr * keep) @ mu
+        beta = max(n - gamma.sum(), 1e-6) / max(np.sum(resid ** 2), 1e-12)
+    return X_te @ mu
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    p_ard = ard_fit_predict(X_tr, r, X_te) + base_te
+    n = len(p_desc)
+    return (rankdata(p_desc) + rankdata(p_fp) + rankdata(p_ard)) / (3 * n)
+>>>>>>> REPLACE
+-----

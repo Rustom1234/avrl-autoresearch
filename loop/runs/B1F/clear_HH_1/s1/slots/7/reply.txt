@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def to_mol(s):
+    mol = Chem.MolFromSmiles(s)
+    if mol is None:
+        return Chem.MolFromSmiles("C")
+    try:
+        frags = Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=True)
+        return max(frags, key=lambda f: (f.GetNumHeavyAtoms(), Descriptors.MolWt(f)))
+    except Exception:
+        return mol
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+    return np.array([gen.GetFingerprintAsNumPy(to_mol(s)) for s in smiles], dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        m = Chem.MolFromSmiles(s)
+=======
+        m = to_mol(s)
+>>>>>>> REPLACE
+-----

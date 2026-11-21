@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _anneal(c, r, rng, duration):
+    """Simulated annealing on centres; radii are repaired after each perturbation so the packing stays valid."""
+    t0 = time.process_time()
+    cur_c, cur_r = c, r
+    best_c, best_r = c, r
+    while True:
+        frac = (time.process_time() - t0) / duration
+        if frac >= 1:
+            break
+        temp = 1e-2 * (1e-3) ** frac          # geometric cooling of acceptance temperature
+        step = 0.05 * (0.02) ** frac          # perturbation magnitude shrinks as it cools
+        nc = np.clip(cur_c + rng.normal(0, step, cur_c.shape), 0, 1)
+        nr = _repair(nc, cur_r.copy())
+        delta = nr.sum() - cur_r.sum()
+        if delta >= 0 or rng.random() < np.exp(delta / temp):
+            cur_c, cur_r = nc, nr
+            if cur_r.sum() > best_r.sum():
+                best_c, best_r = cur_c, cur_r
+    return best_c, best_r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+=======
+    return _anneal(best[0], best[1], rng, 0.1 * time_limit)
+>>>>>>> REPLACE
+-----

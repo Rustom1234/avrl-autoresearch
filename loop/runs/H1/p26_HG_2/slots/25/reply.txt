@@ -1,0 +1,168 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    centers = np.zeros((n, 2))
+    for i in range(n):
+        success = False
+        for _ in range(200):
+            cand = rng.uniform(0, 1, 2)
+            if i == 0:
+                centers[i] = cand
+                success = True
+                break
+            dist = np.linalg.norm(centers[:i] - cand, axis=1)
+            if np.all(dist > 0.12):
+                centers[i] = cand
+                success = True
+                break
+        if not success:
+            centers[i] = rng.uniform(0, 1, 2)
+
+    x0 = np.concatenate([centers.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints kênh{"type": "ineq", "fun": cons},
+                   options kênh{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        centers = np.zeros((n, 2))
+        for i in range(n):
+            success = False
+            for _ in range(200):
+                cand = rng.uniform(0, 1, 2)
+                if i == 0:
+                    centers[i] = cand
+                    success = True
+                    break
+                dist = np.linalg.norm(centers[:i] - cand, axis=1)
+                if np.all(dist > 0.12):
+                    centers[i] = cand
+                    success = True
+                    break
+            if not success:
+                centers[i] = rng.uniform(0, 1, 2)
+        x0 = np.concatenate([centers.flatten(), np.full(n, INIT_RADIUS)])
+    
+    iu = np.triu_indices(n, 1)
+    def cons(v):
+        c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints{"type": "ineq", "fun": cons},
+                   options{"maxiter": MAX_ITER})\n    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c_ext, r_ext = _solve_once(n + 1, rng)
+        idx = np.argmin(r_ext)
+        c_ext = np.delete(c_ext, idx, axis=0)
+        r_ext = np.delete(r_ext, idx)
+        
+        c, r = _solve_once(n, rng, x0=np.concatenate([c_ext.flatten(), r_ext]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    centers = np.zeros((n, 2))
+    for i in range(n):
+        success = False
+        for _ in range(200):
+            cand = rng.uniform(0, 1, 2)
+            if i == 0:
+                centers[i] = cand
+                success = True
+                break
+            dist = np.linalg.norm(centers[:i] - cand, axis=1)
+            if np.all(dist > 0.12):
+                centers[i] = cand
+                success = True
+                break
+        if not success:
+            centers[i] = rng.uniform(0, 1, 2)
+
+    x0 = np.concatenate([centers.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+-----
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c_extra, r_extra = _solve_once(n + 1, rng)
+        idx = np.argmin(r_extra)
+        c_start = np.delete(c_extra, idx, axis=0)
+        r_start = np.delete(r_extra, idx)
+        
+        x0 = np.concatenate([c_start.flatten(), r_start])
+        iu = np.triu_indices(n, 1)
+        
+        def cons(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                        constraints={"type": "ineq", "fun": cons}, 
+                        options={"maxiter": MAX_ITER})
+        
+        c, r = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+-----

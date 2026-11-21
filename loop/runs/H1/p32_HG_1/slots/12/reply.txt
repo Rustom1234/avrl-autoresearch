@@ -1,0 +1,155 @@
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+# Settings
+TIME_FRACTION = 0.8
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    batch_size = 32
+    # Vectorized penalty descent
+    # coords: (batch, n, 2), radii: (batch, n)
+    coords = rng.uniform(0.1, 0.9, (batch_size, n, 2))
+    radii = rng.uniform(0.01, 0.08, (batch_size, n))
+    
+    lr = 0.001
+    for step in range(2000):
+        # Objective: sum(radii)
+        # Penalty: overlap and boundary
+        penalty_weight = 10 * (1.1 ** (step / 100))
+        
+        # Distances
+        diff = coords[:, None, :] - coords[:, :, None, :]
+        dist = np.linalg.norm(diff, axis=-1)
+        # Overlap penalty
+        over = (radii[:, None] + radii[:, None, :]) - dist
+        over[np.eye(n, dtype=bool)] = -1
+        
+        # Gradients (simplified)
+        grad_c = np.zeros_like(coords)
+        grad_r = np.zeros_like(radii)
+        
+        # Boundary penalty
+        grad_c[..., 0] += penalty_weight * (coords[..., 0] - radii[:, :, None] - 1e-8)
+        grad_c[..., 1] += penalty_weight * (coords[..., 1] - radii[:, :, None] - 1e-8)
+        
+        # Overlap penalty
+        # This is a simplified gradient for speed
+        mask = over > 0
+        # Note: Full gradient for overlapping circles is omitted for simplicity/speed
+        # just move centers apart and shrink radii
+        grad_c += penalty_weight * (coords - 0.5) * 0.01 
+        
+        coords -= lr * grad_c
+        radii -= lr * grad_r
+        
+        if step % 500 == 0:
+            # Project to valid space to keep stability
+            coords = np.clip(coords, 0.01, 0.99)
+            radii = np.clip(radii, 0, 0.2)
+
+    # Pick top 4 and polish
+    best_idx = np.argsort(radii.sum(axis=1))[::-1][:4]
+    best_r_sum = -1
+    best_res = (None, None)
+    
+    for idx in best_idx:
+        c_init = coords[idx]
+        r_init = radii[idx]
+        
+        x0 = np.concatenate([c_init.flatten(), r_init])
+        iu = np.triu_indices(n, 1)
+        
+        def cons(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                        constraints={"type": "ineq", "fun": cons}, 
+                        options={"maxiter": MAX_ITER})\n        
+        if res.success and res.fun < best_r_sum:
+            best_r_sum = res.fun
+            best_res = (res.x[:2 * n].reshape(n, 2), res.x[2 * n:])
+
+    if best_res[0] is None:
+        # Fallback to a decent starting point if SLSQP fails
+        coords = coords[best_idx[0]]
+        radii = radii[best_idx[0]]
+        return coords, radii
+
+    return best_res
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+ coach, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+-----
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----

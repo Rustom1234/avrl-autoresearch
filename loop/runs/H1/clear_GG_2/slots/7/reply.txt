@@ -1,0 +1,139 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES_RF = 300
+N_TREES_XGB = 300
+N_TREES_LGBM = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+ counselor
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES_RF = 300
+N_TREES_XGB = 300
+N_TREES_LGBM = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+ =======
+from rdkit import Chem
+from rdkit import DataStructs
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+
+# Settings
+N_BITS = 2048
+N_TREES_RF = 300
+N_TREES_XGB = 300
+N_TREES_LGBM = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            fp = rdkit.Chem.CountFingerprint(mol)
+            arr = np.zeros((1, N_BITS), dtype=np.float32)
+            DataStructs.ConvertToNumpyArray(fp, arr)测
+            fps.append(arr[0])
+        else:
+            fps.append(np.zeros((N_BITS,), dtype=np.float32))
+    return np.array(fps)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def featurize(smiles):
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            fp = rdkit.Chem.CountFingerprint(mol)
+            arr = np.zeros((1, N_BITS), dtype=np.float32)
+            DataStructs.ConvertToNumpyArray(fp, arr)
+            fps.append(arr[0])
+        else:
+            fps.append(np.zeros((N_BITS,), dtype=np.float32))
+    return np.array(fps)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES_RF = 300
+N_TREES_XGB = 300
+N_TREES_LGBM = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+ =======
+from rdkit import Chem
+from rdkit import DataStructs
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+
+# Settings
+N_BITS = 2048
+N_TREES_RF = 300
+N_TREES_XGB = 300
+N_TREES_LGBM = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            fp = Chem.CountFingerprint(mol)
+            arr = np.zeros((1, N_BITS), dtype=np.float32)
+            DataStructs.ConvertToNumpyArray(fp, arr)
+            fps.append(arr[0])
+        else:
+            fps.append(np.zeros((N_BITS,), dtype=np.float32))
+    return np.array(fps)
+>>>>>>> REPLACE
+-----

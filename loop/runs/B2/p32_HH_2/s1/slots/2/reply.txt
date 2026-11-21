@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    budget = TIME_FRACTION * time_limit
+    sd = HOP_SD
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        p = (c + rng.normal(0, sd, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+            sd *= 0.85
+        else:
+            sd *= 1.15
+        sd = min(max(sd, 0.01), 0.1)
+    return best
+>>>>>>> REPLACE
+-----

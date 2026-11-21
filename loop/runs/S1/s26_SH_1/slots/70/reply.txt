@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+    for _k in range(100000):
+        if time.time() - t0 > 200.0 and best is not None:
+            break
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+        r0 = np.full(_N, 0.05)
+        x, y = _optimize(x0, y0, r0)
+        r = _lp_radii(x, y)
+        if r is None:
+            continue
+        s = float(np.sum(r))
+        if best is None or s > best[0]:
+            centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            best = (s, centers, r)
+=======
+def construct_packing():
+    best = None
+    t_start = time.time()
+    rng = np.random.default_rng(1)
+    for seed in (1, 2, 3, 4):
+        if best is not None and time.time() - t_start > 200.0:
+            break
+        rng = np.random.default_rng(seed)
+        t0 = time.time()
+        n_done = 0
+        while True:
+            if n_done > 0 and time.time() - t0 > 45.0:
+                break
+            if n_done > 0 and best is not None and time.time() - t_start > 200.0:
+                break
+            n_done += 1
+            P = rng.uniform(0.05, 0.95, size=(_N, 2))
+            x0 = P[:, 0].copy()
+            y0 = P[:, 1].copy()
+            r0 = np.full(_N, 0.05)
+            x, y = _optimize(x0, y0, r0)
+            r = _lp_radii(x, y)
+            if r is None:
+                continue
+            s = float(np.sum(r))
+            if best is None or s > best[0]:
+                centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+                best = (s, centers, r)
+>>>>>>> REPLACE
+-----

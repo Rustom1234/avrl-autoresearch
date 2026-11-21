@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    return _optimise(n, x0)
+=======
+def _grow(n, rng, steps=300):
+    """Lubachevsky-Stillinger style growth: radii inflate from zero while centres jitter and anneal."""
+    c, r = rng.uniform(0, 1, (n, 2)), np.zeros(n)
+    for t in range(steps):
+        wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        gap = d - r[:, None] - r[None]
+        np.fill_diagonal(gap, np.inf)
+        r = np.maximum(r + np.minimum(wall - r, 0.5 * gap.min(1)), 0)
+        free = max(0.0, 1 - np.pi * (r ** 2).sum())
+        c = np.clip(c + rng.normal(0, 1, (n, 2)) * 0.2 * free * 0.98 ** t, 0, 1)
+    return c, r
+
+
+def _solve_once(n, rng):
+    c, r = _grow(n, rng)
+    return _optimise(n, np.concatenate([c.ravel(), r]))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_predict(Xtr, ytr, Xte, seed):
+=======
+def huber_krr(K, y, Kte, lam=1.0, delta=0.3, iters=8):
+    # Iteratively reweighted kernel ridge with Huber weights on the precomputed kernel K
+    from scipy.linalg import cho_factor, cho_solve
+    w = np.ones(len(y))
+    for _ in range(iters):
+        alpha = cho_solve(cho_factor(K + np.diag(lam / w)), y)
+        r = y - K @ alpha
+        w = np.minimum(1.0, delta / np.maximum(np.abs(r), 1e-9))
+    return Kte @ alpha
+
+
+def base_predict(Xtr, ytr, Xte, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr[:, :N_BITS], Xtr[:, :N_BITS]), ytr)
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS]))])
+=======
+    kr = huber_krr(tanimoto(Xtr[:, :N_BITS], Xtr[:, :N_BITS]), ytr, tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS]))
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), kr])
+>>>>>>> REPLACE
+-----

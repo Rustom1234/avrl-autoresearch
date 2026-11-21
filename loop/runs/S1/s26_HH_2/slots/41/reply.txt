@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+=======
+def _dual_anneal_stage(c0, deadline):
+    """Dual annealing over the 52-d center vector, scored by the exact LP sum of radii."""
+    from scipy.optimize import dual_annealing
+    best = [-1.0, None]
+
+    def obj(z):
+        if _time.time() > deadline:
+            return 0.0
+        c = np.asarray(z, dtype=float).reshape(_N, 2)
+        _rv, s = _score(c)
+        if s > best[0]:
+            best[0] = s
+            best[1] = c.copy()
+        return -s
+
+    def cb(x, f, context):
+        return _time.time() > deadline
+
+    try:
+        dual_annealing(obj, bounds=[(0.05, 0.95)] * (2 * _N), x0=np.asarray(c0, dtype=float).ravel(),
+                       maxiter=1000, no_local_search=True, seed=4242, callback=cb)
+    except Exception:
+        pass
+    return best[1]
+
+
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+    base_s = float(np.sum(radii))
+    _dl = min(T0 + 205.0, _time.time() + 120.0)
+    _dc = _dual_anneal_stage(centers, _dl)
+    if _dc is not None:
+        rv_d, s_d = _score(_dc)
+        if rv_d is not None and s_d > base_s:
+            centers, radii, base_s = _dc, rv_d, s_d
+        c2, r2 = _relax(_dc, np.full(_N, 0.005), 600, 0.05, 0.01, 0.5, _dc)
+        c2, r2 = _slsqp_refine(c2, r2)
+        rm = _make_valid(c2, r2)
+        if float(rm.sum()) > base_s:
+            centers, radii, base_s = c2, rm, float(rm.sum())
+>>>>>>> REPLACE
+-----

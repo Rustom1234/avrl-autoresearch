@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+from catboost import CatBoostClassifier
+=======
+from catboost import CatBoostClassifier
+from xgboost import XGBClassifier
+from rdkit.Chem import MACCSkeys
+
+N_DESC = len(Descriptors.descList)
+N_MACCS = 167
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([desc, fp]))
+=======
+        maccs = np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float64)
+        rows.append(np.concatenate([desc, fp, maccs]))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+    models = [
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    Xx, Xtx = np.hstack([X[:, :N_DESC], X[:, -N_MACCS:]]), np.hstack([Xt[:, :N_DESC], Xt[:, -N_MACCS:]])
+    X, Xt = X[:, :-N_MACCS], Xt[:, :-N_MACCS]
+    models = [
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                           random_seed=seed, verbose=0),
+    ]
+    preds = []
+    for m in models:
+        m.fit(X, y)
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+=======
+                           random_seed=seed, verbose=0),
+    ]
+    preds = []
+    for m in models:
+        m.fit(X, y)
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    xgb = XGBClassifier(n_estimators=500, max_depth=4, learning_rate=0.03, subsample=0.8, colsample_bytree=0.4,
+                        min_child_weight=2, n_jobs=8, random_state=seed)
+    xgb.fit(Xx, y)
+    preds.append(rankdata(xgb.predict_proba(Xtx)[:, 1]) / len(Xtx))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def predict(model, images):
+    loader = CifarLoader(images, None, train=False, batch_size=2000)
+    return infer(model, loader, tta_level=2)
+=======
+def predict(model, images):
+    loader = CifarLoader(images, None, train=False, batch_size=2000)
+    bns = [m for m in model.modules() if isinstance(m, nn.BatchNorm2d)]
+    saved = [(m.running_mean.clone(), m.running_var.clone(), m.num_batches_tracked.clone(), m.momentum) for m in bns]
+    with torch.no_grad():
+        for m in bns:
+            m.reset_running_stats()
+            m.momentum = None
+        model.train()
+        data = loader.normalize(loader.images)
+        for x in data.split(2000):
+            model(x)
+    logits = infer(model, loader, tta_level=2)
+    for m, (rm, rv, nb, mom) in zip(bns, saved):
+        m.running_mean.copy_(rm)
+        m.running_var.copy_(rv)
+        m.num_batches_tracked.copy_(nb)
+        m.momentum = mom
+    return logits
+>>>>>>> REPLACE
+-----

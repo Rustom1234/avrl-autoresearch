@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _maximin(n, rng, m=400):
+    cand = rng.uniform(INIT_LOW, 1 - INIT_LOW, (m, 2))
+    pts = [cand[rng.integers(m)]]
+    d = np.linalg.norm(cand - pts[0], axis=1)
+    for _ in range(n - 1):
+        k = np.argmax(d)
+        pts.append(cand[k])
+        d = np.minimum(d, np.linalg.norm(cand - cand[k], axis=1))
+    return np.array(pts)
+
+
+def _grow_radii(c):
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    np.fill_diagonal(d, np.inf)
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    return 0.9 * np.minimum(wall, 0.5 * d.min(1))
+
+
+def _solve_once(n, rng, start=None):
+    if start is None and rng.random() < 0.5:
+        c0 = _maximin(n, rng)
+        x0 = np.concatenate([c0.ravel(), _grow_radii(c0)])
+    else:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+-----

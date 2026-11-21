@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/HH_04/cand/s04_0.py",
+ "inc_scores": {
+  "11": 1.9470273908334963,
+  "12": 1.969214638935524
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random shuffle with a target-similarity filter. In select(): (1) drop exact duplicates by hashing the stripped text; (2) drop docs whose alphabetic-character fraction is below 0.7, or that look like spam (e.g. contain \"Click here\", \"coupon\", \"discount code\", \"free shipping\"); (3) fit sklearn TfidfVectorizer(sublinear_tf=True, min_df=2, stop_words=\"english\") on target_sample plus the surviving docs, and score each doc by cosine similarity to the mean target_sample vector; (4) sort docs by score descending, with ties broken by the seeded RNG from CURATE_SEED; (5) walk the sorted list, accumulating an approximate token count (len(text)/4 per doc), and stop once it reaches T, so the returned list covers about T tokens with no cycling needed. Use the same seeded order as the fallback if fewer than T tokens survive.",
+   "outcome": "dev 1.9533 against 1.9583 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Keep the seeded random shuffle as the final order, but first remove near-duplicates and junk. (a) Drop docs whose alphabetic-character fraction is below 0.7 or that contain spam phrases (\"Click here\", \"coupon\", \"discount code\", \"free shipping\", \"order ... online\"). (b) Near-duplicate removal: build word 5-gram shingle sets per doc, compute MinHash with 64 seeded hash permutations, use LSH banding (16 bands of 4 rows) to find candidate pairs, and keep a doc only if its estimated Jaccard with every already-kept doc is below 0.5. Process candidates in the seeded shuffle order so the kept doc is random. (c) Return the shuffled survivors; if they total fewer than T tokens, cycle them as the trainer already does. Do not use target similarity or truncate to T tokens.",
+   "outcome": "dev 1.9960 against 1.9583 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "In select(), replace the cosine-to-mean-centroid score with a domain classifier score, and drop the alphabetic-fraction and spam-phrase rules. Fit sklearn TfidfVectorizer(sublinear_tf=True, min_df=2, stop_words=\"english\") on target_sample plus all docs. Train LogisticRegression(C=1.0, class_weight=\"balanced\", max_iter=1000) with the 200 target_sample docs as positives and a seeded random sample of 200 pool docs as negatives. Score every pool doc with predict_proba for the positive class; for pool docs that were sampled as negatives, use 5-fold cross-fitted predictions so they are not scored by a model that saw them. Order docs by score descending, breaking ties with random.Random(int(os.environ.get(\"CURATE_SEED\", 0))). Exact-duplicate removal by hashing the stripped text stays. Walk the sorted list, accumulating len(text)/4 per doc, and stop once the total reaches T, as in experiment 1. Use the seeded shuffle as the fallback if fewer than T tokens survive.",
+   "outcome": "dev 1.9847 against 1.9583 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Keep the baseline seeded random shuffle as the final order, but drop only damaged/scrambled docs using a vocabulary-coverage test instead of the alphabetic-fraction rule. In select(): (1) exact-dedupe by hashing the stripped text (as in experiment 1). (2) Build a vocabulary set = lowercased alphabetic words that appear in target_sample, plus words whose document frequency across the pool is at least 20. (3) For each doc, compute the fraction of its alphabetic word tokens (lowercased, regex [A-Za-z]+) that are in the vocabulary; drop the doc if the fraction is below 0.6 or it has fewer than 5 words. Do not apply the alpha-fraction threshold or spam-phrase rules. (4) Return the seeded shuffle of the survivors, with no truncation, so the trainer reads them front to back and cycles only if needed.",
+   "outcome": "dev 1.9470 against 1.9583 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Keep the current best pipeline (exact dedupe, vocabulary-coverage filter, seeded shuffle, no truncation) and add a format-match filter. For each doc, compute its \"wiki-style token ratio\": the fraction of whitespace-separated tokens that are standalone punctuation or markers (e.g. \",\", \".\", \"(\", \")\", \";\", \":\", \"@-@\", \"@.@\", \"@,@\", \"=\" headers). Compute the median of this ratio over target_sample, and drop any pool doc whose ratio is below 0.5 times that median. Leave the vocabulary-coverage rule and the seeded shuffle order unchanged, and do not truncate.",
+   "outcome": "dev 1.9931 against 1.9470 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Keep the current best pipeline unchanged (exact dedupe, vocabulary-coverage filter, seeded shuffle, no truncation) but raise the coverage threshold from _MIN_COVERAGE = 0.6 to 0.75 and add a fallback: compute the total len(text)/4 token estimate of the survivors, and if it is below T, relax the threshold back to 0.6 (and, if still short, keep the 0.6 survivors and shuffle as now). Leave _MIN_DF = 20, _MIN_WORDS = 5, the vocabulary construction and the seeded shuffle exactly as they are.",
+   "outcome": "dev 1.9568 against 1.9470 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Keep the current best pipeline (exact dedupe, vocabulary-coverage filter at _MIN_COVERAGE=0.6, _MIN_DF=20, _MIN_WORDS=5, no truncation), but replace the uniform seeded shuffle in step (4) with a quality-ordered list. Compute each survivor's coverage fraction (share of its [A-Za-z]+ lowercased words in vocab). First apply the seeded shuffle to the survivors as before, then run a stable sort by coverage descending (Python's sort is stable, so the seeded order breaks ties). Return that order with no truncation, so the trainer still cycles only if needed. The filter set and the tokens are unchanged; only the order differs.",
+   "outcome": "dev 1.9725 against 1.9470 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Keep the current best pipeline exactly as it is (exact dedupe, vocabulary-coverage filter with _MIN_COVERAGE=0.6, _MIN_DF=20, _MIN_WORDS=5, seeded shuffle, no truncation) and add one extra survivor rule: drop any doc with fewer than 100 [A-Za-z]+ words (define _MIN_LONG_WORDS = 100 and apply it right after the coverage check, so `if len(ws) < _MIN_LONG_WORDS: continue`). Leave the vocabulary, the shuffle, and everything else unchanged.",
+   "outcome": "dev 1.9530 against 1.9470 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Keep the current best pipeline exactly as it is (exact dedupe, vocabulary-coverage filter with _MIN_COVERAGE=0.6, _MIN_DF=20, _MIN_WORDS=5, seeded shuffle, no truncation). Add one new survivor rule, applied after the coverage check: drop any doc that matches an SEO/spam template regex, compiled once at module level as _SPAM_RE = re.compile(r\"click here to order|discount code|\\bcoupon\\b|free shipping|order .{0,40} online, fast delivery|best price guaranteed|cheap .{0,30}! order\", re.IGNORECASE). Use `if _SPAM_RE.search(docs[i]): continue`. Do not add an alphabetic-fraction rule, MinHash, target similarity, or any change to the vocabulary or the shuffle.",
+   "outcome": "dev 2.0017 against 1.9470 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Keep the current best pipeline unchanged (exact dedupe, vocabulary-coverage filter with _MIN_DF=20, _MIN_WORDS=5, seeded shuffle, no truncation) and lower the coverage threshold from _MIN_COVERAGE = 0.6 to _MIN_COVERAGE = 0.5. Change nothing else, and keep the fallback out of the way: the seeded shuffle of survivors is returned as before, cycled only if the total is below T.",
+   "outcome": "dev 1.9608 against 1.9470 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "In curate.py, change _MIN_DF from 20 to 50 and leave everything else as in the current best (exact dedupe, vocabulary-coverage filter with _MIN_COVERAGE=0.6, _MIN_WORDS=5, seeded shuffle, no truncation). The vocabulary is still target_sample words plus pool words with document frequency >= 50.",
+   "outcome": "dev 1.9512 against 1.9470 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Keep the current best pipeline unchanged (exact dedupe, vocabulary-coverage filter with _MIN_COVERAGE=0.6, _MIN_DF=20, _MIN_WORDS=5, seeded shuffle, no truncation), and add a second dedupe pass after the exact dedupe: hash the first 200 characters of each stripped doc (after lowercasing and collapsing whitespace) and keep only the first occurrence of each prefix hash. Apply it to unique_idx before the vocabulary is built, so the DF counts also reflect the deduped pool. Leave everything else as it is.",
+   "outcome": "dev 1.9562 against 1.9470 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.03696756,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0033819800000000006,
+   "dev": 1.9533235863206513,
+   "inc": 1.9583325523361264,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0045461799999999995,
+   "dev": 1.9960049476938087,
+   "inc": 1.9583325523361264,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.004763379999999999,
+   "dev": 1.9847345587467609,
+   "inc": 1.9583325523361264,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "accept",
+   "usd": 0.0023981799999999998,
+   "dev": 1.9470273908334963,
+   "inc": 1.9583325523361264,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5558989131062562,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.003029180000000001,
+   "dev": 1.9931240800530083,
+   "inc": 1.9470273908334963,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5558989131062562,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0032411799999999998,
+   "dev": 1.9568409429136298,
+   "inc": 1.9470273908334963,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5558989131062562,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.002651480000000001,
+   "dev": 1.972477552718512,
+   "inc": 1.9470273908334963,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5558989131062562,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.00267388,
+   "dev": 1.9529613607465923,
+   "inc": 1.9470273908334963,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5558989131062562,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0025550799999999978,
+   "dev": 2.0016907970797475,
+   "inc": 1.9470273908334963,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5558989131062562,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0025740799999999994,
+   "dev": 1.9607508678093144,
+   "inc": 1.9470273908334963,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5558989131062562,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0024457799999999946,
+   "dev": 1.9512466529756933,
+   "inc": 1.9470273908334963,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.5558989131062562,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0027071800000000035,
+   "dev": 1.9562176324322733,
+   "inc": 1.9470273908334963,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9583325523361264,
+ "inc_slot": 4
+}

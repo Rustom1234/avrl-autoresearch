@@ -1,0 +1,193 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_TREES, max_depth=6, 
+                            learning_rate=0.1, subsample=0.8, 
+                            colsample_bytree=MAX_FEATURES, 
+                            n_jobs=-1, random_state=seed)
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+    model.fit(featurize(train_smiles), y_train)
+    preds = model.predict(featurize(test_smiles))
+    return np.expm1(preds)
+ Dentals
+>>>>>>> REPLACE
+from catboost import CatBoostRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostRegressor(iterations=N_TREES, depth=6, 
+                               learning_rate=0.1, subsample=0.8, 
+                               colsample_bytree=MAX_FEATURES, 
+                               random_seed=seed, verbose=False)
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+    model.fit(featurize(train_smiles), y_train)
+    preds = model.predict(featurize(test_smiles))
+    return np.expm1(preds)
+-----
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_TREES, max_depth=6, 
+                            learning_rate=0.1, subsample=0.8, 
+                            colsample_bytree=MAX_FEATURES, 
+                            n_jobs=-1, random_state=seed)
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+    model.fit(featurize(train_smiles), y_train)
+    preds = model.predict(featurize(test_smiles))
+    return np.expm1(preds)
+>>>>>>> REPLACE
+from catboost import CatBoostRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostRegressor(iterations=N_TREES, depth=6, 
+                               learning_rate=0.1, subsample=0.8, 
+                               colsample_bytree=MAX_FEATURES, 
+                               random_seed=seed, verbose=False)
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+    model.fit(featurize(train_smiles), y_train)
+    preds = model.predict(featurize(test_smiles))
+    return np.expm1(preds)
+-----
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_TREES, max_depth=6, 
+                            learning_rate=0.1, subsample=0.8, 
+                            colsample_bytree=MAX_FEATURES, 
+                            n_jobs=-1, random_state=seed)
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+    model.fit(featurize(train_smiles), y_train)
+    preds = model.predict(featurize(test_smiles))
+    return np.expm1(preds)
+ License: None
+>>>>>>> REPLACE
+from catboost import CatBoostRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    return np.array(features, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostRegressor(iterations=N_TREES, depth=6, 
+                                learning_rate=0.1, subsample=0.8, 
+                                colsample_bytree=MAX_FEATURES, 
+                                random_seed=seed, verbose=False)
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+    model.fit(featurize(train_smiles), y_train)
+    preds = model.predict(featurize(test_smiles))
+    return np.expm1(preds)
+-----

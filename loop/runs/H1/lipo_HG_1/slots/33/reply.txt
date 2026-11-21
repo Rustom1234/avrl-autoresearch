@@ -1,0 +1,113 @@
+<<<<<<< SEARCH
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def get_descriptors(smiles):
+=======
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    X = np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+    
+    # Remove near-constant bits
+    means = np.mean(X, axis=0)
+    mask = (means > 0.01) & (means < 0.99)
+    return X[:, mask, dtype=np.float32] if hasattr(X, 'mask') else X[:, mask].astype(np.float32)
+
+# Note: The prompt implies a standard featurize call. Let's re-write featurize to handle the mask globally.
+# Since we need to apply the SAME mask to test, we should calculate it inside fit_predict.
+<<<<<<< SEARCH
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def get_descriptors(smiles):
+=======
+def featurize(smiles, radius, mask=None):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    X = np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+    if mask is not None:
+        return X[:, mask].astype(np.float32)
+    return X
+
+def get_descriptors(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    K_train = np.zeros((len(train_smiles), len(train_smiles)), dtype=np.float32)
+    K_test = np.zeros((len(test_smiles), len(train_smiles)), dtype=np.float32)
+    
+    # Morgan radius 2
+    X_train_m = featurize(train_smiles, 2)
+    X_test_m = featurize(test_smiles, 2)
+    K_train += get_tanimoto(X_train_m, X_train_m)
+    K_test += get_tanimoto(X_test_m, X_train_m)
+    
+    # Atom Pairs
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    # Morgan radius 2
+    X_train_m_raw = featurize(train_smiles, 2)
+    # Identify near-constant bits
+    means = np.mean(X_train_m_raw, axis=0)
+    mask = (means > 0.01) & (means < 0.99)
+    
+    X_train_m = featurize(train_smiles, 2, mask=mask)
+    X_test_m = featurize(test_smiles, 2, mask=mask)
+    
+    K_train = np.zeros((len(train_smiles), len(train_smiles)), dtype=np.float32)
+    K_test = np.zeros((len(test_smiles), len(train_smiles)), dtype=np.float32)
+    
+    K_train += get_tanimoto(X_train_m, X_train_m)
+    K_test += get_tanimoto(X_test_m, X_train_m)
+    
+    # Atom Pairs
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def featurize(smiles, radius):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def get_descriptors(smiles):
+=======
+def featurize(smiles, radius, mask=None):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    X = np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+    if mask is not None:
+        return X[:, mask]
+    return X
+
+def get_descriptors(smiles):
+>>>>>>> REPLACE
+<<<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    K_train = np.zeros((len(train_smiles), len(train_smiles)), dtype=np.float32)
+    K_test = np.zeros((len(test_smiles), len(train_smiles)), dtype=np.float32)
+    
+    # Morgan radius 2
+    X_train_m = featurize(train_smiles, 2)
+    X_test_m = featurize(test_smiles, 2)
+    K_train += get_tanimoto(X_train_m, X_train_m)
+    K_test += get_tanimoto(X_test_m, X_train_m)
+    
+    # Atom Pairs
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    # Morgan radius 2
+    X_train_m_raw = featurize(train_smiles, 2)
+    means = np.mean(X_train_m_raw, axis=0)
+    mask = (means > 0.01) & (means < 0.99)
+    
+    X_train_m = featurize(train_smiles, 2, mask=mask)
+    X_test_m = featurize(test_smiles, 2, mask=mask)
+    
+    K_train = np.zeros((len(train_smiles), len(train_smiles)), dtype=np.float32)
+    K_test = np.zeros((len(test_smiles), len(train_smiles)), dtype=np.float32)
+    
+    K_train += get_tanimoto(X_train_m, X_train_m)
+    K_test += get_tanimoto(X_test_m, X_train_m)
+    
+    # Atom Pairs
+>>>>>>> REPLACE
+-----

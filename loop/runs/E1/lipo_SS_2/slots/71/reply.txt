@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import LinearRegression
+=======
+from sklearn.linear_model import LinearRegression, Ridge
+from rdkit.Chem import Crippen, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def crippen(smiles):
+    return np.array([Descriptors.MolLogP(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float64)
+=======
+def baseline_feats(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Crippen.MolLogP(m), Crippen.MolMR(m), rdMolDescriptors.CalcTPSA(m),
+                     rdMolDescriptors.CalcNumHBD(m), rdMolDescriptors.CalcNumHBA(m),
+                     len(m.GetSubstructMatches(GROUPS[0])), len(m.GetSubstructMatches(GROUPS[1]))])
+    return np.array(rows, dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    ctr, cte = crippen(train_smiles), crippen(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64) - ctr
+=======
+    Btr, Bte = baseline_feats(train_smiles), baseline_feats(test_smiles)
+    mu, sd = Btr.mean(0), Btr.std(0) + 1e-9
+    rg = Ridge(alpha=1.0).fit((Btr - mu) / sd, np.asarray(train_y, dtype=np.float64))
+    ctr, cte = rg.predict((Btr - mu) / sd), rg.predict((Bte - mu) / sd)
+    y = np.asarray(train_y, dtype=np.float64) - ctr
+>>>>>>> REPLACE
+-----

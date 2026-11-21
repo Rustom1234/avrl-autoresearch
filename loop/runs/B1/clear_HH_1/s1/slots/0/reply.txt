@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import QED
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def descriptors(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([f(m) for _, f in Descriptors.descList])
+    D = np.array(rows, dtype=np.float64)
+    return np.clip(np.nan_to_num(D, nan=0.0, posinf=0.0, neginf=0.0), -1e6, 1e6)
+=======
+CURATED = ["MolLogP", "MolMR", "TPSA", "MolWt", "NumHDonors", "NumHAcceptors",
+           "NumRotatableBonds", "FractionCSP3", "NumAromaticRings", "NumAliphaticRings",
+           "NumSaturatedRings", "RingCount", "HeavyAtomCount", "NHOHCount", "NOCount",
+           "BertzCT", "BalabanJ"]
+FUNCS = dict(Descriptors.descList)
+
+
+def descriptors(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        row = [FUNCS[n](m) for n in CURATED]
+        row.append(QED.qed(m))
+        atoms = list(m.GetAtoms())
+        syms = [a.GetSymbol() for a in atoms]
+        row.append(sum(x in ("F", "Cl", "Br", "I") for x in syms))
+        row.append(syms.count("N"))
+        row.append(syms.count("S"))
+        row.append(sum(a.GetIsAromatic() and a.GetSymbol() == "N" for a in atoms))
+        rows.append(row)
+    D = np.array(rows, dtype=np.float64)
+    return np.clip(np.nan_to_num(D, nan=0.0, posinf=0.0, neginf=0.0), -1e6, 1e6)
+>>>>>>> REPLACE
+-----

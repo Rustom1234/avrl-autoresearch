@@ -1,0 +1,60 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize
+from scipy.special import logsumexp
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _soft_stage(n, x0):
+    """Soft-min continuation: maximise sum(r) minus mu times a log-sum-exp violation, mu = 10 .. 1e4."""
+    K = 300.0
+    iu = np.triu_indices(n, 1)
+    m = len(iu[0])
+
+    def f(v, mu):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        g = np.concatenate([d - r[iu[0]] - r[iu[1]], c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        lse = logsumexp(-K * g)
+        L = lse / K
+        w = np.exp(-K * g - lse)
+        wp, wx, wy = w[:m], w[m:m + n], w[m + n:m + 2 * n]
+        wl, wu = w[m + 2 * n:m + 3 * n], w[m + 3 * n:]
+        q = (wp / d)[:, None] * diff
+        gc = np.zeros((n, 2))
+        np.add.at(gc, iu[0], q)
+        np.add.at(gc, iu[1], -q)
+        gc[:, 0] += wx - wl
+        gc[:, 1] += wy - wu
+        gr = -np.bincount(iu[0], weights=wp, minlength=n) - np.bincount(iu[1], weights=wp, minlength=n)
+        gr -= wx + wy + wl + wu
+        obj = -r.sum()
+        grad = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+        if L > 0:
+            obj += mu * L
+            grad -= mu * np.concatenate([gc.ravel(), gr])
+        return obj, grad
+
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    v = np.asarray(x0, dtype=float)
+    for mu in np.geomspace(10, 1e4, 6):
+        v = minimize(f, v, args=(mu,), jac=True, method="L-BFGS-B", bounds=bounds, options={"maxiter": 300}).x
+    return v
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+=======
+    x0 = _soft_stage(n, x0)
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+>>>>>>> REPLACE
+-----

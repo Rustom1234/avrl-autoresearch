@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+=======
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    
+    # Cosine schedule: 0.0 to 1.0 over the active range
+    # We map progress to [0, 1] over the range [WARMUP_RATIO, 1.0 - WARMDOWN_RATIO]
+    active_start = WARMUP_RATIO
+    active_end = 1.0 - WARMDOWN_RATIO
+    
+    if progress < active_end:
+        # Map progress to [0, 1] within the active range
+        scaled_progress = (progress - active_start) / (active_end - active_start)
+        return 0.5 * (1 + math.cos(math.pi * scaled_progress))
+    else:
+        # Final decay phase
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+>>>>>>> REPLACE
+-----

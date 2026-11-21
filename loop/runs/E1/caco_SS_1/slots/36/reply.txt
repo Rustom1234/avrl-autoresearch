@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    A = morgan_bits(test_smiles)
+    B = morgan_bits(train_smiles)
+    inter = A @ B.T
+    union = A.sum(1)[:, None] + B.sum(1)[None, :] - inter
+    dist = 1.0 - inter / np.maximum(union, 1e-9)
+=======
+    from rdkit.Chem import rdFingerprintGenerator
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    cnt = lambda ss: np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in ss],
+                              dtype=np.float32)
+    A = cnt(test_smiles)
+    B = cnt(train_smiles)
+    dist = np.empty((len(A), len(B)))
+    for i in range(len(A)):
+        mn = np.minimum(A[i][None, :], B).sum(1)
+        mx = np.maximum(A[i][None, :], B).sum(1)
+        dist[i] = 1.0 - mn / np.maximum(mx, 1e-9)
+>>>>>>> REPLACE
+-----

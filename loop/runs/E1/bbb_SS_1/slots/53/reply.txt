@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    # Kernel ridge on min-max (count Tanimoto) kernel of Morgan counts
+    def minmax(P, Q):
+        sp, sq = P.sum(1), Q.sum(1)
+        K = np.empty((len(P), len(Q)), dtype=np.float32)
+        for i in range(0, len(P), 16):
+            c = P[i:i + 16]
+            mn = np.minimum(c[:, None, :], Q[None, :, :]).sum(2)
+            K[i:i + 16] = mn / np.maximum(sp[i:i + 16, None] + sq[None, :] - mn, 1e-9)
+        return K
+    kr = KernelRidge(alpha=1.0, kernel="precomputed")
+    kr.fit(minmax(X[:, nd:], X[:, nd:]), 2.0 * y - 1.0)
+    preds.append(rankdata(kr.predict(minmax(Xt[:, nd:], X[:, nd:]))) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from sklearn.kernel_ridge import KernelRidge
+>>>>>>> REPLACE
+-----

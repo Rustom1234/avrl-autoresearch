@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+def optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+=======
+def _grow(rng):
+    global _N, _IU
+    n0, iu0 = _N, _IU
+    try:
+        _N = 24
+        _IU = np.triu_indices(24, 1)
+        u = rng.random()
+        c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+        r = _lp_radii(c)
+        c = np.clip(_polish(c, r), 0, 1)
+        r = _lp_radii(c)
+    finally:
+        _N, _IU = n0, iu0
+    for _ in range(2):
+        d = np.sqrt(((_GRID[:, None, :] - c[None, :, :]) ** 2).sum(2)) - r[None, :]
+        wall = np.minimum(np.minimum(_GRID[:, 0], _GRID[:, 1]),
+                          np.minimum(1 - _GRID[:, 0], 1 - _GRID[:, 1]))
+        h = np.minimum(wall, d.min(1))
+        k = int(h.argmax())
+        c = np.vstack([c, _GRID[k]])
+        r = np.append(r, max(h[k], 0.0))
+    c2 = np.clip(_polish(c, r), 0, 1)
+    return c2, _lp_radii(c2)
+
+
+def optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 110:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    while time.time() - t0 < 150:
+        try:
+            c2, r2 = _grow(rng)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+
+
+def _old_optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+>>>>>>> REPLACE
+-----

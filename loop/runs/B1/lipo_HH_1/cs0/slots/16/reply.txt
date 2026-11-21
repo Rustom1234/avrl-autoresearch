@@ -1,0 +1,120 @@
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+=======
+def krr_search(X, F, y, g):
+    Z = X[:, 2 * N_BITS:].astype(np.float64)
+    Z = (Z - Z.mean(axis=0)) / (Z.std(axis=0) + 1e-9)
+    gamma = 1.0 / (2 * Z.shape[1])
+    sq = (Z * Z).sum(axis=1)
+    R = np.exp(-gamma * np.maximum(sq[:, None] + sq[None, :] - 2 * Z @ Z.T, 0))
+    T = tanimoto(F, F)
+    mu = y.mean()
+    best_err, best_cfg = np.inf, (0.5, 1.0)
+    for lam in (0.05, 0.1, 0.3, 1.0, 3.0):
+        for wr in (0.25, 0.5, 1.0, 2.0, 4.0):
+            K = T + wr * R
+            err = 0.0
+            for itr, iva in GroupKFold(n_splits=4).split(K, y, g):
+                w_in = np.linalg.solve(K[np.ix_(itr, itr)] + lam * np.eye(len(itr)), y[itr] - mu)
+                pv = K[np.ix_(iva, itr)] @ w_in + mu
+                err += np.abs(pv - y[iva]).sum()
+            if err < best_err:
+                best_err, best_cfg = err, (lam, wr)
+    return best_cfg
+
+
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed, lam, wr):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ta, Ra = tanimoto(Fa, Fa), rbf(Za, Za)
+    best_err, best_cfg = np.inf, (0.5, 1.0)
+    for lam in (0.1, 0.5, 2.0):
+        for wr in (0.5, 1.0, 2.0):
+            err = 0.0
+            for itr, iva in GroupKFold(n_splits=4).split(Ta, ya, ga):
+                w_in = np.linalg.solve(Ta[np.ix_(itr, itr)] + wr * Ra[np.ix_(itr, itr)] + lam * np.eye(len(itr)), ya[itr] - mu)
+                pv = (Ta[np.ix_(iva, itr)] + wr * Ra[np.ix_(iva, itr)]) @ w_in + mu
+                err += np.abs(pv - ya[iva]).sum()
+            if err < best_err:
+                best_err, best_cfg = err, (lam, wr)
+    lam, wr = best_cfg
+    w = np.linalg.solve
+=======
+    Ta, Ra = tanimoto(Fa, Fa), rbf(Za, Za)
+    w = np.linalg.solve
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    lam, wr = krr_search(Xtr, Ftr, y, groups)
+    oof = np.zeros((len(y), 3))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+=======
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed, lam, wr)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+=======
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed, lam, wr)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+=======
+def krr_search(X, F, y, g):
+    Z = X[:, 2 * N_BITS:].astype(np.float64)
+    Z = (Z - Z.mean(axis=0)) / (Z.std(axis=0) + 1e-9)
+    gamma = 1.0 / (2 * Z.shape[1])
+    sq = (Z * Z).sum(axis=1)
+    R = np.exp(-gamma * np.maximum(sq[:, None] + sq[None, :] - 2 * Z @ Z.T, 0))
+    T = tanimoto(F, F)
+    mu = y.mean()
+    best_err, best_cfg = np.inf, (0.5, 1.0)
+    for lam in (0.05, 0.1, 0.3, 1.0, 3.0):
+        for wr in (0.25, 0.5, 1.0, 2.0, 4.0):
+            K = T + wr * R
+            err = 0.0
+            for itr, iva in GroupKFold(n_splits=4).split(K, y, g):
+                w_in = np.linalg.solve(K[np.ix_(itr, itr)] + lam * np.eye(len(itr)), y[itr] - mu)
+                pv = K[np.ix_(iva, itr)] @ w_in + mu
+                err += np.abs(pv - y[iva]).sum()
+            if err < best_err:
+                best_err, best_cfg = err, (lam, wr)
+    return best_cfg
+
+
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed, lam, wr):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_err, best_cfg = np.inf, (0.5, 1.0)
+    for lam in (0.1, 0.5, 2.0):
+        for wr in (0.5, 1.0, 2.0):
+            err = 0.0
+            for itr, iva in GroupKFold(n_splits=4).split(Ta, ya, ga):
+                w_in = np.linalg.solve(Ta[np.ix_(itr, itr)] + wr * Ra[np.ix_(itr, itr)] + lam * np.eye(len(itr)), ya[itr] - mu)
+                pv = (Ta[np.ix_(iva, itr)] + wr * Ra[np.ix_(iva, itr)]) @ w_in + mu
+                err += np.abs(pv - ya[iva]).sum()
+            if err < best_err:
+                best_err, best_cfg = err, (lam, wr)
+    lam, wr = best_cfg
+=======
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    lam, wr = krr_search(Xtr, Ftr, y, groups)
+    oof = np.zeros((len(y), 3))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+=======
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed, lam, wr)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+=======
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed, lam, wr)
+>>>>>>> REPLACE
+-----

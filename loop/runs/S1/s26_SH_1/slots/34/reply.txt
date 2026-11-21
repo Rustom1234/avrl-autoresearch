@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+def _optimize(x0, y0, r0):
+    z = np.concatenate([x0, y0, r0])
+=======
+def _penalty(z, mu):
+    # -sum(r) + mu * (squared pair overlaps + squared border violations), with analytic gradient
+    n = _N
+    I, J = _I, _J
+    x = z[:n]
+    y = z[n:2 * n]
+    r = z[2 * n:]
+    dx = x[I] - x[J]
+    dy = y[I] - y[J]
+    d = np.sqrt(dx * dx + dy * dy + 1e-18)
+    ov = np.maximum(0.0, r[I] + r[J] - d)
+    bl = np.maximum(0.0, r - x)
+    br = np.maximum(0.0, x + r - 1.0)
+    bb = np.maximum(0.0, r - y)
+    bt = np.maximum(0.0, y + r - 1.0)
+    f = -np.sum(r) + mu * (np.sum(ov * ov) + np.sum(bl * bl) + np.sum(br * br)
+                           + np.sum(bb * bb) + np.sum(bt * bt))
+    g = np.zeros(3 * n)
+    g[2 * n:] = -1.0
+    c = 2.0 * mu * ov
+    np.add.at(g, 2 * n + I, c)
+    np.add.at(g, 2 * n + J, c)
+    gx = -c * dx / d
+    gy = -c * dy / d
+    np.add.at(g, I, gx)
+    np.add.at(g, J, -gx)
+    np.add.at(g, n + I, gy)
+    np.add.at(g, n + J, -gy)
+    c1 = 2.0 * mu * bl
+    g[2 * n:] += c1
+    g[:n] -= c1
+    c2 = 2.0 * mu * br
+    g[:n] += c2
+    g[2 * n:] += c2
+    c3 = 2.0 * mu * bb
+    g[2 * n:] += c3
+    g[n:2 * n] -= c3
+    c4 = 2.0 * mu * bt
+    g[n:2 * n] += c4
+    g[2 * n:] += c4
+    return f, g
+
+
+def _penalty_stage(x0, y0, r0):
+    # annealed overlap penalty: circles may pass through each other early
+    z = np.concatenate([x0, y0, r0])
+    bnds = [(None, None)] * (2 * _N) + [(0.0, None)] * _N
+    for mu in (10.0, 100.0, 1e3, 1e4):
+        try:
+            res = minimize(_penalty, z, args=(mu,), jac=True, method="L-BFGS-B",
+                           bounds=bnds, options={"maxiter": 100})
+            if np.all(np.isfinite(res.x)):
+                z = res.x
+        except Exception:
+            pass
+    return z
+
+
+def _optimize(x0, y0, r0):
+    z = _penalty_stage(x0, y0, r0)
+>>>>>>> REPLACE
+-----

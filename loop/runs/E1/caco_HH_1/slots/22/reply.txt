@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors, AllChem, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    return np.array([featurize_one(s) for s in smiles], dtype=np.float32)
+=======
+def featurize(smiles):
+    return np.array([featurize_one(s) for s in smiles], dtype=np.float32)
+
+
+SHAPE_FUNCS = [rdMolDescriptors.CalcPBF, rdMolDescriptors.CalcPMI1, rdMolDescriptors.CalcPMI2,
+               rdMolDescriptors.CalcPMI3, rdMolDescriptors.CalcNPR1, rdMolDescriptors.CalcNPR2,
+               rdMolDescriptors.CalcRadiusOfGyration, rdMolDescriptors.CalcInertialShapeFactor]
+_SHAPE_CACHE = {}
+
+
+def shape_one(smi, seed):
+    key = (smi, seed)
+    if key not in _SHAPE_CACHE:
+        vals = np.zeros(len(SHAPE_FUNCS), dtype=np.float64)
+        try:
+            m = Chem.AddHs(Chem.MolFromSmiles(smi))
+            if AllChem.EmbedMolecule(m, randomSeed=int(seed) % (2 ** 31)) == 0:
+                try:
+                    AllChem.MMFFOptimizeMolecule(m, maxIters=200)
+                except Exception:
+                    pass
+                vals = np.array([f(m) for f in SHAPE_FUNCS], dtype=np.float64)
+        except Exception:
+            vals = np.zeros(len(SHAPE_FUNCS), dtype=np.float64)
+        vals = np.clip(np.nan_to_num(vals, nan=0.0, posinf=0.0, neginf=0.0), -1e6, 1e6).astype(np.float32)
+        _SHAPE_CACHE[key] = vals
+    return _SHAPE_CACHE[key]
+
+
+def shape(smiles, seed):
+    return np.array([shape_one(s, seed) for s in smiles], dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - base_tr)
+    return base_te + model.predict(featurize(test_smiles))
+=======
+    Xtr = np.hstack([featurize(train_smiles), shape(train_smiles, seed)])
+    Xte = np.hstack([featurize(test_smiles), shape(test_smiles, seed)])
+    model.fit(Xtr, y - base_tr)
+    return base_te + model.predict(Xte)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def _two_phase():
+=======
+def _torus_relax(c, steps=150, D=0.2):
+    """Repulsion on a unit torus (minimum-image pair distances, no walls), then affine map into the square."""
+    n = c.shape[0]
+    eye = np.eye(n)
+    for k in range(steps):
+        diff = c[:, None, :] - c[None, :, :]
+        diff = diff - np.round(diff)
+        d = np.sqrt(np.sum(diff ** 2, axis=-1) + eye)
+        ov = np.maximum(D - d, 0.0)
+        np.fill_diagonal(ov, 0.0)
+        unit = diff / d[:, :, None]
+        f = np.sum(ov[:, :, None] * unit, axis=1)
+        c = np.mod(c + 0.5 * f, 1.0)
+    return 0.05 + 0.9 * c
+
+
+def _two_phase():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c = rng.uniform(0.1, 0.9, size=(_N, 2))
+        c, _r = _relax(c, np.full(_N, 0.01), 400, 0.3, 0.05)
+=======
+        c = rng.uniform(0.1, 0.9, size=(_N, 2))
+        if len(pool) % 2 == 0:
+            c = _torus_relax(c)
+        c, _r = _relax(c, np.full(_N, 0.01), 400, 0.3, 0.05)
+>>>>>>> REPLACE
+-----

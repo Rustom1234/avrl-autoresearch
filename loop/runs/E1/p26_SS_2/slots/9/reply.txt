@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+        d = ((c[iu[0]] - c[iu[1]]) ** 2).sum(1) - (r[iu[0]] + r[iu[1]]) ** 2
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    P = len(iu[0])
+    ii, jj = iu
+    k = np.arange(P)
+    a = np.arange(n)
+
+    def jac(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        dx = c[ii] - c[jj]
+        s = r[ii] + r[jj]
+        J = np.zeros((P + 5 * n, 3 * n))
+        J[k, 2 * ii] = 2 * dx[:, 0]
+        J[k, 2 * ii + 1] = 2 * dx[:, 1]
+        J[k, 2 * jj] = -2 * dx[:, 0]
+        J[k, 2 * jj + 1] = -2 * dx[:, 1]
+        J[k, 2 * n + ii] = -2 * s
+        J[k, 2 * n + jj] = -2 * s
+        for b, (col, sg) in enumerate([(0, 1), (1, 1), (0, -1), (1, -1)]):
+            J[P + b * n + a, 2 * a + col] = sg
+            J[P + b * n + a, 2 * n + a] = -1
+        J[P + 4 * n + a, 2 * n + a] = 1
+        return J
+
+    g = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, jac=lambda v: g, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons, "jac": jac}, options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors, rdFingerprintGenerator
+=======
+from rdkit.Chem import BRICS, Descriptors, rdFingerprintGenerator
+from collections import Counter
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def brics_frags(smiles):
+    sets = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        sets.append(set(BRICS.BRICSDecompose(m)) if m is not None else set())
+    return sets
+
+
+def brics_vocab(frag_sets):
+    counts = Counter(f for fs in frag_sets for f in fs)
+    kept = sorted(((f, c) for f, c in counts.items() if c >= 5), key=lambda fc: (-fc[1], fc[0]))[:512]
+    return {f: i for i, (f, _) in enumerate(kept)}
+
+
+def brics_matrix(frag_sets, vocab):
+    X = np.zeros((len(frag_sets), len(vocab)), dtype=np.float32)
+    for r, fs in enumerate(frag_sets):
+        for f in fs:
+            j = vocab.get(f)
+            if j is not None:
+                X[r, j] = 1.0
+    return X
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+    train_frags = brics_frags(train_smiles)
+    vocab = brics_vocab(train_frags)
+    X_train = np.hstack([featurize(train_smiles), brics_matrix(train_frags, vocab)])
+    model.fit(X_train, np.asarray(train_y, dtype=np.int64))
+    X_test = np.hstack([featurize(test_smiles), brics_matrix(brics_frags(test_smiles), vocab)])
+    return model.predict_proba(X_test)[:, 1]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    from sklearn.kernel_ridge import KernelRidge
+    from scipy.stats import rankdata
+    y = np.asarray(train_y, dtype=np.float64)
+    y = rankdata(y) / len(y)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    model = KernelRidge(alpha=1.0, kernel="precomputed")
+    model.fit(minmax_kernel(Xtr, Xtr), y - y.mean())
+    return model.predict(minmax_kernel(Xte, Xtr)) + y.mean()
+=======
+    from scipy.stats import rankdata
+    y = np.asarray(train_y, dtype=np.float64)
+    y = rankdata(y) / len(y)
+
+    def atom_pairs(smiles):
+        gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+        return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+    preds = []
+    for f in (featurize, atom_pairs, descriptors):
+        Xtr, Xte = f(train_smiles), f(test_smiles)
+        rf = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES,
+                                   min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=8, random_state=seed)
+        rf.fit(Xtr, y)
+        p = rf.predict(Xte)
+        preds.append(rankdata(p) / len(p))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

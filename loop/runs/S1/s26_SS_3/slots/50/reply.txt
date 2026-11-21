@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+        k = rng.choice(np.argsort(r)[:4])
+        keep = np.arange(n) != k
+        cc = c[keep]
+        rr = r[keep]
+        P = rng.random((3000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:10]
+        p = P[rng.choice(top)]
+        c0 = np.vstack([cc, p[None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, [0.03]])
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        w = rng.uniform(0.8, 1.2, n)
+        gw = np.zeros(N3)
+        gw[2 * n:] = -w
+        zb = np.concatenate([c[:, 0], c[:, 1], r + 1e-9])
+        z0 = zb
+        try:
+            resw = minimize(lambda z: -np.dot(w, z[2 * n:]), lambda z: gw, zb,
+                            method="SLSQP", bounds=bounds,
+                            constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                            options={"maxiter": 150, "ftol": 1e-11})
+            z0 = resw.x
+        except Exception:
+            pass
+>>>>>>> REPLACE
+-----

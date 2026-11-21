@@ -1,0 +1,78 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+    ia, ib = iu
+
+    def pen(v, mu):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        g = np.zeros(3 * n)
+        gc = g[:2 * n].reshape(n, 2)
+        gr = g[2 * n:]
+        gr -= 1.0
+        f = -r.sum()
+        diff = c[ia] - c[ib]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        o = np.maximum(r[ia] + r[ib] - d, 0)
+        f += mu * (o ** 2).sum()
+        w = 2 * mu * o
+        np.add.at(gr, ia, w)
+        np.add.at(gr, ib, w)
+        u = (w / d)[:, None] * diff
+        np.add.at(gc, ia, -u)
+        np.add.at(gc, ib, u)
+        for k in range(2):
+            for sgn, off in ((1, 0.0), (-1, 1.0)):
+                # sgn=1: r - x <= 0 ; sgn=-1: x + r - 1 <= 0
+                e = np.maximum(r - c[:, k] if sgn == 1 else c[:, k] + r - 1, 0)
+                f += mu * (e ** 2).sum()
+                gr += 2 * mu * e
+                gc[:, k] += -2 * mu * e * sgn
+        return f, g
+
+    bnds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    for mu in (10, 100, 1000, 1e4):
+        x0 = minimize(pen, x0, args=(mu,), jac=True, method="L-BFGS-B", bounds=bnds,
+                      options={"maxiter": 200}).x
+-----
+<<<<<<< SEARCH
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+    ia, ib = iu
+
+    def pen(v, mu):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        g = np.zeros(3 * n)
+        gc = g[:2 * n].reshape(n, 2)
+        gr = g[2 * n:]
+        gr -= 1.0
+        f = -r.sum()
+        diff = c[ia] - c[ib]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        o = np.maximum(r[ia] + r[ib] - d, 0)
+        f += mu * (o ** 2).sum()
+        w = 2 * mu * o
+        np.add.at(gr, ia, w)
+        np.add.at(gr, ib, w)
+        u = (w / d)[:, None] * diff
+        np.add.at(gc, ia, -u)
+        np.add.at(gc, ib, u)
+        for k in range(2):
+            e1 = np.maximum(r - c[:, k], 0)
+            e2 = np.maximum(c[:, k] + r - 1, 0)
+            f += mu * ((e1 ** 2).sum() + (e2 ** 2).sum())
+            gr += 2 * mu * (e1 + e2)
+            gc[:, k] += 2 * mu * (e2 - e1)
+        return f, g
+
+    bnds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    for mu in (10, 100, 1000, 1e4):
+        x0 = minimize(pen, x0, args=(mu,), jac=True, method="L-BFGS-B", bounds=bnds,
+                      options={"maxiter": 200}).x
+>>>>>>> REPLACE
+-----

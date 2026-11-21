@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+from sklearn.preprocessing import SplineTransformer
+from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def scaffold_groups(smiles):
+    scaffolds = [MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in smiles]
+    return np.unique(scaffolds, return_inverse=True)[1]
+
+
+def spline_ridge(Ztr, ytr, Zte, alpha):
+    sp = SplineTransformer(n_knots=6, degree=3, extrapolation='linear')
+    return Ridge(alpha=alpha).fit(sp.fit_transform(Ztr), ytr).predict(sp.transform(Zte))
+
+
+def spline_member(train_smiles, y, test_smiles):
+    D_tr, D_te = desc_features(train_smiles), desc_features(test_smiles)
+    Xr = np.apply_along_axis(rankdata, 0, D_tr)
+    Xc = Xr - Xr.mean(0)
+    yr = rankdata(y)
+    yc = yr - yr.mean()
+    corr = np.abs(Xc.T @ yc) / (np.sqrt((Xc ** 2).sum(0) * (yc ** 2).sum()) + 1e-12)
+    top = np.argsort(-np.nan_to_num(corr))[:30]
+    lo, hi = np.percentile(D_tr[:, top], [1, 99], axis=0)
+    Z_tr = np.clip(D_tr[:, top], lo, hi)
+    Z_te = np.clip(D_te[:, top], lo, hi)
+    mu, sd = Z_tr.mean(0), Z_tr.std(0) + 1e-9
+    Z_tr, Z_te = (Z_tr - mu) / sd, (Z_te - mu) / sd
+    groups = scaffold_groups(train_smiles)
+    best_score, best_alpha = -np.inf, 10
+    for alpha in (1, 10, 100):
+        pred = np.zeros(len(y))
+        for tr, va in GroupKFold(n_splits=5).split(Z_tr, y, groups):
+            pred[va] = spline_ridge(Z_tr[tr], y[tr], Z_tr[va], alpha)
+        score = spearmanr(pred, y).correlation
+        if score > best_score:
+            best_score, best_alpha = score, alpha
+    return spline_ridge(Z_tr, y, Z_te, best_alpha)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    p_sp = spline_member(train_smiles, y, test_smiles)
+
+    n = len(p_desc)
+    return 0.45 * rankdata(p_desc) / n + 0.35 * rankdata(p_fp) / n + 0.20 * rankdata(p_sp) / n
+>>>>>>> REPLACE
+-----

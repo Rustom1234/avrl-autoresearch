@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+=======
+from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors
+from sklearn.ensemble import ExtraTreesRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    ecfp = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fcfp = rdFingerprintGenerator.GetMorganGenerator(
+        radius=3, fpSize=1024,
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen())
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.concatenate([ecfp.GetCountFingerprintAsNumPy(m),
+                                    fcfp.GetCountFingerprintAsNumPy(m)]))
+    return np.array(rows, dtype=np.float32)
+=======
+ACID = Chem.MolFromSmarts('[CX3](=O)[OX2H1,OX1-]')
+AMINE = Chem.MolFromSmarts('[NX3;!$(NC=[O,S,N]);!$(N-a);!$(NS=O)]')
+
+
+def featurize(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([
+            rdMolDescriptors.CalcTPSA(m), Crippen.MolLogP(m), Descriptors.MolWt(m),
+            rdMolDescriptors.CalcNumHBD(m), rdMolDescriptors.CalcNumHBA(m),
+            rdMolDescriptors.CalcNumRotatableBonds(m), rdMolDescriptors.CalcNumAromaticRings(m),
+            rdMolDescriptors.CalcFractionCSP3(m), Chem.GetFormalCharge(m),
+            len(m.GetSubstructMatches(ACID)), len(m.GetSubstructMatches(AMINE)),
+            m.GetNumHeavyAtoms()])
+    return np.array(rows, dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+=======
+    model = ExtraTreesRegressor(n_estimators=N_TREES, max_features=1.0, min_samples_leaf=2,
+                                n_jobs=-1, random_state=seed)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+        k = rng.choice(np.argsort(r)[:4])
+        keep = np.arange(n) != k
+        cc = c[keep]
+        rr = r[keep]
+        P = rng.random((3000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:10]
+        p = P[rng.choice(top)]
+        c0 = np.vstack([cc, p[None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, [0.03]])
+=======
+        if rng.random() < 0.5:
+            if rng.random() < 0.5:
+                ks = np.argsort(r)[:2]
+            else:
+                ks = rng.choice(n, 2, replace=False)
+            keep = np.ones(n, dtype=bool)
+            keep[ks] = False
+            cc = c[keep]
+            rr = r[keep]
+            gx = (np.arange(200) + 0.5) / 200
+            GX, GY = np.meshgrid(gx, gx, indexing="ij")
+            P = np.stack([GX.ravel(), GY.ravel()], axis=1)
+            dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+            clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+            G = clear.reshape(200, 200)
+            Gp = np.pad(G, 1, constant_values=-np.inf)
+            ismax = np.ones((200, 200), dtype=bool)
+            for a in (-1, 0, 1):
+                for b in (-1, 0, 1):
+                    if a == 0 and b == 0:
+                        continue
+                    ismax &= G >= Gp[1 + a:201 + a, 1 + b:201 + b]
+            cand = np.where(ismax.ravel())[0]
+            cand = cand[np.argsort(-clear[cand])]
+            picks = []
+            for ci in cand:
+                if all(np.hypot(*(P[ci] - P[pj])) > 0.05 for pj in picks):
+                    picks.append(ci)
+                if len(picks) == 2:
+                    break
+            if len(picks) < 2:
+                continue
+            c0 = np.vstack([cc, P[picks]])
+            c0 = np.clip(c0 + rng.normal(0, 0.002, c0.shape), 0.01, 0.99)
+            r0 = np.concatenate([rr * 0.97,
+                                 np.maximum(0.5 * clear[picks], 1e-3)])
+        else:
+            k = rng.choice(np.argsort(r)[:4])
+            keep = np.arange(n) != k
+            cc = c[keep]
+            rr = r[keep]
+            P = rng.random((3000, 2))
+            dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+            clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+            top = np.argsort(-clear)[:10]
+            p = P[rng.choice(top)]
+            c0 = np.vstack([cc, p[None]])
+            c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+            r0 = np.concatenate([rr * 0.97, [0.03]])
+>>>>>>> REPLACE
+-----

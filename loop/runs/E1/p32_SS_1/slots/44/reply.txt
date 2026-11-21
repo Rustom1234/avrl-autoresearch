@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _reinsert(pool, n, rng):
+    c, r = pool[0]
+    keep = np.argsort(r)[rng.integers(2, 4):]
+    c, r = c[keep], r[keep]
+    while len(r) < n:
+        cand = rng.uniform(0, 1, (200, 2))
+        d = np.sqrt(((cand[:, None] - c[None]) ** 2).sum(-1)) - r[None]
+        score = np.minimum(d.min(1), np.minimum(cand.min(1), (1 - cand).min(1)))
+        c = np.vstack([c, cand[np.argmax(score)]])
+        r = np.append(r, 0.02)
+    return np.concatenate([c.ravel(), r])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        u = rng.random()
+        x0 = None
+        if len(pool) >= 2:
+            if u < 0.3:
+                x0 = _reinsert(pool, n, rng)
+            elif u < 0.7:
+                x0 = _cross(pool, n, rng)
+>>>>>>> REPLACE
+-----

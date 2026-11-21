@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 200:
+=======
+    while time.time() - t0 < 190:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+
+
+# EVOLVE-BLOCK-END
+=======
+    while time.time() - t0 < 225:
+        c0, r0 = best
+        v0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        g = cons(v0)
+        act = np.zeros(n, bool)
+        for k in np.where(g[:m] < 1e-7)[0]:
+            act[I[k]] = True; act[J[k]] = True
+        act |= (g[m:].reshape(4, n) < 1e-7).any(axis=0)
+        ratt = np.where(~act)[0]
+        if len(ratt) == 0:
+            break
+        i = rng.choice(ratt)
+        others = np.delete(np.arange(n), i)
+        pts = rng.uniform(0, 1, (3000, 2))
+        dd = np.sqrt(((pts[:, None, :] - c0[others][None]) ** 2).sum(2)) - r0[others]
+        h = np.minimum(dd.min(1), np.minimum(pts, 1 - pts).min(1))
+        kk = int(np.argmax(h))
+        w = v0.copy()
+        w[i] = pts[kk, 0]; w[n + i] = pts[kk, 1]
+        w[2 * n + i] = max(h[kk], 0.0) * 0.9
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), w, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                           method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                           options={"maxiter": 150, "ftol": 1e-12})
+            c, r = finalize(res.x)
+        except Exception:
+            continue
+        if r.sum() > bs:
+            bs = r.sum(); best = (c, r)
+    return best
+
+
+# EVOLVE-BLOCK-END
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _soft(v, R, iu):
+    """Soft-disk energy for equal radii R: squared pair and wall overlaps, and its gradient."""
+    c = v.reshape(-1, 2)
+    diff = c[iu[0]] - c[iu[1]]
+    d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+    ov = np.maximum(0, 2 * R - d)
+    g = np.zeros_like(c)
+    coef = (-2 * ov / d)[:, None] * diff
+    np.add.at(g, iu[0], coef)
+    np.add.at(g, iu[1], -coef)
+    lo, hi = np.maximum(0, R - c), np.maximum(0, c + R - 1)
+    g += -2 * lo + 2 * hi
+    return (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum(), g.ravel()
+
+
+def _anneal(c, R, rng, iu, steps=2000, dt=1e-3):
+    """Langevin dynamics on the soft-disk energy with geometrically decreasing temperature, then a quench."""
+    v = c.ravel()
+    for T in np.geomspace(1e-2, 1e-5, steps):
+        v = v - dt * _soft(v, R, iu)[1] + np.sqrt(2 * T * dt) * rng.standard_normal(v.size)
+    v = minimize(_soft, v, args=(R, iu), jac=True, method="L-BFGS-B", options={"maxiter": 200}).x
+    return v.reshape(-1, 2)
+
+
+def _solve_once(n, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x2 = np.concatenate([res1.x[:2 * n], np.full(n, max(res1.x[2 * n], 0.0))])
+=======
+    R = max(res1.x[2 * n], 0.0)
+    c1 = _anneal(res1.x[:2 * n].reshape(n, 2), R, rng, iu)
+    x2 = np.concatenate([c1.ravel(), np.full(n, R)])
+>>>>>>> REPLACE
+-----

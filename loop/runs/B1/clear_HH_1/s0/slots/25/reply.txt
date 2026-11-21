@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    Tr_tan, Tr_rbf = tanimoto(X, X), rbf(D, D, gamma)
+    Te_tan, Te_rbf = tanimoto(Xt, X), rbf(Dt, D, gamma)
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    yn = (y - mu) / sd
+    perm = np.random.RandomState(seed).permutation(len(yn))
+    inner = np.array_split(perm, 4)
+    best_w, best_rho = 0.5, -np.inf
+    for w in [0.25, 0.5, 0.75]:
+        K = w * Tr_tan + (1.0 - w) * Tr_rbf
+        oof = np.zeros(len(yn))
+        for va in inner:
+            tr = np.setdiff1d(perm, va)
+            m = SVR(kernel="precomputed", C=5.0, epsilon=0.05).fit(K[np.ix_(tr, tr)], yn[tr])
+            oof[va] = m.predict(K[np.ix_(va, tr)])
+        rho = np.corrcoef(rankdata(oof), rankdata(yn))[0, 1]
+        if rho > best_rho:
+            best_w, best_rho = w, rho
+    K_train = best_w * Tr_tan + (1.0 - best_w) * Tr_rbf
+    K_test = best_w * Te_tan + (1.0 - best_w) * Te_rbf
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, yn)
+    return model.predict(K_test)
+>>>>>>> REPLACE
+-----

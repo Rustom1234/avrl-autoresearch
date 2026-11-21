@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    return 0.7 * np.mean(preds, axis=0) + 0.3 * rankdata(pr) / len(pr)
+=======
+    from sklearn.neural_network import MLPRegressor
+    from sklearn.preprocessing import QuantileTransformer
+    n = Xtr.shape[1] - N_BITS
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=200, random_state=seed)
+    Qtr = qt.fit_transform(Xtr[:, :n])
+    Qte = qt.transform(Xte[:, :n])
+    mp = []
+    for k in range(3):
+        mlp = MLPRegressor(hidden_layer_sizes=(128,), alpha=1.0, early_stopping=True,
+                           max_iter=300, random_state=seed + k)
+        mlp.fit(Qtr, y)
+        mp.append(mlp.predict(Qte))
+    pm = np.mean(mp, axis=0)
+    return (0.55 * np.mean(preds, axis=0) + 0.3 * rankdata(pr) / len(pr)
+            + 0.15 * rankdata(pm) / len(pm))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+    while time.time() - t0 < 0.7 * time_budget:
+=======
+    best = None
+    best_val = -1.0
+    # hierarchical phase: coarse 13-circle problem, then split each circle in two
+    hn = 13
+    hiu, hju = np.triu_indices(hn, 1)
+
+    def hcons(z):
+        x = z[:hn]
+        y = z[hn:2 * hn]
+        r = z[2 * hn:]
+        dx = x[hiu] - x[hju]
+        dy = y[hiu] - y[hju]
+        s = r[hiu] + r[hju]
+        return np.concatenate([dx * dx + dy * dy - s * s,
+                               x - r, 1 - x - r, y - r, 1 - y - r])
+
+    hbounds = [(0, 1)] * (2 * hn) + [(0, 0.5)] * hn
+    coarse = []
+    while time.time() - t0 < 0.1 * time_budget:
+        hc = rng.random((hn, 2)) * 0.8 + 0.1
+        hr = np.full(hn, 0.07) + rng.random(hn) * 0.03
+        hz = np.concatenate([hc[:, 0], hc[:, 1], hr])
+        try:
+            hres = minimize(lambda z: -np.sum(z[2 * hn:]), hz, method="SLSQP",
+                            bounds=hbounds,
+                            constraints=[{"type": "ineq", "fun": hcons}],
+                            options={"maxiter": 200, "ftol": 1e-9})
+        except Exception:
+            continue
+        coarse.append((-hres.fun, hres.x))
+    coarse.sort(key=lambda t: -t[0])
+    t_split_end = t0 + 0.2 * time_budget
+    for rep in range(3):
+        for val, hz in coarse[:10]:
+            if time.time() > t_split_end:
+                break
+            hx = hz[:hn]
+            hy = hz[hn:2 * hn]
+            hr = hz[2 * hn:]
+            th = rng.random(hn) * np.pi
+            ox = 0.5 * hr * np.cos(th)
+            oy = 0.5 * hr * np.sin(th)
+            c0 = np.vstack([np.stack([hx + ox, hy + oy], 1),
+                            np.stack([hx - ox, hy - oy], 1)])
+            c0 = np.clip(c0, 0.01, 0.99)
+            r0 = np.concatenate([0.5 * hr, 0.5 * hr])
+            z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+            try:
+                res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                               constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                               options={"maxiter": 300, "ftol": 1e-11})
+            except Exception:
+                continue
+            out = finalize(res.x)
+            if out is None:
+                continue
+            if out[1].sum() > best_val:
+                best_val = out[1].sum()
+                best = out
+    it = 0
+    while time.time() - t0 < 0.7 * time_budget:
+>>>>>>> REPLACE
+-----

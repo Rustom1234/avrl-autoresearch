@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    rf = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                               n_jobs=-1, random_state=seed).fit(mixed_features(train_smiles), y)
+=======
+    Mtr, Mte = mixed_features(train_smiles), mixed_features(test_smiles)
+    nd = len(Descriptors.descList)
+    on = (Mtr[:, nd:] > 0).sum(0)
+    keep = np.concatenate([np.ones(nd, dtype=bool), (on >= 5) & (on <= 0.95 * len(Mtr))])
+    Mtr, Mte = Mtr[:, keep], Mte[:, keep]
+    rf = RandomForestRegressor(n_estimators=N_TREES, max_features=0.3, min_samples_leaf=MIN_SAMPLES_LEAF,
+                               n_jobs=-1, random_state=seed).fit(Mtr, y)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    preds = [rf.predict(mixed_features(test_smiles)), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr))]
+=======
+    preds = [rf.predict(Mte), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr))]
+>>>>>>> REPLACE
+-----

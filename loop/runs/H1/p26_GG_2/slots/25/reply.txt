@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={`"type": "ineq", "fun": cons`},
+                   options={`"maxiter": MAX_ITER`})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={`"type": "ineq", "fun": cons`},
+                   options={`"maxiter": MAX_ITER, "ftol": 1e-9`})
+    c_raw, r_raw = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+    
+    # Coordinate descent-like expansion
+    c = c_raw.copy()
+    r = r_raw.copy()
+    for _ in range(10): 
+        for i in range(n):
+            # Try to grow r[i] slightly
+            old_r = r[i]
+            r[i] += 0.005
+            # Check boundaries
+            if r[i] > c[i, 0] or r[i] > c[i, 1] or r[i] > 1 - c[i, 0] or r[i] > 1 - c[i, 1]:
+                r[i] = old_r
+                continue
+            # Check overlaps
+            conflict = False
+            for j in range(n):
+                if i == j: continue
+                dist = np.linalg.norm(c[i] - c[j])
+                if dist < r[i] + r[j]:
+                    conflict = True
+                    break
+            if conflict:
+                r[i] = old_r
+    
+    return c, r
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+-----

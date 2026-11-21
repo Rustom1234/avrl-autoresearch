@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+=======
+    best_s, best = -1, None
+    pool = []
+    while time.time() - t0 < 110:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+=======
+        s = r2.sum()
+        pool.append((s, c2, r2))
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    pool.sort(key=lambda t: -t[0])
+    top = []
+    for p in pool:
+        if all(abs(p[0] - q[0]) > 1e-7 for q in top):
+            top.append(p)
+        if len(top) >= 5:
+            break
+    for s0, cc, rr in top:
+        for _ in range(20):
+            if time.time() - t0 > 225:
+                break
+            try:
+                rk = rr.copy()
+                idx = rng.choice(_N, 4, replace=False)
+                rk[idx] *= rng.uniform(0.7, 1.3, 4)
+                c3 = np.clip(_polish(cc, rk), 0, 1)
+                r3 = _lp_radii(c3)
+            except Exception:
+                continue
+            if r3.sum() > best_s:
+                best_s, best = r3.sum(), (c3, r3)
+    c, r = best
+>>>>>>> REPLACE
+-----

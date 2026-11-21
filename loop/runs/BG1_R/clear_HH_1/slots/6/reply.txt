@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from scipy.optimize import nnls
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(tanimoto(X, X), (y - mu) / sd)
+    return model.predict(tanimoto(Xt, X))
+=======
+KRR_LAMBDA = 0.1
+
+
+def base_fit_predict(X, y, Xt, seed):
+    # Tanimoto kernel ridge
+    mu = y.mean()
+    alpha = np.linalg.solve(tanimoto(X, X) + KRR_LAMBDA * np.eye(len(y)), y - mu)
+    p_krr = tanimoto(Xt, X) @ alpha + mu
+    # random forest
+    rf = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES,
+                               min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=8, random_state=seed)
+    p_rf = rf.fit(X, y).predict(Xt)
+    # LightGBM
+    gbm = lgb.LGBMRegressor(learning_rate=0.03, n_estimators=500, num_leaves=31,
+                            subsample=0.8, subsample_freq=1, colsample_bytree=0.3,
+                            random_state=seed, n_jobs=8, verbose=-1)
+    p_gbm = gbm.fit(X, y).predict(Xt)
+    return np.column_stack([p_krr, p_rf, p_gbm])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    # out-of-fold base predictions on the training set
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(n_splits=5, shuffle=True, random_state=seed).split(X):
+        oof[va] = base_fit_predict(X[tr], y[tr], X[va], seed)
+    w, _ = nnls(oof, y)
+    # refit base models on all training data and combine with learned weights
+    return base_fit_predict(X, y, Xt, seed) @ w
+>>>>>>> REPLACE
+-----

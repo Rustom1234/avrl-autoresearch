@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def polish(c, r):
+        # radius-only SLSQP with the centres frozen
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        lim = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+
+        def rcons(s):
+            return np.concatenate([d - s[iu[0]] - s[iu[1]], lim - s])
+
+        return minimize(lambda s: -s.sum(), np.maximum(r, 0), method="SLSQP",
+                        constraints={"type": "ineq", "fun": rcons}, options={"maxiter": MAX_ITER}).x
+
+    v = x0
+    for _ in range(2):   # centre pass, radius polish, then one more centre pass and radius polish
+        res = minimize(lambda w: -w[2 * n:].sum(), v, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})
+        c, r = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+        v = np.concatenate([c.ravel(), polish(c, r)])
+    return v[:2 * n].reshape(n, 2), v[2 * n:]
+>>>>>>> REPLACE
+-----

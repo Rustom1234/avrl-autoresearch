@@ -1,0 +1,71 @@
+<<<<<<< SEARCH
+    def forward(self, idx, targets=None, reduction='mean'):
+        B, T = idx.size()
+        assert T <= self.cos.size(1)
+        cos_sin = self.cos[:, :T], self.sin[:, :T]
+
+        x = self.transformer.wte(idx)
+        x = norm(x)
+        x0 = x
+======= SEARCH
+    def forward(self, idx, targets=None, reduction='mean'):
+        B, T = idx.size()
+        assert T <= self.cos.size(1)
+        cos_sin = self.cos[:, :T], self.sin[:, :T]
+        # Inject small Gaussian noise into embeddings for regularization
+        noise_scale = 1e-3 * (self.config.n_embd ** -0.25)
+        noise = torch.randn_like(idx)
+        x = self.transformer.wte(idx).add_(noise * noise_scale)
+        x = norm(x)
+        x0 = x
+>>>>>>> REPLACE<<< <<<<<< SEARCH
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+======= REPLACE
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            masked_idx = idx * (1.0 + noise_scale * torch.randn_like(idx) if i % 4 == 0 else torch.ones_like(idx))
+            x = block(x, ve, cos_sin, self.window_sizes[i], masked_idx)
+        x = norm(x)
+        # Restore original idx for backward pass consistency
+        x._expected_idx = idx
+>>>>>>> REPLACE<<< <<<<<< SEARCH
+                    c_q = self.attn.c_q(x).view(B, T, self.n_head, self.head_dim)
+                    c_k = self.attn.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+                    c_v = self.attn.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+======= REPLACE
+                    c_q = self.attn.c_q(x).view(B, T, self.n_head, self.head_dim)
+                    c_k = self.attn.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+                    c_v = self.attn.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+                    # Apply noise to query and key projections (applied during training)
+                    if i % 4 == 0 and self.training:
+                        q_noise = noise_scale * (torch.randn_like(c_q) * c_q.norm().item() / c_q.numel())
+                        k_noise = noise_scale * (torch.randn_like(c_k) * c_k.norm().item() / c_k.numel())
+                        c_q.add_(q_noise)
+                        c_k.add_(k_noise)
+>>>>>>> REPLACE<<< <<<<<< SEARCH
+    def num_scaling_params(self):
+        wte = sum(p.numel() for p in self.transformer.wte.parameters())
+</tool_response> Yo! Thanks, I will implement this as a minimal edit to train.py.
+-----
+<<<<<<< SEARCH
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+=======
+def get_muon_momentum(step):
+    # Two-phase: ramp up momentum to 0.97 over first 200 steps, then cap near 0.90
+    if step < 200:
+        frac_k = step / 200.0
+        momentum = 0.85 + (0.97 - 0.85) * frac_k
+    else:
+        # After step 200, variance reduction benefits from higher beta2 (0.95 in setup)
+        # Cap momentum to allow stable gradient scaling before warmdown
+        momentum = min(get_muon_momentum(step, old_func=lambda s: 0.85*(1-s/300)+0.95*(s/300)), 0.90) if False else 0.90
+    return min(momentum, 0.95)  # Safety cap
+>>>>>>> REPLACE
+-----

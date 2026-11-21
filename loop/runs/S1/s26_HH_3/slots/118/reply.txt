@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+    for start in range(12):
+        k = (4, 6, 8, 10)[start % 4]
+=======
+    archive = []
+    for start in range(12):
+        k = (4, 6, 8, 10)[start % 4]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+        try:
+            c0, r0 = _relax(c0, r0)
+            c, r = _optimize(c0, r0)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    # Basin hopping
+=======
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+        sig0 = np.sort(r0)
+        if archive:
+            d = min(float(np.linalg.norm(sig0 - a)) for a in archive)
+            r0 = r0 * (1.0 + 0.2 * np.exp(-d / 0.05))
+        try:
+            c0, r0 = _relax(c0, r0)
+            c, r = _optimize(c0, r0)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        sig = np.sort(r)
+        if all(float(np.linalg.norm(sig - a)) > 1e-3 for a in archive):
+            archive.append(sig)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    # Basin hopping
+>>>>>>> REPLACE
+-----

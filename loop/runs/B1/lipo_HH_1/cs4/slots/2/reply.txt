@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+    # Three base learners; returns their predictions on Xb as columns.
+    rf = RandomForestRegressor(n_estimators=200, max_features=0.3, n_jobs=8, random_state=seed)
+    p_rf = rf.fit(Xa, ya).predict(Xb)
+    m = lgb.train(lgb_params((31, 10, 0.2), seed), lgb.Dataset(Xa, ya), num_boost_round=N_ROUNDS)
+    p_lgb = m.predict(Xb)
+=======
+def scaffold_te(gen_a, ga, ya, gen_b, m=5.0):
+    # Smoothed generic-scaffold target mean; training rows exclude their own Murcko group.
+    mu = ya.mean()
+    S, N, S2, N2 = {}, {}, {}, {}
+    for g, k, v in zip(gen_a, ga, ya):
+        S[g] = S.get(g, 0.0) + v
+        N[g] = N.get(g, 0) + 1
+        S2[(g, k)] = S2.get((g, k), 0.0) + v
+        N2[(g, k)] = N2.get((g, k), 0) + 1
+    tr = np.array([(S[g] - S2[(g, k)] + m * mu) / (N[g] - N2[(g, k)] + m) for g, k in zip(gen_a, ga)])
+    te = np.array([(S.get(g, 0.0) + m * mu) / (N.get(g, 0) + m) for g in gen_b])
+    return tr, te
+
+
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed, gen_a, gen_b):
+    # Three base learners; returns their predictions on Xb as columns.
+    ta, tb = scaffold_te(gen_a, ga, ya, gen_b)
+    Xa_t, Xb_t = np.column_stack([Xa, ta]), np.column_stack([Xb, tb])
+    rf = RandomForestRegressor(n_estimators=200, max_features=0.3, n_jobs=8, random_state=seed)
+    p_rf = rf.fit(Xa_t, ya).predict(Xb_t)
+    m = lgb.train(lgb_params((31, 10, 0.2), seed), lgb.Dataset(Xa_t, ya), num_boost_round=N_ROUNDS)
+    p_lgb = m.predict(Xb_t)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+=======
+    def generic(s):
+        return Chem.MolToSmiles(MurckoScaffold.MakeScaffoldGeneric(
+            MurckoScaffold.GetScaffoldForMol(Chem.MolFromSmiles(s))))
+    gen_tr = np.array([generic(s) for s in train_smiles])
+    gen_te = np.array([generic(s) for s in test_smiles])
+    oof = np.zeros((len(y), 3))
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed, gen_tr[tr], gen_tr[va])
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed, gen_tr, gen_te)
+>>>>>>> REPLACE
+-----

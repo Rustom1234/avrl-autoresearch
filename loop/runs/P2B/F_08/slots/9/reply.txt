@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+=======
+WARMUP_RATIO = 0.05     # linear warmup for 5% of the budget
+WARMDOWN_RATIO = 0.0    # exponential decay is handled by the new schedule
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+=======
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    
+    # Exponential decay phase
+    # Decay starts after warmup. We use a decay constant tuned for a smooth transition.
+    # To reach FINAL_LR_FRAC at progress=1.0, we use an exponential form.
+    # Multiplier = exp( -k * (progress - WARMUP_RATIO) / (1 - WARMUP_RATIO) )
+    
+    # Solving for k: FINAL_LR_FRAC = exp(-k) => k = -ln(FINAL_LR_FRAC)
+    # Since FINAL_LR_FRAC is 0.0, we use a very small epsilon or a steep decay.
+    # A standard 'Shakespeare' exponential decay for deep learning often uses a 
+    # decay factor like 0.95 per 10% of progress.
+    
+    # Simple exponential decay to reach near-zero at the end:
+    remaining_dist = 1.0 - WARMUP_RATIO
+    # Decay factor k such that at progress=1.0, multiplier is very small
+    k = 10.0 
+    return math.exp(-k * (progress - WARMUP_RATIO) / remaining_dist)
+>>>>>>> REPLACE
+-----

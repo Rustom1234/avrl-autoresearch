@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+    cur_v = bv.copy(); cur_s = bs
+=======
+    try:
+        from scipy.optimize import linprog
+        Aub = np.zeros((m, n))
+        Aub[np.arange(m), I] = 1; Aub[np.arange(m), J] = 1
+
+        def lp_r(p):
+            c = np.clip(p.reshape(n, 2), 0, 1)
+            d = np.sqrt(((c[I] - c[J]) ** 2).sum(1))
+            bd = np.minimum(c.min(1), (1 - c).min(1))
+            res = linprog(-np.ones(n), A_ub=Aub, b_ub=d,
+                          bounds=list(zip(np.zeros(n), bd)), method="highs")
+            if res.status != 0:
+                return None
+            return res.x
+
+        def lp_obj(p):
+            r = lp_r(p)
+            return 0.0 if r is None else -r.sum()
+
+        p0 = np.stack([bv[:n], bv[n:2 * n]], 1).ravel()
+        t1 = time.time()
+        pr = minimize(lp_obj, p0, method="L-BFGS-B", bounds=[(0, 1)] * (2 * n),
+                      options={"maxiter": 40, "maxfun": 3000, "eps": 1e-6})
+        rr = lp_r(pr.x)
+        if rr is not None:
+            cc = np.clip(pr.x.reshape(n, 2), 0, 1)
+            v2 = np.concatenate([cc[:, 0], cc[:, 1], rr])
+            res = minimize(lambda z: -z[2 * n:].sum(), v2,
+                           jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                           method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                           options={"maxiter": 200, "ftol": 1e-12})
+            c, r = finalize(res.x)
+            if r.sum() > bs:
+                bs = r.sum(); best = (c, r); bv = res.x.copy()
+    except Exception:
+        pass
+
+    cur_v = bv.copy(); cur_s = bs
+>>>>>>> REPLACE
+-----

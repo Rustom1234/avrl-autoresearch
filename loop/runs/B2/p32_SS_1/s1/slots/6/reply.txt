@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+def _greedy(n, rng):
+    """Greedy max-clearance start: place circles at the candidate points with the most room."""
+    cand = rng.uniform(0, 1, (600, 2))
+    cap = rng.uniform(0.08, 0.13)
+    c, r = np.zeros((n, 2)), np.zeros(n)
+    for k in range(n):
+        clr = np.minimum(cand, 1 - cand).min(1)
+        if k > 0:
+            clr = np.minimum(clr, (np.sqrt(((cand[:, None] - c[None, :k]) ** 2).sum(-1)) - r[None, :k]).min(1))
+        j = np.argsort(-clr)[:10][rng.integers(10)]
+        if clr[j] > 0:
+            c[k], r[k] = cand[j], min(cap, clr[j]) * 0.9
+        else:
+            c[k], r[k] = rng.uniform(0, 1, 2), 0.005
+    return np.concatenate([c.ravel(), r])
+
+
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = _greedy(n, rng)
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+-----

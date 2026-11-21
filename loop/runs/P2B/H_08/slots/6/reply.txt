@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+        self.ve_gate_channels = 32
+=======
+        self.q_temp = nn.Parameter(torch.full((self.n_head,), 1.2))
+        self.ve_gate_channels = 32
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        q, k = norm(q), norm(k)
+=======
+        q, k = norm(q), norm(k)
+        q = q * self.q_temp.view(1, 1, -1, 1).to(q.dtype)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        # Per-layer scalars
+        self.resid_lambdas.fill_(1.0)
+=======
+        # Per-layer scalars
+        for block in self.transformer.h:
+            block.attn.q_temp.fill_(1.2)
+        self.resid_lambdas.fill_(1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        matrix_params = list(self.transformer.h.parameters())
+=======
+        matrix_params = [p for p in self.transformer.h.parameters() if p.ndim == 2]
+        qtemp_params = [b.attn.q_temp for b in self.transformer.h]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params) + len(qtemp_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+        ]
+=======
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=qtemp_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+        ]
+>>>>>>> REPLACE
+-----

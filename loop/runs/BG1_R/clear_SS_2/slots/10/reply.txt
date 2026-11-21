@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    model = KernelRidge(alpha=1.0, kernel="precomputed")
+    model.fit(minmax_kernel(Xtr, Xtr), y - y.mean())
+    return model.predict(minmax_kernel(Xte, Xtr)) + y.mean()
+=======
+    from sklearn.preprocessing import QuantileTransformer
+    from sklearn.metrics.pairwise import euclidean_distances
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    Dtr, Dte = descriptors(train_smiles), descriptors(test_smiles)
+    qt = QuantileTransformer(output_distribution="normal", n_quantiles=min(200, len(Dtr)), random_state=seed)
+    Dtr, Dte = qt.fit_transform(Dtr), qt.transform(Dte)
+    gamma = 1.0 / (Dtr.shape[1] * 2)
+    Ktr = 0.5 * minmax_kernel(Xtr, Xtr) + 0.5 * np.exp(-gamma * euclidean_distances(Dtr, Dtr, squared=True))
+    Kte = 0.5 * minmax_kernel(Xte, Xtr) + 0.5 * np.exp(-gamma * euclidean_distances(Dte, Dtr, squared=True))
+    model = KernelRidge(alpha=1.0, kernel="precomputed")
+    model.fit(Ktr, y - y.mean())
+    return model.predict(Kte) + y.mean()
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,85 @@
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _pack_once(seed, init=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pts = np.vstack([base, np.array(interior)])
+    pts = pts + rng.normal(0.0, 0.02, size=pts.shape)
+    pts = np.clip(pts, 0.05, 0.95)
+=======
+    if init is None:
+        pts = np.vstack([base, np.array(interior)])
+        pts = pts + rng.normal(0.0, 0.02, size=pts.shape)
+    else:
+        pts = np.array(init, dtype=float)
+    pts = np.clip(pts, 0.05, 0.95)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def construct_packing():
+    """Multi-start mirror-symmetric init + SLSQP; returns best (centers, radii)."""
+    t0 = time.time()
+    best = None
+    best_sum = -1.0
+    for seed in range(10000):
+        if seed > 0 and time.time() - t0 > 200.0:
+            break
+        c, r = _pack_once(seed)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum = s
+            best = (c, r)
+    return best
+=======
+def _crossover(pa, pb, rng):
+    """Splice one half-plane of parent a with the complementary half of parent b."""
+    n = 26
+    ca, ra = pa
+    cb, rb = pb
+    axis = int(rng.integers(2))
+    cut = rng.uniform(0.4, 0.6)
+    ma = ca[:, axis] < cut
+    mb = cb[:, axis] >= cut
+    cc = np.vstack([ca[ma], cb[mb]])
+    rr = np.concatenate([ra[ma], rb[mb]])
+    if cc.shape[0] > n:
+        keep = np.sort(np.argsort(-rr)[:n])
+        cc = cc[keep]
+    if cc.shape[0] < n:
+        extra = rng.uniform(0.05, 0.95, size=(n - cc.shape[0], 2))
+        cc = np.vstack([cc, extra])
+    return cc
+
+
+def _pool_insert(pool, item, k=5):
+    """Keep the top-k distinct (sum, centers, radii) entries sorted by sum."""
+    for p in pool:
+        if abs(item[0] - p[0]) < 1e-9:
+            return
+    pool.append(item)
+    pool.sort(key=lambda t: -t[0])
+    del pool[k:]
+
+
+def construct_packing():
+    """Multi-start SLSQP with a top-5 pool; after 120 s breed children by crossover."""
+    t0 = time.time()
+    pool = []
+    rng = np.random.default_rng(12345)
+    seed = 0
+    while True:
+        el = time.time() - t0
+        if seed > 0 and el > 200.0:
+            break
+        if el < 120.0 or len(pool) < 2:
+            init = None
+        else:
+            i, j = rng.choice(len(pool), 2, replace=False)
+            init = _crossover((pool[i][1], pool[i][2]),
+                              (pool[j][1], pool[j][2]), rng)
+        c, r = _pack_once(seed, init)
+        _pool_insert(pool, (float(np.sum(r)), c, r))
+        seed += 1
+    return pool[0][1], pool[0][2]
+>>>>>>> REPLACE
+-----

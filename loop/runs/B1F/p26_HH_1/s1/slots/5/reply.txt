@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+=======
+        else:              # local kick, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            if rng.uniform() < 0.5:   # disc kick: re-randomise the centres in a disc
+                p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+                m = np.hypot(*(c - p).T) < R
+                k = m.sum()
+                ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+                c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+                r[m] = 0
+            else:                     # remove small circles and reinsert them in the largest holes
+                w = 1 / (r + 0.02)
+                for i in rng.choice(n, size=rng.integers(1, 4), replace=False, p=w / w.sum()):
+                    o = np.arange(n) != i
+                    pts = rng.uniform(0, 1, (2000, 2))
+                    gap = np.sqrt(((pts[:, None] - c[o][None]) ** 2).sum(-1)) - r[o]
+                    free = np.minimum(np.minimum(pts, 1 - pts).min(1), gap.min(1))
+                    c[i], r[i] = pts[np.argmax(free)], 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+>>>>>>> REPLACE
+-----

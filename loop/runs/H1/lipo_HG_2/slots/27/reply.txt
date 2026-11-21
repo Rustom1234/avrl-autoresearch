@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train, y_train)
+    
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+ Replace the single model in fit_predict with an average of three CatBoostRegressor models trained on the same features with loss MAE, LEARNING_RATE=0.05, ITERATIONS=1500, random_seed=seed, and DEPTH in {4, 6, 8}. Average their test predictions with equal weights. Depth variation gives models with different interaction orders, which is a different kind of diversity from seeds, and it adds only a short loop. Check that the total fitting time of all 15 folds stays under 10 minutes, and drop depth 8 if it does not.
+<<<<<<< REPLACE
+    X_test = featurize(test_smiles)
+    preds = []
+    for d in [4, 6, 8]:
+        model = CatBoostRegressor(
+            iterations=ITERATIONS,
+            learning_rate=LEARNING_RATE,
+            depth=d,
+            loss_function='MAE',
+            random_seed=seed,
+            thread_count=8,
+            verbose=0
+        )
+        model.fit(X_train, y_train)
+        preds.append(model.predict(X_test))
+    
+    return np.mean(preds, axis=0)
+-----
+<<<<<<< SEARCH
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train, y_train)
+    
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+=======
+    X_test = featurize(test_smiles)
+    preds = []
+    for d in [4, 6, 8]:
+        model = CatBoostRegressor(
+            iterations=ITERATIONS,
+            learning_rate=LEARNING_RATE,
+            depth=d,
+            loss_function='MAE',
+            random_seed=seed,
+            thread_count=8,
+            verbose=0
+        )
+        model.fit(X_train, y_train)
+        preds.append(model.predict(X_test))
+    
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

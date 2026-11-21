@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/S6/PM_01/cand/s07_0.py",
+ "inc_scores": {
+  "11": 1.8926754474220617
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Apply a simple heuristic filter to docs using only Python built-ins: drop any doc with fewer than 300 chars, non-trivial repetitive line structure, or non-alpha-ascii character density < 95%, then random shuffle with seed.",
+   "outcome": "dev 1.9389 against 1.9406 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Implement a strict deduplication step (exact lowercase normalization + hash) and a structural domain filter that drops documents missing the WikiText-style header `^= .* $` or containing at least one WikiText token marker (`' @-@ '`, `' @,@ '`, `' @.@ '`, or `' . '` spliced around words) before shuffling.",
+   "outcome": "dev 1.9500 against 1.9406 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Add a staged filter that first removes obvious junk via length (<300 chars), unique-line ratio (<0.5), and zlib compression ratio (<0.2); then retains documents containing WikiText-style headers (`^= .* $`) or specific token markers (`' @-@ '`, `' . '`, `' @,@ '`), deduping exactly on whitespace-normalized text before shuffling with the seed.",
+   "outcome": "dev 3.4749 against 1.9406 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Build a unigram/bigram logistic regression classifier using char-ngrams on the first 4000 chars of docs (positives from target_sample chunked in 2000s, negatives from a seeded 1500-doc random pool) to rank all pool docs, then take top docs until hitting T tokens (cycling if under 0.4T, no padding if less), shuffling the final index list with CURATE_SEED.",
+   "outcome": "dev 1.9184 against 1.9406 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the generic structueral domain filter for Wikipedia articles with a mixed-content target-similarity booster: retain any document that matches WikiText structural features to avoid junk, boost the score of remaining pool documents using a sparsified char n-gram classifier trained heavily on the target_sample (chunked to ~1000 examples) with regularization, select the top N docs whose combined token count crosses T, and pad the remainder with independently reshuffled full documents from those with high classifier scores to ensure enough tokens without including irrelevant documents.",
+   "outcome": "dev 1.9263 against 1.9184 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Fuse the targeted char-ngram logistic regression scorer with a strict 'word-bigram hit rate' filter: filter out any document where the fraction of lowercase bigrams (from the first 200 words) matching a bigram set derived from target_sample is below 0.15 to remove shuffled/WikiText-style scrambling docs, then rank the survivors by the LR score and greedily select until T tokens are reached without cycling.",
+   "outcome": "dev 1.9315 against 1.9184 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Train a word-bigram logistic regression classifier on the target_sample (and random pool samples weighted higher) using `CountVectorizer(analyzer='word')`, then use its score to rank all docs while simultaneously removing any doc whose normalized first 200-words bigram hit rate against the target_sample's bigram set falls below the 25th percentile of top-scoring docs.",
+   "outcome": "dev 1.8927 against 1.9184 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 8,
+   "idea": "Fine-tune a pre-trained tiktoken on-domain GPT (e.g., laion200b) to encode all pool documents into dense embeddings, then project documents onto the 200 target_sample embeddings using dot-product similarity to identify genuinely in-domain content, applying this score alongside structural (WikiText header/marker) filters before deduplication and final selection until hitting the token budget.",
+   "outcome": "dev 1.9191 against 1.8927 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Train a logistic regression classifier using a combination of char-75391 n-grams and word bigrams as features, optimize the decision boundary by fitting on target_sample segmented into 2500-char chunks pre-trained on 200 random negative pool docs, then rank docs by probability output while enforcing a strict bigram hit-rate floor at half the median of top-scoring docs to eliminate shuffled articles before deduplication and token accumulation.",
+   "outcome": "FAILED to run (select() did not finish in 180 seconds)"
+  },
+  {
+   "slot": 10,
+   "idea": "Add a strict deduplication and junk-removal pass (lowercase/whitespace normalization + hash, min 200 chars, bigram hit rate >= 0.3) before ranking and selection, then allow limited padding only with the next-best clean docs if under 0.5T.",
+   "outcome": "FAILED to run (select() did not finish in 180 seconds)"
+  },
+  {
+   "slot": 11,
+   "idea": "After filtering out shuffled and junk documents via a strict bigram hit-rate threshold and structural WikiText markers, use a simple local accuracy heuristic (delta = unigram similarity) to distinguish clean domain articles from their exact near-duplicates, dropping the latter and keeping only exact duplicates, then rank the remaining clean docs by classifier score to prevent keeping entire mirror copies that waste tokens with diminishing returns.",
+   "outcome": "FAILED to run (select() did not finish in 180 seconds)"
+  },
+  {
+   "slot": 12,
+   "idea": "Implement a 'cathedral-like' leaky LoRA-style document selector: train a small 2-layer MLP (dropout=0.1) using only pool data labeled 'negatives' (hard negative mining: docs with high classifier score but junk) and positives (target_sample) but no online updates; use the model's latent representation distance to batch-documents' centers to efficiently score a huge pool without repeated scikit-learn.",
+   "outcome": "FAILED to run (select() did not finish in 180 seconds)"
+  }
+ ],
+ "usd": 0.017245149999999997,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0005505,
+   "dev": 1.9389317399643577,
+   "inc": 1.9406396630365481,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0012354500000000001,
+   "dev": 1.9499892823812173,
+   "inc": 1.9406396630365481,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00077655,
+   "dev": 3.4748898158764607,
+   "inc": 1.9406396630365481,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0017661999999999995,
+   "dev": 1.9183659041353855,
+   "inc": 1.9406396630365481,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.065477415519208,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0011207000000000005,
+   "dev": 1.9263494535850259,
+   "inc": 1.9183659041353855,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.065477415519208,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0011091999999999994,
+   "dev": 1.9314561084591728,
+   "inc": 1.9183659041353855,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.065477415519208,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0010769999999999998,
+   "dev": 1.8926754474220617,
+   "inc": 1.9183659041353855,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 6.601185743804897,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0010966499999999994,
+   "dev": 1.919092528275901,
+   "inc": 1.8926754474220617,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 6.601185743804897,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.00211715,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 2,
+   "fails": 1,
+   "n_accept": 2,
+   "gain_sd": 6.601185743804897,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.0019232999999999993,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 3,
+   "fails": 2,
+   "n_accept": 2,
+   "gain_sd": 6.601185743804897,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.0021568000000000004,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 4,
+   "fails": 3,
+   "n_accept": 2,
+   "gain_sd": 6.601185743804897,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.002315649999999999,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9406396630365481,
+ "inc_slot": 7
+}

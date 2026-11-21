@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import ExtraTreesRegressor
+=======
+from sklearn.kernel_ridge import KernelRidge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def tanimoto(A, B):
+    inter = A @ B.T
+    na = A.sum(1)[:, None]
+    nb = B.sum(1)[None, :]
+    return inter / np.maximum(na + nb - inter, 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    et = ExtraTreesRegressor(n_estimators=500, max_features=0.3, min_samples_leaf=1, n_jobs=-1, random_state=seed)
+    et.fit(count_features(train_smiles), y)
+    p_fp = et.predict(count_features(test_smiles))
+=======
+    Xtr = (count_features(train_smiles) > 0).astype(np.float64)
+    Xte = (count_features(test_smiles) > 0).astype(np.float64)
+    y_mean = y.mean()
+    krr = KernelRidge(kernel="precomputed", alpha=0.5)
+    krr.fit(tanimoto(Xtr, Xtr), y - y_mean)
+    p_fp = krr.predict(tanimoto(Xte, Xtr)) + y_mean
+>>>>>>> REPLACE
+-----

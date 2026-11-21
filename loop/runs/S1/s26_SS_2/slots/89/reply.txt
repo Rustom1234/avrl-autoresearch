@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+=======
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        greedy = rng.random() < 0.5
+        if greedy:
+            rc = rng.uniform(0.10, 0.15)
+            P = [[rc, rc], [1 - rc, rc], [rc, 1 - rc], [1 - rc, 1 - rc],
+                 list(rng.uniform(0.3, 0.7, 2))]
+            R = [rc] * 4 + [0.2]
+            while len(P) < n:
+                S = rng.uniform(0, 1, (2000, 2))
+                cl = np.minimum(np.minimum(S[:, 0], S[:, 1]),
+                                np.minimum(1 - S[:, 0], 1 - S[:, 1]))
+                Pa = np.array(P); Ra = np.array(R)
+                dd = np.sqrt(((S[:, None, :] - Pa[None, :, :]) ** 2).sum(2)) - Ra[None, :]
+                cl = np.minimum(cl, dd.min(1))
+                k = int(np.argmax(cl))
+                P.append(list(S[k])); R.append(max(0.9 * cl[k], 0.01))
+            Pa = np.array(P)
+            v = np.concatenate([Pa[:, 0], Pa[:, 1], np.array(R)])
+        for mu in (() if greedy else (10, 100, 1e3, 1e4, 1e5)):
+>>>>>>> REPLACE
+-----

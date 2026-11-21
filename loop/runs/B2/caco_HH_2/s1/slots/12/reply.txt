@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from catboost import CatBoostRegressor
+from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append([Descriptors.TPSA(m), Descriptors.MolWt(m), Descriptors.NumHDonors(m), Descriptors.MolLogP(m)])
+=======
+        rows.append([Descriptors.TPSA(m), Descriptors.MolWt(m), Descriptors.NumHDonors(m), Descriptors.MolLogP(m),
+                     Descriptors.NumHAcceptors(m), Descriptors.NumRotatableBonds(m), Descriptors.FractionCSP3(m),
+                     Descriptors.NumAromaticRings(m)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    A_tr = np.c_[np.ones(len(y)), base_features(train_smiles)]
+    A_te = np.c_[np.ones(len(test_smiles)), base_features(test_smiles)]
+    coef = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+=======
+    X_tr = base_features(train_smiles)
+    X_te = base_features(test_smiles)
+    mu = X_tr.mean(axis=0)
+    sd = X_tr.std(axis=0) + 1e-9
+    prior = Ridge(alpha=3.0).fit((X_tr - mu) / sd, y)
+    p_tr = prior.predict((X_tr - mu) / sd)
+    p_te = prior.predict((X_te - mu) / sd)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    model.fit(featurize(train_smiles), y - p_tr)
+    return model.predict(featurize(test_smiles)) + p_te
+>>>>>>> REPLACE
+-----

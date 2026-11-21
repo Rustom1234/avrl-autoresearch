@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+SMARTS_PATTERNS = [Chem.MolFromSmarts(s) for s in (
+    "[CX3](=O)[OX2H1,OX1-]",
+    "[#6]1:[#7]:[#7]:[#7]:[#7]:1",
+    "C(=O)[NH][SX4](=O)=O",
+    "[OX2H][c]",
+    "[NX3;H2;!$(NC=[O,S,N]);!$(N-a)][CX4]",
+    "[NX3;H1;!$(NC=[O,S,N]);!$(N-a)]([CX4])[CX4]",
+    "[NX3;H0;!$(NC=[O,S,N]);!$(N-a)]([CX4])([CX4])[CX4]",
+    "[NX3][CX3]=[NX2]",
+    "[nX2]",
+    "[NX4+]",
+)]
+
+
+def ion_counts(smiles):
+    rows = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        rows.append([len(mol.GetSubstructMatches(p)) for p in SMARTS_PATTERNS])
+    return np.array(rows, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32)])
+=======
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32), ion_counts(train_smiles)])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32), ion_counts(test_smiles)])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,131 @@
+<<<<<<< SEARCH
+# This part remains fixed (not evolved)
+def run_packing():
+=======
+def solve_packing(time_budget=150.0):
+    import time
+    from scipy.optimize import minimize
+
+    t0 = time.time()
+    n = 26
+    iu, ju = np.triu_indices(n, 1)
+    m = len(iu)
+    ar = np.arange(m)
+    N3 = 3 * n
+
+    # constant wall Jacobian
+    Jw = np.zeros((4 * n, N3))
+    idx = np.arange(n)
+    Jw[idx, idx] = 1.0
+    Jw[idx, 2 * n + idx] = -1.0
+    Jw[n + idx, idx] = -1.0
+    Jw[n + idx, 2 * n + idx] = -1.0
+    Jw[2 * n + idx, n + idx] = 1.0
+    Jw[2 * n + idx, 2 * n + idx] = -1.0
+    Jw[3 * n + idx, n + idx] = -1.0
+    Jw[3 * n + idx, 2 * n + idx] = -1.0
+
+    def cons(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        s = r[iu] + r[ju]
+        return np.concatenate([
+            dx * dx + dy * dy - s * s,
+            x - r, 1 - x - r, y - r, 1 - y - r])
+
+    def jac(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        s = r[iu] + r[ju]
+        J = np.zeros((m, N3))
+        J[ar, iu] = 2 * dx
+        J[ar, ju] = -2 * dx
+        J[ar, n + iu] = 2 * dy
+        J[ar, n + ju] = -2 * dy
+        J[ar, 2 * n + iu] = -2 * s
+        J[ar, 2 * n + ju] = -2 * s
+        return np.vstack([J, Jw])
+
+    g = np.zeros(N3)
+    g[2 * n:] = -1.0
+
+    def obj(z):
+        return -np.sum(z[2 * n:])
+
+    def grad(z):
+        return g
+
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    rng = np.random.default_rng(12345)
+
+    def finalize(z):
+        x = z[:n].copy()
+        y = z[n:2 * n].copy()
+        r = np.maximum(z[2 * n:] - 2e-9, 0.0)
+        r = np.minimum(r, np.minimum.reduce([x, y, 1 - x, 1 - y]))
+        r = np.maximum(r, 0.0)
+        c = np.stack([x, y], axis=1)
+        d = np.sqrt((x[iu] - x[ju]) ** 2 + (y[iu] - y[ju]) ** 2)
+        over = r[iu] + r[ju] - d
+        for _ in range(5):
+            bad = np.where(over > 0)[0]
+            if len(bad) == 0:
+                break
+            for k in bad:
+                i, j = iu[k], ju[k]
+                s = r[i] + r[j]
+                if s > 0:
+                    f = d[k] / s * (1 - 1e-12)
+                    r[i] *= f
+                    r[j] *= f
+            over = r[iu] + r[ju] - d
+        if np.any(over > 0):
+            return None
+        return c, r
+
+    best = None
+    best_val = -1.0
+    it = 0
+    while time.time() - t0 < time_budget:
+        it += 1
+        c0 = rng.random((n, 2)) * 0.9 + 0.05
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+        if -res.fun < best_val - 0.02:
+            continue
+        out = finalize(z)
+        if out is None:
+            continue
+        c, r = out
+        v = r.sum()
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+    if best is None:
+        c = np.stack([np.linspace(0.05, 0.95, n), np.full(n, 0.5)], axis=1)
+        return c, np.full(n, 1e-3)
+    return best
+
+
+# This part remains fixed (not evolved)
+def run_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    centers, radii = construct_packing()
+=======
+    centers, radii = solve_packing()
+>>>>>>> REPLACE
+-----

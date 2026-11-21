@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+MAX_ITER = 200
+=======
+MAX_ITER = 200
+FREE_ITER = 30
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+=======
+    x = x0
+    stages = []
+    for cap in np.arange(0.05, 0.4 + 1e-9, 0.02):
+        stages += [(cap, MAX_ITER), (cap + 0.02, FREE_ITER)]
+    stages.append((1.0, MAX_ITER))
+    for cap, maxiter in stages:
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": maxiter})
+        x = res.x
+>>>>>>> REPLACE
+-----

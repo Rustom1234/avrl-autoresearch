@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    pts = np.clip(pts, 0.03, 0.97)
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+=======
+    rad = np.full(n, INIT_RADIUS)
+    for i in rng.choice(n, int(rng.integers(4, 9)), replace=False):
+        rad[i] = 0.11
+        d = pts - pts[i]
+        dist = np.hypot(d[:, 0], d[:, 1])
+        dist[i] = np.inf
+        nn = np.argsort(dist)[:3]
+        v = -(d[nn] / dist[nn, None]).sum(0)
+        pts[i] += 0.03 * v / (np.linalg.norm(v) + 1e-12)
+    pts = np.clip(pts, 0.03, 0.97)
+    x0 = np.concatenate([pts.ravel(), rad])
+>>>>>>> REPLACE
+-----

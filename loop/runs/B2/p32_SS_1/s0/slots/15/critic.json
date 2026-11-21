@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing tries to get around the measurement. The diff adds no file or network access and no hard-coded coordinates. All randomness comes from the seeded rng, and only numpy and scipy are used.",
+  "No bug that makes the result meaningless. The analytic gradient in _relax is correct: dE/dc_i = -2*ov*diff/d, accumulated for both circles in each pair. Its bounds [R, 1-R] are valid. _relocate copies the pool member before changing it. A negative clearance is floored at radius 0.01, and the existing SLSQP and repair steps still decide the final validity, which the harness checks exactly.",
+  "The extra cost is small: a 60-iteration L-BFGS-B run per fresh start and 400x31 distance evaluations per relocation. Neither should push a call past the time limit.",
+  "The evidence is weak: one candidate run against one incumbent run. The gain is +0.0025, below the noise sd of 0.0034 for a single job. The harness z of 0.498 is close to my recomputed 0.52, which uses an se of 0.0034*sqrt(2); the gap is about what rounding the inputs to 4 decimals would cause. 'Reject' is right for now, but more replicates are needed before ruling this idea out, since 2.9359 is near the published best of about 2.9370.",
+  "This diff changes two things at once: it replaces the _cross crossover with _relocate, and it replaces uniform random starts with relaxed starts. The two effects can't be separated."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.52
+ }
+}

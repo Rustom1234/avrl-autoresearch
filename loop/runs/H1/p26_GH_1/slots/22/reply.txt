@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    res = minimize(obj, x0, method="SLSQP", constraints={"type": "ineq", "fun": make_cons(s0)},
+                   options={"maxiter": MAX_ITER})
+    # round to true circles: re-solve with the real circle constraints, starting from the stretched solution
+    res = minimize(obj, res.x, method="SLSQP", constraints={"type": "ineq", "fun": make_cons(1.0)},
+                   options={"maxiter": MAX_ITER})
+=======
+    x = x0
+    for s in (0.8 * s0, s0, 1.2 * s0):   # staged metric: each stretch starts from the previous solution
+        x = minimize(obj, x, method="SLSQP", constraints={"type": "ineq", "fun": make_cons(s)},
+                     options={"maxiter": MAX_ITER}).x
+    # round to true circles: re-solve with the real circle constraints, starting from the staged solution
+    res = minimize(obj, x, method="SLSQP", constraints={"type": "ineq", "fun": make_cons(1.0)},
+                   options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+-----

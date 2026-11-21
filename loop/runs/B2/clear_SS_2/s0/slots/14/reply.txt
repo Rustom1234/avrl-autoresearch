@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def erg(smiles):
+=======
+def ion_feats(smiles):
+    from rdkit.Chem import Crippen
+    pats = [Chem.MolFromSmarts(s) for s in [
+        '[CX3](=O)[OX2H1,OX1-]',
+        '[#6]1:[#7]:[#7]:[#7]:[#7]:1',
+        'C(=O)[NH]S(=O)(=O)',
+        'c[OX2H]',
+        '[NX3;$(N-[CX4]);!$(N-a);!$(N-[#6]=[!#6;!#1]);!$(N-[!#6;!#1])]',
+        '[NX3][CX3]=[NX2;!a]',
+        '[NX4+]']]
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        c = [len(m.GetSubstructMatches(p)) for p in pats]
+        acid = c[0] + c[1] + c[2]
+        base = c[4] + c[5] + c[6]
+        logd = Crippen.MolLogP(m) - 3.0 * (acid > 0) - 1.0 * (base > 0)
+        rows.append(c + [float(acid > 0 and base > 0), logd])
+    return np.array(rows, dtype=np.float32)
+
+
+def erg(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = np.hstack([descriptors(train_smiles), erg(train_smiles), featurize(train_smiles)])
+=======
+    Xtr = np.hstack([descriptors(train_smiles), ion_feats(train_smiles), erg(train_smiles), featurize(train_smiles)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xte = np.hstack([descriptors(test_smiles), erg(test_smiles), featurize(test_smiles)])
+=======
+    Xte = np.hstack([descriptors(test_smiles), ion_feats(test_smiles), erg(test_smiles), featurize(test_smiles)])
+>>>>>>> REPLACE
+-----

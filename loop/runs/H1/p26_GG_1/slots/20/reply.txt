@@ -1,0 +1,87 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        dc = c[iu[0]] - c[iu[1]]
+        dist_sq = np.sum(dc**2, axis=1)
+        dist = np.sqrt(np.maximum(dist_sq, 1e-15))
+        d = dist - r[iu[0]] - r[iu[1]]
+        
+        def jac(v):
+            c_curr, r_curr = v[:2 * n].reshape(n, 2), v[2 * n:]
+            # Re-calculate for Jacobian
+            dc_j = c_curr[iu[0]] - c_curr[iu[1]]
+            dist_sq_j = np.sum(dc_j**2, axis=1)
+            dist_j = np.sqrt(np.maximum(dist_sq_j, 1e-15))
+            
+            # Jacobian for distance constraints
+            # d/dc_i (dist - r_i - r_j) = (1/dist) * (c_i - c_j) - unit_vector_i
+            # d/dr_i (dist - r_i - r_j) = -1
+            grad_d = np.zeros((len(d), 3 * n)) # simplified logic below
+            # Actually, we need full jacobian for all constraints:
+            # [d, c_x-r, c_y-r, 1-c_x-r, 1-c_y-r, r]
+            # dim: (n*(n-1)/2 + 5n, 3n)
+            pass
+
+        # To keep it simple and effective within 30s, let's use a manual Jacobian for d
+        # but since SLSQP is hard to micro-optimize with complex jacobians, 
+        # let's provide the Jacobian for the most numerous constraints (d).
+        # Given the complexity, a simple vectorized Jacobian for all constraints is best.
+        
+        def jac_full(v):
+            c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+            dc_v = c_v[iu[0]] - c_v[iu[1]]
+            ds_v = np.sqrt(np.sum(dc_v**2, axis=1))
+            
+            # d/dc_i (dist - r_i - r_j) = (c_i-c_j)/dist - (c_i-c_j)/dist = 0? No.
+            # dist = sqrt((x1-x2)^2 + (y1-y2)^2). 
+            # d(dist)/dx1 = (x1-x2)/dist, d(dist)/dx2 = -(x1-x2)/dist
+            # d(dist)/dr1 = -1, d(dist)/dr2 = -1
+            
+            # Let's use a simpler approach: many constraints, provide None and let SciPy
+            # do it, but optimize the inner function for speed.
+            return None
+
+    # Reverting to a high-performance vectorized calculation without explicit Jacobian 
+    # to ensure stability, but making the constraint function extremely fast.
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Distance constraints
+        idx1, idx2 = iu[0], iu[1]
+        diff = c[idx1] - c[idx2]
+        dist = np.linalg.norm(diff, axis=1)
+        d = dist - r[idx1] - r[idx2]
+        
+        # Boundary and radius constraints
+        # c_x - r >= 0, c_y - r >= 0, 1-c_x-r >= 0, 1-c_y-r >= 0, r >= 0
+        res = np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        return res
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                   constraints={"type": "ineq", "fun": cons}, 
+                   options={"maxiter": MAX_ITER, "ftol": 1e-7})\n    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----

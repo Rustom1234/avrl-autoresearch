@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/F1_02/cand/s07_0.py",
+ "inc_scores": {
+  "11": 1.9016432112596602
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace random order with a target-similarity filter. (1) Fit a TfidfVectorizer on character n-grams (analyzer='char_wb', ngram_range=(1,3), sublinear_tf=True, max_features=50000) using the first 3000 chars of each pool doc plus target_sample; train a LogisticRegression (C=1, class_weight='balanced') with the 200 target_sample docs as positives and a seeded random 3000 pool docs as negatives; score every pool doc by predicted probability. Add a cheap boost feature for WikiText formatting: +bonus if the doc starts with '= ' and contains ' @-@ ' or ' , ' tokenised punctuation. (2) Exact-deduplicate by hash of whitespace-normalised text (keep first copy), and drop docs under 200 chars. (3) Rank docs by score, count tokens with tiktoken gpt2 (encode_ordinary_batch), and keep the top-scoring docs until the kept set reaches T tokens or the score drops below 0.5, whichever comes first (if fewer than T tokens pass, just return that smaller set and let the trainer cycle it rather than padding with off-domain text). (4) Return kept indices in a CURATE_SEED-seeded shuffled order.",
+   "outcome": "dev 1.9481 against 1.9615 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace LogisticRegression with a simple TF-IDF similarity score (cosine similarity) between each pool document and the centroid of the target_sample documents to reduce training overhead and focus more on direct thematic alignment.",
+   "outcome": "FAILED to run (active-audit/.venv/lib/python3.12/site-packages/scipy/sparse/_base.py\", line 955, in _matmul_dispatch raise ValueError( ValueError: matmul: dimension mismatch with signature (n,k=50000),(k=1,m)->(n,m))"
+  },
+  {
+   "slot": 3,
+   "idea": "Replace LogisticRegression with a Cosine Similarity approach: calculate the TF-IDF centroid of the target_sample and the TF-IDF score for every pool document, then rank by similarity. Use a larger ngram_range (3, 5) and more features for the centroid calculation to better capture domain-specific vocabulary.",
+   "outcome": "FAILED to run (ctive-audit/.venv/lib/python3.12/site-packages/scipy/sparse/_base.py\", line 955, in _matmul_dispatch raise ValueError( ValueError: matmul: dimension mismatch with signature (n,k=100000),(k=1,m)->(n,m))"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the LogisticRegression classifier with a K-Nearest Neighbors (KNN) approach using a truncated cosine similarity: for each pool document, calculate the average cosine similarity to its top 5 nearest neighbors in the target_sample (using the same TfidfVectorizer settings).",
+   "outcome": "FAILED to run (n _sum return umr_sum(a, axis, dtype, out, keepdims, initial, where) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ numpy.exceptions.AxisError: axis 1 is out of bounds for array of dimension 0)"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the LogisticRegression with a simple Dot Product similarity: calculate the TF-IDF representation of the target_sample centroid and calculate the dot product with each pool document's TF-IDF vector, using a larger ngram_range=(1, 4) and a max_features=40000.",
+   "outcome": "dev 2.7866 against 1.9481 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace LogisticRegression with a simpler 'Max-Similarity' approach: for each doc in the pool, calculate its cosine similarity to every doc in the target_sample using TfidfVectorizer (analyzer='char_wb', ngram_range=(1,3), max_features=30000), and use the maximum similarity score as the document's score.",
+   "outcome": "dev 1.9298 against 1.9481 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 7,
+   "idea": "Replace the 'Max-Similarity' approach with a modified Max-Similarity that weights the similarity score using a 'document quality' heuristic: Multiply the max cosine similarity by a factor of (len(doc) / 1000) capped at 1.5, and only include documents that are significantly longer than the average target_sample length (e.g., > 500 characters).",
+   "outcome": "dev 1.9016 against 1.9298 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 8,
+   "idea": "Refine the 'Max-Similarity' scoring by computing a TF-IDF centroid of the target_sample and calculating the cosine similarity of every pool document to this centroid, but use a larger n-gram range (3, 5) and add a secondary 'density' score based on the ratio of unique n-grams to total characters.",
+   "outcome": "dev 1.9361 against 1.9016 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Replace the Max-Similarity scoring with a 'Mean-Similarity-to-K-Nearest-Neighbors' approach: for each pool document, find the 5 highest cosine similarity scores among all target_sample documents (using TF-IDF with char_wb, ngram_range=(1,3), max_features=30000) and use the average of these top 5 scores as the ranking metric, while maintaining the (len(doc)/1000) capped at 1.5 weight.",
+   "outcome": "dev 1.9293 against 1.9016 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Replace the character n-gram TF-IDF with a word-based n-gram TF-IDF (ngram_range=(1, 3)) on a cleaned version of the text (removing some special characters) to better capture semantic structure, and refine the document quality heuristic to use a soft-min/max to favor high-quality documents that are not excessively long (e.g., weight = min(len(doc)/800, 1.5) * max(len(doc)/2000, 0.5)).",
+   "outcome": "dev 1.9776 against 1.9016 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Replace the simple max-similarity score with a weighted average of the maximum similarity score and a document-specific 'relevance' score derived from the overlap of top-scoring n-grams, while strictly filtering out any documents that contain significant 'junk' patterns (e.g., excessive special characters or repeated words).",
+   "outcome": "dev 1.9414 against 1.9016 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Replace the Max-Similarity approach with a 'Top-K Mean Similarity' method: compute the cosine similarity between each pool document and all target documents, but instead of the maximum, use the mean of the top 5 highest similarity scores. Additionally, use a more aggressive 'document quality' weight of (len(doc) / 1500) capped at 1.8 and remove any documents with a max similarity score below 0.1 to prune low-quality noise.",
+   "outcome": "dev 1.9195 against 1.9016 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.2492498499999999,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.22799559999999996,
+   "dev": 1.9481256813143553,
+   "inc": 1.9615380924596422,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.8459140029296597,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.0027220500000000036,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 1,
+   "n_accept": 1,
+   "gain_sd": 1.8459140029296597,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.002740650000000011,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 2,
+   "n_accept": 1,
+   "gain_sd": 1.8459140029296597,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.0028705499999999995,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 3,
+   "n_accept": 1,
+   "gain_sd": 1.8459140029296597,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002606849999999994,
+   "dev": 2.786553464214392,
+   "inc": 1.9481256813143553,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.8459140029296597,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0014090999999999965,
+   "dev": 1.929786924654881,
+   "inc": 1.9481256813143553,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 4.369827663743608,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.001349550000000005,
+   "dev": 1.9016432112596602,
+   "inc": 1.929786924654881,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 8.243171098263417,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0014983499999999816,
+   "dev": 1.9360896829464986,
+   "inc": 1.9016432112596602,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 8.243171098263417,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0014059499999999892,
+   "dev": 1.9292631293369653,
+   "inc": 1.9016432112596602,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 8.243171098263417,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0014897999999999856,
+   "dev": 1.9775719409157948,
+   "inc": 1.9016432112596602,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 8.243171098263417,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0015959999999999863,
+   "dev": 1.9413773659548819,
+   "inc": 1.9016432112596602,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 8.243171098263417,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0015653999999999946,
+   "dev": 1.9194520353350235,
+   "inc": 1.9016432112596602,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9615380924596422,
+ "inc_slot": 7
+}

@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+def _slsqp(n, x0):
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    return _slsqp(n, x0)
+
+
+def _relocate(n, c, r, rng):
+    """Move the smallest circle into the largest hole (sampled), then re-solve once."""
+    k = int(np.argmin(r))
+    keep = np.arange(n) != k
+    pts = rng.uniform(0, 1, (2000, 2))
+    clear = np.sqrt(((pts[:, None] - c[keep][None]) ** 2).sum(-1)) - r[keep][None]
+    gap = np.minimum(clear.min(1), np.minimum(pts, 1 - pts).min(1))
+    c2, r2 = c.copy(), r.copy()
+    c2[k], r2[k] = pts[np.argmax(gap)], 0.0
+    return _slsqp(n, np.concatenate([c2.ravel(), r2]))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        c2, r2 = _relocate(n, c, r, rng)
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > best[1].sum():
+            best = (c2, r2)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    muon_momentum = get_muon_momentum(step)
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+=======
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+    
+    # Muon momentum: ramp from 0.85 to 0.95 linearly over first 300 steps, then hold
+    if step <= 300:
+        linear_fraction = min(step / 300.0, 1.0)
+        ramped_momentum = (1 - linear_fraction) * 0.85 + linear_fraction * 0.95
+    else:
+        ramped_momentum = 0.95
+    muon_momentum = ramped_momentum
+    
+    muon_weight_decay = get_weight_decay(progress)
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+>>>>>>> REPLACE
+-----

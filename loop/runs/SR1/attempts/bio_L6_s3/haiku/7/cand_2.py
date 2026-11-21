@@ -1,0 +1,3 @@
+def equation(t, P, params):
+    r, K, H, k = params[0], params[1], params[2], params[3]
+    return r*P*(1-P/K) - H*(1-np.exp(-k*t))

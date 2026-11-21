@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+from scipy.optimize import minimize
+from scipy.special import expit
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def physchem4(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Crippen.MolLogP(m), rdMolDescriptors.CalcTPSA(m), Descriptors.MolWt(m),
+                     rdMolDescriptors.CalcNumHBD(m)])
+    return np.array(rows, dtype=np.float64)
+
+
+def fit_pairwise(Z, y, seed, n_pairs=20000, l2=1e-3):
+    rng = np.random.default_rng(seed)
+    n = len(y)
+    i = rng.integers(0, n, n_pairs)
+    j = rng.integers(0, n, n_pairs)
+    keep = (i != j) & (y[i] != y[j])
+    i, j = i[keep], j[keep]
+    D = Z[i] - Z[j]
+    t = (y[i] > y[j]).astype(np.float64)
+    sign = np.where(t == 1, 1.0, -1.0)
+
+    def loss(w):
+        s = D @ w
+        f = np.logaddexp(0, -sign * s).mean() + l2 * np.sum(w * w)
+        g = D.T @ (expit(s) - t) / len(t) + 2 * l2 * w
+        return f, g
+
+    return minimize(loss, np.zeros(Z.shape[1]), jac=True, method='L-BFGS-B').x
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    A_tr = np.column_stack([np.ones(len(train_smiles)), physchem(train_smiles)])
+    A_te = np.column_stack([np.ones(len(test_smiles)), physchem(test_smiles)])
+    beta = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+    base_tr, base_te = A_tr @ beta, A_te @ beta
+=======
+    P_tr, P_te = physchem4(train_smiles), physchem4(test_smiles)
+    mu, sd = P_tr.mean(0), P_tr.std(0) + 1e-9
+    Z_tr, Z_te = (P_tr - mu) / sd, (P_te - mu) / sd
+    w = fit_pairwise(Z_tr, y, seed)
+    base_tr, base_te = Z_tr @ w, Z_te @ w
+>>>>>>> REPLACE
+-----

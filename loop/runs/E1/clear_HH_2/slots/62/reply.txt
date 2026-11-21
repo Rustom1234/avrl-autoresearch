@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def adam_ridge(X, r, lam, steps=500, lr0=0.01, lr1=0.0005):
+    n, d = X.shape
+    p = np.zeros(d + 1)  # weights, then intercept
+    m, v = np.zeros(d + 1), np.zeros(d + 1)
+    for t in range(1, steps + 1):
+        lr = lr1 + 0.5 * (lr0 - lr1) * (1 + np.cos(np.pi * (t - 1) / (steps - 1)))
+        w, b = p[:d], p[d]
+        e = X @ w + b - r
+        g = np.empty(d + 1)
+        g[:d] = 2.0 / n * (X.T @ e) + 2 * lam * w
+        g[d] = 2.0 / n * e.sum()
+        m = 0.9 * m + 0.1 * g
+        v = 0.999 * v + 0.001 * g * g
+        p = p - lr * (m / (1 - 0.9 ** t)) / (np.sqrt(v / (1 - 0.999 ** t)) + 1e-8)
+    return p[:d], p[d]
+
+
+def choose_lam(X, r, smiles):
+    scaffolds = [MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in smiles]
+    groups = np.unique(scaffolds, return_inverse=True)[1]
+    best_score, best_lam = -np.inf, 1.0
+    for lam in (0.1, 1.0, 10.0):
+        pred = np.zeros(len(r))
+        for tr, va in GroupKFold(n_splits=5).split(X, r, groups):
+            w, b = adam_ridge(X[tr], r[tr], lam)
+            pred[va] = X[va] @ w + b
+        score = spearmanr(pred, r).correlation
+        if score > best_score:
+            best_score, best_lam = score, lam
+    return best_lam
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    C_tr = np.log1p(count_features(train_smiles)).astype(np.float64)
+    C_te = np.log1p(count_features(test_smiles)).astype(np.float64)
+    lam = choose_lam(C_tr, r, train_smiles)
+    w_lin, b_lin = adam_ridge(C_tr, r, lam)
+    p_lin = C_te @ w_lin + b_lin + base_te
+
+    n = len(p_desc)
+    return (0.8 * W_DESC * rankdata(p_desc) / n + 0.8 * (1 - W_DESC) * rankdata(p_fp) / n
+            + 0.2 * rankdata(p_lin) / n)
+>>>>>>> REPLACE
+-----

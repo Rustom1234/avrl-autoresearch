@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from rdkit.Chem.Scaffolds import MurckoScaffold
+=======
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from rdkit.Chem.EState.Fingerprinter import FingerprintMol
+from rdkit.Chem.EState.EState import EStateIndices
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def physchem(smiles):
+=======
+_ESTATE_CACHE = {}
+
+
+def estate_features(smiles):
+    rows = []
+    for s in smiles:
+        if s not in _ESTATE_CACHE:
+            m = Chem.MolFromSmiles(s)
+            fc, fs = FingerprintMol(m)
+            idx = np.asarray(EStateIndices(m), dtype=np.float64)
+            if idx.size == 0:
+                idx = np.zeros(1)
+            _ESTATE_CACHE[s] = np.concatenate([fc, fs, [idx.sum(), idx.max(), idx.min()]])
+        rows.append(_ESTATE_CACHE[s])
+    X = np.array(rows, dtype=np.float64)
+    X[~np.isfinite(X)] = 0.0
+    return X
+
+
+def physchem(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lgbm.fit(desc_features(train_smiles), r)
+    p_desc = lgbm.predict(desc_features(test_smiles)) + base_te
+=======
+    F_tr = np.hstack([desc_features(train_smiles), estate_features(train_smiles)])
+    F_te = np.hstack([desc_features(test_smiles), estate_features(test_smiles)])
+    lgbm.fit(F_tr, r)
+    p_desc = lgbm.predict(F_te) + base_te
+>>>>>>> REPLACE
+-----

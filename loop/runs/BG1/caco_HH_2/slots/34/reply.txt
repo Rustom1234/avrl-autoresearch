@@ -1,0 +1,75 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from catboost import CatBoostRegressor
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+ALPHAS = (0.01, 0.1, 1.0)
+SHRINK = 5.0
+
+
+def env_ids(smiles):
+    out = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        ids = set()
+        for r in (1, 2):
+            ids.update(AllChem.GetMorganFingerprint(m, r).GetNonzeroElements().keys())
+        out.append(ids)
+    return out
+
+
+def fit_table(ids_list, resid):
+    tot, cnt = {}, {}
+    for ids, r in zip(ids_list, resid):
+        for k in ids:
+            tot[k] = tot.get(k, 0.0) + r
+            cnt[k] = cnt.get(k, 0) + 1
+    return {k: tot[k] / (cnt[k] + SHRINK) for k in tot}
+
+
+def encode(ids_list, table):
+    out = []
+    for ids in ids_list:
+        v = [table[k] for k in ids if k in table]
+        out.append(np.mean(v) if v else 0.0)
+    return np.array(out)
+
+
+def oof_encode(ids_list, resid, seed):
+    enc = np.zeros(len(resid))
+    for tr, te in KFold(5, shuffle=True, random_state=seed).split(resid):
+        table = fit_table([ids_list[i] for i in tr], resid[tr])
+        enc[te] = encode([ids_list[i] for i in te], table)
+    return enc
+
+
+def inner_cv_mae(x, resid, alpha, seed):
+    err = 0.0
+    for tr, te in KFold(5, shuffle=True, random_state=seed).split(x):
+        pred = Ridge(alpha=alpha).fit(x[tr], resid[tr]).predict(x[te])
+        err += np.abs(pred - resid[te]).sum()
+    return err
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    ids_tr = env_ids(train_smiles)
+    resid = y - A_tr @ coef
+    enc_tr = oof_encode(ids_tr, resid, seed)[:, None]
+    enc_te = encode(env_ids(test_smiles), fit_table(ids_tr, resid))[:, None]
+    alpha = min(ALPHAS, key=lambda a: inner_cv_mae(enc_tr, resid, a, seed))
+    ridge = Ridge(alpha=alpha).fit(enc_tr, resid)
+    prior_tr = ridge.predict(enc_tr)
+    model.fit(featurize(train_smiles), resid - prior_tr)
+    return model.predict(featurize(test_smiles)) + A_te @ coef + ridge.predict(enc_te)
+>>>>>>> REPLACE
+-----

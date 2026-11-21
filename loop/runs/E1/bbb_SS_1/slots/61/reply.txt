@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    preds = []
+    for m in models:
+        m.fit(X, y)
+=======
+    from collections import Counter
+    from rdkit.Chem.Scaffolds import MurckoScaffold
+    scaf = []
+    for s in train_smiles:
+        try:
+            scaf.append(MurckoScaffold.MurckoScaffoldSmiles(smiles=s))
+        except Exception:
+            scaf.append(s)
+    cnt = Counter(scaf)
+    sw = np.array([1.0 / np.sqrt(cnt[k]) for k in scaf])
+    sw = sw / sw.mean()
+    preds = []
+    for m in models:
+        m.fit(X, y, sample_weight=sw)
+>>>>>>> REPLACE
+-----

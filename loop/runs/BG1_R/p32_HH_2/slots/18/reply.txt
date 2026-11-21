@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    budget = TIME_FRACTION * time_limit
+    cur, h0 = best, time.process_time()
+    span = max(budget - (h0 - t0), 1e-9)
+    while time.process_time() - t0 < budget:   # basin hopping with Metropolis acceptance
+        f = min(1.0, (time.process_time() - h0) / span)
+        T = 0.01 * (0.01 ** f)
+        c, r = cur
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        d = r.sum() - cur[1].sum()
+        if d >= 0 or rng.random() < np.exp(d / T):
+            cur = (c, r)
+            if r.sum() > best[1].sum():
+                best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

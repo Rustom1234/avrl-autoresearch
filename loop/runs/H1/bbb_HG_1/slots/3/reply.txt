@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+from rdkit import Chem
+from rdkit import DataStructs
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: 
+            features.append(np.zeros(N_BITS, dtype=np.float32))
+        else:
+            fp = DataStructs.GetMorganCountFingerprintAsNumPy(mol, radius=RADIUS, nBits=N_BITS)
+            features.append(fp)
+    return np.array(features, dtype=np.float32)
+>>>>>>> REPLACE
+-----

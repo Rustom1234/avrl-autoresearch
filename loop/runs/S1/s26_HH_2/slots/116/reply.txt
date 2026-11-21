@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def _two_phase():
+=======
+def _voronoi_start(rng):
+    """Voronoi-centroid start: centroids of grid cells around random seeds, radii from nearest-centroid distance."""
+    seeds = rng.uniform(0.05, 0.95, size=(_N, 2))
+    g = (np.arange(60) + 0.5) / 60.0
+    G = np.array(np.meshgrid(g, g)).reshape(2, -1).T
+    d2 = ((G[:, None, :] - seeds[None, :, :]) ** 2).sum(-1)
+    lab = np.argmin(d2, axis=1)
+    c = np.zeros((_N, 2))
+    for i in range(_N):
+        m = lab == i
+        c[i] = G[m].mean(axis=0) if m.any() else seeds[i]
+    c = np.clip(c, 0.05, 0.95)
+    dc = np.sqrt(((c[:, None, :] - c[None, :, :]) ** 2).sum(-1))
+    np.fill_diagonal(dc, np.inf)
+    r = 0.5 * dc.min(axis=1)
+    return c, r
+
+
+def _two_phase():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while len(pool) < 12 and _time.time() - t0 < 60:
+        c = rng.uniform(0.1, 0.9, size=(_N, 2))
+        c, _r = _relax(c, np.full(_N, 0.01), 400, 0.3, 0.05)
+=======
+    k_pop = 0
+    while len(pool) < 12 and _time.time() - t0 < 60:
+        k_pop += 1
+        r0 = np.full(_N, 0.01)
+        if k_pop % 3 == 0:
+            c, r0 = _voronoi_start(rng)
+        else:
+            c = rng.uniform(0.1, 0.9, size=(_N, 2))
+        c, _r = _relax(c, r0, 400, 0.3, 0.05)
+>>>>>>> REPLACE
+-----

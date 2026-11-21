@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    score = 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+    B = X_test[:, :N_BITS].astype(np.float64)
+    inter = B @ B.T
+    cnt = B.sum(axis=1)
+    union = cnt[:, None] + cnt[None, :] - inter
+    sim = inter / np.maximum(union, 1e-9)
+    np.fill_diagonal(sim, -1.0)
+    smoothed = score.copy()
+    for i in range(len(score)):
+        idx = np.argsort(-sim[i])[:5]
+        idx = idx[sim[i, idx] > 0.3]
+        if len(idx):
+            smoothed[i] = 0.7 * score[i] + 0.3 * score[idx].mean()
+    return scaled_rank(smoothed)
+>>>>>>> REPLACE
+-----

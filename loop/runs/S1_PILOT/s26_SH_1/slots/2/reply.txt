@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(0)
+    c0 = rng.uniform(0.05, 0.95, (n_c, 2))
+    r0 = np.exp(np.log(0.1) + 0.7 * rng.standard_normal(n_c))
+    c_best, r_best = _opt(*_safe(c0, r0))
+=======
+    g5 = (np.arange(5) + 0.5) / 5
+    gx, gy = np.meshgrid(g5, g5)
+    base = np.stack([gx.ravel(), gy.ravel()], axis=1)
+    best_sum = -1.0
+    c_best, r_best = None, None
+    for seed in range(20):
+        if seed > 0 and time.time() - t0 > 60:
+            break
+        rng = np.random.default_rng(seed)
+        extra = rng.uniform(0.05, 0.95, (1, 2))
+        c0 = np.clip(np.vstack([base, extra]) + 0.02 * rng.standard_normal((n_c, 2)), 0.02, 0.98)
+        r0 = np.full(n_c, 0.08)
+        c_s, r_s = _opt(*_safe(c0, r0))
+        if np.sum(r_s) > best_sum:
+            best_sum = np.sum(r_s)
+            c_best, r_best = c_s, r_s
+>>>>>>> REPLACE
+-----

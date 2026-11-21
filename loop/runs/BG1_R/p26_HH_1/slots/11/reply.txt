@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+PERTURB = 0.03
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _polish(n, c0, r0):
+    """Free-radius SLSQP from a given start (used for basin-hopping perturbations)."""
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    x0 = np.concatenate([c0.ravel(), r0])
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    budget = TIME_FRACTION * time_limit
+    cur = best = None
+    while time.process_time() - t0 < budget:
+        frac = (time.process_time() - t0) / budget
+        T = 1e-2 * (1e-4 / 1e-2) ** frac              # geometric cooling 1e-2 -> 1e-4
+        if cur is None:
+            c, r = _solve_once(n, rng)
+        else:
+            c, r = _polish(n, cur[0] + rng.normal(0, PERTURB, cur[0].shape), cur[1])
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        val = r.sum()
+        if cur is None or val > cur[1].sum() or rng.random() < np.exp(-(cur[1].sum() - val) / T):
+            cur = (c, r)
+        if best is None or val > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+    iu = np.triu_indices(n, 1)
+=======
+def _greedy_centres(n, rng, cap):
+    """Place centres one at a time at the candidate with the largest allowed radius (capped)."""
+    cand = rng.uniform(0, 1, (2000, 2))
+    allowed = np.minimum(np.minimum(cand[:, 0], cand[:, 1]), np.minimum(1 - cand[:, 0], 1 - cand[:, 1]))
+    centres = []
+    for _ in range(n):
+        score = np.minimum(allowed, cap)
+        k = np.argmax(score)
+        centres.append(cand[k])
+        allowed = np.minimum(allowed, np.sqrt(((cand - cand[k]) ** 2).sum(1)) - score[k])
+    return np.array(centres)
+
+
+def _solve_once(n, rng, start=None, greedy=False):
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        y0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), [INIT_RADIUS]])
+=======
+        if greedy:
+            base = _greedy_centres(n, rng, rng.uniform(0.07, 0.12)).ravel()
+        else:
+            base = rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n)
+        y0 = np.concatenate([base, [INIT_RADIUS]])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+    rng, t0, best, fresh = np.random.default_rng(seed), time.process_time(), None, 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best if late else None)
+=======
+        greedy = False
+        if not late:
+            fresh += 1
+            greedy = fresh % 2 == 0
+        c, r = _solve_once(n, rng, best if late else None, greedy)
+>>>>>>> REPLACE
+-----

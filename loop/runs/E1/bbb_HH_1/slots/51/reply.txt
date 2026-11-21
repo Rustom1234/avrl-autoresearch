@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def atom_hist_features(mol):
+    crippen = np.array([c[0] for c in rdMolDescriptors._CalcCrippenContribs(mol)], dtype=np.float64)
+    tpsa = np.array(rdMolDescriptors._CalcTPSAContribs(mol), dtype=np.float64)
+    feats = []
+    for v, (lo, hi) in ((crippen, (-1.0, 1.0)), (tpsa, (0.0, 40.0))):
+        h, _ = np.histogram(v, bins=10, range=(lo, hi))
+        feats.extend(h.tolist())
+        feats.append(v[v > 0].sum())
+        feats.append(v[v < 0].sum())
+    return np.array(feats, dtype=np.float32)
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+        rows.append(np.concatenate([gen.GetFingerprintAsNumPy(mol), np.array(descriptors(mol), dtype=np.float32)]))
+=======
+        rows.append(np.concatenate([gen.GetFingerprintAsNumPy(mol), np.array(descriptors(mol), dtype=np.float32),
+                                    atom_hist_features(mol)]))
+>>>>>>> REPLACE
+-----

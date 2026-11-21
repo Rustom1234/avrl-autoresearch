@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of cheating: the code reads no files, uses no network, pastes no answers and never touches test labels.",
+  "The candidate is transductive: it takes test_smiles without their labels and turns its own most confident test predictions into pseudo-labels for co-training. The harness passes test_smiles in both cross-validation and the final held-out scoring, so this is the same in both places and is not label leakage. It is still worth flagging as a design choice.",
+  "confident_idx labels the top 10% of test molecules as 1 and the bottom 10% as 0 by rank, whatever the real class balance is. BBBP is about 76% positive, so some 'confident' negatives will be wrong. Each round, the pseudo-labels from one view train the other view (the fingerprint model and the descriptor model). Each retrain starts from the original training data plus the new pseudo-labels, so the pseudo-labels do not pile up across rounds. This weakens the method but is not a bug.",
+  "The descriptor-only random forest reuses MAX_FEATURES and MIN_SAMPLES_LEAF, which were tuned for the combined feature matrix (fingerprint + descriptors). They may be poor settings for descriptors alone. The fingerprint view is cut with [:, :N_BITS], which assumes featurize puts the fingerprint bits first. This is likely correct but I could not check it from the diff.",
+  "The candidate is clearly worse: 0.0973 vs 0.0893, a difference of +0.0080. Recomputed z = \u2212(0.0973\u22120.0893)/(0.0049\u00b7sqrt(1+1/2)) \u2248 \u22121.33, which matches the harness value of \u22121.330. The provisional reject is right. The change also adds a lot of code (pseudo-label co-training) and gains nothing."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -1.33
+ }
+}

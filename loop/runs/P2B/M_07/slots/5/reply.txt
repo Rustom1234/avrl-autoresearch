@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+raw_model = model
+model = torch.compile(model, dynamic=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+total_training_time = 0
+step = 0
+=======
+total_training_time = 0
+step = 0
+avg_params = None  # running uniform average of weights over final 20% of training
+avg_count = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+
+    # Weight averaging: uniform running mean of params every 50 steps over the last 20% of the budget
+    if progress >= 0.8 and step % 50 == 0:
+        with torch.no_grad():
+            if avg_params is None:
+                avg_params = [p.detach().float().clone() for p in raw_model.parameters()]
+                avg_count = 1
+            else:
+                avg_count += 1
+                for a, p in zip(avg_params, raw_model.parameters()):
+                    a.lerp_(p.detach().float(), 1.0 / avg_count)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+print()  # newline after \r training log
+=======
+print()  # newline after \r training log
+
+# Load the averaged weights before final evaluation
+if avg_params is not None:
+    with torch.no_grad():
+        for a, p in zip(avg_params, raw_model.parameters()):
+            p.copy_(a)
+>>>>>>> REPLACE
+-----

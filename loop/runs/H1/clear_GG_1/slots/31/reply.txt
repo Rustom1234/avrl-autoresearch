@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        counts = [mol.GetNumSubstructs(p) for p in patterns]
+        # Append NumAtoms, TPSA, and fragment counts
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol), *counts]))
+    return np.array(features, dtype=np.float32)
+=======
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        counts = [mol.GetSubstructMatches(p) for p in patterns]
+        # Append NumAtoms, TPSA, and fragment counts
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol), *[len(c) for c in counts]]))
+    return np.array(features, dtype=np.float32)
+>>>>>>> REPLACE
+-----

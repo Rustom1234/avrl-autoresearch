@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def construct_packing():
+    T0 = _time.time()
+=======
+def _smooth_val(c):
+    """Mean LP score over 6 fixed-seed Gaussian jitters (sd 1e-3) of the centres."""
+    sr = np.random.RandomState(99)
+    vals = []
+    for _ in range(6):
+        cj = np.clip(c + sr.normal(0.0, 1e-3, size=c.shape), 0.0, 1.0)
+        rj, sj = _score(cj)
+        if rj is not None:
+            vals.append(sj)
+    return float(np.mean(vals)) if vals else -1.0
+
+
+def construct_packing():
+    T0 = _time.time()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_c, best_r, best_s = cur_c.copy(), cur_r.copy(), cur_s
+=======
+    best_c, best_r, best_s = cur_c.copy(), cur_r.copy(), cur_s
+    cur_a = _smooth_val(cur_c)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > cur_s or rng.rand() < np.exp((s - cur_s) / T):
+            cur_c, cur_r, cur_s = c.copy(), rv.copy(), s
+=======
+        a = _smooth_val(c)
+        if a > cur_a or rng.rand() < np.exp((a - cur_a) / T):
+            cur_c, cur_r, cur_s = c.copy(), rv.copy(), s
+            cur_a = a
+>>>>>>> REPLACE
+-----

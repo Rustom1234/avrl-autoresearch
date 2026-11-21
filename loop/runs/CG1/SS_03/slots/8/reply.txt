@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+        ####################
+=======
+    params = list(model.parameters())
+    avg = []
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+        ####################
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            step += 1
+            if step >= total_train_steps:
+                break
+=======
+            step += 1
+            n_avg = step - (total_train_steps - 3)
+            if n_avg > 0:
+                with torch.no_grad():
+                    if n_avg == 1:
+                        avg = [p.detach().clone() for p in params]
+                    else:
+                        torch._foreach_lerp_(avg, [p.detach() for p in params], 1.0 / n_avg)
+            if step >= total_train_steps:
+                break
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if step >= total_train_steps:
+            break
+
+
+def predict(model, images):
+=======
+        if step >= total_train_steps:
+            break
+    if avg:
+        with torch.no_grad():
+            torch._foreach_copy_(params, avg)
+
+
+def predict(model, images):
+>>>>>>> REPLACE
+-----

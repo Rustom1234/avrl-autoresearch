@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    K = tanimoto(Xtr, Xtr)
+    ys = (y - y.mean()) / (y.std() + 1e-9)
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    oof = np.zeros(len(y))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(K):
+        m = SVR(kernel="precomputed", C=5.0, epsilon=0.1).fit(K[np.ix_(tr, tr)], ys[tr])
+        oof[va] = m.predict(K[np.ix_(va, tr)])
+    y_x = 0.7 * y + 0.3 * rankdata(oof) / len(oof)
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(xgb_features(train_smiles), y_x)
+    p_rf = model.predict(xgb_features(test_smiles))
+    svr.fit(K, ys)
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+-----

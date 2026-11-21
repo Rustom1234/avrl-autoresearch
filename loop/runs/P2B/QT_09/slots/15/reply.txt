@@ -1,0 +1,22 @@
+		with autocast_ctx:
+
+totLoss = loss
+
+		# Regularization: penalize output norm to prevent saturation
+		with torch.no_grad():
+			out = model(x)
+			norm_sq = out.float().pow(2).sum()
+			reg_weight = 1e-4
+			reg_loss = (norm_sq / out.size(0)) * reg_weight
+			loss = totLoss + reg_loss
+
+		train_loss = loss.detach()
+		loss = loss / grad_accum_steps
+		loss.backward()
+-----
+<<<<<<< SEARCH
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+=======
+MATRIX_LR = 0.06        # learning rate for matrix parameters (Muon)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+=======
+TIME_FRACTION = 0.92
+SAFE_FRACTION = 0.95
+INIT_LOW = 0.1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best, longest = np.random.default_rng(seed), time.process_time(), None, 0.0
+    while True:   # random restarts until the time is used, keeping a margin for the longest restart seen
+        elapsed = time.process_time() - t0
+        if elapsed >= TIME_FRACTION * time_limit or elapsed + longest > SAFE_FRACTION * time_limit:
+            break
+        ts = time.process_time()
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        longest = max(longest, time.process_time() - ts)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

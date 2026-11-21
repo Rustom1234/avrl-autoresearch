@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from lightgbm import LGBMRegressor
+
+# Settings
+N_BITS = 2048
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit import Descriptors
+from lightgbm import LGBMRegressor
+
+# Settings
+N_BITS = 2048
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        tpsa = Descriptors.TPSA(mol)
+        features.append(np.append(fp, [tpsa]))
+    return np.array(features, dtype=np.float32)
+>>>>>>> REPLACE
+-----

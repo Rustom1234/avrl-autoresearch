@@ -1,0 +1,100 @@
+<<<<<<< SEARCH
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+    """Simulated annealing over centers; objective is LP-optimal sum of radii."""
+    import time
+    import math
+    cur = c.copy()
+    cur_r = lp_radii(cur)
+    cur_v = float(np.sum(cur_r))
+    best, best_v = cur.copy(), cur_v
+    for s in range(steps):
+        if time.time() - t0 > 120:
+            break
+        frac = s / steps
+        T = T0 * (T1 / T0) ** frac
+        sigma = 0.005 + 0.045 * (T / T0)
+        u = rng.random()
+        cand = cur.copy()
+        moved = False
+        if u < 0.2:
+            big = int(np.argmax(cur_r))
+            d = np.linalg.norm(cur - cur[big], axis=1)
+            d[big] = np.inf
+            near = [int(j) for j in np.argsort(d)[:4] if cur_r[j] < cur_r[big]]
+            if near:
+                j = near[int(rng.integers(len(near)))]
+                cand[[big, j]] = cur[[j, big]]
+                moved = True
+        elif u < 0.3:
+            small = int(np.argmin(cur_r))
+            cand[small] = rng.uniform(0.05, 0.95, 2)
+            moved = True
+        if not moved:
+            k = int(rng.integers(c.shape[0]))
+            cand[k] = np.clip(cand[k] + rng.normal(0.0, sigma, 2), 0.02, 0.98)
+        rc = lp_radii(cand)
+        v = float(np.sum(rc))
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v, cur_r = cand, v, rc
+            if v > best_v:
+                best, best_v = cand.copy(), v
+    return best
+=======
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+    """Parallel tempering over centers; objective is LP-optimal sum of radii."""
+    import time
+    import math
+    K = 4
+    temps = [T1 * (T0 / T1) ** (k / (K - 1)) for k in range(K)]
+    reps = [c.copy() for _ in range(K)]
+    rads = [lp_radii(x) for x in reps]
+    vals = [float(np.sum(r)) for r in rads]
+    best = reps[0].copy()
+    best_v = vals[0]
+    for k in range(K):
+        if vals[k] > best_v:
+            best, best_v = reps[k].copy(), vals[k]
+    for s in range(steps):
+        if time.time() - t0 > 120:
+            break
+        for k in range(K):
+            T = temps[k]
+            sigma = 0.005 + 0.045 * (T / T0)
+            cur, cur_r, cur_v = reps[k], rads[k], vals[k]
+            u = rng.random()
+            cand = cur.copy()
+            moved = False
+            if u < 0.2:
+                big = int(np.argmax(cur_r))
+                d = np.linalg.norm(cur - cur[big], axis=1)
+                d[big] = np.inf
+                near = [int(j) for j in np.argsort(d)[:4] if cur_r[j] < cur_r[big]]
+                if near:
+                    j = near[int(rng.integers(len(near)))]
+                    cand[[big, j]] = cur[[j, big]]
+                    moved = True
+            elif u < 0.3:
+                small = int(np.argmin(cur_r))
+                cand[small] = rng.uniform(0.05, 0.95, 2)
+                moved = True
+            if not moved:
+                kk = int(rng.integers(c.shape[0]))
+                cand[kk] = np.clip(cand[kk] + rng.normal(0.0, sigma, 2), 0.02, 0.98)
+            rc = lp_radii(cand)
+            v = float(np.sum(rc))
+            if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+                reps[k], rads[k], vals[k] = cand, rc, v
+                if v > best_v:
+                    best, best_v = cand.copy(), v
+        if s % 25 == 24:
+            for k in range(K - 1):
+                bi, bj = 1.0 / temps[k], 1.0 / temps[k + 1]
+                # energy E = -sum(radii); accept with min(1, exp((bi-bj)(Ei-Ej)))
+                x = (bi - bj) * (vals[k + 1] - vals[k])
+                if x >= 0 or rng.random() < math.exp(x):
+                    reps[k], reps[k + 1] = reps[k + 1], reps[k]
+                    rads[k], rads[k + 1] = rads[k + 1], rads[k]
+                    vals[k], vals[k + 1] = vals[k + 1], vals[k]
+    return best
+>>>>>>> REPLACE
+-----

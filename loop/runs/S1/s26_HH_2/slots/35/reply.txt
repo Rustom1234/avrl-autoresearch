@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+def _template():
+=======
+def _ls_growth(rng, steps=4000, dt=0.01, g=0.002, e=0.9):
+    """Event-free Lubachevsky-Stillinger style growth: random velocities, growing radii, elastic bounces."""
+    n = _N
+    c = rng.uniform(0.1, 0.9, size=(n, 2))
+    v = rng.normal(0.0, 1.0, size=(n, 2))
+    r = np.zeros(n)
+    iu, ju = np.triu_indices(n, 1)
+    for _ in range(steps):
+        c = c + v * dt
+        lo = c < 0.0
+        c = np.where(lo, -c, c)
+        v = np.where(lo, -v, v)
+        hi = c > 1.0
+        c = np.where(hi, 2.0 - c, c)
+        v = np.where(hi, -v, v)
+        r = r + g * dt
+        x, y = c[:, 0], c[:, 1]
+        r = np.maximum(np.minimum.reduce([r, x, y, 1.0 - x, 1.0 - y]), 0.0)
+        d = np.sqrt(np.sum((c[iu] - c[ju]) ** 2, axis=1))
+        gap = d - r[iu] - r[ju]
+        for k in np.nonzero(gap < 0.0)[0]:
+            i, j = iu[k], ju[k]
+            diff = c[i] - c[j]
+            dk = np.sqrt(diff @ diff) + 1e-12
+            nrm = diff / dk
+            u = (v[i] - v[j]) @ nrm
+            if u < 0.0:
+                delta = 0.5 * (1.0 + e) * u
+                v[i] = v[i] - delta * nrm
+                v[j] = v[j] + delta * nrm
+            c[i] = c[i] - 0.5 * gap[k] * nrm
+            c[j] = c[j] + 0.5 * gap[k] * nrm
+            r[i] = max(r[i] + 0.5 * gap[k], 0.0)
+            r[j] = max(r[j] + 0.5 * gap[k], 0.0)
+        c = np.clip(c, 0.0, 1.0)
+    return np.clip(c, 0.0, 1.0)
+
+
+def _template():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while len(pool) >= 2 and _time.time() - t0 < 100:
+=======
+    c_ls = _ls_growth(rng)
+    c_ls, _r = _relax(c_ls, np.full(_N, 0.01), 400, 0.3, 0.05)
+    rv_ls, s_ls = _score(c_ls)
+    if rv_ls is not None:
+        pool.append((s_ls, c_ls.copy()))
+    while len(pool) >= 2 and _time.time() - t0 < 100:
+>>>>>>> REPLACE
+-----

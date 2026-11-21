@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+from sklearn.cluster import KMeans
+from sklearn.decomposition import TruncatedSVD
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, r, train_smiles)
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+=======
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    K_te = tanimoto(X_te, X_tr)
+    s2 = choose_sigma2(K_tr, r, train_smiles)
+    p_global = gp_mean(K_tr, r, K_te, s2)
+
+    svd = TruncatedSVD(n_components=64, random_state=seed).fit(X_tr)
+    Z_tr, Z_te = svd.transform(X_tr), svd.transform(X_te)
+    km = KMeans(n_clusters=4, n_init=5, random_state=seed).fit(Z_tr)
+    c_tr, c_te = km.labels_, km.predict(Z_te)
+    p_local = np.zeros(len(test_smiles))
+    for c in range(4):
+        tr_idx = np.where(c_tr == c)[0]
+        te_idx = np.where(c_te == c)[0]
+        if len(te_idx) == 0:
+            continue
+        Kc = K_tr[np.ix_(tr_idx, tr_idx)]
+        s2c = choose_sigma2(Kc, r[tr_idx], [train_smiles[i] for i in tr_idx])
+        p_local[te_idx] = gp_mean(Kc, r[tr_idx], K_te[np.ix_(te_idx, tr_idx)], s2c)
+    p_fp = 0.5 * p_global + 0.5 * p_local + base_te
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No measurement circumvention found: no file or network access, no pasted answers, no use of test labels. The meta-model is fit only on out-of-fold predictions derived from training data, and tanimoto_knn receives only train_y.",
+  "Design weakness (not a correctness bug): the inner StratifiedKFold is a random split, not scaffold-grouped, so near-duplicate molecules appear on both sides. The kNN feature therefore looks stronger in the out-of-fold matrix than under the harness's scaffold-disjoint scoring, likely over-weighting it in the logistic regression.",
+  "Train/apply mismatch typical of stacking: meta weights are learned from base models fit on 4/5 of the data but applied to base models fit on all of it (the kNN in particular sees more neighbours at predict time). Acceptable practice, but worth noting.",
+  "Complexity/cost: ~6 RF+LGBM fits plus kNN per harness fold (~90 fits per job) for no measured gain; this conflicts with the 'simpler is better' guidance.",
+  "Numbers are consistent with the harness: candidate 0.0900 vs incumbent 0.0893 is 0.0007 worse, well inside noise; recomputed z matches -0.116 and supports the provisional reject."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -0.116
+ }
+}

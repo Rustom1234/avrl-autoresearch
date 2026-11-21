@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    # MLP with scaffold-out kNN feature
+    def scaf(s):
+        try:
+            from rdkit.Chem.Scaffolds import MurckoScaffold
+            return MurckoScaffold.MurckoScaffoldSmiles(smiles=s)
+        except Exception:
+            return s
+    g = np.unique([scaf(s) for s in train_smiles], return_inverse=True)[1]
+    inter_tr = A @ A.T
+    cnt = A.sum(1)
+    sim_tr = inter_tr / np.maximum(cnt[:, None] + cnt[None, :] - inter_tr, 1e-9)
+    sim_tr[g[:, None] == g[None, :]] = 0.0
+    idx_tr = np.argsort(-sim_tr, axis=1)[:, :10]
+    w_tr = np.take_along_axis(sim_tr, idx_tr, axis=1)
+    knn_tr = (w_tr * y[idx_tr]).sum(1) / np.maximum(w_tr.sum(1), 1e-9)
+    D2 = np.hstack([Dq, knn_tr[:, None]])
+    D2t = np.hstack([Dtq, knn[:, None]])
+    p2 = np.zeros(len(Xt))
+    for k in range(3):
+        m2 = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True, max_iter=300,
+                           random_state=seed + k)
+        m2.fit(D2, y)
+        p2 += m2.predict_proba(D2t)[:, 1] / 3
+    preds.append(rankdata(p2) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

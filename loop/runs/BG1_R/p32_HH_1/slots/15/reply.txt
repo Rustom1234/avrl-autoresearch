@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+=======
+def _solve_once(n, rng, init=None, init_r=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+=======
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS) if init_r is None else init_r])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _best_packing(n, rng, seconds):
+    t0, best = time.process_time(), None
+    while time.process_time() - t0 < seconds:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+
+
+def _grow(c, r):
+    """Add one circle at the grid point with the largest clearance from circles and walls."""
+    g = (np.arange(200) + 0.5) / 200
+    p = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    gap = np.sqrt(((p[:, None] - c[None]) ** 2).sum(-1)) - r[None]
+    gap = np.minimum(gap.min(1), np.minimum(p, 1 - p).min(1))
+    return np.vstack([c, p[np.argmax(gap)]])
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    prev = _best_packing(n - 1, rng, 0.15 * time_limit) if n > 2 else None   # best packing for n-1 circles
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = prev is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        if guided:
+            init_r = np.append(np.full(n - 1, INIT_RADIUS), 0.01)
+            c, r = _solve_once(n, rng, _grow(*prev), init_r)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

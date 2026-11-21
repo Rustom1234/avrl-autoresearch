@@ -1,0 +1,87 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+def _batch_seed(n, rng, B=64, steps=200, mu=100.0, lr=0.001, top=3):
+    """Penalty relaxation of B random starts at once; returns the best `top` (centres, radii) by penalised score."""
+    c = rng.uniform(0.1, 0.9, (B, n, 2))
+    r = np.full((B, n), INIT_RADIUS)
+    vc, vr = np.zeros_like(c), np.zeros_like(r)
+    eye = np.eye(n)[None] * 10.0
+
+    def energy_grad(c, r):
+        diff = c[:, :, None] - c[:, None]
+        d = np.sqrt((diff ** 2).sum(-1)) + eye
+        ov = np.maximum(r[:, :, None] + r[:, None] - d, 0)
+        v1 = np.maximum(r[..., None] - c, 0)
+        v2 = np.maximum(r[..., None] + c - 1, 0)
+        pen = 0.5 * (ov ** 2).sum((1, 2)) + (v1 ** 2 + v2 ** 2).sum((1, 2))
+        gr = -1 + 2 * mu * ov.sum(2) + 2 * mu * (v1 + v2).sum(-1)
+        gc = -2 * mu * ((ov / d)[..., None] * diff).sum(2) + 2 * mu * (v2 - v1)
+        return pen, gc, gr
+
+    for _ in range(steps):
+        _, gc, gr = energy_grad(c, r)
+        vc = 0.9 * vc - lr * gc
+        vr = 0.9 * vr - lr * gr
+        c = np.clip(c + vc, 0.01, 0.99)
+        r = np.maximum(r + vr, 0.01)
+    pen, _, _ = energy_grad(c, r)
+    score = r.sum(1) - mu * pen
+    idx = np.argsort(-score)[:top]
+    return [(c[k].copy(), r[k].copy()) for k in idx]
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    for st in _batch_seed(n, rng):
+        c, r = _solve_once(n, rng, st)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+-----
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+def _batch_seed(n, rng, B=64, steps=200, mu=100.0, lr=0.001, top=3):
+    """Penalty relaxation of B random starts at once; returns the best `top` (centres, radii) by penalised score."""
+    c = rng.uniform(0.1, 0.9, (B, n, 2))
+    r = np.full((B, n), INIT_RADIUS)
+    vc, vr = np.zeros_like(c), np.zeros_like(r)
+    eye = np.eye(n)[None] * 10.0
+
+    def energy_grad(c, r):
+        diff = c[:, :, None] - c[:, None]
+        d = np.sqrt((diff ** 2).sum(-1)) + eye
+        ov = np.maximum(r[:, :, None] + r[:, None] - d, 0)
+        v1 = np.maximum(r[..., None] - c, 0)
+        v2 = np.maximum(r[..., None] + c - 1, 0)
+        pen = 0.5 * (ov ** 2).sum((1, 2)) + (v1 ** 2 + v2 ** 2).sum((1, 2))
+        gr = -1 + 2 * mu * ov.sum(2) + 2 * mu * (v1 + v2).sum(-1)
+        gc = -2 * mu * ((ov / d)[..., None] * diff).sum(2) + 2 * mu * (v2 - v1)
+        return pen, gc, gr
+
+    for _ in range(steps):
+        _, gc, gr = energy_grad(c, r)
+        vc = 0.9 * vc - lr * gc
+        vr = 0.9 * vr - lr * gr
+        c = np.clip(c + vc, 0.01, 0.99)
+        r = np.maximum(r + vr, 0.01)
+    pen, _, _ = energy_grad(c, r)
+    score = r.sum(1) - mu * pen
+    idx = np.argsort(-score)[:top]
+    return [(c[k].copy(), r[k].copy()) for k in idx]
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    for st in _batch_seed(n, rng):
+        c, r = _solve_once(n, rng, st)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y)
+    et = model.predict(featurize(test_smiles))
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    model.fit(Xtr, y)
+    et = model.predict(Xte)
+    import lightgbm as lgb
+    perm = np.random.RandomState(seed).permutation(len(y))
+    n_val = max(1, len(y) // 10)
+    va, tr = perm[:n_val], perm[n_val:]
+    gbm = lgb.LGBMRegressor(n_estimators=2000, learning_rate=0.03, num_leaves=15, min_child_samples=10,
+                            subsample=0.8, subsample_freq=1, colsample_bytree=0.3, objective='l1',
+                            n_jobs=8, random_state=seed, verbose=-1)
+    gbm.fit(Xtr[tr], y[tr], eval_set=[(Xtr[va], y[va])],
+            callbacks=[lgb.early_stopping(200, verbose=False)])
+    et = 0.5 * et + 0.5 * gbm.predict(Xte)
+>>>>>>> REPLACE
+-----

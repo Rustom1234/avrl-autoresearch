@@ -1,0 +1,327 @@
+<<<<S1
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=
+import numpy as np
+import pandas as pd
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+LR = 0.05
+
+def get_features(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = [gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles]
+    
+    # Calculate RDKit descriptors for a few relevant ones
+    desc_list = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        if m:
+            # Add a few high-variance descriptors
+            desc_list.append([
+                Descriptors.MolWt(m), 
+                Descriptors.LogP(m), 
+                Descriptors.NumHDonors(m), 
+                Descriptors.NumHAcceptors(m), 
+                Descriptors.NumRotatableBonds(m)
+            ])
+        else:
+            desc_list.append([0.0] * 5)
+            
+    feats = np.array(fps, dtype=np.float32)
+    descs = np.array(desc_list, dtype=np.float32)
+    return np.hstack([feats, descs])
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = get_features(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    
+    # Inner validation split (10%)
+    indices = np.argsort(X.min(axis=1))
+    split = int(len(X) * 0.9)
+    train_idx = indices[:split]
+    val_idx = indices[split:]
+    
+    X_train, X_val = X[train_idx], X[val_idx]
+    y_train, y_val = y[train_idx], y[val_idx]
+    
+    # LightGBM params
+    params = {
+        'objective': 'l1',
+        'metric': 'mae',
+        'learning_rate': LR,
+        'verbosity': -1,
+        'boosting_type': 'gbdt',
+        'random_state': seed,
+        'n_jobs': -1
+    }
+    
+    # Find best number of rounds
+    train_data = lgb.Dataset(X_train, label=y_train)
+    val_data = lgb.Dataset(X_val, label=y_val, reference=train_data)
+    
+    best_rounds = 1000
+    best_score = float('inf')
+    
+    # Simple manual early stopping loop
+    # (Standard lightgbm has callback, but we'll just run a fixed range or use callback if available)
+    # Using a smaller range to keep it fast and simple
+    rounds = 2000
+    # Since callback isn't strictly required if we use a fixed large number, 1000 is often enough.
+    # Let's use the provided logic: 10% extra scale
+    final_rounds = int(rounds * 1.1)
+    
+    dtrain_full = lgb.Dataset(X, label=y)
+    model = lgb.Booster(params)
+    model.fit(dtrain_full, rounds=final_rounds)
+    
+    return model.predict(X_test := get_features(test_smiles)).flatten()
+-----
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+Dos
+>>>>>>> REPLACE
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+LR = 0.05
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = [gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles]
+    descs = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        if m:
+            descs.append([Descriptors.MolWt(m), Descriptors.LogP(m), Descriptors.NumHDonors(m), Descriptors.NumHAcceptors(m)])
+        else:
+            descs.append([0.0, 0.0, 0.0, 0.0])
+    return np.hstack([np.array(fps, dtype=np.float32), np.array(descs, dtype=np.float32)])
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    
+    # Group by Murcko Scaffold for inner validation
+    scaffolds = [Chem.rdktp.GetMorganFilter.GetScaffold(Chem.MolFromSmiles(s))[0] if Chem.MolFromSmiles(s) else None for s in train_smiles]
+    scaffolds = [s[0] if isinstance(s, tuple) and s[0] else s for s in scaffolds]
+    # Simplified: use Murcko scaffolds to split
+    from rdkit import Chem
+    scaffs = [Chem.MolFromSmiles(s).GetScaffold() for s in train_smiles]
+    
+    # Just a simple scaffold-aware split
+    unique_scaffs = list(set(scaffs))
+    scaffold_to_idx = {sc: i for i, sc in enumerate(unique_scaffs)}
+    scaffold_indices = [scaffold_to_idx[sc] for sc in scaffs]
+    
+    # Take 10% of scaffolds for validation
+    sorted_scaff_indices = np.argsort(np.array(scaffold_indices))
+    split_pt = int(len(sorted_scaff_indices) * 0.9)
+    
+    train_mask = np.ones(len(X), dtype=bool)
+    val_mask = np.zeros(len(X), dtype=bool)
+    
+    # Ensure same scaffold stays together
+    scaffold_ids = np.array(scaffold_indices)
+    unique_scaff_ids = np.unique(scaffold_ids)
+    
+    # Simple: split based on first 10% of unique scaffolds
+    # To keep it simple and robust for the task, we just use a random split of indices
+    # but the prompt asked for scaffold grouping. 
+    # Let's do a quick scaffold-based split:
+    
+    # (Actually, for a 10% split, just take 10% of unique scaffolds)
+    scaff_presence = {sc: [] for sc in unique_scaff_ids}
+    for i, sc in enumerate(scaffs):
+        scaff_presence[sc].append(i)
+    
+    val_scaffs = unique_scaff_ids[:int(len(unique_scaff_ids) * 0.1)]
+    for sc in val_scaffs:
+        for idx in scaff_presence[sc]:
+            val_mask[idx] = True
+
+    X_train = X[~val_mask]
+    y_train = y[~val_mask]
+    X_val = X[val_mask]
+    y_val = y[val_mask]
+
+    params = {'objective': 'l1', 'metric': 'mae', 'learning_rate': LR, 'verbosity': -1, 'random_state': seed}
+    
+    train_set = lgb.Dataset(X_train, label=y_train)
+    val_set = lgb.Dataset(X_val, label=y_val, reference=train_set)
+    
+    best_rounds = 1000
+    best_score = float('inf')
+    
+    # We'll use a coarse grid for rounds to find best
+    for rounds in [500, 1000, 1500, 2000]:
+        model = lgb.train(params, train_set, num_boost_round=rounds, feval=lambda m: ('mae', np.mean(np.abs(y_val - m.predict(X_val)))))
+        score = model.best_score
+        if score < best_score:
+            best_score = score
+            best_rounds = rounds
+
+    # Final fit
+    final_model = lgb.train(params, lgb.Dataset(X, label=y), num_boost_round=int(best_rounds * 1.1))
+    return final_model.predict(featurize(test_smiles))
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+Dos
+>>>>>>> REPLACE
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+LR = 0.05
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    descs = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            fps.append(gen.GetFingerprintAsNumPy(mol))
+            descs.append([Descriptors.MolWt(mol), Descriptors.LogP(mol), 
+                           Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol)])
+        else:
+            fps.append(np.zeros(N_BITS))
+            descs.append([0.0, 0.0, 0.0, 0.0])
+    return np.hstack([np.array(fps, dtype=np.float32), np.array(descs, dtype=np.float32)])
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    
+    # Scaffold-aware split for inner validation
+    mols = [Chem.MolFromSmiles(s) for s in train_smiles]
+    scaffolds = [Chem.mala.MurckoScaffold.from_smiles(s) if Chem.MolFromSmiles(s) else None for s in train_smiles]
+    scaffolds = [s.GetScaffold() if s else None for s in scaffolds]
+    
+    unique_scaffs = list(set(s for s in scaffolds if s is not None))
+    scaffold_map = {sc: i for i, sc in enumerate(unique_scaffs)}
+    scaffold_ids = [scaffold_map[s] if s is not None else -1 for s in scaffolds]
+    
+    # Pick 10% of unique scaffolds for validation
+    num_val_scaffs = max(1, int(len(unique_scaffs) * 0.1))
+    val_scaffold_indices = np.random.choice(len(unique_scaffs), num_val_scaffs, replace=False, size=num_val_scaffs)
+    # Use a fixed set of scaffold IDs for the split based on seed
+    rng = np.random.default_rng(seed)
+    val_scaff_ids = rng.choice(unique_scaffs, num_val_scaffs, replace=False)
+    
+    train_idx = []
+    val_idx = []
+    for i, s_id in enumerate(scaffolds):
+        if s_id in val_scaff_ids:
+            val_idx.append(i)
+        else:
+            train_idx.append(i)
+            
+    X_train, y_train = X[train_idx], y[train_idx]
+    X_val, y_val = X[val_idx], y[val_idx]
+    
+    # Early stopping
+    params = {
+        'objective': 'l1',
+        'metric': 'mae',
+        'learning_rate': LR,
+        'verbosity': -1,
+        'boosting_type': 'gbdt',
+        'random_state': seed,
+        'n_jobs': -1
+    }
+    
+    train_set = lgb.Dataset(X_train, label=y_train)
+    val_set = lgb.Dataset(X_val, label=y_val, reference=train_set)
+    
+    best_round = 0
+    best_score = float('inf')
+    
+    # Manual early stopping loop to handle objective/params easily
+    for round_num in range(1, 2001):
+        preds = lgb.train(params, train_set, num_boost_round=1, fobj=None).predict(X_val)
+        curr_score = np.mean(np.abs(preds - y_val))
+        if curr_score < best_score:
+            best_score = curr_score
+            best_round = round_num
+        if round_num >= best_round + 50:
+            break
+            
+    # Final fit
+    best_round = int(best_round * 1.1)
+    final_model = lgb.train(params, train_set, num_boost_round=best_round)
+    
+    return final_model.predict(featurize(test_smiles))
+-----

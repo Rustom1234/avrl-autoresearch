@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import Crippen
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import Ridge, HuberRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+N_CONFIGS = 1
+=======
+_LOGP_CACHE = {}
+
+
+def crippen_logp(smiles):
+    # Cache per SMILES, as for the descriptors.
+    if smiles not in _LOGP_CACHE:
+        _LOGP_CACHE[smiles] = Crippen.MolLogP(Chem.MolFromSmiles(smiles))
+    return _LOGP_CACHE[smiles]
+
+
+N_CONFIGS = 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.float64)
+=======
+    y = np.asarray(train_y, dtype=np.float64)
+    # Physics prior: 1-D Huber fit of y on Crippen logP; the pipeline below models the residual.
+    c_tr = np.array([crippen_logp(s) for s in train_smiles])
+    c_te = np.array([crippen_logp(s) for s in test_smiles])
+    hub = HuberRegressor().fit(c_tr[:, None], y)
+    a, b = hub.coef_[0], hub.intercept_
+    prior_te = a * c_te + b
+    y = y - (a * c_tr + b)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return meta.predict(base_te)
+=======
+    return meta.predict(base_te) + prior_te
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, init=None, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+=======
+    if init is not None:
+        x0 = init
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < 0.6 * time_limit:   # random restarts
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    k = 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the best
+        k += 1
+        c = best[0].copy()
+        if k % 5 == 0:
+            idx = np.argsort(((c - rng.random(2)) ** 2).sum(1))[:4]
+            c[idx] += rng.normal(0, 0.08, (len(idx), 2))
+        else:
+            c += rng.normal(0, 0.02, c.shape)
+        c = np.clip(c, 0.01, 0.99)
+        x0 = np.concatenate([c.ravel(), 0.8 * best[1]])
+        c, r = _solve_once(n, rng, x0, 150)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

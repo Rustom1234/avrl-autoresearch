@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+=======
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles, kind):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+=======
+_UNCHARGER = rdMolStandardize.Uncharger()
+
+
+def standardize(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    try:
+        frag = rdMolStandardize.LargestFragmentChooser().choose(mol)
+        frag = _UNCHARGER.uncharge(frag)
+        if frag is not None:
+            return frag
+    except Exception:
+        pass
+    return mol
+
+
+def featurize(smiles, kind):
+    mols = [standardize(s) for s in smiles]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    ptr = phys(train_smiles)
+    pte = phys(test_smiles)
+    scaler = StandardScaler().fit(ptr)
+    lin = Ridge(alpha=1.0).fit(scaler.transform(ptr), y)
+    base_tr = lin.predict(scaler.transform(ptr))
+    base_te = lin.predict(scaler.transform(pte))
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+=======
+def density_feats(Xa, ya, Xb, k=5):
+    A = (Xa[:, :N_BITS] > 0).astype(np.float64)
+    B = (Xb[:, :N_BITS] > 0).astype(np.float64)
+    inter = B @ A.T
+    union = B.sum(1)[:, None] + A.sum(1)[None, :] - inter
+    sim = inter / np.maximum(union, 1e-9)
+    idx = np.argsort(-sim, axis=1)[:, :k]
+    top = np.take_along_axis(sim, idx, 1)
+    return np.column_stack([top.mean(1), top[:, 0], ya[idx].mean(1)])
+
+
+def density_oof(X, y, seed):
+    out = np.zeros((len(y), 3))
+    for tr, te in KFold(5, shuffle=True, random_state=seed).split(X):
+        out[te] = density_feats(X[tr], y[tr], X[te])
+    return out
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    ptr = phys(train_smiles)
+    pte = phys(test_smiles)
+    scaler = StandardScaler().fit(ptr)
+    lin = Ridge(alpha=1.0).fit(scaler.transform(ptr), y)
+    base_tr = lin.predict(scaler.transform(ptr))
+    base_te = lin.predict(scaler.transform(pte))
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    Dtr = density_oof(Xtr, y, seed)
+    Dte = density_feats(Xtr, y, Xte)
+    Xtr = np.hstack([Xtr, Dtr.astype(np.float32)])
+    Xte = np.hstack([Xte, Dte.astype(np.float32)])
+>>>>>>> REPLACE
+-----

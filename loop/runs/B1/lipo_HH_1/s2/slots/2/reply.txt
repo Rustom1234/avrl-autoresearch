@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import Ridge
+from scipy.optimize import linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    # L1 meta-fit: min sum_i t_i  s.t.  |oof @ w - y| <= t,  w >= 0, no intercept.
+    n, k = oof.shape
+    c = np.concatenate([np.zeros(k), np.ones(n)])
+    A_ub = np.vstack([np.hstack([oof, -np.eye(n)]), np.hstack([-oof, -np.eye(n)])])
+    b_ub = np.concatenate([y, -y])
+    res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=[(0, None)] * (k + n), method="highs")
+    w = res.x[:k]
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return base_te @ w
+>>>>>>> REPLACE
+-----

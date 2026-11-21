@@ -1,0 +1,5 @@
+Helped: ensembling per-feature-set random forests (slot 0, 0.5635 vs 0.6103 baseline), rank-transforming the target (slot 1, 0.5266), and adding a Gobbi 2D pharmacophore forest as a fourth member (slot 25, 0.5000, incumbent). Dropping the Morgan forest hurt (slot 4, +0.0192).
+
+Did not help: CatBoost (slot 2), min_samples_leaf 5 (slot 8), log10 target (slot 13), descriptors-only models (slots 7 and 29), pairwise ranking (slot 9), stacking (slot 23), in-fit featurization search (slot 27, 0.5721). Fifth members on top of the incumbent (slots 30, 31) and a proximity-kNN member (slot 28) were worse. Multi-output targets (slot 32) were also worse (+0.0100). Within noise (sd about 0.0070): Morgan counts, LightGBM, FCFP, kernel ridge, XGBoost swap, standardization.
+
+Next: retry slot 26's bagging (four 75-tree forests per feature set, 0.4962) on the incumbent, perhaps with XGBoost. Try other diverse pharmacophore or topological fingerprint forests as replacements, not extra members. Treat gains under 0.007 as noise.

@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+=======
+def count_feats(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=N_BITS)
+    rows = [gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles]
+    return np.minimum(np.array(rows, dtype=np.float32), 8)
+
+
+def minmax(A, B):
+    # sum_i min(a_i,b_i) = sum_t [a>=t].[b>=t] for integer counts capped at 8 (exact, via matmuls).
+    dot = 0.0
+    for t in range(1, 9):
+        dot = dot + (A >= t).astype(np.float32) @ (B >= t).astype(np.float32).T
+    dot = dot.astype(np.float64)
+    sa = A.sum(axis=1).astype(np.float64)[:, None]
+    sb = B.sum(axis=1).astype(np.float64)[None, :]
+    return dot / np.maximum(sa + sb - dot, 1e-9)
+
+
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed, Ca, Cb):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ta, Ra = tanimoto(Fa, Fa), rbf(Za, Za)
+=======
+    Ta, Ra = 0.5 * (tanimoto(Fa, Fa) + minmax(Ca, Ca)), rbf(Za, Za)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+=======
+    p_krr = (0.5 * (tanimoto(Fb, Fa) + minmax(Cb, Ca)) + wr * rbf(Zb, Za)) @ w + mu
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.float64)
+=======
+    Ctr, Cte = count_feats(train_smiles), count_feats(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+=======
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed, Ctr[tr], Ctr[va])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+=======
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed, Ctr, Cte)
+>>>>>>> REPLACE
+-----

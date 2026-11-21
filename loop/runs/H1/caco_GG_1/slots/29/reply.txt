@@ -1,0 +1,231 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+ нюанс
+=======
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 1000
+LEARNING_RATE = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    
+    # Split for early stopping
+    train_idx = np.arange(len(X))
+    np.random.default_rng(seed).shuffle(train_idx)
+    split = int(len(X) * 0.8)
+    
+    train_x, val_x = X[train_idx[:split]], X[train_idx[split:]]
+    train_y, val_y = y[train_idx[:split]], y[train_idx[split:]]
+    
+    model = XGBRegressor(
+        n_estimators=N_ESTIMATORS,
+        learning_rate=LEARNING_RATE,
+        max_depth=6,
+        colsample_bytree=0.8,
+        subsample=0.8,
+        random_state=seed,
+        n_jobs=-1
+    )
+    
+    model.fit(
+        train_x, train_y,
+        eval_set=[(val_x, val_y)],
+        verbose=False,
+        early_stopping_rounds=50
+    )
+    
+    return model.predict(featurize(test_smiles))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+<<<<<<< REPLACE
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 1000
+LEARNING_RATE = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    
+    # Split for early stopping
+    indices = np.arange(len(X))
+    np.random.default_rng(seed).shuffle(indices)
+    split = int(len(X) * 0.8)
+    
+    train_idx, val_idx = indices[:split], indices[split:]
+    train_x, val_x = X[train_idx], X[val_idx]
+    train_y, val_y = y[train_idx], y[val_idx]
+    
+    model = XGBRegressor(
+        n_estimators=N_ESTIMATORS,
+        learning_rate=LEARNING_RATE,
+        max_depth=6,
+        colsample_bytree=0.8,
+        subsample=0.8,
+        random_state=seed,
+        n_jobs=-1
+    )
+    
+    model.fit(
+        train_x, train_y,
+        eval_set=[(val_x, val_y)],
+        verbose=False,
+        early_stopping_rounds=50
+    )
+    
+    return model.predict(featurize(test_smiles))
+>>>>>>>
+-----
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 1000
+LEARNING_RATE = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    
+    # Split for early stopping
+    indices = np.arange(len(X))
+    rng = np.random.default_rng(seed)
+    rng.shuffle(indices)
+    split = int(len(X) * 0.8)
+    
+    train_idx = indices[:split]
+    val_idx = indices[split:]
+    train_x, val_x = X[train_idx], X[val_idx]
+    train_y, val_y = y[train_idx], y[val_idx]
+    
+    model = XGBRegressor(
+        n_estimators=N_ESTIMATORS,
+        learning_rate=LEARNING_RATE,
+        max_depth=6,
+        colsample_bytree=0.8,
+        subsample=0.8,
+        random_state=seed,
+        n_jobs=-1
+    )
+    
+    model.fit(
+        train_x, train_y,
+        eval_set=[(val_x, val_y)],
+        verbose=False,
+        early_stopping_rounds=50
+    )
+    
+    return model.predict(featurize(test_smiles))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _polish(n, c, r):
+    """Re-solve from the best packing with tight tolerance, using only near-active pair constraints."""
+    iu = np.triu_indices(n, 1)
+    gap = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+    near = gap < 0.05
+    pi, pj = iu[0][near], iu[1][near]
+
+    def cons(v):
+        cc, rr = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((cc[pi] - cc[pj]) ** 2).sum(1)) - rr[pi] - rr[pj]
+        return np.concatenate([d, cc[:, 0] - rr, cc[:, 1] - rr, 1 - cc[:, 0] - rr, 1 - cc[:, 1] - rr, rr])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), np.concatenate([c.ravel(), r]), method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons}, options={"maxiter": 500, "ftol": 1e-15})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+=======
+    while time.process_time() - t0 < 0.95 * budget:   # remove-and-reinsert the smallest circle
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c, r = c2, r2
+    return c, r
+=======
+            c, r = c2, r2
+    c2, r2 = _polish(n, np.clip(c, 0, 1), r)   # final active-contact polish in the last 5 percent
+    c2 = np.clip(c2, 0, 1)
+    r2 = _repair(c2, r2)
+    if r2.sum() > r.sum():
+        c, r = c2, r2
+    return c, r
+>>>>>>> REPLACE
+-----

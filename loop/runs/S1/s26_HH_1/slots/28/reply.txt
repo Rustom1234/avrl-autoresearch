@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+def jitter_anneal_search(seed=12345, budget=150.0, start=None):
+=======
+def _remove_from_27(rng):
+    # Optimise 27 circles jointly (centres and radii), then drop the circle whose
+    # removal leaves the largest LP-optimal sum of radii.
+    n = 27
+    I, J = np.triu_indices(n, 1)
+    c = rng.uniform(0.1, 0.9, (n, 2))
+    r0 = _lp_radii(c)
+    z0 = np.concatenate([c[:, 0], c[:, 1], r0])
+
+    def obj(z):
+        return -np.sum(z[2 * n:])
+
+    def obj_grad(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        return g
+
+    def cons(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        rs = r[I] + r[J]
+        pair = dx * dx + dy * dy - rs * rs
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    try:
+        res = minimize(obj, z0, jac=obj_grad, method="SLSQP", bounds=bounds,
+                       constraints=[{"type": "ineq", "fun": cons}],
+                       options={"maxiter": 300, "ftol": 1e-12})
+        z = res.x
+        c = np.clip(np.stack([z[:n], z[n:2 * n]], axis=1), 0.0, 1.0)
+    except Exception:
+        pass
+    best_i, best_s = 0, -1.0
+    for i in range(n):
+        s = float(np.sum(_lp_radii(np.delete(c, i, axis=0))))
+        if s > best_s:
+            best_i, best_s = i, s
+    return np.delete(c, best_i, axis=0)
+
+
+def jitter_anneal_search(seed=12345, budget=150.0, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c = _ls_growth(rng) if start is None else start
+    best_c, best_r = _local_opt(c)
+    best_s = float(np.sum(best_r))
+    K = 20
+=======
+    c = _ls_growth(rng) if start is None else start
+    best_c, best_r = _local_opt(c)
+    best_s = float(np.sum(best_r))
+    try:
+        c26 = _remove_from_27(np.random.default_rng(seed + 1))
+        cc26, rr26 = _local_opt(c26)
+        s26 = float(np.sum(rr26))
+        if s26 > best_s and _valid_packing(cc26, rr26):
+            best_c, best_r, best_s = cc26, rr26, s26
+    except Exception:
+        pass
+    K = 20
+>>>>>>> REPLACE
+-----

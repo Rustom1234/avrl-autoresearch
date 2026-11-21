@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import Ridge
+from scipy.optimize import linprog
+import scipy.sparse as sp
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def l1_meta(P, y):
+    # Non-negative weights and free intercept minimising sum |y - (b + P w)| via LP; None on failure.
+    n, k = P.shape
+    X = sp.csr_matrix(np.hstack([P, np.ones((n, 1))]))
+    I = sp.identity(n, format="csr")
+    A_ub = sp.vstack([sp.hstack([-X, -I]), sp.hstack([X, -I])]).tocsr()
+    b_ub = np.concatenate([-y, y])
+    c = np.concatenate([np.zeros(k + 1), np.ones(n)])
+    bounds = [(0, None)] * k + [(None, None)] + [(0, None)] * n
+    res = linprog(c, A_ub=A_ub, b_ub=b_ub, bounds=bounds, method="highs")
+    return res.x if res.status == 0 else None
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    sol = l1_meta(oof, y)
+    if sol is not None:
+        return base_te @ sol[:-1] + sol[-1]
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    return meta.predict(base_te)
+>>>>>>> REPLACE
+-----

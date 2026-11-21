@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+=======
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        if rng.random() < 0.7:
+            w_ = np.exp(rng.normal(0, 0.4, n))
+            WW = (w_[I] * w_[J]) ** 2
+            w2 = w_ ** 2
+
+            def erep(z):
+                x = z[:n]; y = z[n:]
+                dx = x[I] - x[J]; dy = y[I] - y[J]
+                d2 = dx * dx + dy * dy + 1e-12
+                f = np.sum(WW / d2)
+                c = -2 * WW / d2 ** 2
+                gx = np.zeros(n); gy = np.zeros(n)
+                np.add.at(gx, I, c * dx); np.add.at(gx, J, -c * dx)
+                np.add.at(gy, I, c * dy); np.add.at(gy, J, -c * dy)
+                for p, g in ((x, gx), (y, gy)):
+                    f += np.sum(w2 * (1 / p ** 2 + 1 / (1 - p) ** 2))
+                    g += w2 * (-2 / p ** 3 + 2 / (1 - p) ** 3)
+                return f, np.concatenate([gx, gy])
+
+            try:
+                z = minimize(erep, v[:2 * n], jac=True, method="L-BFGS-B",
+                             bounds=[(0.02, 0.98)] * (2 * n),
+                             options={"maxiter": 300}).x
+                v[:2 * n] = z
+                v[2 * n:] = np.minimum(0.4 * w_ / np.sqrt(n), 0.5)
+            except Exception:
+                pass
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        late = best is not None and time.process_time() - t0 > 0.4 * time_limit
+        c, r = _solve_once(n, rng, best if late else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    stale, late = 0, False
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and (stale >= 6 or time.process_time() - t0 > 0.6 * time_limit):
+            late = True
+        c, r = _solve_once(n, rng, best if late else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        gain = np.inf if best is None else r.sum() - best[1].sum()
+        stale = 0 if gain > 1e-4 else stale + 1
+        if gain > 0:
+            best = (c, r)
+>>>>>>> REPLACE
+-----

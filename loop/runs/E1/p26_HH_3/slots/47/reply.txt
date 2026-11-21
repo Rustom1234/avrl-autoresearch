@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _grow(n, rng):
+    """Grow a packing from 4 circles to n, inserting each new circle (radius 0) at the emptiest sampled point."""
+    k = min(4, n)
+    c = rng.uniform(INIT_LOW, 1 - INIT_LOW, (k, 2))
+    c, r = _optimise(k, np.concatenate([c.ravel(), np.full(k, INIT_RADIUS)]))
+    while len(r) < n:
+        pts = rng.uniform(0, 1, (2000, 2))
+        dc = np.sqrt(((pts[:, None] - c[None]) ** 2).sum(-1)).min(1)
+        dw = np.minimum(pts, 1 - pts).min(1)
+        best = pts[np.argmax(np.minimum(dc, dw))]
+        c = np.vstack([c, best])
+        r = np.append(r, 0.0)
+        c, r = _optimise(len(r), np.concatenate([c.ravel(), r]))
+    return c, r
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng)
+=======
+        c, r = _grow(n, rng) if rng.random() < 0.5 else _solve_once(n, rng)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,13 @@
+{
+ "ok": false,
+ "issues": [
+  "The change adds label_smoothing=0.05 inside GPT.forward, the same loss path the evaluation calls (evaluate_bpb calls model(x, y, reduction='none') to get per-token loss). Because it is not limited to training, the per-token loss used to compute val_bpb is now label-smoothed cross-entropy, not true negative log-likelihood. That changes how the metric is measured, which is category (1).",
+  "Any val_bpb from this model is not comparable to the incumbent, because it measures a different quantity. That alone makes the result meaningless, which is category (2).",
+  "Label smoothing as a training regularizer would be allowed only if it applied to training alone (for example, gated on self.training or done in the training loop) and the reduction='none' eval path stayed plain cross-entropy. As written, it is not.",
+  "The harness rejected the run for integrity flags, so there are no numbers and z cannot be recomputed. The diff contains no performance claims to check."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

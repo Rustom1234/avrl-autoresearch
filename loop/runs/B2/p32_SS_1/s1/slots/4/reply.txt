@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    pool = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+        c, r = _solve_once(n, rng, x0)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((c, r))
+        pool.sort(key=lambda p: -p[1].sum())
+        pool = pool[:5]
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _loop(n, rng, pool, size, p_cross, end, best):
+    while time.process_time() < end:   # restarts until the phase deadline
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < p_cross else None
+        c, r = _solve_once(n, rng, x0)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((c, r))
+        pool.sort(key=lambda p: -p[1].sum())
+        pool = pool[:size]
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return pool, best
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    total = TIME_FRACTION * time_limit
+    islands = []
+    for k in range(1, 4):   # three independent islands, each with its own empty pool
+        pool, best = _loop(n, rng, [], 5, 0.7, t0 + k * total / 4, best)
+        islands.append(pool[:2])
+    merged = sorted([p for isl in islands for p in isl], key=lambda p: -p[1].sum())
+    _, best = _loop(n, rng, merged, 6, 0.9, t0 + total, best)   # merged final phase
+    return best
+>>>>>>> REPLACE
+-----

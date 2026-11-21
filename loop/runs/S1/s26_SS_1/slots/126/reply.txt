@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+    best_s, best = -1, None
+    seeds = [12345, 1, 2, 3, 4]
+    mixes = [(0.0, 1.0), (1.0, 1.0), (0.0, 0.0), (0.3, 0.65), (0.5, 0.8)]
+    # mix = (hexgrid threshold, hexinit threshold); hexinit-only: (0,1); hexgrid-only: (1,1); physics-only: (0,0)
+    while time.time() - t0 < 150:
+        seg = min(4, int((time.time() - t0) / 30))
+        if "_rngs" not in globals():
+            globals()["_rngs"] = [np.random.default_rng(s) for s in seeds]
+        rng = _rngs[seg]
+        try:
+            u = rng.random()
+            a, b = mixes[seg]
+            c = _hexgrid(rng) if u < a else (_hexinit(rng) if u < b else _physics(rng))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    seeds = [12345, 1, 2, 3, 4]
+=======
+    seeds = [12345, 1, 2, 3, 4]
+    rngs = [np.random.default_rng(s) for s in seeds]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if "_rngs" not in globals():
+            globals()["_rngs"] = [np.random.default_rng(s) for s in seeds]
+        rng = _rngs[seg]
+=======
+        rng = rngs[seg]
+>>>>>>> REPLACE
+-----

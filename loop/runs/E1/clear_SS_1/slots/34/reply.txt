@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+=======
+def ap_featurize(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    Atr, Ate = ap_featurize(train_smiles), ap_featurize(test_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    Ktr = 0.5 * tanimoto(Xtr, Xtr) + 0.5 * tanimoto(Atr, Atr)
+    Kte = 0.5 * tanimoto(Xte, Xtr) + 0.5 * tanimoto(Ate, Atr)
+    svr.fit(Ktr, (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(Kte)
+>>>>>>> REPLACE
+-----

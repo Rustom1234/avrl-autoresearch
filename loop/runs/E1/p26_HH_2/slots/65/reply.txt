@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+=======
+    a = rng.normal(size=2 * n)
+    a /= np.linalg.norm(a)
+    x = x0
+    caps = list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]
+    for k, cap in enumerate(caps):
+        eps = 0.05 * 0.6 ** k if k < len(caps) - 1 else 0.0
+        res = minimize(lambda v, eps=eps: -v[2 * n:].sum() - eps * (a @ v[:2 * n]), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+>>>>>>> REPLACE
+-----

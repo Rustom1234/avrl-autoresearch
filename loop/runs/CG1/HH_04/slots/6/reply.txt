@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+BATCH_SIZE = 1536
+EPOCHS = 7.65
+=======
+BATCH_SIZE = 1536
+SMALL_BATCH_SIZE = 768
+RAMP_EPOCHS = 3
+EPOCHS = 7.65
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    train_loader = CifarLoader(
+        images,
+        labels,
+        train=True,
+        batch_size=training_batch_size,
+=======
+    train_loader = CifarLoader(
+        images,
+        labels,
+        train=True,
+        batch_size=SMALL_BATCH_SIZE,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    total_train_steps = ceil(EPOCHS * len(train_loader))
+    lowres_steps = ceil(0.3 * total_train_steps)
+    whiten_bias_train_steps = ceil(WHITEN_BIAS_EPOCHS * len(train_loader))
+=======
+    n_big = len(images) // BATCH_SIZE
+    n_small = len(images) // SMALL_BATCH_SIZE
+    total_train_steps = ceil(RAMP_EPOCHS * n_small + (EPOCHS - RAMP_EPOCHS) * n_big)
+    lowres_steps = ceil(0.3 * total_train_steps)
+    whiten_bias_train_steps = ceil(WHITEN_BIAS_EPOCHS * n_big)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    @torch.compile(mode="max-autotune", fullgraph=True)
+    def forward_step(inputs, labels, whiten_bias_grad):
+=======
+    @torch.compile(mode="max-autotune", fullgraph=True, dynamic=False)
+    def forward_step(inputs, labels, whiten_bias_grad):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+=======
+    for epoch in range(ceil(EPOCHS)):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        model.train()
+=======
+        model.train()
+        train_loader.batch_size = SMALL_BATCH_SIZE if epoch < RAMP_EPOCHS else BATCH_SIZE
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            optimizer1.param_groups[0]["lr"] = lr_factor1_initial * lr_factor1
+            for i, group in enumerate(optimizer1.param_groups[1:] + optimizer2.param_groups):
+                group["lr"] = lr_factors2_initial[i] * lr_factor2
+=======
+            batch_scale = train_loader.batch_size / BATCH_SIZE
+            optimizer1.param_groups[0]["lr"] = lr_factor1_initial * lr_factor1 * batch_scale
+            for i, group in enumerate(optimizer1.param_groups[1:] + optimizer2.param_groups):
+                group["lr"] = lr_factors2_initial[i] * lr_factor2 * batch_scale
+>>>>>>> REPLACE
+-----

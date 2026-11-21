@@ -1,0 +1,93 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _optimize_L(centers0, radii0, L):
+    """Joint SLSQP over (x, y, r) with walls at [0, L] (radii capped at L/2)."""
+    n = len(radii0)
+    iu, ju = np.triu_indices(n, 1)
+    m = len(iu)
+    idx = np.arange(n)
+
+    def unpack(z):
+        return z[:n], z[n:2 * n], z[2 * n:]
+
+    def obj(z):
+        return -np.sum(z[2 * n:])
+
+    def obj_grad(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        return g
+
+    def cons(z):
+        x, y, r = unpack(z)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        pair = dx * dx + dy * dy - (r[iu] + r[ju]) ** 2
+        bnd = np.concatenate([x - r, L - x - r, y - r, L - y - r])
+        return np.concatenate([pair, bnd])
+
+    def cons_jac(z):
+        x, y, r = unpack(z)
+        J = np.zeros((m + 4 * n, 3 * n))
+        rows = np.arange(m)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        s = r[iu] + r[ju]
+        J[rows, iu] = 2 * dx
+        J[rows, ju] = -2 * dx
+        J[rows, n + iu] = 2 * dy
+        J[rows, n + ju] = -2 * dy
+        J[rows, 2 * n + iu] = -2 * s
+        J[rows, 2 * n + ju] = -2 * s
+        J[m + idx, idx] = 1
+        J[m + idx, 2 * n + idx] = -1
+        J[m + n + idx, idx] = -1
+        J[m + n + idx, 2 * n + idx] = -1
+        J[m + 2 * n + idx, n + idx] = 1
+        J[m + 2 * n + idx, 2 * n + idx] = -1
+        J[m + 3 * n + idx, n + idx] = -1
+        J[m + 3 * n + idx, 2 * n + idx] = -1
+        return J
+
+    z0 = np.concatenate([centers0[:, 0], centers0[:, 1], radii0])
+    bounds = [(0.0, L)] * (2 * n) + [(0.0, L / 2)] * n
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                   bounds=bounds, options={"maxiter": 300, "ftol": 1e-12})
+    x, y, r = unpack(res.x)
+    return np.column_stack([x, y]), r
+
+
+def _shrink_container(rng):
+    """Shrinking-container schedule: squeeze from L=1.25 down to 1 in 8 stages,
+    rescaling centers at each stage, then a unit-box SLSQP and repair."""
+    n = 26
+    c = rng.uniform(0.05, 1.2, size=(n, 2))
+    r = np.full(n, 0.07)
+    stages = np.linspace(1.25, 1.0, 8)
+    for k in range(len(stages)):
+        L = stages[k]
+        c, r = _optimize_L(c, r, L)
+        if k + 1 < len(stages):
+            c = c * (stages[k + 1] / L)
+    c, r = _optimize_L(c, r, 1.0)
+    r = _repair(c, r)
+    return np.clip(c, 0.0, 1.0), r
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for start in range(12):
+=======
+    try:
+        c, r = _shrink_container(rng)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    except Exception:
+        pass
+    for start in range(12):
+>>>>>>> REPLACE
+-----

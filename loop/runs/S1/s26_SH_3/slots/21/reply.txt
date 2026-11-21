@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+=======
+def lattice_from_params(p):
+    """Hex-row lattice from 16 params in [0,1]: row pattern, y offsets, shifts, stretches."""
+    rows = [5, 5, 5, 5, 6] if p[0] < 0.5 else [6, 5, 6, 5, 4]
+    R = len(rows)
+    pts = []
+    for k, cnt in enumerate(rows):
+        y = (k + 0.5) / R + (p[1 + k] - 0.5) * 0.1
+        base = 0.5 if k % 2 else 0.0
+        shift = base + (p[6 + k] - 0.5) * 0.5
+        s = 0.8 + 0.4 * p[11 + k]
+        for j in range(cnt):
+            x = (j + 0.5 + shift) / (cnt + 0.5)
+            x = 0.5 + (x - 0.5) * s
+            pts.append([x, y])
+    return np.clip(np.array(pts), 0.05, 0.95)
+
+
+def de_lattice_centers(t0):
+    """Coarse seeded differential evolution over lattice params; returns best centers or None."""
+    try:
+        import time
+        from scipy.optimize import differential_evolution
+
+        def obj(p):
+            c = lattice_from_params(p)
+            return -float(np.sum(lp_radii(c)))
+
+        def stop_cb(xk, convergence=None):
+            return time.time() - t0 > 40
+
+        np.random.seed(12345)
+        res = differential_evolution(obj, [(0.0, 1.0)] * 16, popsize=10, maxiter=30,
+                                     polish=False, tol=1e-8, callback=stop_cb)
+        return lattice_from_params(res.x)
+    except Exception:
+        return None
+
+
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best_val = -1.0
+    best_c = None
+    best_r = None
+    for start in range(4):
+        if start > 0 and time.time() - t0 > 150:
+            break
+        c0 = hex_jitter(rng)
+        c0 = sa_centers(c0, rng, t0)
+=======
+    rng = np.random.default_rng(12345)
+    best_val = -1.0
+    best_c = None
+    best_r = None
+    de_c = de_lattice_centers(t0)
+    for start in range(4):
+        if start > 0 and time.time() - t0 > 150:
+            break
+        c0 = de_c.copy() if (start == 0 and de_c is not None) else hex_jitter(rng)
+        c0 = sa_centers(c0, rng, t0)
+>>>>>>> REPLACE
+-----

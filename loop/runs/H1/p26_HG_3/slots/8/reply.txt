@@ -1,0 +1,73 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    current_best = None
+    
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        curr_sum = r.sum()
+        if best is None or curr_sum > best[1].sum():
+            best = (c, r)
+        
+        if current_best is not None:
+            prev_sum = current_best[1].sum()
+            elapsed = time.process_time() - t0
+            temp = max(0, 0.01 * (1 - elapsed / (TIME_FRACTION * time_limit)))
+            
+            if curr_sum > prev_sum or (temp > 0 and rng.random() < np.exp((curr_sum - prev_sum) / temp)):
+                current_best = (c, r)
+        else:
+            current_best = (c, r)
+            
+    return best
+-----
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    current = None
+    
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        curr_sum = r.sum()
+        if best is None or curr_sum > best[1].sum():
+            best = (c, r)
+        
+        if current is None:
+            current = (c, r)
+        else:
+            prev_sum = current[1].sum()
+            elapsed = time.process_time() - t0
+            temp = max(0.001, 0.01 * (1 - elapsed / (TIME_FRACTION * time_limit)))
+            
+            if curr_sum > prev_sum or rng.random() < np.exp((curr_sum - prev_sum) / temp):
+                current = (c, r)
+                
+    return best
+>>>>>>> REPLACE
+-----

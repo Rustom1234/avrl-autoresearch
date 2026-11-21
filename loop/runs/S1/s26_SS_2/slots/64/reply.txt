@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+            v = minimize(pen, v, args=(mu,), jac=True, method="L-BFGS-B",
+                         bounds=bounds, options={"maxiter": 400}).x
+=======
+        if time.time() - t0 < 30:
+            pts = [(0.12, 0.12), (0.88, 0.12), (0.12, 0.88), (0.88, 0.88)]
+            rad = [0.12] * 4
+            for side in range(4):
+                for t in (0.35, 0.65):
+                    t = t + rng.normal(0, 0.05)
+                    q = {0: (t, 0.1), 1: (t, 0.9), 2: (0.1, t), 3: (0.9, t)}[side]
+                    pts.append(q); rad.append(0.1)
+            hx = []
+            for ri in range(4):
+                for ci in range(4):
+                    hx.append((0.2 + 0.2 * ci + (0.1 if ri % 2 else 0.0), 0.2 + 0.2 * ri))
+            sel = rng.choice(len(hx), 14, replace=False)
+            for s_ in sel:
+                pts.append((min(hx[s_][0], 0.85), hx[s_][1])); rad.append(0.09)
+            P = np.array(pts) + rng.normal(0, 0.02, (n, 2))
+            P = np.clip(P, 0.05, 0.95)
+            v = np.concatenate([P[:, 0], P[:, 1], np.array(rad)])
+        else:
+            v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+            for mu in (10, 100, 1e3, 1e4, 1e5):
+                v = minimize(pen, v, args=(mu,), jac=True, method="L-BFGS-B",
+                             bounds=bounds, options={"maxiter": 400}).x
+>>>>>>> REPLACE
+-----

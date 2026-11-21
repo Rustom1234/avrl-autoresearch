@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints="{"type": "ineq", "fun": cons}",
+                   options="{"maxiter": MAX_ITER}")
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints="{"type": "ineq", "fun": cons}",
+                   options="{"maxiter": MAX_ITER}")
+    
+    # Optional local refinement with perturbation
+    v = res.x
+    if res.success:
+        # Try a tiny perturbation followed by a short optimization
+        v_rand = v + rng.normal(0, 1e-4, size=v.shape)
+        res_refine = minimize(lambda v_p: -v_p[2 * n:].sum(), v_rand, method="SLSQP", constraints="{"type": "ineq", "fun": cons}",
+                               options="{"maxiter": 50}")
+        if res_refine.success and -res_refine.fun > -res.fun:
+            v = res_refine.x
+            
+    return v[:2 * n].reshape(n, 2), v[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw={\
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints Wingsi="ineq", "fun": cons,
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+-----

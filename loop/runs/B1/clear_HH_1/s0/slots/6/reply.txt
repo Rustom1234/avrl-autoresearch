@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    svr_pred = model.predict(K_test)
+    Z = np.hstack([X, D])
+    Zt = np.hstack([Xt, Dt])
+    gbm = lgb.LGBMRegressor(objective="regression", learning_rate=0.03, n_estimators=600, num_leaves=15,
+                            min_child_samples=10, feature_fraction=0.5, bagging_fraction=0.8, bagging_freq=1,
+                            random_state=seed, n_jobs=8, verbose=-1)
+    gbm.fit(Z, y)
+    gbm_pred = gbm.predict(Zt)
+    return (0.7 * rankdata(svr_pred) + 0.3 * rankdata(gbm_pred)) / len(test_smiles)
+>>>>>>> REPLACE
+-----

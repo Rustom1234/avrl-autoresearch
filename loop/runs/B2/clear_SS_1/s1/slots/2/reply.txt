@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdReducedGraphs
+=======
+from rdkit.Chem import rdReducedGraphs
+from rdkit.Chem import MACCSkeys
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def maccs(smiles):
+    return np.array([np.array(list(MACCSkeys.GenMACCSKeys(Chem.MolFromSmiles(s))), dtype=np.float32) for s in smiles])
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    Mtr, Mte = maccs(train_smiles), maccs(test_smiles)
+    svr2 = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr2.fit(tanimoto(Mtr, Mtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_mac = svr2.predict(tanimoto(Mte, Mtr))
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr) + rankdata(p_mac) / len(p_mac)
+>>>>>>> REPLACE
+-----

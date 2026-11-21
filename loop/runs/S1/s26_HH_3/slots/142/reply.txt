@@ -1,0 +1,73 @@
+<<<<<<< SEARCH
+def _optimize(centers0, radii0):
+=======
+def _optimize(centers0, radii0, maxiter=300):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                   bounds=bounds, options={"maxiter": 300, "ftol": 1e-12})
+    x, y, r = unpack(res.x)
+=======
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                   bounds=bounds, options={"maxiter": int(maxiter), "ftol": 1e-12})
+    x, y, r = unpack(res.x)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _best_packing():
+    """Multi-start over bimodal radius initializations; keep the best feasible packing."""
+=======
+def _luby(i):
+    """i-th term (1-indexed) of the Luby sequence 1,1,2,1,1,2,4,..."""
+    k = 1
+    while (1 << k) - 1 < i:
+        k += 1
+    while True:
+        if i == (1 << k) - 1:
+            return 1 << (k - 1)
+        i -= (1 << (k - 1)) - 1
+        k = 1
+        while (1 << k) - 1 < i:
+            k += 1
+
+
+def _best_packing():
+    """Multi-start over bimodal radius initializations; keep the best feasible packing."""
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        cur_c, cur_r, cur_s = best_c, best_r, best_sum
+        for _ in range(200):
+            if time.time() - t0 > 200:
+                break
+            c0 = cur_c.copy()
+=======
+        cur_c, cur_r, cur_s = best_c, best_r, best_sum
+        since, widx, win = 0, 1, 8 * _luby(1)
+        for t in range(1, 201):
+            if time.time() - t0 > 200:
+                break
+            best_before = best_sum
+            c0 = cur_c.copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                c, r = _optimize(c0, np.maximum(cur_r, 0.01))
+=======
+                c, r = _optimize(c0, np.maximum(cur_r, 0.01), maxiter=min(300, 30 * _luby(t)))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            if s > cur_s or rng.random() < np.exp((s - cur_s) / 0.01):
+                cur_c, cur_r, cur_s = c, r, s
+=======
+            if s > cur_s or rng.random() < np.exp((s - cur_s) / 0.01):
+                cur_c, cur_r, cur_s = c, r, s
+            since += 1
+            if best_sum > best_before + 1e-12:
+                since = 0
+            if since >= win:
+                cur_c, cur_r, cur_s = best_c, best_r, best_sum
+                widx += 1
+                win = 8 * _luby(widx)
+                since = 0
+>>>>>>> REPLACE
+-----

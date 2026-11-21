@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def cauchy_ridge(X, y, alpha=1.0, iters=20):
+    # Ridge (intercept unpenalized) refit by IRLS with Cauchy weights 1/(1+(r/c)^2)
+    n = X.shape[0]
+    Xa = np.hstack([X, np.ones((n, 1))])
+    R = alpha * np.eye(Xa.shape[1])
+    R[-1, -1] = 0.0
+    w = np.ones(n)
+    beta = None
+    for _ in range(iters):
+        A = Xa.T @ (Xa * w[:, None]) + R
+        new = np.linalg.solve(A, Xa.T @ (w * y))
+        done = beta is not None and np.max(np.abs(new - beta)) < 1e-6
+        beta = new
+        if done:
+            break
+        r = y - Xa @ beta
+        c = 1.5 * 1.4826 * np.median(np.abs(r - np.median(r)))
+        c = max(c, 1e-8)
+        w = 1.0 / (1.0 + (r / c) ** 2)
+    return beta
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    scaler = StandardScaler().fit(ptr)
+    lin = Ridge(alpha=1.0).fit(scaler.transform(ptr), y)
+    base_tr = lin.predict(scaler.transform(ptr))
+    base_te = lin.predict(scaler.transform(pte))
+=======
+    scaler = StandardScaler().fit(ptr)
+    Str = scaler.transform(ptr)
+    Ste = scaler.transform(pte)
+    beta = cauchy_ridge(Str, y)
+    base_tr = Str @ beta[:-1] + beta[-1]
+    base_te = Ste @ beta[:-1] + beta[-1]
+>>>>>>> REPLACE
+-----

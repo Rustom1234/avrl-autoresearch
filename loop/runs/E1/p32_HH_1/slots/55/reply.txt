@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+def _solve_once(n, rng, init=None, maxiter=MAX_ITER, noise=0.03):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, noise, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _contact_cluster(c, r, rng):
+    """Random connected group of 3 to 6 circles, grown along contacts (gap below 1e-6)."""
+    n = len(r)
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    touch = (d - r[:, None] - r[None] < 1e-6) & ~np.eye(n, dtype=bool)
+    k = rng.integers(3, 7)
+    start = int(rng.integers(n))
+    group, frontier = [start], [start]
+    while frontier and len(group) < k:
+        i = frontier.pop(0)
+        for j in np.flatnonzero(touch[i]):
+            if j not in group and len(group) < k:
+                group.append(int(j))
+                frontier.append(int(j))
+    return np.array(group)
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    kicks = 0
+    while kicks < 25 and time.process_time() - t0 < 0.9 * time_limit:   # contact-cluster displacement kicks
+        kicks += 1
+        grp = _contact_cluster(best[0], best[1], rng)
+        if len(grp) < 3:
+            continue
+        theta, length = rng.uniform(0, 2 * np.pi), rng.uniform(0.05, 0.15)
+        c = best[0].copy()
+        c[grp] += length * np.array([np.cos(theta), np.sin(theta)])
+        c, r = _solve_once(n, rng, np.clip(c, 0, 1), maxiter=100, noise=0.0)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

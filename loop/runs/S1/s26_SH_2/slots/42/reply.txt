@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _rot_lattice(rng, n=26):
+    """Rotated, offset triangular lattice (spacing 0.19) clipped to [0.06, 0.94]^2, trimmed/padded to n points."""
+    a = rng.uniform(0.0, np.pi / 3)
+    off = rng.uniform(0.0, 0.19, size=2)
+    s = 0.19
+    ii, jj = np.meshgrid(np.arange(-12, 13), np.arange(-12, 13))
+    ii = ii.ravel()
+    jj = jj.ravel()
+    u = ii * s + jj * s * 0.5
+    v = jj * s * np.sqrt(3.0) / 2.0
+    c, si = np.cos(a), np.sin(a)
+    X = 0.5 + c * u - si * v + off[0]
+    Y = 0.5 + si * u + c * v + off[1]
+    P = np.column_stack([X, Y])
+    P = P[np.all((P >= 0.06) & (P <= 0.94), axis=1)]
+    if len(P) > n:
+        P = P[rng.choice(len(P), n, replace=False)]
+    while len(P) < n:
+        P = np.vstack([P, rng.uniform(0.06, 0.94, size=(1, 2))])
+    return P
+
+
+def _pack_once(seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pts = np.vstack([base, np.array(interior)])
+=======
+    pts = np.vstack([base, np.array(interior)])
+    if seed % 4 == 3:
+        pts = _rot_lattice(rng)
+>>>>>>> REPLACE
+-----

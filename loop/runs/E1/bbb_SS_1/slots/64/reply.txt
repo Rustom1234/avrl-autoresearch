@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    # MLP on quantile-scaled descriptors
+=======
+    # Descriptor-only CatBoost regressor on neighbor-smoothed labels
+    ii = A @ A.T
+    ts = ii / np.maximum(A.sum(1)[:, None] + A.sum(1)[None, :] - ii, 1e-9)
+    np.fill_diagonal(ts, -1.0)
+    nn = np.argsort(-ts, axis=1)[:, :5]
+    ysm = 0.5 * y + 0.5 * y[nn].mean(1)
+    cbr = CatBoostRegressor(iterations=500, learning_rate=0.05, depth=6, rsm=0.3, thread_count=8,
+                            random_seed=seed, verbose=0)
+    cbr.fit(X[:, :nd], ysm)
+    preds.append(rankdata(cbr.predict(Xt[:, :nd])) / len(Xt))
+
+    # MLP on quantile-scaled descriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from catboost import CatBoostClassifier
+=======
+from catboost import CatBoostClassifier, CatBoostRegressor
+>>>>>>> REPLACE
+-----

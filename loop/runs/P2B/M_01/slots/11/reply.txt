@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+            self._muon_momentum_t.fill_(group["momentum"])
+            self._muon_beta2_t.fill_(group["beta2"] if group["beta2"] is not None else 0.0)
+            self._muon_lr_t.fill_(group["lr"] * max(1.0, shape[-2] / shape[-1])**0.5)
+            self._muon_wd_t.fill_(group["weight_decay"])
+            muon_step_fused(stacked_grads, stacked_params,
+                            state["momentum_buffer"], state["second_momentum_buffer"],
+                            self._muon_momentum_t, self._muon_lr_t, self._muon_wd_t,
+                            self._muon_beta2_t, group["ns_steps"], red_dim)
+            torch._foreach_copy_(params, list(stacked_params.unbind(0)))
+=======
+            self._muon_momentum_t.fill_(group["momentum"])
+            self._muon_beta2_t.fill_(group["beta2"] if group["beta2"] is not None else 0.0)
+            rows, cols = shape[-2], shape[-1]
+            # Shape-aware scaling: multiply by sqrt(max(1, rows/cols))
+            shape_factor = torch.tensor(math.sqrt(max(1.0, rows / cols)), dtype=torch.float32, device=device)
+            self._muon_lr_t.fill_(group["lr"] * shape_factor)
+            self._muon_wd_t.fill_(group["weight_decay"])
+            muon_step_fused(stacked_grads, stacked_params,
+                            state["momentum_buffer"], state["second_momentum_buffer"],
+                            self._muon_momentum_t, self._muon_lr_t, self._muon_wd_t,
+                            self._muon_beta2_t, group["ns_steps"], red_dim)
+            torch._foreach_copy_(params, list(stacked_params.unbind(0)))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+            self._muon_momentum_t.fill_(group["momentum"])
+            self._muon_beta2_t.fill_(group["beta2"] if group["beta2"] is not None else 0.0)
+            self._muon_lr_t.fill_(group["lr"] * max(1.0, shape[-2] / shape[-1])**0.5)
+            self._muon_wd_t.fill_(group["weight_decay"])
+=======
+            self._muon_momentum_t.fill_(group["momentum"])
+            self._muon_beta2_t.fill_(group["beta2"] if group["beta2"] is not None else 0.0)
+            rows, cols = shape[-2], shape[-1]
+            # Shape-aware scaling: multiply by sqrt(max(1, rows/cols))
+            shape_factor = math.sqrt(max(1.0, rows / cols))
+            self._muon_lr_t.fill_(group["lr"] * shape_factor)
+            self._muon_wd_t.fill_(group["weight_decay"])
+>>>>>>> REPLACE
+-----
+<<<<<< SEARCH
+        self._muon_momentum_t.fill_(group["momentum"])
+        self._muon_beta2_t.fill_(group["beta2"] if group["beta2"] is not None else 0.0)
+        self._muon_lr_t.fill_(group["lr"] * max(1.0, shape[-2] / shape[-1])**0.5)
+        self._muon_wd_t.fill_(group["weight_decay"])
+=======
+        self._muon_momentum_t.fill_(group["momentum"])
+        self._muon_beta2_t.fill_(group["beta2"] if group["beta2"] is not None else 0.0)
+        rows, cols = shape[-2], shape[-1]
+        self._muon_lr_t.fill_(group["lr"] * max(1.0, rows / cols) ** 0.5)
+        self._muon_wd_t.fill_(group["weight_decay"])
+>>>>>>> REPLACE
+-----

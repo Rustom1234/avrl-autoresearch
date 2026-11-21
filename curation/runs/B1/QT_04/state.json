@@ -1,0 +1,73 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/B1/QT_04/cand/s08_1.py",
+ "inc_scores": {
+  "11": 1.9529642707940003,
+  "12": 1.9383974086889086
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Prioritize the 200 target documents first, then shuffles the remaining 20,746 documents by frequency of characters (using an O(N) bin sort on ASCII values) and resumes training from the last character token to learn useful characters from junk text immediately after the target's vocabulary is consumed.",
+   "outcome": "dev 1.9611 against 1.9635 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Prioritize the 200 target documents to fill the entire token budget (T), because they are 13 times larger than T, whereas random sampling only provides about 4.2 million tokens of noise together with the few target tokens, dragging average BPr up.",
+   "outcome": "dev 2.4569 against 1.9635 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Prioritize the 200 target documents first, then sort the remaining documents by their class frequency in a semi-length-free clean corpus (SCLC) to ensure only high-quality, clean text is used without damaging the target domain vocabulary.",
+   "outcome": "FAILED to run (05, special_tokens=[\"<|endoftext|>\"]) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TypeError: Encoding.__init__() missing 1 required positional argument: 'name')"
+  },
+  {
+   "slot": 4,
+   "idea": "Prioritize the 200 target documents first to fill the token budget T exactly (skipping pool docs as they are insufficient to fill T), then if T is exceeded, append the remaining pool documents sorted by the ratio of unique target-domain words (ignoring special tokens like '<>' or '<@>') to the total document length, ensuring the filler text has higher contextual relevance to the target vocabulary than random noise.",
+   "outcome": "FAILED to run (s tiktoken_encoding ImportError: cannot import name 'encoding' from 'tiktoken' (/homes/rdubash/active-audit/curation/.venv/lib/python3.12/site-packages/tiktoken/__init__.py). Did you mean: 'Encoding'?)"
+  },
+  {
+   "slot": 5,
+   "idea": "Place the 200 target documents first to ensure heavy exposure to the target domain vocabulary, then sort the remaining ~20,746 pool documents by the frequency of tokens that do NOT appear in the target sample (prioritizing documents with low semantic overlap to the target domain to minimize interference without losing meaningful character patterns).",
+   "outcome": "FAILED to run (04/cand/s05_1.py\", line 89, in select doc_tokens.append((len(pool_docs.index(doc)), count)) # Wait, we need to map back to index. ^^^^^^^^^^^^^^^^^^^^^^^^^ TypeError: object of type 'int' has no len())"
+  },
+  {
+   "slot": 6,
+   "idea": "Prioritize the 200 target_sample documents, then immediately append all pool documents sorted by their token count in strictly ascending order (resolving length ties by shuffling indices), ensuring the training sequence exposes the target domain vocabulary first and then fills the remaining token budget with the least-entropic, shortest documents to minimize damage to the pre-trained character distribution.",
+   "outcome": "FAILED to run () # Note: This logic is closed but let's slightly refine: ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TypeError: 'key_id' is an invalid keyword argument for sort())"
+  },
+  {
+   "slot": 7,
+   "idea": "Prioritize the 200 target documents first, then sort the remaining pool documents by the ratio of tokens present in the target vocabulary to total tokens (weighting towards documents with high target vocabulary overlap to reduce noise while leveraging TURG-like signals), using a simple dictionary intersection on word n-grams.",
+   "outcome": "FAILED to run ( line 75, in select for i, doc_str in remaining_indices_all[0]: # Use enumerate on the filtered list logic manually for clarity or just loop ^^^^^^^^^^ TypeError: cannot unpack non-iterable int object)"
+  },
+  {
+   "slot": 8,
+   "idea": "Prioritize the 200 target documents first, then sort the remaining pool documents by their average word length in ascending order (using a simple O(N) pass to count word lengths in a fixed character set to avoid heavy n-gram computation) to expose clean, short character patterns before potential noise from longer, more complex strings.",
+   "outcome": "dev 1.9530 against 1.9635 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 9,
+   "idea": "Prioritize the 200 target documents first, then sort the remaining pool documents by their token count in strictly ascending order (resolving ties by shuffling indices based on CURATE_SEED) to minimize contamination from long, high-complexity noise documents that are likely to hold back the model's vocabulary acquisition.",
+   "outcome": "dev 2.0528 against 1.9530 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Prioritize the 200 target documents first, then sort the remaining pool documents by their token count in strictly ascending order (resolving ties by shuffling indices based on CURATE_SEED) to minimize contamination from long, high-complexity noise documents that are likely to hold back the model's vocabulary acquisition.",
+   "outcome": "dev 1.9483 against 1.9530 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Prioritize the 200 target documents first, followed by remaining pool documents sorted by the ratio of 'clean' ASCII alphabetic characters to total characters (using a simple 98-character alphabet) to minimize the entropy injection from special symbols and control characters that degrade code trainability without sampling too much noise.",
+   "outcome": "dev 2.2116 against 1.9530 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "After placing target documents first, sort the remaining pool documents by the ratio of words present in the target_sample vocabulary (using a set intersection on lowercase split words) to ensure the filler text contains vocabulary that is contextually relevant to the target domain, prioritizing documents with high overlap to reduce divergence from the preferred vocabulary distribution.",
+   "outcome": "FAILED to run (B1/QT_04/cand/s12_1.py\", line 32, in get_target_vocab words = regex_split(r'\\s+', doc.lower()).split('\\t') ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ AttributeError: 'list' object has no attribute 'split')"
+  }
+ ],
+ "usd": 0.010566999999999998,
+ "status": "done",
+ "inc_slot": 8
+}

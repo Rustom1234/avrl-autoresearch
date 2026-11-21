@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+=======
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)]) if start is None else start
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < 0.75 * TIME_FRACTION * time_limit:   # random restarts
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # kick the weakest circles of the best
+        c2, r2 = best[0].copy(), best[1] * rng.uniform(0.6, 1.0, n)
+        idx = np.argsort(best[1])[:5]
+        c2[idx] += rng.normal(0, 0.005, (5, 2))
+        c, r = _solve_once(n, rng, np.concatenate([c2.ravel(), r2]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

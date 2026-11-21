@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+    total_budget = 200.0
+=======
+    total_budget = 140.0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# This part remains fixed (not evolved)
+def _valid_packing(centers, radii):
+=======
+def _de_search(best_c, seed=4242, budget=60.0):
+    # Seeded differential evolution over centre coordinates, scored by LP radii sum.
+    n = 26
+    dim = 2 * n
+    P = 40
+    rng = np.random.default_rng(seed)
+    t0 = time.perf_counter()
+    base = np.clip(np.asarray(best_c, dtype=float), 0.0, 1.0).ravel()
+    pop = []
+    for i in range(P):
+        if i == 0:
+            v = base.copy()
+        elif i < P // 2:
+            v = np.clip(base + rng.normal(0.0, 0.05, dim), 0.0, 1.0)
+        else:
+            v = _lattice_start(rng, 0.05).ravel()
+        pop.append(v)
+    pop = np.array(pop)
+    fitv = np.array([-float(np.sum(_lp_radii(v.reshape(n, 2)))) for v in pop])
+    while time.perf_counter() - t0 < budget:
+        for i in range(P):
+            if time.perf_counter() - t0 >= budget:
+                break
+            others = [k for k in range(P) if k != i]
+            idx = rng.choice(others, 3, replace=False)
+            a, b, c3 = pop[idx[0]], pop[idx[1]], pop[idx[2]]
+            mutant = np.clip(a + 0.6 * (b - c3), 0.0, 1.0)
+            cross = rng.random(dim) < 0.9
+            cross[rng.integers(dim)] = True
+            trial = np.where(cross, mutant, pop[i])
+            ft = -float(np.sum(_lp_radii(trial.reshape(n, 2))))
+            if ft <= fitv[i]:
+                pop[i] = trial
+                fitv[i] = ft
+    order = np.argsort(fitv)[:3]
+    return [pop[k].reshape(n, 2) for k in order]
+
+
+# This part remains fixed (not evolved)
+def _valid_packing(centers, radii):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best_c is not None:
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+=======
+    if best_c is not None:
+        for cs in _de_search(best_c, budget=60.0):
+            cc, rr = _local_opt(cs)
+            s = float(np.sum(rr))
+            if s > best_s and _valid_packing(cc, rr):
+                best_c, best_r, best_s = cc, rr, s
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+>>>>>>> REPLACE
+-----

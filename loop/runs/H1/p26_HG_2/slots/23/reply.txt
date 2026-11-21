@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    centers = np.zeros((n, 2))
+    for i in range(n):
+        success = False
+        for _ in range(200):
+            cand = rng.uniform(0, 1, 2)
+            if i == 0:
+                centers[i] = cand
+                success = True
+                break
+            dist = np.linalg.norm(centers[:i] - cand, axis=1)
+            if np.all(dist > 0.12):
+                centers[i] = cand
+                success = True
+                break
+        if not success:
+            centers[i] = rng.uniform(0, 1, 2)
+
+    x0 = np.concatenate([centers.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    # Hexagonal grid initialization
+    pts = []
+    # Generate a large enough hex grid
+    # Distance between points in hex grid
+    d = 0.2
+    # Just generate a dense enough set of points and sample n
+    for row in range(5):
+        for col in range(6):
+            x = 0.2 + col * d * 1.0
+            y = 0.2 + row * d * (np.sqrt(3)/2)
+            pts.append([x, y])
+    
+    # Shuffle and pick n
+    indices = rng.permutation(len(pts))[:n]
+    centers = np.array([pts[i] for i in indices])
+    # Add jitter
+    centers += rng.uniform(-0.03, 0.03, centers.shape)
+    # Clamp to unit square
+    centers = np.clip(centers, 0.01, 0.99)
+
+    # Estimate initial radii
+    # For n=26, a safe start radius to avoid massive overlap
+    init_r = np.full(n, 0.04)
+    
+    x0 = np.concatenate([centers.flatten(), init_r])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

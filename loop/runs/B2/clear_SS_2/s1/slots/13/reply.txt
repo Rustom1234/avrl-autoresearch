@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    Xte = np.hstack([descriptors(test_smiles), erg(test_smiles), featurize(test_smiles)])
+=======
+    Xte = np.hstack([descriptors(test_smiles), erg(test_smiles), featurize(test_smiles)])
+    from sklearn.model_selection import KFold
+    from sklearn.ensemble import RandomForestRegressor as QuickRF
+    oof = np.zeros(len(y))
+    for tr_idx, va_idx in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        q = QuickRF(n_estimators=100, max_features=0.2, n_jobs=8, random_state=seed).fit(Xtr[tr_idx], y[tr_idx])
+        oof[va_idx] = q.predict(Xtr[va_idx])
+    resid = np.abs(rankdata(oof) / len(oof) - y)
+    keep = np.argsort(resid)[:int(round(0.95 * len(y)))]
+    Xtr, y = Xtr[keep], y[keep]
+>>>>>>> REPLACE
+-----

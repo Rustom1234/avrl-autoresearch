@@ -1,0 +1,80 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    mg = rdFingerprintGenerator
+=======
+    orig = [Chem.MolFromSmiles(s) for s in smiles]
+    chooser = rdMolStandardize.LargestFragmentChooser()
+    unch = rdMolStandardize.Uncharger()
+    mols = []
+    for m in orig:
+        try:
+            m2 = unch.uncharge(chooser.choose(m))
+            Chem.SanitizeMol(m2)
+        except Exception:
+            m2 = m
+        mols.append(m2)
+    mg = rdFingerprintGenerator
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    ion = np.array([[len(m.GetSubstructMatches(p)) for p in SMARTS] + [Chem.GetFormalCharge(m)]
+                    for m in mols], dtype=np.float32)
+=======
+    ion = np.array([[len(m.GetSubstructMatches(p)) for p in SMARTS] + [Chem.GetFormalCharge(o)]
+                    for m, o in zip(mols, orig)], dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_tree = model.predict(Xte)
+=======
+    model2 = XGBRegressor(tree_method="hist", n_estimators=800, learning_rate=0.03, max_depth=5,
+                          subsample=0.8, colsample_bytree=0.4, reg_lambda=2,
+                          objective="reg:squarederror",
+                          n_jobs=8, random_state=seed + 1)
+    model2.fit(Xtr, y)
+    p_tree = 0.5 * (model.predict(Xte) + model2.predict(Xte))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+=======
+    orig = [Chem.MolFromSmiles(s) for s in smiles]
+    chooser = rdMolStandardize.LargestFragmentChooser()
+    unch = rdMolStandardize.Uncharger()
+    mols = []
+    for m in orig:
+        try:
+            m2 = unch.uncharge(chooser.choose(m))
+            Chem.SanitizeMol(m2)
+        except Exception:
+            m2 = m
+        mols.append(m2)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    ion = np.array([[len(m.GetSubstructMatches(p)) for p in SMARTS] + [Chem.GetFormalCharge(m)]
+                    for m in mols], dtype=np.float32)
+=======
+    ion = np.array([[len(m.GetSubstructMatches(p)) for p in SMARTS] + [Chem.GetFormalCharge(o)]
+                    for m, o in zip(mols, orig)], dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_tree = model.predict(Xte)
+=======
+    model2 = XGBRegressor(tree_method="hist", n_estimators=800, learning_rate=0.03, max_depth=5,
+                          subsample=0.8, colsample_bytree=0.4, reg_lambda=2,
+                          objective="reg:squarederror",
+                          n_jobs=8, random_state=seed + 1)
+    model2.fit(Xtr, y)
+    p_tree = 0.5 * (model.predict(Xte) + model2.predict(Xte))
+>>>>>>> REPLACE
+-----

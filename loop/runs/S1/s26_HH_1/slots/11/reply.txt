@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def jitter_anneal_search(seed=12345, budget=150.0):
+=======
+def _greedy_build():
+    # Greedy hole-filling: insert circles one at a time at the grid point with the
+    # largest clearance (distance to placed circles minus their LP radii, and border).
+    n = 26
+    g = np.linspace(0.0, 1.0, 51)
+    gx, gy = np.meshgrid(g, g)
+    grid = np.stack([gx.ravel(), gy.ravel()], axis=1)
+    border = np.minimum(np.minimum(grid[:, 0], grid[:, 1]), np.minimum(1 - grid[:, 0], 1 - grid[:, 1]))
+    cen = [grid[int(np.argmax(border))]]
+    for k in range(1, n):
+        C = np.array(cen)
+        if len(C) > 1:
+            R = _lp_radii(C)
+        else:
+            R = np.zeros(1)
+        dist = np.sqrt(((grid[:, None, :] - C[None, :, :]) ** 2).sum(-1))
+        clear = np.minimum(border, np.min(dist - R[None, :], axis=1))
+        cen.append(grid[int(np.argmax(clear))])
+    return np.array(cen, dtype=float)
+
+
+def jitter_anneal_search(seed=12345, budget=150.0):
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    c = _ls_growth(rng)
+    best_c, best_r = _local_opt(c)
+=======
+    c = _greedy_build() if (seed // 7919) % 2 == 0 else _ls_growth(rng)
+    best_c, best_r = _local_opt(c)
+>>>>>>> REPLACE
+-----

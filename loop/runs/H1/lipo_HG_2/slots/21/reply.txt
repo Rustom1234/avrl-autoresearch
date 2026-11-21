@@ -1,0 +1,174 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ITERATIONS = 1500
+LEARNING_RATE = 0.05
+DEPTH = 6
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train, y_train)
+    
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+-----
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ITERATIONS = 1500
+LEARNING_RATE = 0.05
+DEPTH = 6
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train, y_train)
+    
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+}
+========
+from sklearn.ensemble import RandomForestRegressor
+from lightgbm import LGBMRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+RF_N_ESTIMATORS = 300
+LGBM_N_ESTIMATORS = 1000
+LGBM_LEARNING_RATE = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    rf = RandomForestRegressor(
+        n_estimators=RF_N_ESTIMATORS, 
+        max_depth=15, 
+        random_state=seed, 
+        n_jobs=-1
+    )
+    rf.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(
+        n_estimators=LGBM_N_ESTIMATORS, 
+        learning_rate=LGBM_LEARNING_RATE, 
+        importance_type='split', 
+        random_state=seed,
+        n_jobs=-1,
+        verbosity=-1
+    )
+    lgbm.fit(X_train, y_train)
+    
+    X_test = featurize(test_smiles)
+    rf_preds = rf.predict(X_test)
+    lgbm_preds = lgbm.predict(X_test)
+    
+    return (rf_preds + lgbm_preds) / 2
+>>>>>>
+-----

@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import ConstantKernel, RBF, WhiteKernel
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.7 * rankdata(svr_pred) / len(svr_pred) + 0.3 * rankdata(ard_pred) / len(ard_pred)
+=======
+    Dr = rankdata(D, axis=0)
+    yr = y - y.mean()
+    Drc = Dr - Dr.mean(axis=0)
+    corr = (Drc * yr[:, None]).sum(axis=0) / (np.sqrt((Drc ** 2).sum(axis=0) * (yr ** 2).sum()) + 1e-12)
+    top = np.argsort(-np.abs(corr))[:60]
+    gp_kernel = ConstantKernel(1.0) * RBF(length_scale=np.ones(len(top))) + WhiteKernel(noise_level=0.1)
+    gp = GaussianProcessRegressor(kernel=gp_kernel, normalize_y=True, n_restarts_optimizer=0, random_state=seed)
+    gp.fit(D[:, top], y)
+    gp_pred = gp.predict(Dt[:, top])
+    n_test = len(svr_pred)
+    return 0.4 * rankdata(svr_pred) / n_test + 0.3 * rankdata(ard_pred) / n_test + 0.3 * rankdata(gp_pred) / n_test
+>>>>>>> REPLACE
+-----

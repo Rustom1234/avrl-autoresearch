@@ -1,0 +1,67 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    budget = TIME_FRACTION * time_limit
+    cur = best = None
+    while time.process_time() - t0 < budget:
+        if cur is None:
+            c, r = _solve_once(n, rng)
+        else:
+            frac = (time.process_time() - t0) / budget
+            T = 0.01 * (1e-4 / 0.01) ** frac
+            c0 = np.clip(cur[0] + rng.normal(0, 0.05, (n, 2)), 0, 1)
+            c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), cur[1]]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if cur is None or r.sum() >= cur[1].sum() or np.exp((r.sum() - cur[1].sum()) / T) > rng.uniform():
+            cur = (c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+GROW_FRACTION = 0.25
+
+
+def _hop(n, rng, t0, budget, stop, cur, best):
+    """Basin hopping on n circles until process time t0 + stop."""
+    while time.process_time() - t0 < stop:
+        if cur is None:
+            c, r = _solve_once(n, rng)
+        else:
+            frac = (time.process_time() - t0) / budget
+            T = 0.01 * (1e-4 / 0.01) ** frac
+            c0 = np.clip(cur[0] + rng.normal(0, 0.05, (n, 2)), 0, 1)
+            c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), cur[1]]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if cur is None or r.sum() >= cur[1].sum() or np.exp((r.sum() - cur[1].sum()) / T) > rng.uniform():
+            cur = (c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return cur, best
+
+
+def _insert(c, r):
+    """Add one circle of radius 0.01 at the grid point with the largest clearance."""
+    g = np.linspace(0, 1, 60)
+    P = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    gap = np.sqrt(((P[:, None] - c[None]) ** 2).sum(-1)) - r[None]
+    clear = np.minimum(gap.min(1), np.minimum(P, 1 - P).min(1))
+    return np.vstack([c, P[np.argmax(clear)]]), np.append(r, 0.01)
+
+
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    budget = TIME_FRACTION * time_limit
+    cur = best = None
+    if n > 2:
+        cur, best = _hop(n - 1, rng, t0, budget, GROW_FRACTION * budget, None, None)
+        c, r = _insert(*best)
+        c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        cur = best = (c, r)
+    cur, best = _hop(n, rng, t0, budget, budget, cur, best)
+    return best
+>>>>>>> REPLACE
+-----

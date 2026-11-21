@@ -1,0 +1,124 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        d_vec = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        d = d_vec - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def jac(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        # Distance constraints
+        # d_ij = sqrt((xi-xj)^2 + (yi-yj)^2) - ri - rj >= 0
+        # Grad wrt ci: (ci-cj)/d_ij, Grad wrt rj: -1, Grad wrt r_i: -1
+        d_vec = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        # Avoid division by zero
+        d_vec[d_vec == 0] = 1e-12
+        
+        grad = np.zeros((6 * n, 3 * n))
+        # Pair constraints
+        for k in range(len(d_vec)):
+            i, j = iu[0][k], iu[1][k]
+            grad[k] = np.concatenate([
+                (c[i] - c[j]) / d_vec[k], # grad wrt ci
+                (c[j] - c[i]) / d_vec[k], # grad wrt cj
+                np.full(n, -1.0)][[i, j] + list(range(n))]) # This is wrong logic, need exact indexing
+        
+        # Re-implementing jac correctly with manual indexing
+        grad = np.zeros((6 * n, 3 * n))
+        # 1. Pair distances (len(iu[0]) constraints)
+        for k in range(len(d_vec)):
+            i, j = iu[0][k], iu[1][k]
+            # Grad wrt c_i (2 dims)
+            grad[k, 2*i : 2*i+2] = (c[i] - c[j]) / d_vec[k]
+            # Grad wrt c_j (2 dims)
+            grad[k, 2*j : 2*j+2] = (c[j] - c[i]) / d_vec[k]
+            # Grad wrt r_i and r_j
+            grad[k, 2*n + i] = -1.0
+            grad[k, 2*n + j] = -1.0
+        
+        # 2. Wall constraints (c_i - r_i >= 0, c_i - r_i <= 1, etc.)
+        # Actually, the const function is [c0-r0, c1-r0, c0+r0-1, c1+r0-1, ...]
+        # wait, the original cons is: [d, c0-r0, c1-r0, 1-c0-r0, 1-c1-r0, r]
+        # Let's stick to the provided cons exactly:
+        # d, c0-r, c1-r, 1-c0-r, 1-c1-r, r
+        # Grad wrt c_i, r_i
+        for i in range(n):
+            # c_i - r_i >= 0
+            grad[len(d_vec) + i, 2*i : 2*i+2] = np.array([1.0, 1.0])
+            grad[len(d_vec) + i, 2*n + i] = -1.0
+            # c_i - r_i <= 1  => 1 - c_i - r_i >= 0
+            grad[len(d_vec) + n + i, 2*i : 2*i+2] = np.array([-1.0, -1.0])
+            grad[len(d_vec) + n + i, 2*n + i] = -1.0
+            # r_i >= 0
+            grad[2*len(d_vec) + n + i, 2*n + i] = 1.0
+            
+        return grad
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                    constraints={"type": "ineq", "fun": cons, "jac": jac},
+                    options={"maxiter": MAX_ITER})\n    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        d_vec = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        d = d_vec - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def jac(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        d_vec = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        d_vec[d_vec == 0] = 1e-12
+        
+        num_dist = len(d_vec)
+        grad = np.zeros((6 * n, 3 * n))
+        
+        # Pair distance constraints
+        for k in range(num_dist):
+            i, j = iu[0][k], iu[1][k]
+            grad[k, 2*i : 2*i+2] = (c[i] - c[j]) / d_vec[k]
+            grad[k, 2*j : 2*j+2] = (c[j] - c[i]) / d_vec[k]
+            grad[k, 2*n + i] = -1.0
+            grad[k, 2*n + j] = -1.0
+            
+        # Wall constraints: c-r >= 0, c-r <= 1, r >= 0
+        for i in range(n):
+            # c_i - r_i >= 0
+            grad[num_dist + i, 2*i : 2*i+2] = [1.0, 1.0]
+            grad[num_dist + i, 2*n + i] = -1.0
+            # 1 - c_i - r_i >= 0
+            grad[num_dist + n + i, 2*i : 2*i+2] = [-1.0, -1.0]
+            grad[num_dist + n + i, 2*n + i] = -1.0
+            # r_i >= 0
+            grad[2 * num_dist + n + i, 2*n + i] = 1.0
+            
+        return grad
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP",
+                    constraints={{"type": "ineq", "fun": cons, "jac": jac}},
+                    options={{"maxiter": MAX_ITER, "ftol": 1e-9}})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

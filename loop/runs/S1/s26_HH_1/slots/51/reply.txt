@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+def _reinsert_polish(c, r, deadline):
+=======
+def _merge_split(c, r):
+    # Merge the closest pair of the four smallest circles at their midpoint,
+    # then split the largest circle into two half-radius circles side by side.
+    # Returns a 26-centre start for _local_opt (radii are recomputed there), or None.
+    order = np.argsort(r)
+    small = [int(k) for k in order[:4]]
+    best = None
+    for p in range(len(small)):
+        for q in range(p + 1, len(small)):
+            a, b = small[p], small[q]
+            d = float(np.hypot(c[a, 0] - c[b, 0], c[a, 1] - c[b, 1]))
+            if best is None or d < best[0]:
+                best = (d, a, b)
+    if best is None:
+        return None
+    _, a, b = best
+    L = int(order[-1])
+    if L in (a, b) or r[L] <= 0:
+        return None
+    mid = 0.5 * (c[a] + c[b])
+    rl = float(r[L])
+    room_x = max(c[L, 0], 1.0 - c[L, 0])
+    room_y = max(c[L, 1], 1.0 - c[L, 1])
+    axis = np.array([1.0, 0.0]) if room_x >= room_y else np.array([0.0, 1.0])
+    s1 = c[L] + 0.5 * rl * axis
+    s2 = c[L] - 0.5 * rl * axis
+    keep = np.delete(c, [a, b, L], axis=0)
+    newc = np.vstack([keep, mid[None, :], s1[None, :], s2[None, :]])
+    return np.clip(newc, 0.0, 1.0)
+
+
+def _reinsert_polish(c, r, deadline):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.perf_counter() < deadline:
+        order = np.argsort(best_r)
+=======
+    while time.perf_counter() < deadline:
+        if attempt % 3 == 2:
+            cand = _merge_split(best_c, best_r)
+            attempt += 1
+            if cand is not None:
+                cc, rr = _local_opt(cand)
+                s = float(np.sum(rr))
+                if s > best_s + 1e-9 and _valid_packing(cc, rr):
+                    best_c, best_r, best_s = cc, rr, s
+                    attempt = 0
+            continue
+        order = np.argsort(best_r)
+>>>>>>> REPLACE
+-----

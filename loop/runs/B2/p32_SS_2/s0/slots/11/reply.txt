@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    if rng.random() < 2 / 3:   # stage 1: homotopy on a power-mean radius objective, 2 restarts in 3
+        if rng.random() < 0.5:
+            f1 = lambda v: -np.sqrt(np.maximum(v[2 * n:], 0) + 1e-6).sum()
+        else:
+            f1 = lambda v: -(v[2 * n:] ** 2).sum()
+        x0 = minimize(f1, x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                      options={"maxiter": 40}).x
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

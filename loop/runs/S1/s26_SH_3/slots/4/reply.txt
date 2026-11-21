@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+    rows = np.arange(m)
+    ar = np.arange(n)
+=======
+    rows = np.arange(m)
+    ar = np.arange(n)
+
+    def set_pairs(z, full=False):
+        nonlocal I, Jp, m, rows
+        if full:
+            I, Jp = np.triu_indices(n, 1)
+        else:
+            x, y, r = z[:n], z[n:2 * n], z[2 * n:]
+            d = np.sqrt((x[:, None] - x[None, :]) ** 2 + (y[:, None] - y[None, :]) ** 2)
+            act = d < 2.5 * (r[:, None] + r[None, :]) + 0.1
+            I, Jp = np.nonzero(np.triu(act, 1))
+        m = len(I)
+        rows = np.arange(m)
+
+    def max_violation(z):
+        x, y, r = z[:n], z[n:2 * n], z[2 * n:]
+        d = np.sqrt((x[:, None] - x[None, :]) ** 2 + (y[:, None] - y[None, :]) ** 2)
+        ov = r[:, None] + r[None, :] - d
+        return np.max(ov[np.triu_indices(n, 1)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = hex_jitter(rng)
+        z = np.concatenate([c0[:, 0], c0[:, 1], compute_max_radii(c0)])
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+        # shrink-and-grow cycles
+        for cyc in range(8):
+            if time.time() - t0 > 180:
+                break
+            zs = cur.copy()
+            zs[2 * n:] *= 0.9
+            zs[:2 * n] = np.clip(zs[:2 * n] + rng.normal(0, 0.02, 2 * n), 0.0, 1.0)
+            zn = optimize(zs)
+            v = np.sum(zn[2 * n:])
+=======
+        c0 = hex_jitter(rng)
+        z = np.concatenate([c0[:, 0], c0[:, 1], compute_max_radii(c0)])
+        set_pairs(z)
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+        # shrink-and-grow cycles, using the pruned pair set for this restart
+        set_pairs(cur)
+        for cyc in range(8):
+            if time.time() - t0 > 180:
+                break
+            zs = cur.copy()
+            zs[2 * n:] *= 0.9
+            zs[:2 * n] = np.clip(zs[:2 * n] + rng.normal(0, 0.02, 2 * n), 0.0, 1.0)
+            zn = optimize(zs)
+            if max_violation(zn) > 1e-6:
+                # pruned solution is infeasible for some pair: re-solve with all pairs
+                set_pairs(zn, full=True)
+                zn = optimize(zn)
+                set_pairs(cur)
+            v = np.sum(zn[2 * n:])
+>>>>>>> REPLACE
+-----

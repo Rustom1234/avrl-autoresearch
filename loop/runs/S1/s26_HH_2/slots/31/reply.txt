@@ -1,0 +1,60 @@
+<<<<<<< SEARCH
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+=======
+def _de_search(c0, budget_end, seed=99, NP=30, F=0.6, CR=0.9):
+    """Fixed-seed DE/rand/1/bin over all centres; fitness is the exact LP sum (None -> -1)."""
+    rng = np.random.RandomState(seed)
+    n = c0.shape[0]
+    D = 2 * n
+    base = c0.ravel().copy()
+    pop = np.clip(base[None, :] + rng.normal(0.0, 0.02, size=(NP, D)), 0.0, 1.0)
+    pop[0] = base
+    fit = np.full(NP, -1.0)
+    for k in range(NP):
+        rv, s = _score(pop[k].reshape(n, 2))
+        fit[k] = s if rv is not None else -1.0
+    ar = np.arange(NP)
+    while _time.time() < budget_end:
+        r1 = (ar + 1 + rng.randint(NP - 1, size=NP)) % NP
+        r2 = (ar + 1 + rng.randint(NP - 1, size=NP)) % NP
+        r3 = (ar + 1 + rng.randint(NP - 1, size=NP)) % NP
+        v = pop[r1] + F * (pop[r2] - pop[r3])
+        mask = rng.rand(NP, D) < CR
+        mask[ar, rng.randint(D, size=NP)] = True
+        U = np.clip(np.where(mask, v, pop), 0.0, 1.0)
+        for k in range(NP):
+            if _time.time() >= budget_end:
+                break
+            rv, s = _score(U[k].reshape(n, 2))
+            s = s if rv is not None else -1.0
+            if s >= fit[k]:
+                pop[k] = U[k]
+                fit[k] = s
+    b = int(np.argmax(fit))
+    return pop[b].reshape(n, 2).copy()
+
+
+def _de_polish(c0, r0, budget_end):
+    """Run DE, refine its best with SLSQP, and keep whichever packing scores highest."""
+    s0 = _score(c0)[1]
+    best = (s0, c0.copy(), _make_valid(c0, r0))
+    cd = _de_search(c0, budget_end)
+    rd = _lp_radii(cd)
+    if rd is None:
+        return best[1], best[2]
+    cs, _rs = _slsqp_refine(cd, rd, 100)
+    for cc in (cd, cs):
+        rv, s = _score(cc)
+        if rv is not None and s > best[0]:
+            best = (s, cc.copy(), rv)
+    return best[1], best[2]
+
+
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+    centers, radii = _de_polish(centers, radii, min(_time.time() + 90.0, T0 + 205.0))
+>>>>>>> REPLACE
+-----

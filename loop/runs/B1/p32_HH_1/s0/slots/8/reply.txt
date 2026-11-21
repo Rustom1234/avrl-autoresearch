@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, init=None, init_r=None, sd=0.03):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, sd, (n, 2)), 0, 1)
+    r0 = np.full(n, INIT_RADIUS) if init_r is None else init_r
+    x0 = np.concatenate([base.ravel(), r0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        init, init_r, sd = (best[0] if guided else None), None, 0.03
+        if guided and rng.random() < 0.5:
+            big = np.abs(best[1][:, None] - best[1][None]) > 0.2 * np.maximum(best[1][:, None], best[1][None])
+            pairs = np.argwhere(np.triu(big, 1))
+            if len(pairs):
+                i, j = pairs[rng.integers(len(pairs))]
+                init = best[0].copy()
+                init[[i, j]] = init[[j, i]]
+                init_r, sd = 0.95 * best[1], 0.01
+        c, r = _solve_once(n, rng, init, init_r, sd)
+>>>>>>> REPLACE
+-----

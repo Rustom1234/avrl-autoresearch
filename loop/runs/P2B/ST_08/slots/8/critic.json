@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine. The diff changes only two hyperparameters: DEPTH goes from 8 to 6 and ASPECT_RATIO from 64 to 85. Nothing touches the val_bpb metric, the data, the prepare.py import line, the seed lines, the evaluation call or the final summary printing.",
+  "Possible dimension problem, not a veto: 6*85 = 510, which is not a multiple of HEAD_DIM = 128 (the incumbent's 8*64 = 512 is). This only works if train.py rounds model_dim up to a multiple of HEAD_DIM, which would give 640. Both runs finished and produced plausible numbers, so the rounding probably exists. If so, the candidate is a wider, shallower model (about 6x640 versus 8x512), and the gain comes from that shape change. Nothing is broken.",
+  "z could not be reproduced from the numbers given. Candidate mean is 1.06275, incumbent is 1.0956, so the difference is 0.03285. The two candidate runs have a sample SD of 0.0063. That gives z of about 5.2 using diff/sd, about 7.4 using diff/(sd/sqrt(2)), and about 4.3 using a two-sample SE with n=(2,1). The reported 4.888 implies an SE of about 0.0067, so the harness probably uses a fixed noise sigma. That is plausible but I can't check it here.",
+  "The evidence is thin. The incumbent has only one run, and the two candidate replicates differ by 0.0089. Still, both candidate runs beat the incumbent by at least 0.028, so the accept direction holds up."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.06275,
+  "delta": 0.03285,
+  "candidate_sample_sd": 0.0063
+ }
+}

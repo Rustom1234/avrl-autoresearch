@@ -1,0 +1,95 @@
+<<<<<<< SEARCH
+def construct_packing():
+    """Multi-start mirror-symmetric init + SLSQP; returns best (centers, radii)."""
+    t0 = time.time()
+    best = None
+    best_sum = -1.0
+    for seed in range(10000):
+        if seed > 0 and time.time() - t0 > 200.0:
+            break
+        c, r = _pack_once(seed)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum = s
+            best = (c, r)
+    return best
+=======
+def _lp_radii(centers):
+    """Max sum of radii for fixed centers via LP (HiGHS), then made valid by _repair."""
+    from scipy.optimize import linprog
+    n = centers.shape[0]
+    x = centers[:, 0]
+    y = centers[:, 1]
+    iu, ju = np.triu_indices(n, 1)
+    m = iu.size
+    d = np.hypot(x[iu] - x[ju], y[iu] - y[ju])
+    A = np.zeros((m, n))
+    A[np.arange(m), iu] = 1.0
+    A[np.arange(m), ju] = 1.0
+    bnd = np.maximum(np.minimum.reduce([x, 1 - x, y, 1 - y]), 0.0)
+    try:
+        res = linprog(-np.ones(n), A_ub=A, b_ub=d,
+                      bounds=[(0.0, float(b)) for b in bnd], method="highs")
+        if res.status == 0 and res.x is not None:
+            r = np.maximum(res.x, 0.0)
+        else:
+            r = np.zeros(n)
+    except Exception:
+        r = np.zeros(n)
+    return _repair(centers, r)
+
+
+def _anneal(centers, seed, budget):
+    """Metropolis search on centers: move one circle with a decaying Gaussian step."""
+    rng = np.random.default_rng(seed)
+    n = centers.shape[0]
+    cur = centers.copy()
+    cur_r = _lp_radii(cur)
+    cur_s = float(np.sum(cur_r))
+    best = cur.copy()
+    best_r = cur_r
+    best_s = cur_s
+    t0 = time.time()
+    T0 = 0.01
+    step = 0.1
+    while True:
+        el = time.time() - t0
+        if el > budget:
+            break
+        frac = el / budget
+        T = T0 * (1.0 - frac) + 1e-6
+        sig = step * (1.0 - frac) + 0.005
+        i = int(rng.integers(n))
+        cand = cur.copy()
+        cand[i] = np.clip(cand[i] + rng.normal(0.0, sig, size=2), 0.0, 1.0)
+        cr = _lp_radii(cand)
+        cs = float(np.sum(cr))
+        if cs >= cur_s or rng.random() < np.exp((cs - cur_s) / T):
+            cur, cur_r, cur_s = cand, cr, cs
+            if cs > best_s:
+                best, best_r, best_s = cand.copy(), cr, cs
+    return best, best_r
+
+
+def construct_packing():
+    """Multi-start mirror-symmetric init + SLSQP, then time-capped annealing; returns best (centers, radii)."""
+    t0 = time.time()
+    best = None
+    best_sum = -1.0
+    for seed in range(10000):
+        if seed > 0 and time.time() - t0 > 150.0:
+            break
+        c, r = _pack_once(seed)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum = s
+            best = (c, r)
+    try:
+        c, r = _anneal(best[0], 7, 30.0)
+        if float(np.sum(r)) > best_sum:
+            best = (c, r)
+    except Exception:
+        pass
+    return best
+>>>>>>> REPLACE
+-----

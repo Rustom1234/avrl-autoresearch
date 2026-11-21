@@ -1,0 +1,82 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+    # Only include constraints for circles that are potentially close
+    initial_c = centers
+    initial_r = np.full(n, INIT_RADIUS)
+    dist_matrix = np.sqrt(((initial_c[:, None] - initial_c[None, :]) ** 2).sum(-1))
+    active_indices = [i for i in range(len(iu)) if dist_matrix[iu[0][i], iu[1][i]] < (initial_r[iu[0][i]] + initial_r[iu[1][i]] + 0.15)]
+    active_iu = (iu[0][active_indices], iu[1][active_indices])
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Use active constraints
+        d = np.sqrt(((c[active_iu[0]] - c[active_iu[1]]) ** 2).sum(1)) - r[active_iu[0]] - r[active_iu[1]]
+        # Always include boundary and non-negativity constraints
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    
+    final_c = res.x[:2 * n].reshape(n, 2)
+    final_r = res.x[2 * n:]
+    # Final check to ensure no overlap was missed due to sparsity
+    all_dist = np.sqrt(((final_c[:, None] - final_c[None, :]) ** 2).sum(-1))\n    over = final_r[:, None] + final_r[None, :] - all_dist
+    np.fill_diagonal(over, -1)
+    if np.any(over > 0):
+        # If sparse constraints failed, do one quick repair step
+        final_c, final_r = _repair(final_c, final_r)
+    
+    return final_c, final_r
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+    initial_c = centers
+    initial_r = np.full(n, INIT_RADIUS)
+    dist_matrix = np.sqrt(((initial_c[:, None] - initial_c[None, :]) ** 2).sum(-1))
+    active_indices = [i for i in range(len(iu)) if dist_matrix[iu[0][i], iu[1][i]] < (initial_r[iu[0][i]] + initial_r[iu[1][i]] + 0.15)]
+    active_iu = (iu[0][active_indices], iu[1][active_indices])
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[active_iu[0]] - c[active_iu[1]]) ** 2).sum(1)) - r[active_iu[0]] - r[active_iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    
+    final_c = res.x[:2 * n].reshape(n, 2)
+    final_r = res.x[2 * n:]
+    # Final check to ensure no overlap was missed due to sparsity
+    all_dist = np.sqrt(((final_c[:, None] - final_c[None, :]) ** 2).sum(-1))
+    over = final_r[:, None] + final_r[None, :] - all_dist
+    np.fill_diagonal(over, -1)
+    if np.any(over > 0):
+        # If sparse constraints failed, do one quick repair step
+        final_c, final_r = _repair(final_c, final_r)
+    
+    return final_c, final_r
+>>>>>>> REPLACE
+-----

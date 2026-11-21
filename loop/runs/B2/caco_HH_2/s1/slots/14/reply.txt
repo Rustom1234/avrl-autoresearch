@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def ext_features(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Descriptors.TPSA(m), Descriptors.MolWt(m), Descriptors.NumHDonors(m), Descriptors.MolLogP(m),
+                     Descriptors.NumRotatableBonds(m), Descriptors.FractionCSP3(m), Descriptors.NumHAcceptors(m)])
+    return np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    A_tr = np.c_[np.ones(len(y)), base_features(train_smiles)]
+    A_te = np.c_[np.ones(len(test_smiles)), base_features(test_smiles)]
+    coef = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    F_tr = ext_features(train_smiles)
+    F_te = ext_features(test_smiles)
+    prior_tr = np.zeros(len(y))
+    prior_te = np.zeros(len(test_smiles))
+    for g in ([0, 2], [3, 1], [4, 5, 6]):
+        A_tr = np.c_[np.ones(len(y)), F_tr[:, g]]
+        A_te = np.c_[np.ones(len(test_smiles)), F_te[:, g]]
+        coef = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+        prior_tr += A_tr @ coef / 3.0
+        prior_te += A_te @ coef / 3.0
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - prior_tr)
+    return model.predict(featurize(test_smiles)) + prior_te
+>>>>>>> REPLACE
+-----

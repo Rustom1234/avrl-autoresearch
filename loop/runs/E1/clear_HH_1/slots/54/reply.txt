@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    ard_pred = ard.predict(Dt)
+    return 0.7 * rankdata(svr_pred) / len(svr_pred) + 0.3 * rankdata(ard_pred) / len(ard_pred)
+=======
+    ard_pred = ard.predict(Dt)
+    # kernel PCA on the double-centred training kernel, Nystrom projection for test molecules
+    rm = K_train.mean(axis=0)
+    tm = K_train.mean()
+    Kc = K_train - rm[None, :] - rm[:, None] + tm
+    Kt_c = K_test - K_test.mean(axis=1)[:, None] - rm[None, :] + tm
+    w, V = np.linalg.eigh(Kc)
+    order = np.argsort(w)[::-1][:20]
+    w, V = w[order], V[:, order]
+    ok = w > 1e-9
+    w, V = w[ok], V[:, ok]
+    P_train = V * np.sqrt(w)
+    P_test = (Kt_c @ V) / np.sqrt(w)
+    Xl = np.hstack([D, P_train])
+    Xlt = np.hstack([Dt, P_test])
+    lgbm = lgb.LGBMRegressor(n_estimators=600, learning_rate=0.02, num_leaves=15, feature_fraction=0.5,
+                             bagging_fraction=0.8, bagging_freq=1, random_state=seed, n_jobs=8, verbose=-1)
+    lgbm.fit(Xl, y)
+    lgb_pred = lgbm.predict(Xlt)
+    return (0.4 * rankdata(lgb_pred) / len(lgb_pred) + 0.4 * rankdata(svr_pred) / len(svr_pred)
+            + 0.2 * rankdata(ard_pred) / len(ard_pred))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+    iu = np.triu_indices(n, 1)
+    R0 = INIT_RADIUS
+    if init is None and rng.random() < 0.5:
+        def ovl(p, R):
+            c = p.reshape(n, 2)
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+            w = np.concatenate([R - c[:, 0], R - c[:, 1], c[:, 0] - 1 + R, c[:, 1] - 1 + R])
+            return (np.maximum(2 * R - d, 0) ** 2).sum() + (np.maximum(w, 0) ** 2).sum()
+
+        lo, hi, cur, good = 0.05, 0.12, base.ravel(), base.ravel()
+        for _ in range(6):
+            mid = 0.5 * (lo + hi)
+            p = minimize(ovl, cur, args=(mid,), method="SLSQP", options={"maxiter": 60}).x
+            cur = p
+            if ovl(p, mid) < 1e-8:
+                lo, good = mid, p
+            else:
+                hi = mid
+        base, R0 = good.reshape(n, 2), lo
+    x0 = np.concatenate([base.ravel(), np.full(n, R0)])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,151 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    # Initial project to feasible radius bounds
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    
+    # Simple gradient-based relaxation for overlaps
+    lr = 0.5
+    for _ in range(100):
+        # Distances between centers
+        diff = c[:, None, :] - c[None, :, :]
+        dist_sq = np.sum(diff**2, axis=2)
+        dist = np.sqrt(np.maximum(dist_sq, 1e-12))
+        
+        # Overlap amount
+        overlap = r[:, None] + r[None, :] - dist
+        np.fill_diagonal(overlap, -1)
+        
+        if np.max(overlap) <= 0:
+            break
+            
+        # Grad of overlap w.r.t centers (pushes centers apart)
+        grad_c = diff * (overlap[:, None] / (dist[:, None] + 1e-12))
+        c -= lr * grad_c
+        
+        # Projection for boundary constraints
+        c = np.clip(c, r, 1 - r)
+        
+        # Grad of overlap w.r.t radii (shrinks radii)
+        # Note: we only want to shrink radii when they overlap
+        r_grad = (overlap > 0).astype(float)
+        r -= lr * r_grad
+        r = np.clip(r, 0, np.minimum(c[:, 0], c[:, 1], 1 - c[:, 0], 1 - c[:, 1]))
+    
+    return r - SHRINK
+-----
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Repair packing using gradient descent to resolve overlaps and stay in bounds."""
+    n = len(r)
+    # Project to feasible radius bounds
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+
+    lr = 0.1
+    for _ in range(100):
+        # Distances between centers
+        diff = c[:, None, :] - c[None, :, :]
+        dist = np.sqrt(np.sum(diff**2, axis=2) + 1e-12)
+        
+        # Overlap
+        overlap = r[:, None] + r[None, :] - dist
+        np.fill_diagonal(overlap, -1)
+        
+        max_o = np.max(overlap)
+        if max_o <= 0:
+            break
+
+        # Gradient of overlap
+        # d_overlap/d_c_i = - (dist_i / (2 * dist_i)) = -0.5 * (grad_dist_i)
+        # We want to minimize overlap, so move centers in direction of positive gradient
+        grad_c = diff * (overlap[:, :, None] / (dist[:, :, None] + 1e-12))
+        c -= lr * grad_c
+        
+        # Project centers back into the box
+        c = np.clip(c, r[:, None], 1 - r[:, None])
+        
+        # Shrink radii of overlapping circles
+        r_grad = (overlap > 0).astype(float)
+        r -= lr * r_grad
+        r = np.clip(r, 0, np.minimum(c[:, 0], c[:, 1], 1 - c[:, 0], 1 - c[:, 1]))
+
+    return np.maximum(r - SHRINK, 0)
+-----
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Repair packing using gradient descent to resolve overlaps and stay in bounds."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+
+    lr = 0.05
+    for _ in range(100):
+        diff = c[:, None, :] - c[None, :, :]
+        dist = np.sqrt(np.sum(diff**2, axis=2) + 1e-12)
+        overlap = r[:, None] + r[None, :] - dist
+        np.fill_diagonal(overlap, -1)
+        
+        max_o = np.max(overlap)
+        if max_o <= 0:
+            break
+
+        grad_c = diff * (overlap[:, :, None] / (dist[:, :, None] + 1e-12))
+        c -= lr * np.mean(grad_c, axis=1)
+        c = np.clip(c, r[:, None], 1 - r[:, None])
+        
+        r -= lr * (overlap > 0).astype(float)
+        r = np.clip(r, 0, np.minimum(c[:, 0], c[:, 1], 1 - c[:, 0], 1 - c[:, 1]))
+
+    return np.maximum(r - SHRINK, 0)
+-----

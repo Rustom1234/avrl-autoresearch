@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+def _relax(c, r, steps, lr_c, lr_r, lam=0.0, tpl=None):
+    """Repulsion from overlaps and walls moves centers; radii grow into free space."""
+    n = r.shape[0]
+    eye = np.eye(n)
+    for k in range(steps):
+        decay = 1.0 - 0.9 * k / max(steps - 1, 1)
+        diff = c[:, None, :] - c[None, :, :]
+        d = np.sqrt(np.sum(diff ** 2, axis=-1) + eye)
+        gap = d - (r[:, None] + r[None, :])
+        np.fill_diagonal(gap, np.inf)
+        ov = np.maximum(-gap, 0.0)
+        unit = diff / d[:, :, None]
+        f = np.sum(ov[:, :, None] * unit, axis=1)
+        gl = c[:, 0] - r
+        gr = 1.0 - c[:, 0] - r
+        gb = c[:, 1] - r
+        gt = 1.0 - c[:, 1] - r
+        f[:, 0] += np.maximum(-gl, 0.0) - np.maximum(-gr, 0.0)
+        f[:, 1] += np.maximum(-gb, 0.0) - np.maximum(-gt, 0.0)
+        if lam > 0.0 and tpl is not None:
+            lk = lam * (1.0 - k / max(steps - 1, 1))
+            f = f - lk * (c - tpl)
+        c = np.clip(c + lr_c * decay * f, 0.0, 1.0)
+        g = np.minimum(np.minimum.reduce([gl, gr, gb, gt]), gap.min(axis=1))
+        r = np.maximum(r + lr_r * decay * g, 0.0)
+    return c, r
+=======
+def _relax(c, r, steps, lr_c, lr_r, lam=0.0, tpl=None):
+    """Log-sum-exp soft penalty relaxation; sharpness beta annealed 5 -> 200."""
+    from scipy.special import logsumexp
+    n = r.shape[0]
+    eye = np.eye(n)
+    for k in range(steps):
+        decay = 1.0 - 0.9 * k / max(steps - 1, 1)
+        beta = 5.0 + 195.0 * k / max(steps - 1, 1)
+        diff = c[:, None, :] - c[None, :, :]
+        d = np.sqrt(np.sum(diff ** 2, axis=-1) + eye)
+        gap = d - (r[:, None] + r[None, :])
+        np.fill_diagonal(gap, np.inf)
+        # soft overlap: (1/beta) * log(1 + exp(beta * (-gap)))
+        ov = np.logaddexp(0.0, -beta * gap) / beta
+        unit = diff / d[:, :, None]
+        f = np.sum(ov[:, :, None] * unit, axis=1)
+        gl = c[:, 0] - r
+        gr = 1.0 - c[:, 0] - r
+        gb = c[:, 1] - r
+        gt = 1.0 - c[:, 1] - r
+        f[:, 0] += np.maximum(-gl, 0.0) - np.maximum(-gr, 0.0)
+        f[:, 1] += np.maximum(-gb, 0.0) - np.maximum(-gt, 0.0)
+        if lam > 0.0 and tpl is not None:
+            lk = lam * (1.0 - k / max(steps - 1, 1))
+            f = f - lk * (c - tpl)
+        c = np.clip(c + lr_c * decay * f, 0.0, 1.0)
+        # soft minimum over all pair and wall gaps: -(1/beta) * logsumexp(-beta * G)
+        G = np.concatenate([gap, np.stack([gl, gr, gb, gt], axis=1)], axis=1)
+        g = -logsumexp(-beta * G, axis=1) / beta
+        r = np.maximum(r + lr_r * decay * g, 0.0)
+    return c, r
+>>>>>>> REPLACE
+-----

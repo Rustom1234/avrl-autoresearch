@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    yz = (y - mu) / sd
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, yz)
+    pred = model.predict(K_test)
+    oof = np.zeros(len(yz))
+    for tr, va in KFold(n_splits=5, shuffle=True, random_state=seed).split(yz):
+        m = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+        m.fit(K_train[np.ix_(tr, tr)], yz[tr])
+        oof[va] = m.predict(K_train[np.ix_(va, tr)])
+    r = yz - oof
+    nn = np.argsort(-K_test, axis=1)[:, :10]
+    w = np.maximum(np.take_along_axis(K_test, nn, axis=1), 0.0) ** 2
+    w = w / np.maximum(w.sum(axis=1, keepdims=True), 1e-12)
+    r_hat = (w * r[nn]).sum(axis=1)
+    return pred + 0.3 * r_hat
+>>>>>>> REPLACE
+-----

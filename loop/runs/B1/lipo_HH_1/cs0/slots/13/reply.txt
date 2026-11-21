@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import Ridge
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+_CLEAN_CACHE = {}
+
+
+def clean_smiles(s):
+    if s in _CLEAN_CACHE:
+        return _CLEAN_CACHE[s]
+    out = s
+    try:
+        mol = Chem.MolFromSmiles(s)
+        if mol is not None:
+            mol = rdMolStandardize.LargestFragmentChooser(preferOrganic=True).choose(mol)
+            mol = rdMolStandardize.Uncharger().uncharge(mol)
+            out = Chem.MolToSmiles(mol)
+            if Chem.MolFromSmiles(out) is None:
+                out = s
+    except Exception:
+        out = s
+    _CLEAN_CACHE[s] = out
+    return out
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_smiles = [clean_smiles(s) for s in train_smiles]
+    test_smiles = [clean_smiles(s) for s in test_smiles]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,5 @@
+Helped: only the batch change (slot 0, TOTAL_BATCH_SIZE 2**17, grad accumulation 1; delta -0.0635, runs 1.0517 and 1.0504). It carried a tripwire flag, so treat it with caution. The incumbent is mean_adjusted 1.0511.
+
+Did not help: every other try was rejected. Architecture: value embeddings on every layer +0.0037, HEAD_DIM 64 +0.0079, DEPTH 6 at width 768 +0.0008, DEPTH 6 at width 640 +0.0011. Optimizer: MATRIX_LR 0.06 +0.0050, MATRIX_LR 0.03 +0.0017, SCALAR_LR 0.25 +0.0011, 3 Newton-Schulz iterations +0.0012, grad clipping +0.0013, shorter momentum warmup +0.0007. Schedule: WARMDOWN_RATIO 0.3 +0.0042, WARMDOWN 0.3 with FINAL_LR_FRAC 0.05 +0.0042, WARMUP_RATIO 0.03 +0.0039. Halving the lm_head init std was -0.0006, within noise (the incumbent's two runs differ by 0.0013). Four slots were aborted as no-ops.
+
+Next: read the current file first to avoid no-ops. Try a smaller batch (2**16). MATRIX_LR looks near its optimum at 0.04. Try a longer warmdown (above 0.5). Replicate any gain smaller than 0.002 before accepting.

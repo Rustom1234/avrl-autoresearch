@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+    # Phase 1: all radii tied to one scalar t, maximise t
+=======
+    m = len(iu[0])
+    ar = np.arange(n)
+    pr = np.arange(m)
+
+    def jac(v):
+        c = v[:2 * n].reshape(n, 2)
+        diff = c[iu[0]] - c[iu[1]]
+        u = diff / np.maximum(np.sqrt((diff ** 2).sum(1)), 1e-12)[:, None]
+        J = np.zeros((m + 5 * n, 3 * n))
+        J[pr, 2 * iu[0]], J[pr, 2 * iu[0] + 1] = u[:, 0], u[:, 1]
+        J[pr, 2 * iu[1]], J[pr, 2 * iu[1] + 1] = -u[:, 0], -u[:, 1]
+        J[pr, 2 * n + iu[0]] = -1
+        J[pr, 2 * n + iu[1]] = -1
+        for a, (col, sg) in enumerate([(0, 1), (1, 1), (0, -1), (1, -1)]):
+            J[m + a * n + ar, 2 * ar + col] = sg
+            J[m + a * n + ar, 2 * n + ar] = -1
+        J[m + 4 * n + ar, 2 * n + ar] = 1
+        return J
+
+    def jac_eq(v):
+        J = jac(v)
+        return np.hstack([J[:, :2 * n], J[:, 2 * n:].sum(1, keepdims=True)])[:m + 4 * n + 1]
+
+    g1 = np.zeros(2 * n + 1)
+    g1[-1] = -1
+    g2 = np.zeros(3 * n)
+    g2[2 * n:] = -1
+
+    # Phase 1: all radii tied to one scalar t, maximise t
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        res1 = minimize(lambda v: -v[2 * n], x1, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+=======
+        res1 = minimize(lambda v: -v[2 * n], x1, jac=lambda v: g1, method="SLSQP",
+                        constraints={"type": "ineq", "fun": cons_eq, "jac": jac_eq},
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, jac=lambda v: g2, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons, "jac": jac},
+>>>>>>> REPLACE
+-----

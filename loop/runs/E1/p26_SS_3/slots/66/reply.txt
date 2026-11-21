@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    con = {"type": "ineq", "fun": cons}
+    plain = lambda v: -v[2 * n:].sum()
+
+    def barrier(v):
+        s = np.sort(cons(v)[:len(iu[0])])[:60]
+        return plain(v) - 1e-4 * np.log(np.maximum(s, 0) + 1e-6).sum()
+
+    if start is None:
+        x = x0
+        for f in (plain, barrier, plain):
+            x = minimize(f, x, method="SLSQP", constraints=con, options={"maxiter": MAX_ITER // 2}).x
+    else:
+        x = minimize(plain, x0, method="SLSQP", constraints=con, options={"maxiter": MAX_ITER}).x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

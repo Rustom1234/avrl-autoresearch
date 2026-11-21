@@ -1,0 +1,79 @@
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+=======
+TIME_FRACTION = 0.6
+INIT_LOW = 0.1
+MAX_ITER = 100
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _polish(n, c, r):
+    """Continue SLSQP from (c, r) with many iterations, tight ftol and an analytic Jacobian."""
+    iu = np.triu_indices(n, 1)
+    i0, i1 = iu
+    m = len(i0)
+    k = np.arange(m)
+    a = np.arange(n)
+
+    def cons(v):
+        cc, rr = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((cc[i0] - cc[i1]) ** 2).sum(1)) - rr[i0] - rr[i1]
+        return np.concatenate([d, cc[:, 0] - rr, cc[:, 1] - rr, 1 - cc[:, 0] - rr, 1 - cc[:, 1] - rr, rr])
+
+    def jac(v):
+        cc = v[:2 * n].reshape(n, 2)
+        diff = cc[i0] - cc[i1]
+        u = diff / np.maximum(np.sqrt((diff ** 2).sum(1)), 1e-12)[:, None]
+        J = np.zeros((m + 5 * n, 3 * n))
+        J[k, 2 * i0], J[k, 2 * i0 + 1] = u[:, 0], u[:, 1]
+        J[k, 2 * i1], J[k, 2 * i1 + 1] = -u[:, 0], -u[:, 1]
+        J[k, 2 * n + i0] = -1
+        J[k, 2 * n + i1] = -1
+        for q, (col, sgn) in enumerate([(0, 1), (1, 1), (0, -1), (1, -1)]):
+            J[m + q * n + a, 2 * a + col] = sgn
+            J[m + q * n + a, 2 * n + a] = -1
+        J[m + 4 * n + a, 2 * n + a] = 1
+        return J
+
+    g = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+    x0 = np.concatenate([c.ravel(), r])
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, jac=lambda v: g, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons, "jac": jac},
+                   options={"maxiter": 600, "ftol": 1e-12})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    raws = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        raws.append((c, r))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    raws.sort(key=lambda p: -_repair(np.clip(p[0], 0, 1), p[1]).sum())
+    for c, r in raws[:2]:
+        c, r = _polish(n, c, r)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

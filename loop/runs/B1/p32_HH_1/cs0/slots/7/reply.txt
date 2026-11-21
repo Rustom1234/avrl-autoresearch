@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    r = np.maximum(r, 0)
+    for _ in range(50):
+=======
+    r = np.maximum(r, 0)
+    iu = np.triu_indices(n, 1)
+    dd = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 1e-12
+    A = np.zeros((len(dd), n))
+    A[np.arange(len(dd)), iu[0]] = 1
+    A[np.arange(len(dd)), iu[1]] = 1
+    wall = np.maximum(np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])) - 1e-12, 0)
+    try:
+        lp = linprog(-np.ones(n), A_ub=A, b_ub=dd, bounds=np.stack([np.zeros(n), wall], 1), method="highs",
+                     options={"primal_feasibility_tolerance": 1e-10, "dual_feasibility_tolerance": 1e-10})
+        if lp.status == 0:
+            r = np.maximum(lp.x, 0)
+    except Exception:
+        pass
+    for _ in range(300):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+-----

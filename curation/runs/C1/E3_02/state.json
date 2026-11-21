@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/E3_02/cand/s07_1.py",
+ "inc_scores": {
+  "11": 1.884600443288132
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Implement a simple heuristic to filter out 'junk' documents (like the repetitive 'Click here to order' spam) and prioritize documents that share some similarity with the target_sample (which appears to be encyclopedic/Wikipedia-style content) by using a basic keyword overlap or length check.",
+   "outcome": "dev 1.9166 against 1.9587 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace the word-based overlap score with a Jaccard similarity score between the set of unique words in each document and the set of unique words in the entire target_sample, and use this score to select the top 50% of documents.",
+   "outcome": "dev 1.9217 against 1.9166 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Use the 'tiktoken' library to calculate the information density of each document (token count / character count) and the ratio of 'common' tokens vs 'rare' tokens, prioritizing documents that have a high ratio of non-spam tokens and a character length exceeding 1000.",
+   "outcome": "dev 1.9043 against 1.9166 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the keyword overlap score with a simple TF-IDF-inspired scoring system: weight each document's 'target_words' count by the inverse of the average word frequency across all documents, while also adding a heavy penalty for documents containing common 'spam' triggers like 'click here', 'order now', or 'buy'.",
+   "outcome": "dev 2.0023 against 1.9166 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the bag-of-words score with an order-sensitive score, deduplicate, and fill exactly T tokens.\n\n1. Build the set of whitespace-token bigrams from all of target_sample (case kept, split on whitespace, since the target is pre-tokenised wikitext with ' , ' and ' @-@ ').\n2. For each doc, score = fraction of its whitespace bigrams (first ~2000 tokens is enough) that are in the target bigram set. Add +0.05 if the doc starts with '= ' (wikitext title line).\n3. Drop docs with fewer than 50 whitespace tokens.\n4. Drop duplicates: keep only the first doc for each hash of the lowercased, whitespace-collapsed text, and also for each hash of its first 300 characters.\n5. Sort the remaining docs by score, descending. Count tokens with tiktoken gpt2 (encode_ordinary_batch) and take docs from the top until the cumulative count reaches about 1.02*T. This lets clean English fill the tail rather than cycling or admitting junk.\n6. Shuffle the selected indices with the CURATE_SEED rng and return them.\n\nRemove the old top-50%-of-docs rule and the 4+-letter word-overlap score.",
+   "outcome": "dev 1.9510 against 1.9166 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Use the `tiktoken` library to compute the entropy or 'uniqueness' of each document's vocabulary, prioritizing documents where the ratio of unique tokens to total tokens is high, while still filtering for wikitext-like title indicators ('= ' at start) and a minimum token count of 200.",
+   "outcome": "dev 1.9525 against 1.9166 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Refine the similarity score to use a 'Wiki-specific' heuristic: instead of general bigrams, score documents based on the presence of wiki-specific formatting (e.g., starting with '= ', containing ' @-@ ', or containing ' ( ) ' patterns) and the ratio of the first 100 characters to the total length, while still filtering out documents with very high repetition (self-entropy/repetition ratio > 0.5).",
+   "outcome": "dev 1.8846 against 1.9166 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 8,
+   "idea": "Use tiktoken to calculate the 'perplexity' of each document relative to the target sample by identifying common sub-sequences, but more specifically, implement a 'density' score where we prioritize documents that contain the highest ratio of 'content-heavy' tokens (non-stopword, non-punctuation) that appear in the target_sample, normalized by the document's total tiktoken count.",
+   "outcome": "dev 2.3178 against 1.8846 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Improve the 'Wiki-specific' heuristic by replacing the simple ratio of the first 100 characters with a 'Title Proximity' score: give a significant weight boost to documents that start with '= [Title]' followed by a newline, then check if the subsequent paragraph contains at least one ' @-@ ' or a period within the first 200 characters to ensure it is a structured wiki entry rather than a junk list.",
+   "outcome": "dev 1.9183 against 1.8846 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Implement a more robust 'Wikipedia-style' scoring system: instead of a simple ratio, identify the first line (the potential title). Documents starting with '= ' that have a long title (at least 5 characters) and a high proportion of 'content' tokens (defined as those with a length > 3 and not in a basic set of common English stop words) in the first 500 characters receive a significant boost. Additionally, implement a 'deduplication' step where we only keep the highest-scoring unique document for every 1000 tokens of content to maximize the diversity of the final training set within the T token limit.",
+   "outcome": "dev 1.9368 against 1.8846 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Keep the current score, but replace the blunt \"top 25% of docs\" cut with an explicit wikitext-first selection that is deduplicated and damage-filtered.\n\n1. Define wiki-style docs as those that start with '= ' and contain at least two of the pre-tokenised markers ' , ', ' . ', ' @-@ ', ' ( '.\n2. Deduplicate all docs: keep the first doc per hash of the lowercased, whitespace-collapsed full text. Among wiki-style docs, also keep only one per title line.\n3. Detect damaged wiki docs. Build the target's set of whitespace tokens and set of whitespace bigrams (case kept). For each wiki-style doc, over its first 1500 whitespace tokens compute v = fraction of tokens in the target token set and b = fraction of bigrams in the target bigram set. Drop a doc if v or b is below (median - 3*MAD) of the wiki-style group; this catches char-corrupted and word-shuffled copies. Also keep the existing repetition filter (max word frequency > 0.4) and require at least 100 whitespace tokens.\n4. Count gpt2 tokens with tiktoken encode_ordinary_batch. Let W be the total tokens of the clean wiki-style docs.\n   - If W >= 0.6*T, return only the clean wiki-style docs and let the trainer cycle them if short. If W > T, keep the ones with the highest b until 1.0*T is reached.\n   - Otherwise, append non-wiki docs in descending order of the current score (repetition-filtered, deduplicated) until the total reaches T.\n5. Shuffle the final list with the CURATE_SEED rng.",
+   "outcome": "dev 1.9580 against 1.8846 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Refine the wiki-style selection by prioritizing documents based on 'Structure Density'. Specifically, for documents starting with '= ', calculate a score based on (Number of unique Wiki-markers like '@-@', ' ( ', ', ', ' . ') / (Number of tokens in the first 500 tokens)). Use this to rank all wiki-style documents, then filter out any documents with a self-repetition ratio > 0.4. Deduplicate the pool using a 32-bit hash of the first 500 characters to ensure diversity, and select the top documents until the total tiktoken count reaches T.",
+   "outcome": "dev 1.9957 against 1.8846 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.6272852499999999,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.00083895,
+   "dev": 1.9165852078139598,
+   "inc": 1.9586941171364778,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.795335717384804,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0008943,
+   "dev": 1.9217471588012847,
+   "inc": 1.9165852078139598,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.795335717384804,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0012306,
+   "dev": 1.9042770129681406,
+   "inc": 1.9165852078139598,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.795335717384804,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0010320000000000004,
+   "dev": 2.0022764672476314,
+   "inc": 1.9165852078139598,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.795335717384804,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.2276836,
+   "dev": 1.950996859369509,
+   "inc": 1.9165852078139598,
+   "harmed": null,
+   "escalated": true
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.795335717384804,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0009624000000000021,
+   "dev": 1.9524605577106018,
+   "inc": 1.9165852078139598,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.795335717384804,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0017815499999999929,
+   "dev": 1.884600443288132,
+   "inc": 1.9165852078139598,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 10.197312668365779,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0012608999999999815,
+   "dev": 2.3178084831262145,
+   "inc": 1.884600443288132,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 10.197312668365779,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.001212150000000023,
+   "dev": 1.9182562992339758,
+   "inc": 1.884600443288132,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 10.197312668365779,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.001492199999999999,
+   "dev": 1.9367500945499825,
+   "inc": 1.884600443288132,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 10.197312668365779,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.3873396,
+   "dev": 1.9579599182546277,
+   "inc": 1.884600443288132,
+   "harmed": null,
+   "escalated": true
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 10.197312668365779,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0015569999999999196,
+   "dev": 1.9957499604062834,
+   "inc": 1.884600443288132,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9586941171364778,
+ "inc_slot": 7
+}

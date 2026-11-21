@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 4 == 0:
+            gs = (np.arange(80) + 0.5) / 80
+            GX, GY = np.meshgrid(gs, gs)
+            G = np.stack([GX.ravel(), GY.ravel()], axis=1)
+            rb = 0.14 + rng.normal(0, 0.01)
+            pc = [[rb, rb], [1 - rb, rb], [rb, 1 - rb], [1 - rb, 1 - rb],
+                  [0.5, 0.5]]
+            pc = [np.array(p) + rng.normal(0, 0.01, 2) for p in pc]
+            pr = [rb] * 5
+            while len(pc) < n:
+                P = np.array(pc)
+                R = np.array(pr)
+                d = np.sqrt(((G[:, None, :] - P[None, :, :]) ** 2).sum(-1)) - R[None, :]
+                f = np.minimum(d.min(1), np.minimum(G.min(1), (1 - G).min(1)))
+                f = f + rng.random(len(f)) * 0.01
+                k = int(np.argmax(f))
+                pc.append(G[k].copy())
+                pr.append(max(f[k] - 0.01, 0.02))
+            c0 = np.clip(np.array(pc), 0.02, 0.98)
+            r0 = np.clip(np.array(pr), 0.02, 0.2)
+>>>>>>> REPLACE
+-----

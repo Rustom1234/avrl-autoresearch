@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    model = lgb.LGBMRegressor(objective='huber', n_estimators=500, learning_rate=0.03, num_leaves=15,
+                              subsample=0.8, subsample_freq=1, colsample_bytree=0.5,
+                              min_child_samples=10, random_state=seed, n_jobs=8, verbose=-1)
+    model.fit(featurize(train_smiles)[:, :nd], y)
+    et = model.predict(featurize(test_smiles)[:, :nd])
+=======
+    Xtr = featurize(train_smiles)[:, :nd]
+    Xte = featurize(test_smiles)[:, :nd]
+    preds = []
+    for i in range(5):
+        cols = np.random.RandomState(seed + i).choice(nd, nd // 2, replace=False)
+        model = lgb.LGBMRegressor(objective='l1', n_estimators=500, learning_rate=0.03, num_leaves=15,
+                                  subsample=0.8, subsample_freq=1, colsample_bytree=0.5,
+                                  min_child_samples=10, random_state=seed + i, n_jobs=8, verbose=-1)
+        model.fit(Xtr[:, cols], y)
+        preds.append(model.predict(Xte[:, cols]))
+    et = np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

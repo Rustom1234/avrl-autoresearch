@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: no problems found. The diff does not read files, paste coordinates or touch the harness. It only changes how restarts are perturbed: one random region of radius 0.3 now gets noise with sd 0.03, where before every circle got noise with sd 0.02. All randomness still comes from rng, which uses the seed.",
+  "Possible bug (cannot check from the diff): the old line `c0 = c0 + noise` made a new array, but the new line `c0[near] += ...` changes c0 in place. If c0 is a reference to the stored best centres rather than a copy, this would quietly change the incumbent's state. The final repair step would still keep the packing valid, so the result would not be meaningless. Check that c0 is a copy, for example `c0 = best_c.copy()`. This is not a reason to veto.",
+  "Edge case is fine: p is one of the rows of c0, so `near` always includes at least that circle and near.sum() is at least 1.",
+  "Numbers: the candidate's loss is -2.6343 and the incumbent's is -2.6360. The candidate is worse by about 0.0017 (lower loss is better). With sd 0.0023 and one run on each side, z = 0.0017 / (0.0023*sqrt(2)) \u2248 0.52 in size. That matches the harness's |z| = 0.533 within rounding. The harness's negative sign must mean its convention is incumbent minus candidate. Either way the candidate is not better, so reject is correct.",
+  "Weak evidence: each side has only one run, and the gap is less than one noise sd. Both the rejection and any apparent difference are inconclusive."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -0.52
+ }
+}

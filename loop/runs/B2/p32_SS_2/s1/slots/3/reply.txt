@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+    pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.02, (n, 2))
+=======
+    rows = np.array([i for i in range(R) for j in range(m)])
+    cols = np.array([j for i in range(R) for j in range(m)])
+    boundary = (rows == 0) | (rows == R - 1) | (cols == 0) | (cols == m - 1)
+    mode = int(rng.integers(3))
+    if mode == 2:
+        order = rng.permutation(len(pts))
+    else:
+        elig = boundary if mode == 0 else ~boundary
+        order = np.concatenate([rng.permutation(np.flatnonzero(elig)), rng.permutation(np.flatnonzero(~elig))])
+    pts = pts[order[len(pts) - n:]] + rng.normal(0, 0.02, (n, 2))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:], mode
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+        c, r, mode = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best, best_mode = (c, r), mode
+>>>>>>> REPLACE
+-----

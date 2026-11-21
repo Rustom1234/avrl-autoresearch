@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    try:
+        base_s = r.sum()
+        cur = c.copy()
+        cs = base_s
+        bc, bs = c.copy(), base_s
+        t1 = time.time()
+        TT = 60.0
+        acc = 0
+
+        def _pol(x):
+            c2 = np.clip(_polish(x, _lp_radii(x)), 0, 1)
+            return c2, _lp_radii(c2)
+
+        while True:
+            f = (time.time() - t1) / TT
+            if f >= 1:
+                break
+            sig = 0.05 * (0.002 / 0.05) ** f
+            temp = 0.01 * (1e-4 / 0.01) ** f
+            k = int(rng.integers(1, 3))
+            idx = rng.choice(_N, k, replace=False)
+            cand = cur.copy()
+            cand[idx] += rng.normal(0, sig, (k, 2))
+            cand = np.clip(cand, 0.01, 0.99)
+            s = _lp_radii(cand).sum()
+            if s >= cs or rng.random() < np.exp((s - cs) / temp):
+                cur, cs = cand, s
+                acc += 1
+                if cs > bs:
+                    bc, bs = cur.copy(), cs
+                if acc % 100 == 0:
+                    c2, r2 = _pol(bc)
+                    if r2.sum() > bs:
+                        bc, bs = c2, r2.sum()
+        c2, r2 = _pol(bc)
+        if r2.sum() > bs:
+            bc, bs = c2, r2.sum()
+        if bs > base_s:
+            c = bc
+            r = _lp_radii(bc)
+    except Exception:
+        pass
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

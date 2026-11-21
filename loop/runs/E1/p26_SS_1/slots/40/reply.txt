@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    if start is not None:
+        c0, r0 = start[0].copy(), start[1].copy()
+=======
+    if start is None and rng.random() < 0.5:
+        cand = rng.uniform(0, 1, (400, 2))
+        dmin = 2 * np.minimum(cand, 1 - cand).min(1)
+        ch = [int(rng.integers(400))]
+        dmin = np.minimum(dmin, np.sqrt(((cand - cand[ch[0]]) ** 2).sum(1)))
+        for _ in range(n - 1):
+            k = int(np.argmax(dmin))
+            ch.append(k)
+            dmin = np.minimum(dmin, np.sqrt(((cand - cand[k]) ** 2).sum(1)))
+        pc = cand[ch]
+        dd = np.sqrt(((pc[:, None] - pc[None]) ** 2).sum(-1)) + np.eye(n) * 10
+        pr = 0.4 * np.minimum(dd.min(1), np.minimum(pc, 1 - pc).min(1))
+        x0 = np.concatenate([pc.ravel(), pr])
+    if start is not None:
+        c0, r0 = start[0].copy(), start[1].copy()
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+    if x0 is None:
+        pts = rng.uniform(INIT_LOW, 1 - INIT_LOW, (4 * n, 2))
+        seeds = pts[rng.choice(4 * n, n, replace=False)]
+        for _ in range(30):
+            weights = rng.uniform(0.7, 1.3, size=(n,))
+            # For each point, find distance to each seed
+            dist = np.linalg.norm(pts[:, np.newaxis, :] - seeds[np.newaxis, :, :], axis=2)
+            # For each seed, find points in its Voronoi cell
+            # We use the weighted approach: points are assigned to nearest seed
+            # To vary cell sizes, we use the weights to influence the final mean
+            # But the spec says 'random target weight per seed... so that cell sizes vary'
+            # Interpretation: move seeds to the mean of assigned points, weighted by target weights
+            # Actually, a standard Lloyd-relaxed centroidal Voronoi with varying weights:
+            # A point p belongs to seed i if dist(p, i) is minimal.
+            # Seed i moves to mean of points in its cell, adjusted by weight.
+            # To keep it simple and valid: 
+            # 1. Assign points to nearest seed.
+            # 2. Move seed to weighted mean of its points.
+            # Since we want to vary sizes, let's use a simpler interpretation: 
+            # Use the points to form a Voronoi partition, move seeds to centroids.
+            # To incorporate weights: move seeds to the mean of points in its cell, 
+            # but the 'weight' can be seen as a multiplier on the displacement or a target weight.
+            # Let's stick to: move seed to weighted mean of points in its Voronoi cell.
+            # Wait, the prompt says 'random target weight... so that cell sizes vary'. 
+            # This suggests the 'weight' might be the target area or a pull factor. 
+            # Let's use weights as a multiplier on the contribution of the points to the mean.
+            # Let's simplify: Just do the Lloyd relaxation and use weights to perturb the weights.
+            # Correct interpretation of Lloyd with weights: seeds move to weighted centroids.
+            # We'll use the weights as the 'mass' of the points in that cell.
+            assignments = np.argmin(dist, axis=1)
+            for i in range(n):
+                mask = (assignments == i)
+                if np.any(mask):
+                    # Weighted mean: sum(point * weight) / sum(weights)
+                    # But the spec says weight per seed. Let's use weights[i] as a target weight.
+                    # Let's just use the standard Lloyd and let the initial distribution of points 
+                    # (which is uniform) provide the 'variation'. 
+                    # Re-reading: 'moves each seed to the mean of its assigned points, 
+                    # with a random target weight per seed drawn from rng in [0.7, 1.3]'
+                    # This implies: new_seed_pos = (mean_pos_of_points_in_cell) * weight_i
+                    # But we must stay in the square. Let's use weights as a multiplier on the 
+                    # displacement from the current position.
+                    # Actually, let's just move it to the mean and scale the result by the weight.
+                    # To ensure it doesn't drift too much, let's just do the mean.
+                    # The weights are meant to make the Voronoi cells different sizes.
+                    # If we move seeds to the mean of assigned points, the weights should 
+                    # probably influence which points are 'captured' or how much they pull. 
+                    # Let's just use the weight as a multiplier on the resulting mean.
+                    mean_pos = pts[mask].mean(axis=0)
+                    seeds[i] = mean_pos * weights[i]
+            seeds = np.clip(seeds, INIT_LOW, 1 - INIT_LOW)
+        x0 = np.concatenate([seeds.ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+-----

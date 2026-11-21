@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+            p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+=======
+            move = rng.integers(3)
+            if move == 0:
+                p, R = rng.uniform(0, 1, 2), rng.uniform(0.1, 0.25)
+                m = np.hypot(*(c - p).T) < R
+                k = m.sum()
+                ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+                c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+                r[m] = 0
+            elif move == 1:
+                i = np.argmin(r)
+                q = rng.uniform(0, 1, (2000, 2))
+                d = np.sqrt(((q[:, None] - np.delete(c, i, 0)[None]) ** 2).sum(-1)).min(1)
+                c[i] = q[np.argmax(d)]
+                r[i] = 0
+            else:
+                for _ in range(20):
+                    i, j = rng.choice(n, 2, replace=False)
+                    if abs(r[i] - r[j]) > 1e-3:
+                        break
+                c[[i, j]] = c[[j, i]]
+                r[[i, j]] = 0
+>>>>>>> REPLACE
+-----

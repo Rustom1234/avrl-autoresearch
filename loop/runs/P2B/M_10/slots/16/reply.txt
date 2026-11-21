@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+        n_layer=depth, n_head=num_heads, n_kv_head=num_heads, n_embd=model_dim,
+=======
+        n_layer=depth, n_head=num_heads, n_kv_head=num_heads // 2, n_embd=model_dim,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        cos, sin = cos_sin
+        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
+=======
+        # Grouped-query attention: repeat each KV head across its paired query heads
+        rep = self.n_head // self.n_kv_head
+        if rep > 1:
+            k = k.repeat_interleave(rep, dim=2)
+            v = v.repeat_interleave(rep, dim=2)
+
+        cos, sin = cos_sin
+        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c = np.clip(c, 0, 1)
+    r = np.maximum(r, 0)
+    ii, jj = _IU
+    for _ in range(100):
+        bad = False
+        wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+        wv = r - wall
+        k = wv > 0
+        if k.any():
+            r[k] -= wv[k] + 1e-16
+            bad = True
+        d = np.sqrt(((c[ii] - c[jj]) ** 2).sum(1))
+        gap = d - r[ii] - r[jj]
+        for q in np.where(gap < 0)[0]:
+            v = -gap[q] + 1e-16
+            r[ii[q]] -= v / 2
+            r[jj[q]] -= v / 2
+            bad = True
+        r = np.maximum(r, 0)
+        if not bad:
+            break
+    r = np.maximum(r - 1e-15, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

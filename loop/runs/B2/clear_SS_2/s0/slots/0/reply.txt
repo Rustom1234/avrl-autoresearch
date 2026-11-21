@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def estate(smiles):
+    from rdkit.Chem.EState import Fingerprinter as EF, EState as ES
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        try:
+            counts = np.asarray(EF.FingerprintMol(m)[0], dtype=np.float64)
+            if counts.shape[0] != 79:
+                counts = np.zeros(79)
+        except Exception:
+            counts = np.zeros(79)
+        try:
+            idx = np.asarray(ES.EStateIndices(m), dtype=np.float64)
+            agg = [idx.sum(), idx.max()] if idx.size else [0.0, 0.0]
+        except Exception:
+            agg = [0.0, 0.0]
+        rows.append(np.concatenate([counts, agg]))
+    return np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = np.hstack([descriptors(train_smiles), erg(train_smiles), featurize(train_smiles)])
+    Xte = np.hstack([descriptors(test_smiles), erg(test_smiles), featurize(test_smiles)])
+=======
+    Xtr = np.hstack([descriptors(train_smiles), estate(train_smiles), erg(train_smiles), featurize(train_smiles)])
+    Xte = np.hstack([descriptors(test_smiles), estate(test_smiles), erg(test_smiles), featurize(test_smiles)])
+>>>>>>> REPLACE
+-----

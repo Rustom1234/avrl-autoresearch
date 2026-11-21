@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The diff reads no files, pastes no coordinates and uses no labels. It adds a local search loop: it picks a random circle, takes its 6 nearest circles, places them again at random inside a padded bounding box, runs SLSQP on just those 6, then runs SLSQP on the whole packing again and passes the result through the existing finalize(). This is a real optimisation step.",
+  "No bug that makes the result meaningless. The constraints in ccons are correct: the 6 moving circles against the fixed ones, the 6 against each other, and the walls. A sub-solution is dropped if any constraint is below -1e-6. Every accepted packing still goes through finalize(), which presumably checks validity and shrinks the radii; the harness checks validity anyway. The loop stops at 88% of the time budget, so the old final loop keeps its time and the job should stay inside the time limit.",
+  "Minor: the lo/hi box only limits where the random starting points go. The SLSQP bounds for the 6 circles are the whole square [0,1]. This is harmless.",
+  "The result is no better: candidate -2.636 against incumbent -2.6360. That is a difference of 0 at the precision reported, with one run on each side. 2.636 is just 2.6359\u2026 (the best known 2.635) rounded, so beating the best known result is not claimed or implied.",
+  "z cannot be computed properly. With n=1 on each side there is no variance estimate. The difference of the means is 0, so any finite z would be 0. This matches the harness's -0.000. Rejecting is reasonable because the change costs complexity and run time without a measurable gain."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

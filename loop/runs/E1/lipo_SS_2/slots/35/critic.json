@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Measurement integrity is fine. The min-max kernel is built from atom-pair counts of train and test SMILES together. This only uses test inputs, never test labels, and each kernel entry depends on just its two molecules, so nothing leaks between rows.",
+  "The kernel math is correct for non-negative counts: sum(min) = (sa + sb - L1)/2 and union = sa + sb - sum(min). The slicing is also right: Ktt[np.ix_(tr,tr)] and Ktt[np.ix_(va,tr)] for the inner out-of-fold predictions, and K[n:, :n] for test vs train.",
+  "Runtime risk: each fit runs one single-threaded cdist cityblock on about 3360x3360x2048 values (roughly 23e9 operations), which could take about 10-30 s. Over 15 fits that may add several minutes and push the job past the 10-minute limit, depending on how long the incumbent already takes. If it is close, consider sparse min-max or a smaller fpSize.",
+  "The diff does not show that Chem, rdFingerprintGenerator and tanimoto are imported or defined in the incumbent. This is assumed, since the candidate passed lint repair.",
+  "If any SMILES fails to parse, MolFromSmiles returns None and the kernel step will crash. This is unlikely with the benchmark data.",
+  "No run results yet, so z cannot be computed and there are no claims to check."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

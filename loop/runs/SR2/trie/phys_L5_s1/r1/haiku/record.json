@@ -1,0 +1,39 @@
+{
+ "problem": "phys_L5_s1",
+ "model": "haiku",
+ "budget": 14,
+ "n_parents": 0,
+ "ok": true,
+ "error": null,
+ "error_class": null,
+ "t_start": 1795082536.741684,
+ "wall_s": 53.07817983627319,
+ "cost_usd": 0.008859490000000001,
+ "num_turns": 15,
+ "usage": {
+  "input": 30,
+  "output": 10100,
+  "cache_read": 109149,
+  "cache_write": 13575
+ },
+ "models_used": [
+  "claude-haiku-5-5"
+ ],
+ "reply": "ives the same ~5e-4 error. The state dependence is what's still missing. Linear damping (about \u22123.6\u00b7v) and a v|v| term are clearly present, but the x dependence is nearly zero, which is suspicious for a nonlinear spring. Adding drive-modulated state terms or sign/tanh features did not close the gap.",
+ "stop": "success",
+ "n_calls": 14,
+ "n_evals": 1,
+ "best": {
+  "code": "import numpy as np\ndef equation(t, x, v, params):\n    w = 0.344\n    p = params\n    return (p[0] + p[1]*v + p[2]*v*np.abs(v) + p[3]*x\n            + p[4]*np.cos(w*t) + p[5]*np.sin(w*t)\n            + p[6]*np.cos(2*w*t) + p[7]*np.sin(2*w*t)\n            + p[8]*np.cos(3*w*t) + p[9]*np.sin(3*w*t))",
+  "train_nmse": 0.0005347589771571859,
+  "call": 13
+ },
+ "val": 0.0005622632924979514,
+ "test_id": 0.0006437090589844055,
+ "test_ood": 0.11595035117055877,
+ "path": [
+  "haiku"
+ ],
+ "rep": 1,
+ "parent_best": null
+}

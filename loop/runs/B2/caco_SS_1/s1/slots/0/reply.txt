@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def morgan_bits(smiles):
+=======
+def ion_feats(smiles):
+    quat = Chem.MolFromSmarts('[N+;!$(N=O);!$(N-[O-])]')
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        n_acid = len(m.GetSubstructMatches(ACID))
+        n_amine = len(m.GetSubstructMatches(AMINE))
+        n_quat = len(m.GetSubstructMatches(quat))
+        pen = 3.0 * n_acid + min(n_amine, 1)
+        rows.append([Crippen.MolLogP(m) - pen, pen, n_quat, Chem.GetFormalCharge(m)])
+    return np.array(rows, dtype=np.float64)
+
+
+def morgan_bits(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles)[:, :nd], y)
+    et = model.predict(featurize(test_smiles)[:, :nd])
+=======
+    model.fit(np.hstack([featurize(train_smiles)[:, :nd], ion_feats(train_smiles)]), y)
+    et = model.predict(np.hstack([featurize(test_smiles)[:, :nd], ion_feats(test_smiles)]))
+>>>>>>> REPLACE
+-----

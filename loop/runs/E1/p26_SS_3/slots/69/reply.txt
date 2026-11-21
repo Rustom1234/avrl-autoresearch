@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _slp(c, r, steps=20, trust=0.01):
+    """Sequential LP polish: linearised non-overlap (conservative, as the norm is convex) for near pairs."""
+    n = len(r)
+    for _ in range(steps):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        pi, pj = np.where(np.triu(d < r[:, None] + r[None] + 0.1, 1))
+        m = len(pi)
+        A = np.zeros((m + 4 * n, 3 * n))
+        b = np.zeros(m + 4 * n)
+        k = np.arange(m)
+        u = (c[pi] - c[pj]) / d[pi, pj][:, None]
+        for a in range(2):
+            A[k, a * n + pi] = -u[:, a]
+            A[k, a * n + pj] = u[:, a]
+        A[k, 2 * n + pi] = 1
+        A[k, 2 * n + pj] = 1
+        b[:m] = d[pi, pj] - r[pi] - r[pj]
+        idx = np.arange(n)
+        for a in range(2):
+            A[m + a * 2 * n + idx, a * n + idx] = -1
+            A[m + a * 2 * n + idx, 2 * n + idx] = 1
+            b[m + a * 2 * n:m + a * 2 * n + n] = c[:, a] - r
+            A[m + a * 2 * n + n + idx, a * n + idx] = 1
+            A[m + a * 2 * n + n + idx, 2 * n + idx] = 1
+            b[m + a * 2 * n + n:m + (a + 1) * 2 * n] = 1 - c[:, a] - r
+        cost = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+        res = linprog(cost, A_ub=A, b_ub=b, bounds=[(-trust, trust)] * (3 * n), method="highs")
+        if res.status != 0:
+            trust *= 0.7
+            continue
+        c2 = np.clip(c + res.x[:2 * n].reshape(2, n).T, 0, 1)
+        r2 = _repair(c2, np.maximum(r + res.x[2 * n:], 0))
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+        else:
+            trust *= 0.7
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            best = (c, r)
+    return best
+=======
+            best = (c, r)
+    return _slp(*best)
+>>>>>>> REPLACE
+-----

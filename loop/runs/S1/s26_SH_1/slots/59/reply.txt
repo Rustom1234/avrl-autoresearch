@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+    s0, c0, r0 = best
+    x2, y2 = _polish(c0[:, 0].copy(), c0[:, 1].copy(), r0)
+    for shrink in (1e-12, 1e-9):
+        r2 = _lp_radii(x2, y2, shrink)
+        if r2 is None:
+            continue
+        if _valid(x2, y2, r2) and float(np.sum(r2)) > s0:
+            return np.column_stack([x2, y2]), r2
+    return best[1], best[2]
+=======
+    s0, c0, r0 = best
+    x2, y2 = _polish(c0[:, 0].copy(), c0[:, 1].copy(), r0)
+    x2 = np.clip(x2, 0.0, 1.0)
+    y2 = np.clip(y2, 0.0, 1.0)
+    I, J = _I, _J
+    out = None
+    for shrink in (1e-15, 1e-14, 1e-13, 1e-12, 1e-11, 1e-10):
+        r2 = _lp_radii(x2, y2, shrink)
+        if r2 is None:
+            continue
+        d = np.sqrt((x2[I] - x2[J]) ** 2 + (y2[I] - y2[J]) ** 2)
+        for _ in range(50):
+            viol = r2[I] + r2[J] - d
+            m = viol > 0
+            if not np.any(m):
+                break
+            red = np.zeros(_N)
+            np.add.at(red, I[m], viol[m])
+            np.add.at(red, J[m], viol[m])
+            r2 = np.maximum(r2 - red, 0.0)
+        s2 = float(np.sum(r2))
+        if _valid(x2, y2, r2) and s2 > s0 and (out is None or s2 > out[0]):
+            out = (s2, r2)
+    if out is not None:
+        return np.column_stack([x2, y2]), out[1]
+    return best[1], best[2]
+>>>>>>> REPLACE
+-----

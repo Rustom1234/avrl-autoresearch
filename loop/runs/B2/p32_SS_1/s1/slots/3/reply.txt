@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _greedy(n, rng):
+    """Place centres one by one at the candidate point with the largest clearance; provisional radii follow."""
+    c, r = np.empty((n, 2)), np.empty(n)
+    c[0] = rng.uniform(0, 1, 2)
+    r[0] = min(0.9 * min(c[0].min(), 1 - c[0].max()), 0.15)
+    for k in range(1, n):
+        p = rng.uniform(0, 1, (400, 2))
+        d = np.sqrt(((p[:, None] - c[None, :k]) ** 2).sum(-1)) - r[None, :k]
+        wall = np.minimum(np.minimum(p[:, 0], p[:, 1]), np.minimum(1 - p[:, 0], 1 - p[:, 1]))
+        clear = np.minimum(d.min(1), wall)
+        i = np.argmax(clear)
+        c[k], r[k] = p[i], min(0.9 * clear[i], 0.15)
+    return np.concatenate([c.ravel(), np.maximum(r, 0.01)])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+        if x0 is None and rng.random() < 0.5:
+            x0 = _greedy(n, rng)
+>>>>>>> REPLACE
+-----

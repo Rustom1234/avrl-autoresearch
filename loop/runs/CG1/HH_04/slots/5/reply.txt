@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+    # Compile the forward pass function with reduced overhead
+    @torch.compile(mode="max-autotune", fullgraph=True)
+    def forward_step(inputs, labels, whiten_bias_grad):
+        outputs = model(inputs, whiten_bias_grad=whiten_bias_grad)
+        loss = F.cross_entropy(outputs, labels, label_smoothing=LABEL_SMOOTHING, reduction="sum")
+        return loss
+=======
+    # Compile the forward pass function with reduced overhead
+    @torch.compile(mode="max-autotune", fullgraph=True)
+    def forward_step(inputs, labels, whiten_bias_grad, eps):
+        outputs = model(inputs, whiten_bias_grad=whiten_bias_grad).float()
+        logp = F.log_softmax(outputs, dim=-1)
+        nll = -logp.gather(1, labels.unsqueeze(1)).squeeze(1)
+        smooth = -logp.mean(dim=-1)
+        return ((1 - eps) * nll + eps * smooth).sum()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+=======
+    smoothing = torch.zeros((), device="cuda")
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            # Execute training step
+            loss = forward_step(inputs, labels, whiten_bias_grad)
+=======
+            # Execute training step
+            smoothing.fill_(LABEL_SMOOTHING * (1 - step / total_train_steps))
+            loss = forward_step(inputs, labels, whiten_bias_grad, smoothing)
+>>>>>>> REPLACE
+-----

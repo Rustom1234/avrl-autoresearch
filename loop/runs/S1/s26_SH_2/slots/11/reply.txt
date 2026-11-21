@@ -1,0 +1,80 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog, differential_evolution
+
+
+def _lp_radii(centers):
+    """Max sum of radii for fixed centers via LP; None if the LP fails."""
+    n = centers.shape[0]
+    x = centers[:, 0]
+    y = centers[:, 1]
+    b = np.maximum(np.minimum.reduce([x, 1 - x, y, 1 - y]), 0.0)
+    iu, ju = np.triu_indices(n, 1)
+    d = np.hypot(x[iu] - x[ju], y[iu] - y[ju])
+    A = np.zeros((iu.size, n))
+    rows = np.arange(iu.size)
+    A[rows, iu] = 1.0
+    A[rows, ju] = 1.0
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d,
+                  bounds=[(0.0, float(bi)) for bi in b], method="highs")
+    if res.status != 0:
+        return None
+    return np.maximum(res.x, 0.0)
+
+
+def _de_centers(seed, budget):
+    """Differential evolution over 52 center coordinates, time-capped."""
+    t0 = time.time()
+    n = 26
+
+    def neg_sum(v):
+        r = _lp_radii(v.reshape(n, 2))
+        if r is None:
+            return 0.0
+        return -float(np.sum(r))
+
+    def stop_cb(xk, convergence=None):
+        return time.time() - t0 > budget
+
+    res = differential_evolution(neg_sum, [(0.0, 1.0)] * (2 * n), seed=seed,
+                                 popsize=6, maxiter=10000, tol=0, polish=False,
+                                 init="latinhypercube", mutation=(0.5, 1.0),
+                                 recombination=0.7, callback=stop_cb)
+    return res.x.reshape(n, 2)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _pack_once(seed, init_pts=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pts = np.vstack([base, np.array(interior)])
+=======
+    pts = np.vstack([base, np.array(interior)])
+    if init_pts is not None:
+        pts = np.array(init_pts, dtype=float)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    t0 = time.time()
+    best = None
+    best_sum = -1.0
+    for seed in range(10000):
+        if seed > 0 and time.time() - t0 > 200.0:
+            break
+=======
+    t0 = time.time()
+    best = None
+    best_sum = -1.0
+    try:
+        de_c = _de_centers(0, 80.0)
+        c, r = _pack_once(0, init_pts=de_c)
+        best_sum = float(np.sum(r))
+        best = (c, r)
+    except Exception:
+        pass
+    for seed in range(10000):
+        if seed > 0 and time.time() - t0 > 200.0:
+            break
+>>>>>>> REPLACE
+-----

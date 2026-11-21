@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < 0.5 * total:   # random restarts for half of the time
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+    start, k = None, 0
+    while time.process_time() - t0 < 0.5 * total:   # chains of 4 solves, each seeded from the previous output
+        c, r = _solve_once(n, rng, start)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        k = (k + 1) % 4
+        if k == 0:
+            start = None
+        else:
+            mask = rng.random(n) < 0.3
+            c2 = c.copy()
+            c2[mask] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (mask.sum(), 2))
+            start = np.concatenate([c2.ravel(), np.where(mask, INIT_RADIUS, r)])
+>>>>>>> REPLACE
+-----

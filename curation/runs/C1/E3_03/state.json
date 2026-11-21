@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/E3_03/cand/s04_0.py",
+ "inc_scores": {
+  "11": 1.8326968985151784,
+  "12": 1.8256588550297355
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Use a simple TF-IDF or word overlap heuristic to prioritize documents in `docs` that share the most unique words with the `target_sample` strings, while still maintaining a diverse selection.",
+   "outcome": "dev 1.9847 against 1.9618 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Calculate the average token count and content length of the 200 documents in `target_sample`, then score each document in `docs` based on a cosine similarity of their TF-IDF vectors (using `scikit-learn`) relative to the average `target_sample` vector, prioritizing documents with high similarity and higher token counts.",
+   "outcome": "dev 2.0861 against 1.9618 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Use a basic Bag of Words (BoW) approach to score documents in `docs` based on their overlap with the vocabulary of `target_sample`, then use these scores as weights for a weighted random selection (using `random.choices`) to select a sequence of documents until the token count reaches T.",
+   "outcome": "dev 1.9574 against 1.9618 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace similarity ranking with hard junk filters calibrated on target_sample, then fill to T with clean text only.\n\n1. Per-document features (cheap, regex/split based):\n   - (a) Space ratio and mean word length, plus the fraction of whitespace-separated tokens longer than 25 characters. This catches base64 blobs.\n   - (b) Spam flag: lowercased text contains any of 'discount code', 'coupon', 'free shipping', 'buy now', 'order ... online', 'for sale |', 'best price guaranteed'. Flag at 2 or more hits, or at more than 1 hit per 200 words.\n   - (c) Word-order score: build the set of adjacent word bigrams from target_sample, lowercased and whitespace-split. Score each doc by the fraction of its adjacent bigrams found in that set. Also compute the rate per 100 words of the fixed bigrams 'of the', 'in the', 'to the', 'and the', 'on the', ', and', '. the'. Shuffled-word documents such as the 'Endgame ( Megadeth album )' example score far lower.\n\n2. Calibrate thresholds for (a) and (c) on the 200 target docs. For the bigram-hit score use leave-one-out, or the common-bigram rate, so the target docs are not scored against themselves. Drop any pool doc below the 2nd percentile of the target values on the word-order score, or outside the target range on space ratio or long-token fraction. Drop all spam-flagged docs.\n\n3. Deduplicate: keep one copy per hash of the whitespace-normalised first 500 characters.\n\n4. Split survivors into two groups:\n   - A: wiki-style docs, meaning the doc starts with '= ' or contains '\\n = ' heading lines or ' @-@ ' / ' , ' tokenised punctuation typical of the target.\n   - B: other clean prose.\n\n5. Build the output: all of A in seeded random order (CURATE_SEED), counting tokens with tiktoken gpt2. If A is under T tokens, add B docs chosen by seeded shuffle until the total reaches T, then shuffle A and B together. If A plus B is still under T, append a second seeded shuffle of A.\n\nNever include dropped documents.",
+   "outcome": "dev 1.8327 against 1.9618 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Implement a quality score for each document based on a 'coherence score' that rewards a high proportion of common English bigrams (e.g., 'of the', 'in the') and a low proportion of non-dictionary/junk characters, then use this score to prioritize the selection order (Weighted Random Sampling with importance sampling) instead of simple grouping.",
+   "outcome": "dev 1.9341 against 1.8327 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Implement a 'diversity penalty' based on the JS-divergence or simple overlap of the top-K most frequent words (stopwords and content words) between the current selection and the target_sample, using a greedy selection that prefers documents with high coherence scores but lower lexical overlap with already selected docs.",
+   "outcome": "dev 1.9006 against 1.8327 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Instead of a simple A/B split, compute a 'target-fidelity' score for each document based on the density of bigrams shared with the target_sample (using leave-one-out calibration) and use this score as a probability weight for Weighted Random Sampling (with a softmax or power-scaling to sharpen the distribution) to select documents until T tokens are reached, while still applying the hard junk filters.",
+   "outcome": "dev 1.8272 against 1.8327 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Keep all current hard filters, but make the training stream target-format only, and repeat it instead of topping up with other prose.\n\n1. Strict group A. Replace the loose is_wiki test (any ' , ' anywhere) with a calibrated format test. Compute the rate per 100 words of the standalone tokens ',' and '.' plus '@-@' after whitespace split. A doc is in A only if this rate is at least the minimum over the 200 target docs times 0.8. Everything else goes to B.\n\n2. Segment-level damage check for A. Split each doc's bigram list into 4 equal segments (only if the doc has at least 400 words). Compute the target-bigram hit fraction per segment. Drop the doc if any segment is below the existing leave-one-out 2nd-percentile threshold times 0.85. This catches docs that are only partly shuffled or scrambled.\n\n3. Title dedup. For docs whose first line matches '= Title =', keep one doc per lowercased title: the one with the highest whole-document hit fraction. Keep the existing first-500-character hash dedup as well.\n\n4. Output. If strict A has at least 0.4*T tokens, return A only: concatenate independent seeded shuffles of A (seed, seed+1, ...) until the token count reaches T, with no B docs at all. Only if A is under 0.4*T, append B docs sorted by descending hit fraction until T is reached, then shuffle the whole list with the seed.",
+   "outcome": "dev 1.8322 against 1.8327 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Refine the target-fidelity scoring by using a Power-scaled Weighted Random Sampling (WRS) approach: instead of a hard A/B split, calculate a score for every doc based on (bigram_hit_fraction * common_bigram_rate). Apply a Power-law scaling (e.g., x^1.5) to the scores to sharpen the preference for high-quality docs, and use these as weights for sampling until T tokens are reached, while retaining the hard junk filters for spam and base64 detection.",
+   "outcome": "dev 1.9668 against 1.8327 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Replace the A/B grouping logic with a 'Target-Similarity' scoring system. Calculate a score $S$ for each document $d$ as $S(d) = (\text{bigram-hit-fraction}) \times (\text{common-bigram-rate})$. Apply a power-scaling of $x^{1.5}$ to $S$ to emphasize high-quality documents, then use these scores as weights for a Weighted Random Sampling (WRS) to select documents until T tokens are reached, while maintaining the current hard junk filters (spam, space ratio, mean word length, and long-token fraction).",
+   "outcome": "dev 1.8336 against 1.8327 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Refine the A/B selection by enforcing a stricter 'Wiki-style' check for group A (requiring a title line starting with '= ' and a high occurrence of the specific '@-@' token) and, if the combined total of A and B is still under T, repeat group A multiple times before considering B. Additionally, implement a 'shuffled-text' filter that rejects documents where the bigram hit fraction is extremely low but the common bigram rate is high, a common trait of scrambled text.",
+   "outcome": "dev 1.8320 against 1.8327 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Keep every filter, the dedup, the A/B split and the token budget exactly as in the current best (all of A, plus seeded-shuffled B docs only until the total reaches T). Change only the ordering of the output, so that the non-target prose is front-loaded and the end of training is pure target-format text.\n\n1. Replace the final `rng.shuffle(out)` with a keyed sort. Using the seeded rng, give each A doc a key drawn from Uniform(0, 1) and each chosen B doc a key drawn from Uniform(0, 0.65). Sort the combined list by key ascending.\n   - The first ~65% of the stream is then an A+B mix.\n   - The last ~35% (about the last 100 of 300 steps) is wiki-style A docs only.\n\n2. Truncate the returned list at the point where cumulative gpt2 tokens first reach T, so that the tail actually trained on is the pure-A tail. Count tokens for A and for the chosen B docs once and reuse the counts.\n\n3. If A+B is still under T, append a second seeded shuffle of A (seed+1) as now, so the end stays pure A.\n\n4. If A alone has at least T tokens, return shuffled A as before.",
+   "outcome": "dev 1.8272 against 1.8327 for the best at the time, rejected"
+  }
+ ],
+ "usd": 1.2821368499999999,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0007244999999999999,
+   "dev": 1.984744919678494,
+   "inc": 1.9617889591623274,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0015287999999999999,
+   "dev": 2.0860529577765394,
+   "inc": 1.9617889591623274,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0008722499999999998,
+   "dev": 1.957350050553576,
+   "inc": 1.9617889591623274,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.36466760000000004,
+   "dev": 1.8326968985151784,
+   "inc": 1.9617889591623274,
+   "harmed": null,
+   "escalated": true
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.76659243698721,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0021284999999999776,
+   "dev": 1.9340667691736744,
+   "inc": 1.8326968985151784,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.76659243698721,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0023229000000000166,
+   "dev": 1.9006110510114456,
+   "inc": 1.8326968985151784,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.76659243698721,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0037720500000000268,
+   "dev": 1.8271721246143633,
+   "inc": 1.8326968985151784,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.76659243698721,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.49063559999999995,
+   "dev": 1.8322338970214451,
+   "inc": 1.8326968985151784,
+   "harmed": null,
+   "escalated": true
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.76659243698721,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0025588500000000014,
+   "dev": 1.9668275119813288,
+   "inc": 1.8326968985151784,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.76659243698721,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.004414799999999941,
+   "dev": 1.8336408745474884,
+   "inc": 1.8326968985151784,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.76659243698721,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0034193999999999614,
+   "dev": 1.8319705601973524,
+   "inc": 1.8326968985151784,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.76659243698721,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.4050916,
+   "dev": 1.8272485602737492,
+   "inc": 1.8326968985151784,
+   "harmed": null,
+   "escalated": true
+  }
+ ],
+ "start_dev": 1.9617889591623274,
+ "inc_slot": 4
+}
