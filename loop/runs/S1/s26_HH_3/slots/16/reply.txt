@@ -1,0 +1,83 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _adam_soft(centers0, radii0, rng, mu=20.0):
+    """Adam on -sum(r) plus a softplus overlap penalty whose sharpness beta is annealed 10 -> 1000.
+    Radii are optimised jointly; each stage end is repaired to a feasible packing and the best is kept."""
+    n = len(radii0)
+    iu, ju = np.triu_indices(n, 1)
+    c = np.clip(np.asarray(centers0, dtype=float) + rng.normal(0.0, 0.005, size=(n, 2)), 0.0, 1.0)
+    r0 = np.maximum(np.asarray(radii0, dtype=float), 0.0)
+    z = np.concatenate([c[:, 0], c[:, 1], r0])
+    m1 = np.zeros_like(z)
+    m2 = np.zeros_like(z)
+    lr = 0.01
+    best_s, best_c, best_r = -1.0, None, None
+    t = 0
+    for stage in range(5):
+        beta = 10.0 * (100.0 ** (stage / 4.0))
+        for _ in range(300):
+            t += 1
+            x = z[:n]
+            y = z[n:2 * n]
+            r = z[2 * n:]
+            dx = x[iu] - x[ju]
+            dy = y[iu] - y[ju]
+            d = np.sqrt(dx * dx + dy * dy) + 1e-12
+            ux = dx / d
+            uy = dy / d
+            sp = 0.5 * (1.0 + np.tanh(0.5 * beta * (r[iu] + r[ju] - d)))
+            gr = -np.ones(n)
+            np.add.at(gr, iu, mu * sp)
+            np.add.at(gr, ju, mu * sp)
+            gx = np.zeros(n)
+            gy = np.zeros(n)
+            np.add.at(gx, iu, -mu * sp * ux)
+            np.add.at(gx, ju, mu * sp * ux)
+            np.add.at(gy, iu, -mu * sp * uy)
+            np.add.at(gy, ju, mu * sp * uy)
+            s1 = 0.5 * (1.0 + np.tanh(0.5 * beta * (r - x)))
+            s2 = 0.5 * (1.0 + np.tanh(0.5 * beta * (r + x - 1.0)))
+            s3 = 0.5 * (1.0 + np.tanh(0.5 * beta * (r - y)))
+            s4 = 0.5 * (1.0 + np.tanh(0.5 * beta * (r + y - 1.0)))
+            gr += mu * (s1 + s2 + s3 + s4)
+            gx += mu * (-s1 + s2)
+            gy += mu * (-s3 + s4)
+            g = np.concatenate([gx, gy, gr])
+            m1 = 0.9 * m1 + 0.1 * g
+            m2 = 0.999 * m2 + 0.001 * g * g
+            mh = m1 / (1.0 - 0.9 ** t)
+            vh = m2 / (1.0 - 0.999 ** t)
+            z = z - lr * mh / (np.sqrt(vh) + 1e-8)
+            z[:2 * n] = np.clip(z[:2 * n], 0.0, 1.0)
+            z[2 * n:] = np.maximum(z[2 * n:], 0.0)
+        cc = np.column_stack([z[:n], z[n:2 * n]])
+        rr = _repair(cc, z[2 * n:])
+        s = float(np.sum(rr))
+        if s > best_s:
+            best_s, best_c, best_r = s, cc, rr
+    return np.clip(best_c, 0.0, 1.0), best_r
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+        best_c = np.clip(c, 0.0, 1.0)
+        best_r = _repair(best_c, np.zeros(n))
+    return np.clip(best_c, 0.0, 1.0), best_r
+=======
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+        best_c = np.clip(c, 0.0, 1.0)
+        best_r = _repair(best_c, np.zeros(n))
+    try:
+        c2, r2 = _adam_soft(best_c, best_r, rng)
+        if float(np.sum(r2)) > float(np.sum(best_r)):
+            best_c, best_r = c2, r2
+    except Exception:
+        pass
+    return np.clip(best_c, 0.0, 1.0), best_r
+>>>>>>> REPLACE
+-----

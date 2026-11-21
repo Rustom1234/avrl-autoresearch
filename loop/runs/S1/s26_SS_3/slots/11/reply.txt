@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 5 in (0, 2):
+            a = rng.random() * np.pi / 6
+            ca, sa = np.cos(a), np.sin(a)
+            off = rng.random(2) * 0.19
+            sp = 0.19
+            ii, jj = np.meshgrid(np.arange(-8, 9), np.arange(-8, 9))
+            ux = (ii + 0.5 * jj).ravel() * sp + off[0]
+            uy = (jj * np.sqrt(3) / 2).ravel() * sp + off[1]
+            px = 0.5 + ca * ux - sa * uy
+            py = 0.5 + sa * ux + ca * uy
+            H = np.stack([px, py], axis=1)
+            H = H[(H.min(1) > 0.03) & (H.max(1) < 0.97)]
+            d2 = ((H - 0.5) ** 2).sum(1)
+            H = H[np.argsort(d2)[:n]]
+            if len(H) < n:
+                H = np.vstack([H, rng.random((n - len(H), 2)) * 0.9 + 0.05])
+            c0 = np.clip(H + rng.normal(0, 0.01, H.shape), 0.02, 0.98)
+            r0 = np.full(n, 0.07)
+>>>>>>> REPLACE
+-----

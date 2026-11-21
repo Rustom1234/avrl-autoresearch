@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _refit(c, r):
+    """With centres fixed, the optimal radii solve a linear program."""
+    n = len(r)
+    i, j = np.triu_indices(n, 1)
+    d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+    A = np.zeros((len(i), n))
+    A[np.arange(len(i)), i] = 1
+    A[np.arange(len(i)), j] = 1
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d - 1e-9, bounds=np.column_stack([np.zeros(n), np.maximum(wall, 0)]),
+                  method="highs")
+    return res.x if res.status == 0 else r
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+        if best
+=======
+        r = _repair(c, _refit(c, r))
+        if best
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _refit(c, r):
+    """With centres fixed, the optimal radii solve a linear program."""
+    n = len(r)
+    i, j = np.triu_indices(n, 1)
+    d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+    A = np.zeros((len(i), n))
+    A[np.arange(len(i)), i] = 1
+    A[np.arange(len(i)), j] = 1
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d - 1e-9, bounds=np.column_stack([np.zeros(n), np.maximum(wall, 0)]),
+                  method="highs")
+    return res.x if res.status == 0 else r
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+=======
+        r = _repair(c, _refit(c, r))
+>>>>>>> REPLACE
+-----

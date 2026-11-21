@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Repair the packing by pushing centers apart and shrinking radii to resolve overlaps."""
+    n = len(r)
+    c = c.astype(float)
+    r = r.astype(float)
+    
+    # Initial boundary clamping
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+
+    for _ in range(100):
+        # Calculate distance matrix
+        diff = c[:, None, :] - c[None, :, :]
+        d = np.sqrt(np.sum(diff**2, axis=2) + 1e-9)
+        
+        # Overlap and boundary violations
+        overlap = (r[:, None] + r[None, :]) - d
+        np.fill_diagonal(overlap, -1.0)
+        
+        # Simple gradient descent step
+        grad_c = np.zeros_like(c)
+        grad_r = np.zeros_like(r)
+        
+        for i in range(n):
+            # Boundary repulsion (push towards center)
+            for k in [0, 1]: # x and y
+                dist_to_bound = np.minimum(c[i, k], 1 - c[i, k])
+                if dist_to_bound < r[i]:
+                    grad_c[i, k] += (0.5 - c[i, k]) * (r[i] - dist_to_bound)
+            
+            # Inter-circle repulsion
+            for j in range(n):
+                if i == j: continue
+                dist = d[i, j]
+                if (r[i] + r[j]) > dist:
+                    direction = (c[i] - c[j]) / (dist + 1e-9)
+                    grad_c[i] += direction * (r[i] + r[j] - dist)
+                    grad_r[i] -= (r[i] + r[j] - dist) * 0.5
+
+        c += grad_c * 0.1
+        r += grad_r * 0.1
+        
+        # Project back to valid bounds
+        c = np.clip(c, r + 1e-7, 1 - r - 1e-7)
+        r = np.clip(r, 0, 0.5)
+
+        if np.max(overlap) <= 0:
+            break
+
+    return c, np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----

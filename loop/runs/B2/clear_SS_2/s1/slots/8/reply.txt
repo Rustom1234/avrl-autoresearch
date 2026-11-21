@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def prune_cols(X, thr=0.95):
+    X = X.astype(np.float64)
+    sd = X.std(0)
+    ok = sd > 1e-12
+    Z = (X - X.mean(0)) / np.where(ok, sd, 1.0)
+    C = np.abs(Z.T @ Z) / len(Z)
+    C[~ok, :] = 0.0
+    C[:, ~ok] = 0.0
+    kept = []
+    for j in range(X.shape[1]):
+        if ok[j] and all(C[j, k] <= thr for k in kept):
+            kept.append(j)
+    return np.array(kept, dtype=int)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = np.hstack([descriptors(train_smiles), erg(train_smiles), featurize(train_smiles)])
+    Xte = np.hstack([descriptors(test_smiles), erg(test_smiles), featurize(test_smiles)])
+=======
+    Dtr = descriptors(train_smiles)
+    Dte = descriptors(test_smiles)
+    keep = prune_cols(Dtr)
+    Dtr, Dte = Dtr[:, keep], Dte[:, keep]
+    Xtr = np.hstack([Dtr, erg(train_smiles), featurize(train_smiles)])
+    Xte = np.hstack([Dte, erg(test_smiles), featurize(test_smiles)])
+>>>>>>> REPLACE
+-----

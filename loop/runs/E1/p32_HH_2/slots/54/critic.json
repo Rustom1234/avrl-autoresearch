@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "No attempt to get around the measurement. There is no file or network access, no pasted coordinates, and randomness still comes from the seeded rng. Every result still goes through _repair before it is accepted, so the packing stays valid.",
+  "No bug that makes the result meaningless. The penalty hop optimises centres and radii together, then clips the centres to the square and repairs the radii. Every fifth accepted hop gets an SLSQP polish, and that result also goes through clip and repair. A hop is kept only if the repaired sum of radii goes up.",
+  "The search is weaker than before, though not invalid. HOP_W = 1e-3 rewards larger radii only weakly, so L-BFGS-B ends with small overlaps that _repair removes by shrinking radii. L-BFGS-B also has no analytic gradient, so it estimates one with about 97 energy calls per step. As a result, most hops probably score below the incumbent best and are rejected. This fits the lower score.",
+  "Timing risk is small. The budget is checked only at the top of the loop, so one SLSQP polish can run past the 0.8 \u00d7 30 = 24 s budget. That still leaves a wide margin before the 45 s limit.",
+  "The incumbent's mean of -2.9370 equals the best published value of about 2.9370. That is plausible but worth checking in the incumbent's own review. This diff does not cause it.",
+  "The numbers match. The candidate (-2.9306) is 0.0064 worse in loss than the incumbent (-2.9370). With noise sd 0.0034, one candidate run and two incumbent runs, the standard error of the difference is 0.0034 \u00d7 sqrt(1 + 1/2) \u2248 0.00416, which gives z \u2248 -1.54. That agrees with the harness's -1.515; the small gap is probably rounding in the displayed means. Rejecting the candidate is correct."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -1.54
+ }
+}

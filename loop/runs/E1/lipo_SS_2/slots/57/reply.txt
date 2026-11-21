@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+=======
+def knn_feats(Ftr, ytr, Fte, loo):
+    S = tanimoto(Fte, Ftr)
+    if loo:
+        np.fill_diagonal(S, -1.0)
+    idx = np.argpartition(-S, 5, axis=1)[:, :5]
+    s = np.take_along_axis(S, idx, 1)
+    w = np.maximum(s, 0) + 1e-6
+    return np.column_stack([(w * ytr[idx]).sum(1) / w.sum(1), s.max(1)]).astype(np.float32)
+
+
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+    Ftr, Fte = Xtr[:, :N_BITS], Xte[:, :N_BITS]
+    Ktr = knn_feats(Ftr, ytr, Ftr, True)
+    Kte = knn_feats(Ftr, ytr, Fte, False)
+    Xtr, Xte = np.hstack([Xtr, Ktr]), np.hstack([Xte, Kte])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ftr, Fte = Xtr[:, :N_BITS], Xte[:, :N_BITS]
+    sv = SVR(
+=======
+    sv = SVR(
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+=======
+def knn_feats(Ftr, ytr, Fte, loo):
+    S = tanimoto(Fte, Ftr)
+    if loo:
+        np.fill_diagonal(S, -1.0)
+    idx = np.argpartition(-S, 5, axis=1)[:, :5]
+    s = np.take_along_axis(S, idx, 1)
+    w = np.maximum(s, 0) + 1e-6
+    return np.column_stack([(w * ytr[idx]).sum(1) / w.sum(1), s.max(1)]).astype(np.float32)
+
+
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+    F0, F1 = Xtr[:, :N_BITS], Xte[:, :N_BITS]
+    Ktr = knn_feats(F0, ytr, F0, True)
+    Kte = knn_feats(F0, ytr, F1, False)
+    Xtr, Xte = np.hstack([Xtr, Ktr]), np.hstack([Xte, Kte])
+>>>>>>> REPLACE
+-----

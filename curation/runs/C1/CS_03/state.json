@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/CS_03/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.9006808472166188,
+  "12": 1.903236225658401
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Use a simple heuristic to score and select documents based on token overlap with the target_sample (using tiktoken to count common unique tokens).",
+   "outcome": "dev 1.9007 against 1.9598 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Instead of scoring based on the fraction of unique tokens (common / unique), score by the fraction of the total token count (common / total_length) and use a weighted score that favors documents with high overlap that are also long enough to be representative (e.g., length > 100).",
+   "outcome": "dev 1.9457 against 1.9007 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Use a weighted score where `score = (common / total_tokens) * log(1 + total_tokens)`, prioritizing documents that have a high density of target-relevant tokens while also providing significant volume to reach the target token count T efficiently.",
+   "outcome": "dev 2.0001 against 1.9007 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Change the scoring heuristic from a simple overlap fraction to a Jaccard-like similarity score: `score = len(common) / len(set(toks_in_doc) | target_vocab)`, where `toks_in_doc` are the tokens of the current document and `target_vocab` is the set of tokens in the target sample.",
+   "outcome": "dev 1.9948 against 1.9007 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Switch from token overlap to a n-gram overlap score (specifically, count common bigrams) to better capture local context and content similarity than individual token frequency.",
+   "outcome": "dev 1.9305 against 1.9007 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Calculate the score as the number of unique common tokens divided by the number of unique tokens in the document, but only for documents that have at least a minimum number of common tokens (e.g., > 10). For documents with very low overlap, assign a baseline score based on their length to ensure we still pick high-quality content that might not share every token.",
+   "outcome": "dev 1.8984 against 1.9007 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Calculate a similarity score for each document in the pool by determining the ratio of common tokens to unique tokens in the document (common / len(set(toks))), but filter out documents where the number of common tokens is below a threshold (e.g., 2) to remove noise. Then, among the high-quality matches, prioritize those with high total token counts to reach T more efficiently, using a score like (common / len(set(toks))) * (1 + log1p(len(toks))) and select the top results.",
+   "outcome": "dev 1.9496 against 1.9007 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Use a weighted overlap score where the score is calculated as (common_tokens_count / total_tokens_in_doc) * log10(1 + len(set(toks_in_doc))) and prioritize documents that have at least a minimum total token count (e.g., 100 tokens) to ensure we don't fill the training buffer with short, high-density fragments that lack sufficient context.",
+   "outcome": "dev 1.9631 against 1.9007 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Switch to a TF-IDF inspired weighting where the score is (common_tokens_count / document_total_tokens) * (1 / log(1 + len(target_vocab))), and additionally filter for documents that have a minimum of 50 tokens to ensure contextual richness.",
+   "outcome": "dev 1.9211 against 1.9007 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Calculate a similarity score as (common_tokens / len(set(toks_in_doc))) and select documents by sorting descending, but perform 'over-sampling' of the top 20% of high-scoring documents (those with score > 0.1) to fill the remaining buffer, as the 300-step limit is very tight and we need high-density content.",
+   "outcome": "dev 1.8925 against 1.9007 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Implement a multi-pass selection strategy: first, select high-quality documents (score > 0.15) in full, then fill the remaining T tokens by sampling from the pool based on a score-weighted distribution (prioritizing those with higher common/unique ratios) until T is reached.",
+   "outcome": "dev 1.8981 against 1.9007 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Calculate the score as (common_tokens_count / len(set(toks))) and sort by this score, but replace the final selection step with a 'greedy-fill' that iteratively adds the best available document until T is reached, while maintaining a pool of 'high-quality' documents (score > 0.05) to avoid low-quality noise filling the final tokens.",
+   "outcome": "dev 1.8939 against 1.9007 for the best at the time, rejected"
+  }
+ ],
+ "usd": 1.03792345,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.0724031,
+   "dev": 1.9006808472166188,
+   "inc": 1.9597865531622884,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.134559034636618,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.07847510000000002,
+   "dev": 1.9457288542021345,
+   "inc": 1.9006808472166188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.134559034636618,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.08210040000000002,
+   "dev": 2.0000708521877852,
+   "inc": 1.9006808472166188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.134559034636618,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.06420735,
+   "dev": 1.9948190016160108,
+   "inc": 1.9006808472166188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.134559034636618,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.09887485000000001,
+   "dev": 1.9305389247804108,
+   "inc": 1.9006808472166188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.134559034636618,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.08049204999999998,
+   "dev": 1.8983513053694827,
+   "inc": 1.9006808472166188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.134559034636618,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.06907940000000001,
+   "dev": 1.949621858004718,
+   "inc": 1.9006808472166188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.134559034636618,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.08962895000000004,
+   "dev": 1.96313519308299,
+   "inc": 1.9006808472166188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.134559034636618,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.09740905,
+   "dev": 1.9210623091430037,
+   "inc": 1.9006808472166188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.134559034636618,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.11179204999999992,
+   "dev": 1.8925091089950707,
+   "inc": 1.9006808472166188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.134559034636618,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.10243904999999998,
+   "dev": 1.8981383670776066,
+   "inc": 1.9006808472166188,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.134559034636618,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.0910221000000001,
+   "dev": 1.8939439553130002,
+   "inc": 1.9006808472166188,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9597865531622884,
+ "inc_slot": 1
+}

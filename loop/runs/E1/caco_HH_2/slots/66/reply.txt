@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from catboost import CatBoostRegressor
+from sklearn.linear_model import LassoCV
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    A_tr = np.c_[np.ones(len(y)), base_features(train_smiles)]
+    A_te = np.c_[np.ones(len(test_smiles)), base_features(test_smiles)]
+    coef = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+def poly_design(B, mu, sd):
+    Z = (B - mu) / sd
+    cols = [Z, Z ** 2]
+    for i in range(Z.shape[1]):
+        for j in range(i + 1, Z.shape[1]):
+            cols.append((Z[:, i] * Z[:, j])[:, None])
+    return np.hstack(cols)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    B_tr = base_features(train_smiles)
+    B_te = base_features(test_smiles)
+    mu = B_tr.mean(axis=0)
+    sd = B_tr.std(axis=0)
+    sd[sd == 0] = 1.0
+    P_tr = poly_design(B_tr, mu, sd)
+    P_te = poly_design(B_te, mu, sd)
+    lasso = LassoCV(cv=5, random_state=seed).fit(P_tr, y)
+    prior_tr = lasso.predict(P_tr)
+    prior_te = lasso.predict(P_te)
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - prior_tr)
+    return model.predict(featurize(test_smiles)) + prior_te
+>>>>>>> REPLACE
+-----

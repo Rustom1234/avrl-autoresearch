@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import Ridge
+from sklearn.svm import SVR
+from rdkit.Chem import MACCSkeys
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+N_CONFIGS = 1
+=======
+N_DESC = len(Descriptors._descList)
+_MACCS_CACHE = {}
+
+
+def maccs_vector(smiles):
+    if smiles not in _MACCS_CACHE:
+        _MACCS_CACHE[smiles] = np.array(MACCSkeys.GenMACCSKeys(Chem.MolFromSmiles(smiles)), dtype=np.float32)
+    return _MACCS_CACHE[smiles]
+
+
+N_CONFIGS = 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Za = Xa[:, 2 * N_BITS:].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:].astype(np.float64)
+    zm, zs = Za.mean(axis=0), Za.std(axis=0) + 1e-9
+    Za, Zb = (Za - zm) / zs, (Zb - zm) / zs
+=======
+    Za = Xa[:, 2 * N_BITS:2 * N_BITS + N_DESC].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:2 * N_BITS + N_DESC].astype(np.float64)
+    Ma = Xa[:, 2 * N_BITS + N_DESC:].astype(np.float64)
+    Mb = Xb[:, 2 * N_BITS + N_DESC:].astype(np.float64)
+    zm, zs = Za.mean(axis=0), Za.std(axis=0) + 1e-9
+    Za, Zb = (Za - zm) / zs, (Zb - zm) / zs
+    svr = SVR(C=5.0, epsilon=0.1, gamma='scale').fit(np.hstack([Za, Ma]), ya)
+    p_svr = svr.predict(np.hstack([Zb, Mb]))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([p_rf, p_lgb, p_krr])
+=======
+    return np.column_stack([p_rf, p_lgb, p_krr, p_svr])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32)])
+=======
+    Mtr = np.array([maccs_vector(s) for s in train_smiles])
+    Mte = np.array([maccs_vector(s) for s in test_smiles])
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32), Mtr])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32), Mte])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    oof = np.zeros((len(y), 4))
+>>>>>>> REPLACE
+-----

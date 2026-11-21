@@ -1,0 +1,55 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (regression).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def minmax_kernel(X1, X2):
+    n1 = X1.shape[0]
+    n2 = X2.shape[0]
+    K = np.zeros((n1, n2))
+    chunk_size = 100
+    for i in range(0, n1, chunk_size):
+        end_i = min(i + chunk_size, n1)
+        X1_chunk = X1[i:end_i]
+        for j in range(0, n2, chunk_size):
+            end_j = min(j + chunk_size, n2)
+            X2_chunk = X2[j:end_j]
+            m = np.minimum(X1_chunk[:, np.newaxis, :], X2_chunk[np.newaxis, :, :])
+            Mx = np.maximum(X1_chunk[:, np.newaxis, :], X2_chunk[np.newaxis, :, :])
+            K[i:end_i, j:end_j] = np.sum(m, axis=2) / (np.sum(Mx, axis=2) + 1e-9)
+    return K
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    K_train = minmax_kernel(X_train, X_train)
+    K_test = minmax_kernel(X_test, X_train)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)

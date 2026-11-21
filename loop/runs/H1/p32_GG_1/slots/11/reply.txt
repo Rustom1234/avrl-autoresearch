@@ -1,0 +1,147 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def jac_cons(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        # Partial derivatives of cons(v) with respect to v
+        # d/dc_i: d/dc_i (dist(c_i, c_j) - r_i - r_j) = (c_i - c_j) / dist(c_i, c_j)
+        # d/dr_i: d/dr_i (dist(c_i, c_j) - r_i - r_j) = -1
+        # d/dc_i: d/dc_i (c_i_x - r_i) = 1 (for x), -1 (for y), etc.
+        # d/dr_i: d/dr_i (c_i_x - r_i) = -1
+        jac = np.zeros((6 * n, 2 * n + n))
+        
+        # Overlap constraints (d)
+        for i, j in zip(*iu):
+            diff = c[i] - c[j]
+            dist = np.linalg.norm(diff)
+            if dist > 1e-9:
+                jac[i : i + 1, 2 * i : 2 * i + 2] += diff / dist
+                jac[i : i + 1, 2 * j : 2 * j + 2] -= diff / dist
+            jac[i : i + 1, 2 * n + i] -= 1
+            jac[i : i + 1, 2 * n + j] -= 1
+            
+        # Boundary constraints
+        for i in range(n):
+            jac[n + i, 2 * i] = 1
+            jac[n + i, 2 * n + i] = -1
+            jac[n + 1 + i, 2 * i + 1] = 1
+            jac[n + 1 + i, 2 * n + i] = -1
+            jac[2 * n + i, 2 * i] = -1
+            jac[2 * n + i, 2 * n + i] = -1
+            jac[2 * n + 1 + i, 2 * i + 1] = -1
+            jac[2 * n + 1 + i, 2 * n + i] = -1
+            
+            # Radii constraints
+            jac[3 * n + i, 2 * n + i] = 1
+        return jac
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                    constraints={"type": "ineq", "fun": cons, "jac": jac_cons},
+                   options={"maxiter": MAX_ITER})\n    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+ Egg
+=======
+    def cons(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def jac_cons(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        jac = np.zeros((6 * n, 2 * n + n))
+        for i, j in zip(*iu):
+            diff = c[i] - c[j]
+            dist = np.linalg.norm(diff)
+            if dist > 1e-9:
+                grad_c = diff / dist
+                jac[i : i + 1, 2 * i : 2 * i + 2] += grad_c
+                jac[i : i + 1, 2 * j : 2 * j + 2] -= grad_c
+            jac[i : i + 1, 2 * n + i] -= 1
+            jac[i : i + 1, 2 * n + j] -= 1
+        for i in range(n):
+            jac[n + i, 2 * i] = 1
+            jac[n + i, 2 * n + i] = -1
+            jac[n + 1 + i, 2 * i + 1] = 1
+            jac[n + 1 + i, 2 * n + i] = -1
+            jac[2 * n + i, 2 * i] = -1
+            jac[2 * n + i, 2 * n + i] = -1
+            jac[2 * n + 1 + i, 2 * i + 1] = -1
+            jac[2 * n + 1 + i, 2 * n + i] = -1
+            jac[3 * n + i, 2 * n + i] = 1
+        return jac
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP",
+                    constraints={"type": "ineq", "fun": cons, "jac": jac_cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]])**2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def jac_cons(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        jac = np.zeros((6 * n, 3 * n))
+        for k, (i, j) in enumerate(zip(*iu)):
+            diff = c[i] - c[j]
+            dist = np.linalg.norm(diff)
+            if dist > 1e-9:
+                grad_c = diff / dist
+                jac[k, 2 * i : 2 * i + 2] += grad_c
+                jac[k, 2 * j : 2 * j + 2] -= grad_c
+            jac[k, 2 * n + i] -= 1
+            jac[k, 2 * n + j] -= 1
+        for i in range(n):
+            jac[n + i, 2 * i] = 1
+            jac[n + i, 2 * n + i] = -1
+            jac[2 * n + i, 2 * i] = -1
+            jac[2 * n + i, 2 * n + i] = -1
+            jac[3 * n + i, 2 * i] = -1
+            jac[3 * n + i, 2 * n + i] = 1
+        return jac
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                    constraints={"type": "ineq", "fun": cons, "jac": jac_cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _delaunay_start(rng):
+    """Incircle centres of a random Delaunay triangulation, largest 26 as start centres."""
+    from scipy.spatial import Delaunay
+    pts = rng.uniform(0.0, 1.0, size=(22, 2))
+    extra = np.array([[0, 0], [0, 1], [1, 0], [1, 1],
+                      [0.5, 0], [0.5, 1], [0, 0.5], [1, 0.5]], dtype=float)
+    P = np.vstack([pts, extra])
+    tri = Delaunay(P)
+    S = P[tri.simplices]
+    a = np.linalg.norm(S[:, 1] - S[:, 2], axis=1)
+    b = np.linalg.norm(S[:, 0] - S[:, 2], axis=1)
+    c = np.linalg.norm(S[:, 0] - S[:, 1], axis=1)
+    perim = np.maximum(a + b + c, 1e-12)
+    area = 0.5 * np.abs((S[:, 1, 0] - S[:, 0, 0]) * (S[:, 2, 1] - S[:, 0, 1])
+                        - (S[:, 2, 0] - S[:, 0, 0]) * (S[:, 1, 1] - S[:, 0, 1]))
+    inc = (a[:, None] * S[:, 0] + b[:, None] * S[:, 1] + c[:, None] * S[:, 2]) / perim[:, None]
+    rin = 2.0 * area / perim
+    order = np.argsort(-rin)[:26]
+    c0 = np.clip(inc[order], 0.0, 1.0)
+    r0 = np.clip(0.7 * rin[order], 0.03, 0.2)
+    return c0, r0
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+=======
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+        if start in (3, 8):
+            c0, r0 = _delaunay_start(rng)
+>>>>>>> REPLACE
+-----

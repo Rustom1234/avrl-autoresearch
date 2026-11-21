@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+=======
+import numpy as np
+import lightgbm as lgb
+from rdkit import Chem
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * rankdata(p_rf) / len(p_rf) + 0.5 * rankdata(p_mlp) / len(p_mlp)
+=======
+    ranker = lgb.LGBMRanker(objective="lambdarank", n_estimators=300, learning_rate=0.05,
+                            num_leaves=15, min_child_samples=10, colsample_bytree=0.3,
+                            n_jobs=8, random_state=seed, verbose=-1)
+    ranker.fit(Xtr, y, group=[len(y)])
+    p_rank = ranker.predict(Xte)
+    return (rankdata(p_rf) / len(p_rf) + rankdata(p_mlp) / len(p_mlp)
+            + rankdata(p_rank) / len(p_rank)) / 3
+>>>>>>> REPLACE
+-----

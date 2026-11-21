@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 95:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    prng = np.random.default_rng(7)
+    ia, ja = _IU
+    while time.time() - t0 < 145:
+        try:
+            bc, br = best
+            c = bc.copy()
+            if prng.random() < 0.5:
+                d = np.sqrt(((bc[ia] - bc[ja]) ** 2).sum(1))
+                idx = np.where(d - br[ia] - br[ja] < 1e-7)[0]
+                if len(idx) == 0:
+                    continue
+                k = idx[prng.integers(len(idx))]
+                a, b = ia[k], ja[k]
+                u = c[a] - c[b]
+                u = u / (np.linalg.norm(u) + 1e-12)
+                c[a] += 0.01 * u
+                c[b] -= 0.01 * u
+            else:
+                a, b = prng.choice(_N, 2, replace=False)
+                if abs(br[a] - br[b]) < 0.01:
+                    continue
+                tmp = c[a].copy()
+                c[a] = c[b]
+                c[b] = tmp
+            c = np.clip(c, 0.01, 0.99)
+            c2 = _polish(c, br * 0.7)
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        if r2.sum() > best_s:
+            best_s, best = r2.sum(), (c2, r2)
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

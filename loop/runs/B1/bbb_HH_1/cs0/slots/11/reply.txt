@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from sklearn.model_selection import GroupKFold
+from sklearn.metrics import roc_auc_score
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+
+    def member_ranks(Xa, ya, Xb):
+        rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES,
+                                    min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+        rf.fit(Xa, ya)
+        gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                            random_state=seed, n_jobs=8, verbose=-1)
+        gb.fit(Xa, ya)
+        return scaled_rank(rf.predict_proba(Xb)[:, 1]), scaled_rank(gb.predict_proba(Xb)[:, 1])
+
+    scaf = []
+    for s in train_smiles:
+        try:
+            sc = MurckoScaffold.MurckoScaffoldSmiles(smiles=s)
+        except Exception:
+            sc = ""
+        scaf.append(sc or s)
+    groups = np.unique(scaf, return_inverse=True)[1]
+    oof_rf = np.zeros(len(y))
+    oof_gb = np.zeros(len(y))
+    for tr, va in GroupKFold(n_splits=3).split(X_train, y, groups):
+        oof_rf[va], oof_gb[va] = member_ranks(X_train[tr], y[tr], X_train[va])
+    grid = np.linspace(0, 1, 11)
+    w = grid[int(np.argmax([roc_auc_score(y, g * oof_rf + (1 - g) * oof_gb) for g in grid]))]
+    r_rf, r_gb = member_ranks(X_train, y, X_test)
+    return w * r_rf + (1 - w) * r_gb
+>>>>>>> REPLACE
+-----

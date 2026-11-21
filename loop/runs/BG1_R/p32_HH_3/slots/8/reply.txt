@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _penalty_start(n, v, iu):
+    """Penalty continuation: minimise squared overlap/wall violations minus lambda * radius sum, lambda increasing."""
+    def fg(v, lam):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        i, j = iu
+        diff = c[i] - c[j]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        ov = np.maximum(0, r[i] + r[j] - d)
+        f = (ov ** 2).sum() - lam * r.sum()
+        coef = 2 * ov
+        g_r = np.full(n, -lam) + np.bincount(i, coef, n) + np.bincount(j, coef, n)
+        u = (-coef / d)[:, None] * diff
+        g_c = np.stack([np.bincount(i, u[:, k], n) - np.bincount(j, u[:, k], n) for k in range(2)], 1)
+        a = np.maximum(0, r[:, None] - c)
+        b = np.maximum(0, c + r[:, None] - 1)
+        f += (a ** 2).sum() + (b ** 2).sum()
+        g_c = g_c - 2 * a + 2 * b
+        g_r = g_r + 2 * a.sum(1) + 2 * b.sum(1)
+        return f, np.concatenate([g_c.ravel(), g_r])
+
+    bounds = [(None, None)] * (2 * n) + [(0, None)] * n
+    for lam in np.geomspace(0.1, 100, 5):
+        v = minimize(fg, v, args=(lam,), jac=True, method="L-BFGS-B", bounds=bounds, options={"maxiter": 200}).x
+    return v
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+=======
+    iu = np.triu_indices(n, 1)
+    x0 = _penalty_start(n, x0, iu)
+
+    def cons(v):
+>>>>>>> REPLACE
+-----

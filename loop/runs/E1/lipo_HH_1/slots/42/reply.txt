@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    lam, wr = best_cfg
+    w = np.linalg.solve(Ta + wr * Ra + lam * np.eye(len(ya)), ya - mu)
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+=======
+    lam, wr = best_cfg
+    K = Ta + wr * Ra
+    Kb = tanimoto(Fb, Fa) + wr * rbf(Zb, Za)
+    # IRLS for absolute error: weights w_i = 1/max(|r_i|, 0.05), so the ridge term is lam * W^-1 = diag(lam * max(|r_i|, 0.05)).
+    alpha = np.linalg.solve(K + lam * np.eye(len(ya)), ya - mu)
+    for _ in range(15):
+        r = ya - (K @ alpha + mu)
+        alpha = np.linalg.solve(K + np.diag(lam * np.maximum(np.abs(r), 0.05)), ya - mu)
+    p_krr = Kb @ alpha + mu
+>>>>>>> REPLACE
+-----

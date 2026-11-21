@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestClassifier
+=======
+from rdkit.Chem import Descriptors, rdFingerprintGenerator
+from lightgbm import LGBMClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fp = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    desc = np.array([[f(m) for _, f in Descriptors.descList] for m in mols], dtype=np.float64)
+    desc = np.clip(np.nan_to_num(desc, nan=0.0, posinf=0.0, neginf=0.0), -1e6, 1e6)
+    return np.hstack([fp, desc.astype(np.float32)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+=======
+    model = LGBMClassifier(objective="binary", n_estimators=400, learning_rate=0.05, num_leaves=31,
+                           colsample_bytree=0.3, subsample=0.8, subsample_freq=1, min_child_samples=10,
+>>>>>>> REPLACE
+-----

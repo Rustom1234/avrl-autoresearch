@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import ARDRegression
+=======
+from scipy.optimize import minimize
+from scipy.special import expit
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    ard = ARDRegression(max_iter=300)
+    ard.fit(D, y)
+    ard_pred = ard.predict(Dt)
+    return 0.7 * rankdata(svr_pred) / len(svr_pred) + 0.3 * rankdata(ard_pred) / len(ard_pred)
+=======
+    rng = np.random.default_rng(seed)
+    n = len(y)
+    pi = rng.integers(0, n, size=200000)
+    pj = rng.integers(0, n, size=200000)
+    keep_pairs = np.abs(y[pi] - y[pj]) > 0.05
+    pi, pj = pi[keep_pairs][:40000], pj[keep_pairs][:40000]
+    s = np.sign(y[pi] - y[pj])
+    dif = D[pi] - D[pj]
+    lam = 1e-2
+
+    def pair_obj(w):
+        z = s * (dif @ w)
+        loss = np.mean(np.logaddexp(0.0, -z)) + 0.5 * lam * (w @ w)
+        grad = -(dif * (s * expit(-z))[:, None]).mean(axis=0) + lam * w
+        return loss, grad
+
+    res = minimize(pair_obj, np.zeros(D.shape[1]), jac=True, method="L-BFGS-B", options={"maxiter": 500})
+    rank_pred = Dt @ res.x
+    return 0.7 * rankdata(svr_pred) / len(svr_pred) + 0.3 * rankdata(rank_pred) / len(rank_pred)
+>>>>>>> REPLACE
+-----

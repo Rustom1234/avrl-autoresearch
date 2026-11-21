@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+    attempt = 0
+    while time.perf_counter() < deadline:
+        order = np.argsort(best_r)
+        i = int(order[attempt % n])
+        attempt += 1
+        keep = np.delete(best_c, i, axis=0)
+        keep_r = np.delete(best_r, i)
+        dist = np.sqrt(((grid[:, None, :] - keep[None, :, :]) ** 2).sum(-1))
+        clear = np.minimum(border, np.min(dist - keep_r[None, :], axis=1))
+        p = grid[int(np.argmax(clear))]
+        newc = np.vstack([keep, p[None, :]])
+        cc, rr = _local_opt(newc)
+        s = float(np.sum(rr))
+        if s > best_s + 1e-9 and _valid_packing(cc, rr):
+            best_c, best_r, best_s = cc, rr, s
+            attempt = 0
+    return best_c, best_r
+=======
+    attempt = 0
+    it = 0
+    tabu = []  # entries: (circle index, grid cell, iteration added)
+    while time.perf_counter() < deadline:
+        order = np.argsort(best_r)
+        i = int(order[attempt % n])
+        attempt += 1
+        it += 1
+        tabu = [e for e in tabu if it - e[2] < 12]
+        keep = np.delete(best_c, i, axis=0)
+        keep_r = np.delete(best_r, i)
+        dist = np.sqrt(((grid[:, None, :] - keep[None, :, :]) ** 2).sum(-1))
+        clear = np.minimum(border, np.min(dist - keep_r[None, :], axis=1))
+        blocked = np.zeros(grid.shape[0], dtype=bool)
+        for (ti, tp, _) in tabu:
+            if ti == i:
+                blocked |= np.sqrt(((grid - tp[None, :]) ** 2).sum(-1)) < 0.04
+        if np.all(blocked):
+            masked = clear
+        else:
+            masked = np.where(blocked, -np.inf, clear)
+        k_best = int(np.argmax(masked))
+        p = grid[k_best]
+        tabu_hit = bool(blocked[k_best])
+        newc = np.vstack([keep, p[None, :]])
+        cc, rr = _local_opt(newc)
+        s = float(np.sum(rr))
+        need = 1e-6 if tabu_hit else 1e-9
+        if s > best_s + need and _valid_packing(cc, rr):
+            best_c, best_r, best_s = cc, rr, s
+            attempt = 0
+            tabu = []
+        else:
+            tabu.append((i, p.copy(), it))
+    return best_c, best_r
+>>>>>>> REPLACE
+-----

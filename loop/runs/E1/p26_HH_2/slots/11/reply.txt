@@ -1,0 +1,73 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _penalty(v, n, iu, w):
+    c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+    diff = c[iu[0]] - c[iu[1]]
+    d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+    vi = np.maximum(0, r[iu[0]] + r[iu[1]] - d)
+    a = 2 * w * vi
+    gr = -np.ones(n)
+    np.add.at(gr, iu[0], a)
+    np.add.at(gr, iu[1], a)
+    gc = np.zeros((n, 2))
+    np.add.at(gc, iu[0], -(a / d)[:, None] * diff)
+    np.add.at(gc, iu[1], (a / d)[:, None] * diff)
+    B = np.maximum(0, r[:, None] - c)
+    T = np.maximum(0, c + r[:, None] - 1)
+    f = -r.sum() + w * ((vi @ vi) + (B ** 2).sum() + (T ** 2).sum())
+    gr += 2 * w * (B.sum(1) + T.sum(1))
+    gc += 2 * w * (T - B)
+    return f, np.concatenate([gc.ravel(), gr])
+
+
+def _solve_once(n, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x = x0
+    for cap in
+=======
+    iu = np.triu_indices(n, 1)
+    x = x0
+    for w in np.geomspace(10, 1e6, 5):
+        x = minimize(_penalty, x, args=(n, iu, w), jac=True, method="L-BFGS-B",
+                     bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n, options={"maxiter": 300}).x
+    for cap in
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _penalty(v, n, iu, w):
+    c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+    diff = c[iu[0]] - c[iu[1]]
+    d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+    vi = np.maximum(0, r[iu[0]] + r[iu[1]] - d)
+    a = 2 * w * vi
+    gr = -np.ones(n)
+    np.add.at(gr, iu[0], a)
+    np.add.at(gr, iu[1], a)
+    gc = np.zeros((n, 2))
+    np.add.at(gc, iu[0], -(a / d)[:, None] * diff)
+    np.add.at(gc, iu[1], (a / d)[:, None] * diff)
+    B = np.maximum(0, r[:, None] - c)
+    T = np.maximum(0, c + r[:, None] - 1)
+    f = -r.sum() + w * ((vi @ vi) + (B ** 2).sum() + (T ** 2).sum())
+    gr += 2 * w * (B.sum(1) + T.sum(1))
+    gc += 2 * w * (T - B)
+    return f, np.concatenate([gc.ravel(), gr])
+
+
+def _solve_once(n, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+=======
+    x = x0
+    for w in np.geomspace(10, 1e6, 5):
+        x = minimize(_penalty, x, args=(n, iu, w), jac=True, method="L-BFGS-B",
+                     bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n, options={"maxiter": 300}).x
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+>>>>>>> REPLACE
+-----

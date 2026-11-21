@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 90:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    rng2 = np.random.default_rng(99)
+    while time.time() - t0 < 145:
+        try:
+            c0, r0 = best
+            c0 = c0.copy()
+            if rng2.random() < 0.5:
+                c0 = c0[:, ::-1].copy()
+            if rng2.random() < 0.5:
+                c0[:, 0] = 1 - c0[:, 0]
+            if rng2.random() < 0.5:
+                c0[:, 1] = 1 - c0[:, 1]
+            k = int(rng2.integers(3, 6))
+            w = 1.0 / (r0 + 0.02)
+            w = w / w.sum()
+            rem = rng2.choice(_N, k, replace=False, p=w)
+            keep = np.setdiff1d(np.arange(_N), rem)
+            ck = c0[keep]
+            rk = r0[keep]
+            newc = []
+            for _ in range(k):
+                pts = ck if not newc else np.vstack([ck, np.array(newc)])
+                rr = rk if not newc else np.concatenate([rk, np.zeros(len(newc))])
+                d = np.sqrt(((_GRID[:, None, :] - pts[None, :, :]) ** 2).sum(2)) - rr[None, :]
+                wl = np.minimum(np.minimum(_GRID[:, 0], _GRID[:, 1]),
+                                np.minimum(1 - _GRID[:, 0], 1 - _GRID[:, 1]))
+                cl = np.minimum(d.min(1), wl)
+                cl = cl + rng2.uniform(0, 0.01, len(cl))
+                newc.append(_GRID[cl.argmax()])
+            c1 = np.vstack([ck, np.array(newc)])
+            c1 = np.clip(c1 + rng2.normal(0, 0.003, c1.shape), 0.01, 0.99)
+            r1 = _lp_radii(c1)
+            c2 = np.clip(_polish(c1, r1), 0, 1)
+            r2 = _lp_radii(c2)
+            if r2.sum() > best_s:
+                best_s, best = r2.sum(), (c2, r2)
+        except Exception:
+            continue
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

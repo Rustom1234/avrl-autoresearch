@@ -1,0 +1,67 @@
+<<<<<<< SEARCH
+        c, r = finalize(v)
+        s = r.sum()
+        if s > bs:
+            bs = s; best = (c, r); bv = v.copy()
+=======
+        c, r = finalize(v)
+        s = r.sum()
+        if all(abs(s - p[0]) > 1e-6 for p in pool):
+            pool.append((s, v.copy()))
+            pool.sort(key=lambda p: -p[0])
+            pool = pool[:10]
+        if s > bs:
+            bs = s; best = (c, r); bv = v.copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best = None
+    bs = -1
+=======
+    best = None
+    pool = []
+    bs = -1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    cur_v = bv.copy(); cur_s = bs
+=======
+    while time.time() - t0 < 90 and len(pool) >= 2:
+        ia, ib = rng.choice(len(pool), 2, replace=False)
+        A = pool[ia][1]; B = pool[ib][1]
+        ang = rng.uniform(0, 2 * np.pi); off = rng.uniform(-0.25, 0.25)
+        cs, sn = np.cos(ang), np.sin(ang)
+        sa = (A[:n] - 0.5) * cs + (A[n:2 * n] - 0.5) * sn > off
+        sb = (B[:n] - 0.5) * cs + (B[n:2 * n] - 0.5) * sn <= off
+        px = np.concatenate([A[:n][sa], B[:n][sb]])
+        py = np.concatenate([A[n:2 * n][sa], B[n:2 * n][sb]])
+        pr = np.concatenate([A[2 * n:][sa], B[2 * n:][sb]])
+        if len(px) > n:
+            keep = np.sort(np.argsort(-pr)[:n])
+            px, py, pr = px[keep], py[keep], pr[keep]
+        while len(px) < n:
+            q = rng.uniform(0.03, 0.97, (300, 2))
+            if len(px):
+                dd = np.sqrt((q[:, None, 0] - px[None]) ** 2 + (q[:, None, 1] - py[None]) ** 2).min(1)
+            else:
+                dd = np.ones(300)
+            k = np.argmax(dd)
+            px = np.append(px, q[k, 0]); py = np.append(py, q[k, 1]); pr = np.append(pr, 0.03)
+        w = np.concatenate([px, py, np.minimum(pr, 0.5) * 0.9])
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), w, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                           method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                           options={"maxiter": 150, "ftol": 1e-12})
+            w = res.x
+        except Exception:
+            continue
+        c, r = finalize(w)
+        s = r.sum()
+        if s > pool[-1][0] and all(abs(s - p[0]) > 1e-6 for p in pool):
+            pool[-1] = (s, w.copy())
+            pool.sort(key=lambda p: -p[0])
+        if s > bs:
+            bs = s; best = (c, r); bv = w.copy()
+
+    cur_v = bv.copy(); cur_s = bs
+>>>>>>> REPLACE
+-----

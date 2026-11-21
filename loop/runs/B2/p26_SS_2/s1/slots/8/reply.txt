@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and time.process_time() - t0 > 0.3 * time_limit:
+            c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    total = TIME_FRACTION * time_limit
+    for k in range(3):   # three independent episodes on equal time slices
+        ep0, ep_end, ep_best = t0 + k * total / 3, t0 + (k + 1) * total / 3, None
+        while time.process_time() < ep_end:   # random restarts, then perturbation of the episode best
+            if ep_best is not None and time.process_time() - ep0 > 0.3 * total / 3:
+                c, r = _solve_once(n, rng, ep_best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+            else:
+                c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if ep_best is None or r.sum() > ep_best[1].sum():
+                ep_best = (c, r)
+        if best is None or ep_best[1].sum() > best[1].sum():
+            best = ep_best
+    return best
+>>>>>>> REPLACE
+-----

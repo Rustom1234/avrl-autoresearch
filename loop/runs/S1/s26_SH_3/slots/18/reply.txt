@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+=======
+    def barrier_z(c0):
+        z = np.concatenate([c0[:, 0], c0[:, 1], 0.5 * lp_radii(c0)])
+
+        def fb(zz, t):
+            s = cons(zz)
+            if np.any(s <= 1e-14):
+                return 1e12, np.zeros_like(zz)
+            f = -np.sum(zz[2 * n:]) - t * np.sum(np.log(s))
+            g = obj_grad - t * (cjac(zz).T @ (1.0 / s))
+            return f, g
+
+        t = 1e-2
+        while t >= 1e-9 * 0.99:
+            res = minimize(fb, z, args=(t,), jac=True, method="L-BFGS-B",
+                           bounds=[(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n,
+                           options={"maxiter": 200})
+            if np.all(np.isfinite(res.x)) and np.all(cons(res.x) > 0):
+                z = res.x
+            t /= 10.0
+        return z
+
+    rng = np.random.default_rng(12345)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+=======
+        z = barrier_z(c0)
+>>>>>>> REPLACE
+-----

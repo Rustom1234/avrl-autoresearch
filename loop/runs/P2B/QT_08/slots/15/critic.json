@@ -1,0 +1,14 @@
+{
+ "ok": false,
+ "issues": [
+  "(1) The only change is TOTAL_BATCH_SIZE, from 2**19 to 2**23. The diff doesn't change the val_bpb measurement, the data, the seed lines or the evaluation call, so there is no direct tampering.",
+  "(3) The comment doesn't match the code. 2**23 is 8,388,608 tokens per optimizer step (about 8.4M), not the '~24M' the comment says.",
+  "(2) The new batch size is 16 times larger. With DEVICE_BATCH_SIZE 64, gradient accumulation goes from about 4 to about 64 micro-steps per optimizer step, if the sequence length is 2048 (I'm assuming it; the diff doesn't show it). In 300 s that leaves only a handful of optimizer steps, so warmup, warmdown and the LR schedule hardly run.",
+  "(2) Likely budget circumvention. In the standard train.py loop, the first optimizer steps (step <= 10) don't count toward the 300 s training budget. I've only seen the diff, so this is inferred from the standard loop. With 16 times larger steps, those uncounted steps become many minutes of untimed training. That is extra compute outside the fixed budget, so the result can't be compared with the incumbent. It also fits the harness rejection, since startup plus training would go over 450 s.",
+  "The harness rejected the run for integrity flags and gave no val_bpb numbers. z can't be recomputed."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

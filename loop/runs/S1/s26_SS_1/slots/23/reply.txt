@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 110:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    c, r = best
+    try:
+        from scipy.optimize import differential_evolution
+        idx = np.argsort(r)[:6]
+        lo = np.clip(c[idx] - 0.15, 0, 1).reshape(-1)
+        hi = np.clip(c[idx] + 0.15, 0, 1).reshape(-1)
+
+        def f(z):
+            cc = c.copy()
+            cc[idx] = z.reshape(6, 2)
+            return -_lp_radii(cc).sum()
+
+        de = differential_evolution(f, list(zip(lo, hi)), popsize=10, maxiter=30,
+                                    seed=1, polish=False, tol=0,
+                                    init="latinhypercube")
+        cc = c.copy()
+        cc[idx] = de.x.reshape(6, 2)
+        c3 = np.clip(_polish(cc, _lp_radii(cc)), 0, 1)
+        r3 = _lp_radii(c3)
+        if r3.sum() > r.sum():
+            c, r = c3, r3
+    except Exception:
+        pass
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

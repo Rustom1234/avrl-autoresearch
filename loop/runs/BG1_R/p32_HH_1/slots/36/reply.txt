@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+    return np.clip(res.x - 1e-12, 0, np.maximum(wall, 0))
+=======
+    return np.clip(res.x - 1e-8, 0, np.maximum(wall, 0))   # margin covers HiGHS feasibility tolerance (~1e-9)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _valid(c, r):
+    """Exact check, as the harness does: inside the square and no overlap at all."""
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    over = r[:, None] + r[None] - d
+    np.fill_diagonal(over, -1)
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    return over.max() <= 0 and (r >= 0).all() and (r <= wall).all()
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if lp is not None and lp.sum() > r.sum():
+            r = lp
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+        if lp is not None and lp.sum() > r.sum() and _valid(c, lp):
+            r = lp
+        if _valid(c, r) and (best is None or r.sum() > best[1].sum()):
+            best = (c, r)
+>>>>>>> REPLACE
+-----

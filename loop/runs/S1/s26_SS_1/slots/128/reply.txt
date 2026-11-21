@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+=======
+    while time.time() - t0 < 90:
+        try:
+            u = rng.random()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    while time.time() - t0 < 150:
+        try:
+            bc = best[0]
+            nb = int(rng.integers(3, 6))
+            cuts = np.sort(rng.uniform(0, 1, nb - 1))
+            band = np.searchsorted(cuts, bc[:, 1])
+            k = int(rng.integers(nb))
+            c = bc.copy()
+            sh = rng.uniform(0.02, 0.1) * (1 if rng.random() < 0.5 else -1)
+            c[band == k, 0] += sh
+            if rng.random() < 0.5:
+                c = c[:, ::-1].copy()
+            c = np.clip(c, 0.02, 0.98)
+            c2 = _polish(c, _lp_radii(c))
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        if r2.sum() > best_s:
+            best_s, best = r2.sum(), (c2, r2)
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

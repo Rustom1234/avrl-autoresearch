@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/LA_04/cand/s02_0.py",
+ "inc_scores": {
+  "11": 1.8142434517909096
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace random order with a target-similarity filter: (1) drop exact/near duplicates (hash of whitespace-normalised lowercase first 500 chars) and obvious junk (docs under 200 chars, non-ASCII-letter ratio high, or fraction of words found in the target_sample vocabulary < 0.5, which catches scrambled-letter text and code). (2) Train a classifier: TfidfVectorizer(analyzer='char_wb', ngram_range=(2,4), max_features=200k, sublinear_tf=True) on the first 3000 chars of each text, LogisticRegression(C=10) with positives = the 200 target_sample docs (class_weight='balanced') and negatives = a seeded random 4000 pool docs; score all surviving pool docs. Also add a hard bonus for WikiText formatting cues (doc starts with '= ' title line, contains ' @-@ ', ' , ', ' . ' tokenised punctuation). (3) Rank by score, take the top docs until their gpt2 token count (estimate via tiktoken on docs, or len(chars)/4 if time is tight) reaches about 1.0*T; if the clearly-target-like set (score above the midpoint between the mean target-sample cross-validated score and the mean pool score) holds less than T tokens, still fill up to T with the next best-scoring docs rather than cycling unless the target-like set is at least 0.5*T, in which case return only that set (it will be cycled). (4) Shuffle the selected indices with the CURATE_SEED-seeded RNG and return.",
+   "outcome": "dev 1.9206 against 1.9408 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Add a word-order / damage quality filter and stronger dedup on top of the current pipeline, and never fill with junk. (1) Word-order filter: build a set of lowercase word bigrams (whitespace tokens) from the 200 target_sample docs. For each surviving pool doc, compute over its first 6000 chars (a) bigram coverage = fraction of its adjacent word pairs found in the target bigram set, (b) function-word plausibility = fraction of occurrences of ' the ' followed by a token that is not in {',', '.', 'the', 'of', 'and'}, and (c) fraction of whitespace tokens that are in the target vocabulary. Calibrate thresholds from the target itself: split target_sample in two halves, build bigrams from one half, measure (a)/(b)/(c) on the other half, scale (a) for the half-size set by also measuring pool docs with the same half set, and drop pool docs falling below the 2nd-percentile target value minus a small margin on any of the three. This catches word-shuffled, sentence-spliced and character-corrupted Wikipedia-like docs that the char_wb classifier cannot see. (2) Stronger dedup: besides the first-500-char hash, also dedup on the normalised title line ('= Title =') and on hashes of three 200-char windows taken at 25%, 50% and 75% of the doc; when duplicates collide keep the one with the highest bigram coverage, then the longest. (3) Selection: rank the remaining docs by classifier score + format bonus as now, but only fill up to T with docs above the target-like threshold; if that clean set holds at least 0.3*T tokens return just it (cycled) rather than padding with lower-scoring off-domain docs; otherwise pad as before. Keep the seeded shuffle.",
+   "outcome": "dev 1.8142 against 1.9206 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 3,
+   "idea": "Implement a 'compression-diversity' weight: for each document, calculate the compression ratio (ratio of raw char count to the number of unique words) and use it as a tie-breaker in deduplication and a small multiplier in the final ranking score.",
+   "outcome": "FAILED to run (ile \"/homes/rdubash/active-audit/curation/runs/R1/LA_04/cand/s03_1.py\", line 276, in _score base_score = pool_scores[i] ~~~~~~~~~~~^^^ IndexError: index 2854 is out of bounds for axis 0 with size 2850)"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the LogisticRegression classifier with a simpler but faster and often more robust 'TF-IDF Cosine Similarity' approach. Compute the average TF-IDF vector of the 200 target_sample docs (using char_wb, n-gram (2,4), 200k features) and score pool docs by their cosine similarity to this centroid. This avoids the training overhead and potential overfitting/instability of a small LogisticRegression model on a noisy, small target set.",
+   "outcome": "FAILED to run (SyntaxError: invalid syntax (line 1))"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the LogisticRegression classifier with a TF-IDF Cosine Similarity model: compute the centroid vector of the target_sample using TfidfVectorizer(analyzer='char_wb', ngram_range=(2,4), max_features=200000, sublinear_tf=True), then score all pool docs by their cosine similarity to this centroid.",
+   "outcome": "FAILED to run (SyntaxError: invalid syntax (line 1))"
+  },
+  {
+   "slot": 6,
+   "idea": "Introduce a 'high-density' weighting to the final score: for each document, calculate the 'information density' as the ratio of (total characters - whitespace characters) / (number of unique words). Multiply the final classifier score by this density, capped at a factor of 2.0. This prioritizes docs with rich, varied vocabulary over repetitive or highly redundant texts that the classifier might still rank highly.",
+   "outcome": "FAILED to run (SyntaxError: invalid syntax (line 1))"
+  },
+  {
+   "slot": 7,
+   "idea": "Replace the LogisticRegression classifier with a TF-IDF Cosine Similarity approach. Specifically: 1) Compute the TF-IDF vectors for all docs in target_sample and the kept pool docs using TfidfVectorizer(analyzer='char_wb', ngram_range=(2,4), max_features=200000, sublinear_tf=True). 2) Compute the centroid vector of the target_sample. 3) Score every doc in the kept set by its cosine similarity to this centroid. 4) Multiply this similarity by the '_format_bonus' and use it as the primary score for ranking. 5) Maintain the current selection logic (thresholding based on the mean target score vs. mean pool score) to determine the clean set.",
+   "outcome": "dev 1.9403 against 1.8142 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Introduce a 'document-length-normalization' to the ranking score: instead of just ranking by classifier score, multiply the score by a weight based on the doc length (logarithmically scaled), favoring longer documents that provide more training signal per document selection, while using the current 'clean set' logic to ensure these longer docs remain high-quality.",
+   "outcome": "FAILED to run (SyntaxError: invalid syntax (line 1))"
+  },
+  {
+   "slot": 9,
+   "idea": "Refine the 'clean set' logic by using a larger, more stable threshold for 'n_like' (e.g., 0.5 * T) and introducing a 'density-aware' tie-breaker in the final ranking: if a document's char-wb similarity is high but its ratio of unique words to total length is significantly lower than the target sample's average, reduce its weight by 20%.",
+   "outcome": "FAILED to run (audit/curation/runs/R1/LA_04/cand/s09_1.py\", line 206, in <lambda> order = sorted(keep, key=lambda i: (-cov.get(i, 0.0), -len(docs[i]), i)) ^^^^^^^ AttributeError: 'list' object has no attribute 'get')"
+  },
+  {
+   "slot": 10,
+   "idea": "Refine the quality filter to include a 'semantic cohesion' check by measuring the standard deviation of bigram coverages across different parts of the document (head vs middle vs tail), dropping docs where the coverage fluctuates significantly, which often indicates spliced or concatenated unrelated documents.",
+   "outcome": "dev 1.8260 against 1.8142 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Refine the selection logic to prioritize a 'Diversity-Aware' subset of the target-like documents. Instead of just taking the top-scoring N docs, use a greedy approach to select the largest possible set of documents that satisfies the 0.3*T target-like token requirement while maximizing the coverage of unique content (measured by the intersection of their word sets), before falling back to the next best documents to fill the remaining T tokens.",
+   "outcome": "FAILED to run (SyntaxError: invalid syntax (line 1))"
+  },
+  {
+   "slot": 12,
+   "idea": "Replace the LogisticRegression classifier with a TF-IDF Cosine Similarity model. Specifically: 1) Compute the TF-IDF vectors for all docs in target_sample and the kept pool docs using TfidfVectorizer(analyzer='char_wb', ngram_range=(2,4), max_features=200000, sublinear_tf=True). 2) Compute the centroid vector of the target_sample. 3) Score every doc in the kept set by its cosine similarity to this centroid. 4) Multiply this similarity by the '_format_bonus' and use it as the primary score for ranking. 5) Maintain the current selection logic (thresholding based on the mean target score vs. mean pool score) to determine the clean set.",
+   "outcome": "FAILED to run (udit/curation/runs/R1/LA_04/cand/s12_1.py\", line 277, in _score pool_sims = Xp.dot(centroid.T).toarray().flatten() ^^^^^^^^^^^^^^^^^^^^^^^^^^ AttributeError: 'matrix' object has no attribute 'toarray')"
+  }
+ ],
+ "usd": 1.0977767000000005,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.3413162,
+   "dev": 1.920646030394595,
+   "inc": 1.9407609107462493,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.7683567783724787,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.6850836,
+   "dev": 1.8142434517909096,
+   "inc": 1.920646030394595,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.412256944032443,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.007375950000000131,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 1,
+   "fails": 1,
+   "n_accept": 2,
+   "gain_sd": 17.412256944032443,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.007425900000000096,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 2,
+   "fails": 2,
+   "n_accept": 2,
+   "gain_sd": 17.412256944032443,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.007435499999999928,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 3,
+   "fails": 3,
+   "n_accept": 2,
+   "gain_sd": 17.412256944032443,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.007442249999999984,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 4,
+   "fails": 4,
+   "n_accept": 2,
+   "gain_sd": 17.412256944032443,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.004481849999999898,
+   "dev": 1.9403056185556935,
+   "inc": 1.8142434517909096,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.412256944032443,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.007501800000000003,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 6,
+   "fails": 1,
+   "n_accept": 2,
+   "gain_sd": 17.412256944032443,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.007470450000000239,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 7,
+   "fails": 2,
+   "n_accept": 2,
+   "gain_sd": 17.412256944032443,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.007105050000000057,
+   "dev": 1.8259651461653519,
+   "inc": 1.8142434517909096,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.412256944032443,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.007562100000000127,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 9,
+   "fails": 1,
+   "n_accept": 2,
+   "gain_sd": 17.412256944032443,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.007576049999999945,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9407609107462493,
+ "inc_slot": 2
+}

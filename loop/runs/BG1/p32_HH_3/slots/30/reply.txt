@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+    x0 = start if start is not None else np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _sym_centres(n, rng):
+    m = int(np.ceil(np.sqrt(n)))
+    g = (np.arange(m) + 0.5) / m
+    p = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    p = p[np.argsort(((p - 0.5) ** 2).sum(1), kind="stable")[:n]]
+    return np.clip(p + 0.01 * rng.standard_normal(p.shape), 0, 1)
+
+
+def _solve_once(n, rng, start=None, sym=False):
+    if start is not None:
+        x0 = start
+    else:
+        c0 = _sym_centres(n, rng) if sym else rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+        x0 = np.concatenate([c0.ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    sym = rng.random() < 0.5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng)
+=======
+        c, r = _solve_once(n, rng, sym=sym)
+>>>>>>> REPLACE
+-----

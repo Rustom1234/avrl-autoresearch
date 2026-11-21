@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+    p = model.predict_proba(featurize(test_smiles))[:, 1]
+    from rdkit import DataStructs
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=N_BITS)
+    fps = [gen.GetFingerprint(Chem.MolFromSmiles(s)) for s in test_smiles]
+    out = p.copy()
+    for i in range(len(fps)):
+        sims = np.array(DataStructs.BulkTanimotoSimilarity(fps[i], fps))
+        sims[i] = 0.0
+        idx = np.argsort(-sims)[:5]
+        idx = idx[sims[idx] > 0.4]
+        if len(idx) > 0:
+            out[i] = 0.5 * p[i] + 0.5 * p[idx].mean()
+    return np.clip(out, 0.0, 1.0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+=======
+    for _ in range(100):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        if np.max(over) <= 0:
+            break
+        idx = np.argmax(over)
+        i, j = np.unravel_index(idx, over.shape)
+        if i == j: continue
+        overlap = over[i, j]
+        if overlap > 0:
+            s = (d[i, j] - (r[i] + r[j] - overlap)) / (r[i] + r[j])
+            if s > 1.0: s = 1.0
+            r[i] *= s
+            r[j] *= s
+>>>>>>> REPLACE
+-----

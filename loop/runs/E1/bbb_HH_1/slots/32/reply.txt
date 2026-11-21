@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from scipy.stats import rankdata
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+N_BAGS = 5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    scaffolds = [MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles]
+    groups = {}
+    for i, sc in enumerate(scaffolds):
+        groups.setdefault(sc, []).append(i)
+    keys = list(groups.keys())
+    gb_score = np.zeros(len(test_smiles))
+    for b in range(N_BAGS):
+        rng = np.random.default_rng(seed + b)
+        picks = rng.choice(len(keys), size=len(keys), replace=True)
+        idx = np.concatenate([groups[keys[k]] for k in picks])
+        gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                            random_state=seed + b, n_jobs=8, verbose=-1)
+        gb.fit(X_train[idx], y[idx])
+        gb_score += scaled_rank(gb.predict_proba(X_test)[:, 1])
+    gb_score /= N_BAGS
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb_score))
+>>>>>>> REPLACE
+-----

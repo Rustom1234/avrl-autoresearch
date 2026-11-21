@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+TEMPS = [1e-3, 3e-3, 1e-2, 3e-2]
+SIGMAS = [0.01, 0.03, 0.08, 0.2]
+SWAP_EVERY = 20
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None:   # first start: a random restart
+            c, r = _solve_once(n, rng)
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    states = []
+    for _ in TEMPS:   # one chain per temperature, each starts from a random restart
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        states.append((c, r))
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    rounds = 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        for k, (T, sig) in enumerate(zip(TEMPS, SIGMAS)):
+            c, r = states[k]
+            c2 = np.clip(c + rng.normal(0, sig, c.shape), 0, 1)
+            c2, r2 = _solve_once(n, rng, np.concatenate([c2.ravel(), r]))
+            c2 = np.clip(c2, 0, 1)
+            r2 = _repair(c2, r2)
+            d = r2.sum() - r.sum()
+            if d >= 0 or rng.uniform() < np.exp(d / T):   # Metropolis on sum(r)
+                states[k] = (c2, r2)
+            if r2.sum() > best[1].sum():
+                best = (c2, r2)
+        rounds += 1
+        if rounds % SWAP_EVERY == 0:   # replica exchange between adjacent temperatures
+            for k in range(len(states) - 1):
+                f_a, f_b = states[k][1].sum(), states[k + 1][1].sum()
+                a = (1 / TEMPS[k] - 1 / TEMPS[k + 1]) * (f_b - f_a)
+                if rng.uniform() < np.exp(min(a, 0.0)):
+                    states[k], states[k + 1] = states[k + 1], states[k]
+    return best
+>>>>>>> REPLACE
+-----

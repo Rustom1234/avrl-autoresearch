@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _grow(c, r, steps=300, delta=1e-3):
+    """Force-based expansion: grow every radius by delta, then push overlapping centres apart."""
+    n = len(r)
+    c, r = c.copy(), r.copy()
+    for _ in range(steps):
+        r = np.maximum(r, 0) + delta
+        r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+        diff = c[:, None] - c[None]
+        d = np.sqrt((diff ** 2).sum(-1)) + np.eye(n)
+        over = np.clip(r[:, None] + r[None] - d, 0, None) * (1 - np.eye(n))
+        c = np.clip(c + 0.5 * ((over / d)[:, :, None] * diff).sum(1), 0, 1)
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+=======
+        c = np.clip(c, 0, 1)
+        c, r = _grow(c, r)
+        r = _repair(c, r)
+>>>>>>> REPLACE
+-----

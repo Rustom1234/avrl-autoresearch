@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def hex_jitter(rng):
+    """Hex-like row lattice for 26 points, with Gaussian jitter (sigma 0.02)."""
+    rows = [5, 5, 5, 5, 6] if rng.random() < 0.5 else [6, 5, 6, 5, 4]
+    pts = []
+    R = len(rows)
+    for k, cnt in enumerate(rows):
+        y = (k + 0.5) / R
+        shift = 0.5 if k % 2 else 0.0
+        for j in range(cnt):
+            x = (j + 0.5 + shift) / (cnt + 0.5)
+            pts.append([x, y])
+    pts = np.array(pts)
+    pts = pts + rng.normal(0.0, 0.02, pts.shape)
+    return np.clip(pts, 0.05, 0.95)
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+        z = np.concatenate([c0[:, 0], c0[:, 1], np.full(n, 0.05)])
+=======
+        c0 = hex_jitter(rng)
+        z = np.concatenate([c0[:, 0], c0[:, 1], compute_max_radii(c0)])
+>>>>>>> REPLACE
+-----

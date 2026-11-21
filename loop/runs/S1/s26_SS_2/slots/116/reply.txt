@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+        k = rng.integers(1, 5)
+        idx = rng.choice(n, k, replace=False)
+        w[idx] += rng.normal(0, 0.05, k)
+        w[n + idx] += rng.normal(0, 0.05, k)
+=======
+        done = False
+        if rng.random() < 0.25:
+            try:
+                cv = cons(cur_v)
+                act = np.where(cv < 1e-7)[0]
+                Ja = cjac(cur_v)[act]
+                g0 = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+                lam = np.linalg.lstsq(Ja.T, g0, rcond=None)[0]
+                cand = [(lam[q], act[q]) for q in range(len(act)) if act[q] < m and lam[q] > 1e-9]
+                if cand:
+                    _, a = min(cand)
+                    i0, j0 = I[a], J[a]
+                    dv = np.array([cur_v[i0] - cur_v[j0], cur_v[n + i0] - cur_v[n + j0]])
+                    dv = dv / (np.linalg.norm(dv) + 1e-12)
+                    w[i0] += 0.02 * dv[0]; w[n + i0] += 0.02 * dv[1]
+                    w[j0] -= 0.02 * dv[0]; w[n + j0] -= 0.02 * dv[1]
+                    done = True
+            except Exception:
+                pass
+        if not done:
+            k = rng.integers(1, 5)
+            idx = rng.choice(n, k, replace=False)
+            w[idx] += rng.normal(0, 0.05, k)
+            w[n + idx] += rng.normal(0, 0.05, k)
+>>>>>>> REPLACE
+-----

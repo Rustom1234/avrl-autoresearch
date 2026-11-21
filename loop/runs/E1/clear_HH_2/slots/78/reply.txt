@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors
+=======
+from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors, rdPartialCharges
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def desc_features(smiles):
+    rows = []
+    for s in smiles:
+        if s not in _DESC_CACHE:
+            m = Chem.MolFromSmiles(s)
+            _DESC_CACHE[s] = [f(m) for _, f in Descriptors.descList]
+=======
+def charge_features(m):
+    rdPartialCharges.ComputeGasteigerCharges(m)
+    q = np.array([a.GetDoubleProp('_GasteigerCharge') for a in m.GetAtoms()], dtype=np.float64)
+    sym = np.array([a.GetSymbol() for a in m.GetAtoms()])
+    out = []
+    for sel in (np.ones(len(q), dtype=bool), np.isin(sym, ['N', 'O'])):
+        v = q[sel]
+        if v.size == 0:
+            out += [0.0, 0.0, 0.0, 0.0]
+        else:
+            out += [v.min(), v.max(), np.abs(v).sum(), v[v > 0].sum()]
+    out.append(float((np.abs(q) > 0.3).sum()))
+    return out
+
+
+def desc_features(smiles):
+    rows = []
+    for s in smiles:
+        if s not in _DESC_CACHE:
+            m = Chem.MolFromSmiles(s)
+            _DESC_CACHE[s] = [f(m) for _, f in Descriptors.descList] + charge_features(m)
+>>>>>>> REPLACE
+-----

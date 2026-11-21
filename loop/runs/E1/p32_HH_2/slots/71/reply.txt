@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+=======
+        pool = sorted((_relax(_start(rng, n), n) for _ in range(POOL)), key=lambda t: t[0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _spiral(rng, n):
+    """Vogel sunflower start: golden-angle spiral with random rotation and scale, jittered, fitted into [0.1, 0.9]^2."""
+    k = np.arange(n)
+    s = rng.uniform(0.6, 1.0)
+    phi = rng.uniform(0, 2 * np.pi)
+    rad = s * np.sqrt(k + 0.5)
+    ang = k * 2.39996322972865 + phi
+    pts = np.stack([rad * np.cos(ang), rad * np.sin(ang)], 1)
+    pts = pts / np.abs(pts).max() * 0.4
+    return np.clip(0.5 + pts + rng.normal(0, 0.02, (n, 2)), 0, 1).ravel()
+
+
+def _start(rng, n):
+    """Random uniform start, or a spiral start with probability 0.25."""
+    if rng.random() < 0.25:
+        return _spiral(rng, n)
+    return rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n)
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+-----

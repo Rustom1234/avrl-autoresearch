@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    knn = knn_predict(train_smiles, y, test_smiles)
+=======
+    from sklearn.preprocessing import QuantileTransformer
+    from scipy.spatial.distance import cdist
+    top = np.argsort(model.feature_importances_)[::-1][:15]
+    qt = QuantileTransformer(n_quantiles=min(200, len(y)), output_distribution='normal',
+                             random_state=seed).fit(Xtr[:, top])
+    Ztr = qt.transform(Xtr[:, top])
+    Zte = qt.transform(Xte[:, top])
+    D = cdist(Zte, Ztr)
+    idx = np.argsort(D, axis=1)[:, :7]
+    dd = np.take_along_axis(D, idx, axis=1)
+    w = 1.0 / np.maximum(dd, 1e-6)
+    knn_d = (w * y[idx]).sum(1) / w.sum(1)
+    knn = 0.5 * knn_predict(train_smiles, y, test_smiles) + 0.5 * knn_d
+>>>>>>> REPLACE
+-----

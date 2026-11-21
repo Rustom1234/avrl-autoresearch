@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _poisson_start(rng, n=26):
+    """Dart-throwing blue-noise centres; spacing shrinks by 0.01 until n points accepted."""
+    d = 0.22
+    while d > 0.05:
+        pts = []
+        tries = 0
+        while len(pts) < n and tries < 4000:
+            tries += 1
+            p = rng.uniform(0.05, 0.95, size=2)
+            if all((p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 >= d * d for q in pts):
+                pts.append(p)
+        if len(pts) == n:
+            return np.array(pts)
+        d -= 0.01
+    return rng.uniform(0.05, 0.95, size=(n, 2))
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+        r0 = np.full(n, 0.07)
+        r0[:k] = 0.12
+=======
+        if start % 3 == 0:
+            c0 = _poisson_start(rng, n)
+            r0 = np.full(n, 0.07)
+            r0[rng.permutation(n)[:6]] = 0.12
+        else:
+            c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+            r0 = np.full(n, 0.07)
+            r0[:k] = 0.12
+>>>>>>> REPLACE
+-----

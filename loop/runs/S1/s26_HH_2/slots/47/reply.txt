@@ -1,0 +1,81 @@
+<<<<<<< SEARCH
+    rng = np.random.RandomState(7)
+    T = 0.002
+    while _time.time() - T0 < 215:
+        c = cur_c.copy()
+        if rng.rand() < 0.5:
+            i0 = rng.randint(_N)
+            g = np.linspace(0.02, 0.98, 49)
+            G = np.array(np.meshgrid(g, g)).reshape(2, -1).T
+            others = np.delete(c, i0, axis=0)
+            dd = np.sqrt(((G[:, None, :] - others[None, :, :]) ** 2).sum(-1)).min(axis=1)
+            wall = np.minimum(np.minimum(G[:, 0], G[:, 1]), np.minimum(1 - G[:, 0], 1 - G[:, 1]))
+            hole = np.minimum(dd, 2.0 * wall)
+            c[i0] = G[np.argmax(hole)] + rng.normal(0.0, 0.003, size=2)
+            c = np.clip(c, 0.0, 1.0)
+        else:
+            k = rng.randint(2, 5)
+            idx = rng.choice(_N, k, replace=False)
+            scale = rng.uniform(0.05, 0.15)
+            c[idx] += rng.normal(0.0, scale, size=(k, 2))
+            c = np.clip(c, 0.0, 1.0)
+        c, rr = _relax(c, np.full(_N, 0.005), 200, 0.05, 0.01, 0.5, cur_c)
+        c, rr = _slsqp_refine(c, rr, 80)
+        rv, s = _score(c)
+        if rv is None:
+            continue
+        if s > cur_s or rng.rand() < np.exp((s - cur_s) / T):
+            cur_c, cur_r, cur_s = c.copy(), rv.copy(), s
+            if s > best_s:
+                best_c, best_r, best_s = c.copy(), rv.copy(), s
+    return best_c, _make_valid(best_c, best_r)
+=======
+    rng = np.random.RandomState(7)
+    lam_n, mu_n = 12, 4
+    w = np.log(mu_n + 0.5) - np.log(np.arange(1, mu_n + 1))
+    w = w / w.sum()
+    n2 = 2 * _N
+    mean = best_c.ravel().copy()
+    sigma = 0.02
+    C = np.eye(n2)
+    while _time.time() - T0 < 215:
+        try:
+            L = np.linalg.cholesky(C + 1e-10 * np.eye(n2))
+        except np.linalg.LinAlgError:
+            C = np.eye(n2)
+            L = np.eye(n2)
+        Y = rng.normal(size=(lam_n, n2)) @ L.T
+        prev_best = best_s
+        scored = []
+        for k in range(lam_n):
+            if _time.time() - T0 >= 215:
+                break
+            c = np.clip(mean + sigma * Y[k], 0.0, 1.0).reshape(_N, 2)
+            c, rr = _relax(c, np.full(_N, 0.005), 100, 0.05, 0.01, 0.5, best_c)
+            c, rr = _slsqp_refine(c, rr, 40)
+            rv, s = _score(c)
+            if rv is None:
+                continue
+            scored.append((s, c.copy()))
+            if s > best_s:
+                best_c, best_r, best_s = c.copy(), rv.copy(), s
+        if len(scored) < mu_n:
+            continue
+        scored.sort(key=lambda t: -t[0])
+        top = [t[1].ravel() for t in scored[:mu_n]]
+        new_mean = sum(w[k] * top[k] for k in range(mu_n))
+        D = np.array([(top[k] - mean) / sigma for k in range(mu_n)])
+        S = (w[:, None] * D).T @ D
+        C = 0.8 * C + 0.2 * (S + 0.1 * np.eye(n2))
+        mean = new_mean
+        if best_s > prev_best:
+            sigma = min(sigma * 1.25, 0.1)
+        else:
+            sigma = max(sigma * 0.9, 1e-4)
+        if sigma <= 1e-4:
+            mean = best_c.ravel().copy()
+            sigma = 0.02
+            C = np.eye(n2)
+    return best_c, _make_valid(best_c, best_r)
+>>>>>>> REPLACE
+-----

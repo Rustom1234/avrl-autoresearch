@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+PROGRESS_TOL = 1e-4
+
+
+class _SlowProgress(Exception):
+    pass
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    xs = []
+
+    def progress(v):
+        xs.append(v)
+        if len(xs) > 20 and xs[-1][2 * n:].sum() - xs[-11][2 * n:].sum() < PROGRESS_TOL:
+            raise _SlowProgress
+
+    try:
+        x = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                     options={"maxiter": MAX_ITER}, callback=progress).x
+    except _SlowProgress:
+        x = xs[-1]
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def count_features(smiles):
+=======
+def prior_base(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Crippen.MolLogP(m), rdMolDescriptors.CalcTPSA(m), Descriptors.MolWt(m),
+                     rdMolDescriptors.CalcNumHBD(m), rdMolDescriptors.CalcNumHBA(m),
+                     rdMolDescriptors.CalcNumAromaticRings(m), rdMolDescriptors.CalcFractionCSP3(m),
+                     rdMolDescriptors.CalcNumRotatableBonds(m)])
+    return np.array(rows, dtype=np.float64)
+
+
+def prior_expand(Z):
+    lp, tp, mw = Z[:, 0], Z[:, 1], Z[:, 2]
+    return np.column_stack([Z, Z ** 2, lp * tp, lp * mw])
+
+
+def count_features(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    A_tr = np.column_stack([np.ones(len(train_smiles)), physchem(train_smiles)])
+    A_te = np.column_stack([np.ones(len(test_smiles)), physchem(test_smiles)])
+    beta = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+    base_tr, base_te = A_tr @ beta, A_te @ beta
+=======
+    B_tr, B_te = prior_base(train_smiles), prior_base(test_smiles)
+    mu, sd = B_tr.mean(0), B_tr.std(0) + 1e-9
+    Z_tr, Z_te = prior_expand((B_tr - mu) / sd), prior_expand((B_te - mu) / sd)
+    ridge = Ridge(alpha=10.0).fit(Z_tr, y)
+    base_tr, base_te = ridge.predict(Z_tr), ridge.predict(Z_te)
+>>>>>>> REPLACE
+-----

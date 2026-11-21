@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+=======
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        # Learnable per-layer, per-head query scale (QK temperature)
+        self.qk_scales = nn.Parameter(torch.ones(config.n_layer, config.n_head))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+=======
+    def forward(self, x, ve, cos_sin, window_size, qk_scale):
+        B, T, C = x.size()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        cos, sin = cos_sin
+        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
+        q, k = norm(q), norm(k)
+=======
+        cos, sin = cos_sin
+        q, k = apply_rotary_emb(q, cos, sin), apply_rotary_emb(k, cos, sin)
+        q, k = norm(q), norm(k)
+        q = q * qk_scale.to(q.dtype).view(1, 1, -1, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+=======
+    def forward(self, x, ve, cos_sin, window_size, qk_scale):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size, qk_scale)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.x0_lambdas.fill_(0.1)
+=======
+        self.x0_lambdas.fill_(0.1)
+        self.qk_scales.fill_(1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+            x = block(x, ve, cos_sin, self.window_sizes[i], self.qk_scales[i])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0_params = [self.x0_lambdas]
+        assert len(list(self.parameters())) == (len(matrix_params) + len(embedding_params) +
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+        x0_params = [self.x0_lambdas]
+        qk_params = [self.qk_scales]
+        assert len(list(self.parameters())) == (len(matrix_params) + len(embedding_params) +
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params) + len(qk_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+=======
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=qk_params, lr=scalar_lr, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+>>>>>>> REPLACE
+-----

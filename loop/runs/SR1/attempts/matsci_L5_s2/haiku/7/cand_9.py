@@ -1,0 +1,2 @@
+def equation(eps, T, params):
+    return params[0]*np.log(1+params[1]*eps)

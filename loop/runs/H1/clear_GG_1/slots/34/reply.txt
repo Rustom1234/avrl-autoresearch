@@ -1,0 +1,97 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    return np.array(features, dtype=np.float32)
+=========
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    raw_features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        raw_features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    
+    raw_features = np.array(raw_features, dtype=np.float32)
+    # Variance filtering for the first N_BITS (the fingerprint)
+    fp_data = raw_features[:, :N_BITS]
+    mask = (np.mean(fp_data, axis=0) > 0.01) & (np.mean(fp_data, axis=0) < 0.99)
+    
+    # Combine filtered bits with the remaining descriptors (Atoms, TPSA)
+    # We use the mask to select bits from the first N_BITS columns
+    filtered_fp = fp_data[:, mask]
+    descriptors = raw_features[:, N_BITS:]
+    return np.hstack([filtered_fp, descriptors])
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    return np.array(features, dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    raw_features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        raw_features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    
+    raw_features = np.array(raw_features, dtype=np.float32)
+    fp_data = raw_features[:, :N_BITS]
+    # Filter bits that are constant or near-constant
+    means = np.mean(fp_data, axis=0)
+    mask = (means > 0.01) & (means < 0.99)
+    
+    filtered_fp = fp_data[:, mask]
+    descriptors = raw_features[:, N_BITS:]
+    return np.hstack([filtered_fp, descriptors])
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    return np.array(features, dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    raw_features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Append NumAtoms and TPSA
+        raw_features.append(np.append(fp, [mol.GetNumAtoms(), Descriptors.TPSA(mol)]))
+    
+    raw_features = np.array(raw_features, dtype=np.float32)
+    fp_part = raw_features[:, :N_BITS]
+    
+    # Filter bits that are constant or near-constant
+    means = np.mean(fp_part, axis=0)
+    mask = (means > 0.01) & (means < 0.99)
+    
+    filtered_fp = fp_part[:, mask]
+    descriptors = raw_features[:, N_BITS:]
+    return np.hstack([filtered_fp, descriptors])
+-----

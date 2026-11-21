@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles)[:, :nd], y)
+    et = model.predict(featurize(test_smiles)[:, :nd])
+=======
+    from sklearn.linear_model import Ridge
+    from sklearn.preprocessing import StandardScaler
+    names = [n for n, _ in Descriptors.descList]
+    pi = [names.index(n) for n in ['MolLogP', 'TPSA', 'NumHDonors', 'NumHAcceptors', 'MolWt', 'NumRotatableBonds']]
+    Xtr = featurize(train_smiles)[:, :nd]
+    Xte = featurize(test_smiles)[:, :nd]
+    sc = StandardScaler().fit(Xtr[:, pi])
+    ridge = Ridge(alpha=10.0).fit(sc.transform(Xtr[:, pi]), y)
+    rtr = ridge.predict(sc.transform(Xtr[:, pi]))
+    rte = ridge.predict(sc.transform(Xte[:, pi]))
+    model.fit(Xtr, y - rtr)
+    et = model.predict(Xte) + rte
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+def _solve_once(n, rng, init=None, jitter=0.03):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, jitter, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+    total = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < total:   # exploration first, then guided refinement with shrinking jitter
+        frac = (time.process_time() - t0) / total
+        guided = best is not None and frac > 0.4
+        s = min(max((frac - 0.4) / 0.6, 0), 1)
+        c, r = _solve_once(n, rng, best[0] if guided else None, 0.05 - 0.045 * s)
+>>>>>>> REPLACE
+-----

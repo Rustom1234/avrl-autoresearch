@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+step = 0
+
+while True:
+=======
+step = 0
+ema_params = None
+live_params = list(model.parameters())
+
+while True:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+    if progress >= 0.1:
+        with torch.no_grad():
+            if ema_params is None:
+                ema_params = [p.detach().clone() for p in live_params]
+            else:
+                torch._foreach_lerp_(ema_params, [p.detach() for p in live_params], 1 - 0.999)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+total_tokens = step * TOTAL_BATCH_SIZE
+=======
+total_tokens = step * TOTAL_BATCH_SIZE
+
+# Swap EMA weights in for evaluation
+if ema_params is not None:
+    with torch.no_grad():
+        torch._foreach_copy_(live_params, ema_params)
+>>>>>>> REPLACE
+-----

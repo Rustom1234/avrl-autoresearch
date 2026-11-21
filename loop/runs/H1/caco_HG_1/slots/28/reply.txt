@@ -1,0 +1,139 @@
+<<<<<<< SEARCH
+# Settings
+N_BITS = 2048
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Filter out None
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    fps = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # Basic Physicochemical Descriptors
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    # Handle NaNs by replacing with 0
+    desc_array = np.nan_to_num(desc_array)
+    
+    # Concatenate Atom-Pair + Descriptors
+    return np.hstack([fps, desc_array])
+=======
+# Settings
+RADII = [1, 2, 3]
+BITS_PER_RADIUS = 1024
+
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    all_fps = []
+    for r in RADII:
+        gen = rdFingerprintGenerator.GetMorganCountFingerprintGenerator(radius=r, fpSize=BITS_PER_RADIUS)
+        all_fps.append(np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32))
+    
+    fps_array = np.hstack(all_fps)
+    
+    # Basic Physicochemical Descriptors
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    desc_array = np.nan_to_num(desc_array)
+    
+    # Concatenate Multiscale Morgan + Descriptors
+    return np.hstack([fps_array, desc_array])
+-----
+<<<<<<< SEARCH
+# Settings
+N_BITS = 2048
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Filter out None
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    fps = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # Basic Physicochemical Descriptors
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    # Handle NaNs by replacing with 0
+    desc_array = np.nan_to_num(desc_array)
+    
+    # Concatenate Atom-Pair + Descriptors
+    return np.hstack([fps, desc_array])
+=======
+# Settings
+RADII = [1, 2, 3]
+BITS_PER_RADIUS = 1024
+
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Filter out None
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    all_fps = []
+    for r in RADII:
+        gen = rdFingerprintGenerator.GetMorganCountFingerprintGenerator(radius=r, fpSize=BITS_PER_RADIUS)
+        all_fps.append(np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32))
+    
+    fps_array = np.hstack(all_fps)
+    
+    # Basic Physicochemical Descriptors
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    # Handle NaNs by replacing with 0
+    desc_array = np.nan_to_num(desc_array)
+    
+    # Concatenate Multiscale Morgan + Descriptors
+    return np.hstack([fps_array, desc_array])
+>>>>>>> REPLACE
+-----

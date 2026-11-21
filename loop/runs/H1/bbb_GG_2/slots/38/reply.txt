@@ -1,0 +1,117 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(
+        n_estimators=N_TREES,
+        learning_rate=LEARNING_RATE,
+        num_leaves=NUM_LEAVES,
+        n_jobs=-1,
+        random_state=seed,
+        importance_type='gain'
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    seeds = [seed, seed + 1, seed + 2, seed + 3, seed + 4]
+    probs = []
+    train_feats = featurize(train_smiles)
+    test_feats = featurize(test_smiles)
+    train_y_arr = np.asarray(train_y, dtype=np.int64)
+    
+    for s in seeds:
+        model = lgb.LGBMClassifier(
+            n_estimators=N_TREES,
+            learning_rate=LEARNING_RATE,
+            num_leaves=NUM_LEAVES,
+            n_jobs=-1,
+            random_state=s,
+            importance_type='gain'
+        )
+        model.fit(train_feats, train_y_arr)
+        probs.append(model.predict_proba(test_feats)[:, 1])
+        
+    return np.mean(probs, axis=0)
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(
+        n_estimators=N_TREES,
+        learning_rate=LEARNING_RATE,
+        num_leaves=NUM_LEAVES,
+        n_jobs=-1,
+        random_state=seed,
+        importance_type='gain'
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+WER
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(
+        n_estimators=N_TREES,
+        learning_rate=LEARNING_RATE,
+        num_leaves=NUM_LEAVES,
+        n_jobs=-1,
+        random_state=seed,
+        importance_type='gain'
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_feats = featurize(train_smiles)
+    test_feats = featurize(test_smiles)
+    train_y_arr = np.asarray(train_y, dtype=np.int64)
+    
+    probs = []
+    seeds = [seed, seed + 1, seed + 2, seed + 3, seed + 4]
+    for s in seeds:
+        model = lgb.LGBMClassifier(
+            n_estimators=N_TREES,
+            learning_rate=LEARNING_RATE,
+            num_leaves=NUM_LEAVES,
+            n_jobs=-1,
+            random_state=s,
+            importance_type='gain'
+        )
+        model.fit(train_feats, train_y_arr)
+        probs.append(model.predict_proba(test_feats)[:, 1])
+        
+    return np.mean(probs, axis=0)
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(
+        n_estimators=N_TREES,
+        learning_rate=LEARNING_RATE,
+        num_leaves=NUM_LEAVES,
+        n_jobs=-1,
+        random_state=seed,
+        importance_type='gain'
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_feats = featurize(train_smiles)
+    test_feats = featurize(test_smiles)
+    train_y_arr = np.asarray(train_y, dtype=np.int64)
+    
+    probs = []
+    # Use a set of distinct seeds derived from the input seed
+    seeds = [seed, seed + 1, seed + 2, seed + 3, seed + 4]
+    for s in seeds:
+        model = lgb.LGBMClassifier(
+            n_estimators=N_TREES,
+            learning_rate=LEARNING_RATE,
+            num_leaves=NUM_LEAVES,
+            n_jobs=-1,
+            random_state=s,
+            importance_type='gain'
+        )
+        model.fit(train_feats, train_y_arr)
+        probs.append(model.predict_proba(test_feats)[:, 1])
+        
+    return np.mean(probs, axis=0)
+-----

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def _optimise(n, x0):
+=======
+def _optimise(n, x0, pins=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    cs = [{"type": "ineq", "fun": cons}]
+    if pins is not None:
+        cs.append({"type": "eq", "fun": lambda v: v[:2 * pins] - x0[:2 * pins]})
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints=cs,
+                   options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    return _optimise(n, x0)
+=======
+def _solve_once(n, rng):
+    r0 = INIT_RADIUS
+    corners = np.array([[r0, r0], [1 - r0, r0], [r0, 1 - r0], [1 - r0, 1 - r0]])
+    k = min(4, n)
+    c = np.vstack([corners[:k], rng.uniform(INIT_LOW, 1 - INIT_LOW, (n - k, 2))])
+    c, r = _optimise(n, np.concatenate([c.ravel(), np.full(n, INIT_RADIUS)]), pins=k)
+    return _optimise(n, np.concatenate([c.ravel(), r]))
+>>>>>>> REPLACE
+-----

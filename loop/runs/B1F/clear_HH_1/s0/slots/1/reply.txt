@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata, spearmanr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gamma = 1.0 / D.shape[1]
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    base = 1.0 / D.shape[1]
+    sq_tr = np.maximum((D ** 2).sum(axis=1)[:, None] + (D ** 2).sum(axis=1)[None, :] - 2.0 * D @ D.T, 0.0)
+    sq_te = np.maximum((Dt ** 2).sum(axis=1)[:, None] + (D ** 2).sum(axis=1)[None, :] - 2.0 * Dt @ D.T, 0.0)
+    T_tr = tanimoto(X, X)
+    T_te = tanimoto(Xt, X)
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    yn = (y - mu) / sd
+
+    def kernel(T, S, g, w):
+        return (1.0 - w) * T + w * np.exp(-g * base * S)
+
+    best = None
+    for g in (0.1, 0.3, 1.0, 3.0):
+        for w in (0.3, 0.5, 0.7):
+            K = kernel(T_tr, sq_tr, g, w)
+            oof = np.zeros(len(yn))
+            for tr, va in KFold(n_splits=4, shuffle=True, random_state=seed).split(K):
+                m = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+                m.fit(K[np.ix_(tr, tr)], yn[tr])
+                oof[va] = m.predict(K[np.ix_(va, tr)])
+            score = spearmanr(oof, yn).correlation
+            if best is None or score > best[0]:
+                best = (score, g, w)
+    _, g, w = best
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(kernel(T_tr, sq_tr, g, w), yn)
+    return model.predict(kernel(T_te, sq_te, g, w))
+>>>>>>> REPLACE
+-----

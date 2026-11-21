@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+from sklearn.model_selection import KFold
+=======
+from sklearn.model_selection import KFold
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(X):
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed)
+=======
+    scaf = np.array([MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(s)) for s in train_smiles])
+    uniq = sorted(set(scaf))
+    np.random.RandomState(seed).shuffle(uniq)
+    fold_of = {g: i % 5 for i, g in enumerate(uniq)}
+    fold_ids = np.array([fold_of[g] for g in scaf])
+    oof = np.zeros((len(y), 3))
+    for k in range(5):
+        tr = np.where(fold_ids != k)[0]
+        va = np.where(fold_ids == k)[0]
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed)
+>>>>>>> REPLACE
+-----

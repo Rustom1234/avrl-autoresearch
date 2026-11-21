@@ -1,0 +1,91 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def obj(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        penalty = 0
+        # Overlap penalty
+        d_mat = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        r_sum = r[:, None] + r[None]
+        over = np.maximum(0, r_sum - d_mat)
+        np.fill_diagonal(over, 0)
+        penalty += np.sum(over) * 100
+        # Boundary penalty
+        p_bound = np.sum(np.maximum(0, r - c[:, 0])) + 
+                   np.sum(np.maximum(0, r - c[:, 1])) + 
+                   np.sum(np.maximum(0, c[:, 0] + r - 1)) + 
+                   np.sum(np.maximum(0, c[:, 1] + r - 1))
+        penalty += p_bound * 100
+        return -r.sum() + penalty
+
+    res = minimize(obj, x0, method="SLSQP", options={"maxiter": MAX_ITER, "ftol": 1e-7})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+tung>Replace the hard constraints of SLSQP with a penalty method in the objective function: $f(v) = -\text{sum}(r) + \text{penalty}$. The penalty is proportional to the sum of overlaps. Use L-BFGS-B or SLSQP to minimize this. This allows the optimizer to 'pass through' obstacles to find better global minima.
+thought explorer
+    def obj(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d_mat = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        r_sum = r[:, None] + r[None]
+        over = np.maximum(0, r_sum - d_mat)
+        np.fill_diagonal(over, 0)
+        penalty = np.sum(over) * 100
+        
+        # Boundary penalties
+        p_min = np.sum(np.maximum(0, r - c[:, 0]))
+        p_max_x = np.sum(np.maximum(0, c[:, 0] + r - 1))
+        p_min_y = np.sum(np.maximum(0, r - c[:, 1]))
+        p_max_y = np.sum(np.maximum(0, c[:, 1] + r - 1))
+        
+        penalty += (p_min + p_max_x + p_min_y + p_max_y) * 100
+        return -r.sum() + penalty
+
+    res = minimize(obj, x0, method="SLSQP", options={"maxiter": MAX_ITER, "ftol":     return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def obj(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Overlap penalty
+        dist = np.sqrt(((c[:, None] - c[None])**2).sum(axis=2))
+        r_sum = r[:, None] + r[None]
+        overlap = np.maximum(0, r_sum - dist)
+        np.fill_diagonal(overlap, 0)
+        penalty = np.sum(overlap) * 500
+        
+        # Boundary penalty
+        b_penalty = np.sum(np.maximum(0, r - c[:, 0])) + 
+                     np.sum(np.maximum(0, r - c[:, 1])) + 
+                     np.sum(np.maximum(0, c[:, 0] + r - 1)) + 
+                     np.sum(np.maximum(0, c[:, 1] + r - 1))
+        penalty += b_penalty * 500
+        
+        return -np.sum(r) + penalty
+
+    res = minimize(obj, x0, method="SLSQP", options={"maxiter": MAX_ITER, "ftol": 1e-6})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

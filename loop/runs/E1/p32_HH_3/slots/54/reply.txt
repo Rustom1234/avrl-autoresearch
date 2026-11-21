@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import least_squares, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _anneal(n, x0, stages=4, max_nfev=30):
+    """Penalty least-squares stages with the radius weight annealed from 0.01 to 1 (trust-region reflective)."""
+    iu = np.triu_indices(n, 1)
+
+    def resid(v, w):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1) + 1e-12)
+        ov = np.maximum(r[iu[0]] + r[iu[1]] - d, 0)
+        wall = np.concatenate([np.minimum(c[:, 0] - r, 0), np.minimum(c[:, 1] - r, 0),
+                               np.minimum(1 - c[:, 0] - r, 0), np.minimum(1 - c[:, 1] - r, 0)])
+        return np.concatenate([ov, wall, np.sqrt(w) * (1 - r)])
+
+    v = np.asarray(x0, dtype=float)
+    for w in np.geomspace(0.01, 1, stages):
+        v = least_squares(resid, v, args=(w,), method="trf", max_nfev=max_nfev).x
+    return v
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+=======
+    x0 = _anneal(n, x0)
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+>>>>>>> REPLACE
+-----

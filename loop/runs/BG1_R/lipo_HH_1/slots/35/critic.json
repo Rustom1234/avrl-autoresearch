@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The diff only changes LightGBM hyperparameters: it switches to DART boosting (drop_rate=0.1, skip_drop=0.5, max_drop=50) and lowers N_ROUNDS from 600 to 400. It adds no file access, no pasted answers and no use of test labels.",
+  "No bug that would make the result meaningless. One caveat: LightGBM's DART does not work properly with early stopping or best_iteration. If the unchanged code around this diff uses early stopping or a validation split to pick the number of rounds, the DART runs would be using the wrong round count. That would make the comparison less fair, but it would not make the result invalid.",
+  "Two things change at once: the boosting type and the number of rounds. Even if the candidate had won, the gain could not be credited to either change alone.",
+  "The numbers support the reject. The candidate scores 0.4914 against the incumbent's 0.4895, which is 0.0019 worse. Recomputing with noise sd 0.0042 and one run each gives z = (0.4895 - 0.4914) / (0.0042 * sqrt(2)) \u2248 -0.32. The harness's -0.315 differs only by rounding of the 4-decimal values.",
+  "The candidate is only 0.3 sd worse, so this is not evidence that DART is worse. It is just no evidence of improvement. DART also costs more compute per round."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -0.32
+ }
+}

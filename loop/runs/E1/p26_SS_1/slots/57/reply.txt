@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    if start is not None:
+        c0, r0 = start[0].copy(), start[1].copy()
+=======
+    if start is None and rng.random() < 0.5:
+        p = rng.random((300, 2))
+        w = np.minimum(p, 1 - p).min(1)
+        cs, rs = [], []
+        for _ in range(n):
+            k = int(np.argmax(w))
+            cs.append(p[k])
+            rs.append(max(w[k], 0.01))
+            w = np.minimum(w, np.sqrt(((p - p[k]) ** 2).sum(1)) - rs[-1])
+            w[k] = -1.0
+        c0 = np.clip(np.array(cs) + rng.normal(0, 0.01, (n, 2)), 0.01, 0.99)
+        x0 = np.concatenate([c0.ravel(), np.array(rs)])
+    if start is not None:
+        c0, r0 = start[0].copy(), start[1].copy()
+>>>>>>> REPLACE
+-----

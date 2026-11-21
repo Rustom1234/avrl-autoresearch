@@ -1,0 +1,236 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                           max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                           objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+from sklearn.linear_model import Ridge
+from sklearn.preprocessing import StandardScaler
+
+def get_descriptors(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Use a fixed set of RDKit 2D descriptors to ensure consistent shape
+    desc_list = [
+        Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+        Descriptors.NumHAcceptors(m), Descriptors.TPSA(m), Descriptors.HeavyAtomCount(m), 
+        Descriptors.NumRotatableBonds(m), Descriptors.FractionCSP3(m), 
+        Descriptors.NumAtoms(m), Descriptors.NumHsd(m)
+    ] 
+    # Filter out None/NaN, ensure 2D descriptors exist for all
+    data = []
+    for m in mols:
+        if m is None: 
+            data.append([0.0] * 10)
+            continue
+        row = []
+        for d in desc_list: 
+            val = d(m) if d(m) is not None else 0.0
+            row.append(val if np.isfinite(val) else 0.0)
+        data.append(row)
+    return np.array(data, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = get_descriptors(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    # Clip to 1st and 99th percentiles to handle outliers
+    P1 = np.percentile(X_train, 1, axis=0)
+    P99 = np.percentile(X_train, 99, axis=0)
+    X_train = np.clip(X_train, P1, P99)
+    
+    # Standardize
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    
+    model = Ridge(alpha=10.0)
+    model.fit(X_train_scaled, y_train)
+    
+    X_test = get_descriptors(test_smiles)
+    X_test = np.clip(X_test, P1, P99)
+    X_test_scaled = scaler.transform(X_test)
+    
+    return model.predict(X_test_scaled)
+-----
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                           max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                           objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+from sklearn.linear_model import Ridge
+from sklearn.preprocessing import StandardScaler
+
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    desc_list = [
+        Descriptors.MolWt, Descriptors.MolLogP, Descriptors.NumHDonors, 
+        Descriptors.NumHAcceptors, Descriptors.TPSA, Descriptors.HeavyAtomCount, 
+        Descriptors.NumRotatableBonds, Descriptors.FractionCSP3, 
+        Descriptors.NumAtoms, Descriptors.NumHsd
+    ]
+    data = []
+    for m in mols:
+        if m is None: 
+            data.append([0.0] * len(desc_list))
+            continue
+        row = []
+        for d in desc_list:
+            val = d(m)
+            row.append(val if np.isfinite(val) else 0.0)
+        data.append(row)
+    return np.array(data, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    # Percentile clipping
+    p1 = np.percentile(X_train, 1, axis=0)
+    p99 = np.percentile(X_train, 99, axis=0)
+    X_train_clipped = np.clip(X_train, p1, p99)
+    
+    # Standardization
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train_clipped)
+    
+    model = Ridge(alpha=10.0)
+    model.fit(X_train_scaled, y_train)
+    
+    X_test = featurize(test_smiles)
+    X_test_clipped = np.clip(X_test, p1, p99)
+    X_test_scaled = scaler.transform(X_test_clipped)
+    
+    return model.predict(X_test_scaled)
+-----
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 700
+LEARNING_RATE = 0.03
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                           max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                           objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=
+from sklearn.linear_model import Ridge
+from sklearn.preprocessing import StandardScaler
+
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    desc_list = [
+        Descriptors.MolWt, Descriptors.MolLogP, Descriptors.NumHDonors, 
+        Descriptors.NumHAcceptors, Descriptors.TPSA, Descriptors.HeavyAtomCount, 
+        Descriptors.NumRotatableBonds, Descriptors.FractionCSP3, 
+        Descriptors.NumAtoms, Descriptors.NumHsd
+    ]
+    data = []
+    for m in mols:
+        if m is None:
+            data.append([0.0] * len(desc_list))
+            continue
+        row = []
+        for d in desc_list:
+            val = d(m)
+            row.append(val if np.isfinite(val) else 0.0)
+        data.append(row)
+    return np.array(data, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    # Percentile clipping
+    p1 = np.percentile(X_train, 1, axis=0)
+    p99 = np.percentile(X_train, 99, axis=0)
+    X_train_clipped = np.clip(X_train, p1, p99)
+    
+    # Standardization
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train_clipped)
+    
+    model = Ridge(alpha=10.0)
+    model.fit(X_train_scaled, y_train)
+    
+    X_test = featurize(test_smiles)
+    X_test_clipped = np.clip(X_test, p1, p99)
+    X_test_scaled = scaler.transform(X_test_clipped)
+    
+    return model.predict(X_test_scaled)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _lp(c, r0):
+    """Fix centres, maximise sum r exactly by LP; fall back to r0 if the result is not valid or not better."""
+    n = len(r0)
+    i, j = np.triu_indices(n, 1)
+    d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    A = np.zeros((len(i), n))
+    A[np.arange(len(i)), i] = 1
+    A[np.arange(len(i)), j] = 1
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=[(0, max(w, 0)) for w in wall], method="highs")
+    if res.status != 0:
+        return r0
+    r = np.maximum(res.x - 1e-12, 0)
+    if (r[i] + r[j] - d).max() > 1e-11 or (r - wall).max() > 1e-11 or r.sum() <= r0.sum():
+        return r0
+    return r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+=======
+        r = _lp(c, _repair(c, r))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+-----

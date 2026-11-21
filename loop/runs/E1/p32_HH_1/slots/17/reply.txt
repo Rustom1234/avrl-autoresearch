@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+=======
+def _solve_once(n, rng, init=None, r0=INIT_RADIUS):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+=======
+    x0 = np.concatenate([base.ravel(), np.full(n, r0)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _common_rho_centers(n, rng):
+    """Bisection on a common radius rho: SLSQP maximises the minimum clearance s; keep the largest rho with s >= 0."""
+    iu = np.triu_indices(n, 1)
+    lo, hi, c, best_c = 0.05, 0.2, rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)), None
+    for _ in range(6):
+        rho = 0.5 * (lo + hi)
+
+        def cons(v):
+            p, s = v[:2 * n].reshape(n, 2), v[-1]
+            d = np.sqrt(((p[iu[0]] - p[iu[1]]) ** 2).sum(1)) - 2 * rho
+            return np.concatenate([d - s, p[:, 0] - rho - s, p[:, 1] - rho - s,
+                                   1 - p[:, 0] - rho - s, 1 - p[:, 1] - rho - s])
+
+        x0 = np.concatenate([c.ravel(), [0.0]])
+        x0[-1] = cons(x0).min()
+        res = minimize(lambda v: -v[-1], x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})
+        c = np.clip(res.x[:2 * n].reshape(n, 2), 0, 1)
+        if res.x[-1] >= 0:
+            lo, best_c = rho, c
+        else:
+            hi = rho
+    return (c if best_c is None else best_c), lo
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        if not guided and rng.random() < 0.5:
+            c0, rho = _common_rho_centers(n, rng)
+            c, r = _solve_once(n, rng, c0, rho)
+        else:
+            c, r = _solve_once(n, rng, best[0] if guided else None)
+>>>>>>> REPLACE
+-----

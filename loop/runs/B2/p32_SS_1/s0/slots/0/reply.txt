@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+    pool = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+        c, r = _solve_once(n, rng, x0)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((c, r))
+        pool.sort(key=lambda p: -p[1].sum())
+        pool = pool[:5]
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    pool, stall = [], 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+        c, r = _solve_once(n, rng, x0)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((c, r))
+        pool.sort(key=lambda p: -p[1].sum())
+        pool = pool[:5]
+        prev = -1.0 if best is None else best[1].sum()
+        if r.sum() > prev:
+            best = (c, r)
+        stall = 0 if r.sum() > prev + 1e-7 else stall + 1
+        if stall >= 12 and time.process_time() - t0 < 0.75 * TIME_FRACTION * time_limit:
+            pool, stall = [], 0   # stagnation: rebuild the pool from fresh starts
+    return best
+>>>>>>> REPLACE
+-----

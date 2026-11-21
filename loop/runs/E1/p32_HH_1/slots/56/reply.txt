@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v, cap=None):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        out = [d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r]
+        if cap is not None:
+            out.append(cap - r)
+        return np.concatenate(out)
+
+    def solve_with(x, cap=None):
+        return minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                        constraints={"type": "ineq", "fun": lambda v: cons(v, cap)},
+                        options={"maxiter": MAX_ITER}).x
+
+    x = x0
+    if init is None:  # radius-cap homotopy: capped solves at increasing caps, then a free solve
+        for cap in (0.12, 0.2, 0.5):
+            x = solve_with(x, cap)
+    x = solve_with(x)
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

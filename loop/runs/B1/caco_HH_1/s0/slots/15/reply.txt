@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    # kNN residual correction on binary Morgan bits (Tanimoto), using physchem-ridge residuals
+    Btr = (Xtr[:, :N_BITS] > 0).astype(np.float32)
+    Bte = (Xte[:, :N_BITS] > 0).astype(np.float32)
+    inter = Bte @ Btr.T
+    sim = inter / np.maximum(Bte.sum(1)[:, None] + Btr.sum(1)[None, :] - inter, 1e-9)
+    resid = y - base_tr
+    corr = np.zeros(len(test_smiles))
+    for i in range(len(test_smiles)):
+        idx = np.argsort(-sim[i])[:5]
+        idx = idx[sim[i, idx] > 0.5]
+        if len(idx):
+            w = sim[i, idx]
+            corr[i] = np.sum(w * resid[idx]) / np.sum(w)
+    return base_te + stage2.predict(Xte) + 0.3 * corr
+>>>>>>> REPLACE
+-----

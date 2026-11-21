@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors, Descriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def phys_one(smi):
+=======
+ACID_PAT = Chem.MolFromSmarts('[CX3](=O)[OX2H1,OX1-]')
+BASIC_N_PAT = Chem.MolFromSmarts('[NX3;!$(NC=O);!$(Na);!$(NS(=O)=O)]')
+AMIDE_PAT = Chem.MolFromSmarts('C(=O)N')
+
+
+def phys_one(smi):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return vals + [arom]
+=======
+    charge = sum(a.GetFormalCharge() for a in m.GetAtoms())
+    extra = [charge,
+             len(m.GetSubstructMatches(ACID_PAT)),
+             len(m.GetSubstructMatches(BASIC_N_PAT)),
+             len(m.GetSubstructMatches(AMIDE_PAT)),
+             rdMolDescriptors.CalcFractionCSP3(m),
+             rdMolDescriptors.CalcNumRings(m)]
+    return vals + [arom] + extra
+>>>>>>> REPLACE
+-----

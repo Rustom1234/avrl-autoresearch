@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def _two_phase():
+    """Phase 1: coarse global search keeping top five. Phase 2: stiff relax + SLSQP + LP per candidate."""
+    rng = np.random.RandomState(2024)
+    t0 = _time.time()
+    pool = []
+=======
+def _ring_start():
+    """Mixed-size concentric-ring start: one large centre circle, smaller circles on outer rings."""
+    counts = [1, 6, 9, 10]
+    ring_rad = [0.0, 0.2, 0.36, 0.46]
+    init_r = [0.12, 0.10, 0.08, 0.06]
+    pts = []
+    rad = []
+    for k, m in enumerate(counts):
+        if k == 0:
+            pts.append([0.5, 0.5])
+            rad.append(init_r[0])
+            continue
+        for j in range(m):
+            a = 2 * np.pi * j / m + 0.3 * k
+            pts.append([0.5 + ring_rad[k] * np.cos(a), 0.5 + ring_rad[k] * np.sin(a)])
+            rad.append(init_r[k])
+    c = np.clip(np.array(pts), 0.02, 0.98)
+    return c, np.array(rad, dtype=float)
+
+
+def _two_phase():
+    """Phase 1: coarse global search keeping top five. Phase 2: stiff relax + SLSQP + LP per candidate."""
+    rng = np.random.RandomState(2024)
+    t0 = _time.time()
+    pool = []
+    c_ring, r_ring = _ring_start()
+    c_ring, _r = _relax(c_ring, r_ring, 400, 0.3, 0.05)
+    rv_ring, s_ring = _score(c_ring)
+    if rv_ring is not None:
+        pool.append((s_ring, c_ring.copy()))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,86 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(
+=======
+def _members(Xtr, y, Xte, seed):
+    model = RandomForestRegressor(
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    nd = len(Descriptors._descList)
+=======
+    nd = len(Descriptors._descList)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return rankdata(p_rf) + rankdata(p_gbm) + rankdata(p_svr)
+=======
+    return np.column_stack([p_rf, p_gbm, p_svr])
+
+
+def _ranks(P):
+    return np.column_stack([rankdata(c) / len(c) for c in P.T])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        oof[va] = _members(Xtr[tr], y[tr], Xtr[va], seed)
+    lr = LinearRegression(positive=True).fit(_ranks(oof), rankdata(y) / len(y))
+    w = lr.coef_
+    if w.sum() <= 0:
+        w = np.ones(3)
+    return _ranks(_members(Xtr, y, Xte, seed)) @ w
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.model_selection import KFold
+from sklearn.linear_model import LinearRegression
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def _members(Xtr, y, Xte, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    nd = len(Descriptors._descList)
+=======
+    nd = len(Descriptors._descList)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return rankdata(p_rf) + rankdata(p_gbm) + rankdata(p_svr)
+=======
+    return np.column_stack([p_rf, p_gbm, p_svr])
+
+
+def _ranks(P):
+    return np.column_stack([rankdata(c) / len(c) for c in P.T])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        oof[va] = _members(Xtr[tr], y[tr], Xtr[va], seed)
+    lr = LinearRegression(positive=True).fit(_ranks(oof), rankdata(y) / len(y))
+    w = lr.coef_
+    if w.sum() <= 0:
+        w = np.ones(3)
+    return _ranks(_members(Xtr, y, Xte, seed)) @ w
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.model_selection import KFold
+from sklearn.linear_model import LinearRegression
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+=======
+PENALTY_MUS = (10, 100, 1000, 1e4)
+
+
+def _presolve(n, iu, v):
+    """L-BFGS-B on the penalised objective -sum(r) + mu * overlap^2 terms, for increasing mu."""
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+
+    def fg(v, mu):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        g = np.maximum(r[iu[0]] + r[iu[1]] - d, 0)
+        b1 = np.maximum(r - c[:, 0], 0)
+        b2 = np.maximum(r - c[:, 1], 0)
+        b3 = np.maximum(c[:, 0] + r - 1, 0)
+        b4 = np.maximum(c[:, 1] + r - 1, 0)
+        f = -r.sum() + mu * ((g ** 2).sum() + (b1 ** 2 + b2 ** 2 + b3 ** 2 + b4 ** 2).sum())
+        gc = np.zeros((n, 2))
+        gc[:, 0] = 2 * (b3 - b1)
+        gc[:, 1] = 2 * (b4 - b2)
+        gr = 2 * (b1 + b2 + b3 + b4)
+        pair = 2 * g[:, None] * diff / d[:, None]
+        np.add.at(gc, iu[0], -pair)
+        np.add.at(gc, iu[1], pair)
+        gr += np.bincount(iu[0], 2 * g, n) + np.bincount(iu[1], 2 * g, n)
+        return f, np.concatenate([mu * gc.ravel(), -1 + mu * gr])
+
+    v = np.asarray(v, dtype=float)
+    for mu in PENALTY_MUS:
+        v = minimize(fg, v, args=(mu,), jac=True, method="L-BFGS-B", bounds=bounds, options={"maxiter": 200}).x
+    return v
+
+
+def _solve_once(n, rng, init=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+=======
+    iu = np.triu_indices(n, 1)
+    x0 = _presolve(n, iu, x0)
+>>>>>>> REPLACE
+-----

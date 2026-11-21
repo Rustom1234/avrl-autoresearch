@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, init=None, init_r=None, iters=MAX_ITER):
+    if init is None:
+        base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    elif init_r is None:
+        base = np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    else:
+        base = init
+    r0 = np.full(n, INIT_RADIUS) if init_r is None else init_r
+    x0 = np.concatenate([base.ravel(), r0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": iters})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+def _lloyd(c, r, grid, iters=5):
+    """Weighted (power-diagram) Lloyd iterations on the centres, radii fixed."""
+    n = len(r)
+    c = c.copy()
+    for _ in range(iters):
+        lab = np.argmin(((grid[:, None, :] - c[None]) ** 2).sum(-1) - r[None] ** 2, axis=1)
+        cnt = np.bincount(lab, minlength=n)
+        sx = np.bincount(lab, weights=grid[:, 0], minlength=n)
+        sy = np.bincount(lab, weights=grid[:, 1], minlength=n)
+        ok = cnt > 0
+        c[ok] = np.column_stack([sx[ok] / cnt[ok], sy[ok] / cnt[ok]])
+    return c
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    g = (np.arange(200) + 0.5) / 200
+    X, Y = np.meshgrid(g, g)
+    grid = np.column_stack([X.ravel(), Y.ravel()])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        cands = [(c, r)]
+        c2 = np.clip(_lloyd(c, r, grid), 0, 1)
+        r2 = _repair(c2, r)
+        c3, r3 = _solve_once(n, rng, c2, r2, 100)
+        c3 = np.clip(c3, 0, 1)
+        cands.append((c3, _repair(c3, r3)))
+        for cc, rr in cands:
+            if best is None or rr.sum() > best[1].sum():
+                best = (cc, rr)
+>>>>>>> REPLACE
+-----

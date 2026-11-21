@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+    return meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES)) + cte
+=======
+    names = [n for n, _ in Descriptors.descList]
+    cols = [N_BITS + names.index(n) for n in ["MolLogP", "TPSA", "MolWt", "NumHDonors", "NumHAcceptors",
+                                              "NumRotatableBonds", "FractionCSP3", "RingCount"]]
+    cols += list(range(N_BITS + len(names), N_BITS + len(names) + len(GROUPS)))
+    res = y - meta.predict(oof)
+    rg = lgb.LGBMRegressor(n_estimators=100, max_depth=3, num_leaves=8, learning_rate=0.05, min_child_samples=20,
+                           subsample=0.8, subsample_freq=1, n_jobs=8, random_state=seed,
+                           verbose=-1).fit(Xtr[:, cols], res)
+    return meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES)) + 0.5 * rg.predict(Xte[:, cols]) + cte
+>>>>>>> REPLACE
+-----

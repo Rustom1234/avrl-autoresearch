@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    for _ in range(5):
+        x0, y0, r0 = _seed(rng)
+=======
+def _lattice_seed(rng):
+    # sheared/rotated lattice with random angle, shear and spacing
+    th = rng.uniform(0, np.pi / 3)
+    shear = rng.uniform(-0.3, 0.3)
+    s = rng.uniform(0.17, 0.25)
+    a = s * np.array([np.cos(th), np.sin(th)])
+    b = s * np.array([np.cos(th + np.pi / 3 + shear), np.sin(th + np.pi / 3 + shear)])
+    ii, jj = np.meshgrid(np.arange(-12, 13), np.arange(-12, 13))
+    P = (ii.reshape(-1, 1) * a + jj.reshape(-1, 1) * b
+         + np.array([0.5, 0.5]) + rng.uniform(-0.1, 0.1, size=2))
+    inside = P[np.all((P > 0.05) & (P < 0.95), axis=1)]
+    if len(inside) >= _N:
+        pts = inside[rng.choice(len(inside), _N, replace=False)]
+    else:
+        extra = rng.uniform(0.1, 0.9, size=(_N - len(inside), 2))
+        pts = np.vstack([inside, extra])
+    pts = np.clip(pts + rng.normal(0, 0.01, size=pts.shape), 0.02, 0.98)
+    R = rng.uniform(0.04, 0.09, size=_N)
+    return pts[:, 0].copy(), pts[:, 1].copy(), R
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    for k in range(6):
+        if k % 2:
+            x0, y0, r0 = _lattice_seed(rng)
+        else:
+            x0, y0, r0 = _seed(rng)
+>>>>>>> REPLACE
+-----

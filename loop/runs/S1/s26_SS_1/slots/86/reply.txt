@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c = np.clip(c, 0.0, 1.0)
+    r = np.maximum(r, 0.0)
+    i, j = _IU
+    for _ in range(200):
+        bad = False
+        d = np.sqrt((c[i, 0] - c[j, 0]) ** 2 + (c[i, 1] - c[j, 1]) ** 2)
+        v = r[i] + r[j] - d + 1e-14
+        for k in np.nonzero(v > 0)[0]:
+            a, b = i[k], j[k]
+            vv = r[a] + r[b] - np.sqrt((c[a, 0] - c[b, 0]) ** 2 + (c[a, 1] - c[b, 1]) ** 2) + 1e-14
+            if vv > 0:
+                r[a] = max(r[a] - vv / 2 - 1e-15, 0.0)
+                r[b] = max(r[b] - vv / 2 - 1e-15, 0.0)
+                bad = True
+        w = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+        vw = r - w + 1e-14
+        m = vw > 0
+        if m.any():
+            r[m] = np.maximum(r[m] - vw[m] - 1e-15, 0.0)
+            bad = True
+        if not bad:
+            break
+    return c, r
+>>>>>>> REPLACE
+-----

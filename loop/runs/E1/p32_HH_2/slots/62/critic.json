@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No attempt to get around the measurement: the diff reads no files, pastes no coordinates and uses no labels. All changes stay inside the SLSQP objective and the restart loop.",
+  "No bug that makes the result meaningless. The penalty term (lam * r * squared distance from the centre) is phased out in three steps (0.05, 0.025, 0.0), so the last solve optimises the true objective, the sum of the radii. The clip and _repair steps are unchanged, so the harness's exact check still decides whether a packing is valid.",
+  "Timing risk: each kept start now runs SLSQP three times instead of once. If the time-budget check only happens outside the KEEP loop (not visible in this diff), one iteration could run past 30 s and toward the 45 s limit that voids a job. Worth confirming.",
+  "Recomputed z: the gain is 0.0005 and the standard error is 0.0034*sqrt(1/1+1/2) = 0.00416, so z is about 0.12. The harness reports 0.125, a small gap probably due to rounding or a slightly different standard-error formula. The conclusion is the same: the result is well inside noise from a single run.",
+  "2.9375 is slightly above the published value of about 2.9370 given in the program card. The gap is well inside noise, and the best known value for n=32 is about 2.9379, so this is plausible. Reject is the right call: one run with z near 0.1 is not evidence of a gain, and the change adds code complexity. Replicate runs would be needed before accepting it."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.12
+ }
+}

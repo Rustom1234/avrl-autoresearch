@@ -1,0 +1,82 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    total = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < 0.5 * total:   # random restarts for half of the time
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    t1 = time.process_time()
+    span = max(total - (t1 - t0), 1e-9)
+    while time.process_time() - t0 < total:   # basin hopping from the best packing, perturbation decays linearly
+        frac = min((time.process_time() - t1) / span, 1.0)
+        scale = 0.1 + (0.005 - 0.1) * frac
+        c, r = best
+        c0 = np.clip(c + scale * rng.standard_normal(c.shape), 0, 1)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+ELITE = 4
+
+
+def _push(pool, c, r):
+    """Keep the ELITE best packings, sorted by sum of radii."""
+    pool.append((c, r))
+    pool.sort(key=lambda e: -e[1].sum())
+    del pool[ELITE:]
+
+
+def _crossover(pool, n, rng):
+    """Child start: parent A's circles on one side of a random line, parent B's on the other, count fixed to n."""
+    i, j = rng.choice(len(pool), 2, replace=False)
+    (ca, ra), (cb, rb) = pool[i], pool[j]
+    th = rng.uniform(0, np.pi)
+    u = np.array([np.cos(th), np.sin(th)])
+    t = u @ rng.uniform(0, 1, 2)
+    pa, pb = ca @ u - t, cb @ u - t
+    ka, kb = pa <= 0, pb > 0
+    c = np.vstack([ca[ka], cb[kb]])
+    r = np.concatenate([ra[ka], rb[kb]])
+    dist = np.abs(np.concatenate([pa[ka], pb[kb]]))
+    m = len(r)
+    if m == 0:
+        return None
+    if m >= n:   # drop the circles nearest the line
+        idx = np.argsort(dist)[m - n:]
+        c, r = c[idx], r[idx]
+    else:        # duplicate the circles nearest the line, with a small jitter
+        idx = np.argsort(dist)[np.arange(n - m) % m]
+        c = np.vstack([c, c[idx] + 1e-3 * rng.standard_normal((n - m, 2))])
+        r = np.concatenate([r, r[idx]])
+    return np.concatenate([np.clip(c, 0, 1).ravel(), r])
+
+
+def solve(n, seed, time_limit):
+    rng, t0, pool = np.random.default_rng(seed), time.process_time(), []
+    total = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < 0.5 * total:   # restarts for half of the time, crossover children once two parents exist
+        start = _crossover(pool, n, rng) if len(pool) >= 2 else None
+        c, r = _solve_once(n, rng, start)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        _push(pool, c, r)
+    t1 = time.process_time()
+    span = max(total - (t1 - t0), 1e-9)
+    while time.process_time() - t0 < total:   # basin hopping from the best packing, perturbation decays linearly
+        frac = min((time.process_time() - t1) / span, 1.0)
+        scale = 0.1 + (0.005 - 0.1) * frac
+        c, r = pool[0]
+        c0 = np.clip(c + scale * rng.standard_normal(c.shape), 0, 1)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        _push(pool, c, r)
+    return pool[0]
+>>>>>>> REPLACE
+-----

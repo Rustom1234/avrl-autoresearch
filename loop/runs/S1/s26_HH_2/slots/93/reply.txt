@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+=======
+def _delete_one_start():
+    """Build 27 circles with the two-phase pipeline, delete one circle, refine the best 3 removals."""
+    global _N
+    t0 = _time.time()
+    _N = 27
+    try:
+        c27, _r27 = _two_phase()
+    finally:
+        _N = 26
+    c27 = np.asarray(c27, dtype=float)
+    cands = []
+    for k in range(c27.shape[0]):
+        ck = np.delete(c27, k, axis=0)
+        r = _lp_radii(ck)
+        if r is None:
+            continue
+        rv = _make_valid(ck, r)
+        cands.append((float(rv.sum()), k, ck))
+    cands.sort(key=lambda p: -p[0])
+    t1 = _time.time()
+    best_s, best_c, best_r = -1.0, None, None
+    for s0, k, ck in cands[:3]:
+        if _time.time() - t1 > 40 and best_c is not None:
+            break
+        c, r = _relax(ck.copy(), np.full(_N, 0.005), 600, 0.05, 0.01, 0.5, ck.copy())
+        c, r = _slsqp_refine(c, r)
+        rv, s = _score(c)
+        if rv is not None and s > best_s:
+            best_s, best_c, best_r = s, c.copy(), rv
+        rm = _make_valid(c, r)
+        sm = float(rm.sum())
+        if sm > best_s:
+            best_s, best_c, best_r = sm, c.copy(), rm
+    if best_c is None:
+        return _two_phase()
+    return best_c, _make_valid(best_c, best_r)
+
+
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _delete_one_start()
+>>>>>>> REPLACE
+-----

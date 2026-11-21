@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+    return fps
+
+def tanimoto_kernel(X1, X2):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_test, X_train)
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    # Drop rare bits (non-zero in < 5 molecules)
+    counts = np.sum(X_train > 0, axis=0)
+    mask = counts >= 5
+    X_train = X_train[:, mask]
+    X_test = X_test[:, mask]
+
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_test, X_train)
+>>>>>>> REPLACE
+-----

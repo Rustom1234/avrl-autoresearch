@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None, sd=0.0):
+    if start is None:
+=======
+def _local_start(best, rng):
+    c, r = best[0].copy(), best[1] * 0.7
+    p = rng.uniform(0, 1, 2)
+    idx = np.argsort(((c - p) ** 2).sum(1))[:rng.integers(6, 9)]
+    a = rng.uniform(0, 2 * np.pi, len(idx))
+    d = 0.2 * np.sqrt(rng.uniform(0, 1, len(idx)))
+    c[idx] = p + np.c_[d * np.cos(a), d * np.sin(a)]
+    r[idx] = 0.03
+    return np.concatenate([np.clip(c, 0, 1).ravel(), r])
+
+
+def _solve_once(n, rng, start=None, sd=0.0, init=None):
+    if init is not None:
+        x0 = init
+    elif start is None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+=======
+            c, r = _solve_once(n, rng, init=_local_start(best, rng))
+>>>>>>> REPLACE
+-----

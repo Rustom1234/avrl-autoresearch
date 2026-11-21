@@ -1,0 +1,130 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+        if best is not None and rng.random() < 0.2:
+            c_best, r_best = best
+            idx = np.argmin(r_best)
+            c_tmp = np.delete(c_best, idx, axis=0)
+            r_tmp = np.delete(r_best, idx, 0)
+            
+            pts = rng.uniform(0, 1, (5000, 2))
+            dists = np.min(np.linalg.norm(pts[:, None] - c_tmp, axis=2), axis=1)
+            dists = np.minimum(dists, np.minimum(pts[:, 0], 1 - pts[:, 0]))
+            dists = np.minimum(dists, np.minimum(pts[:, 1], 1 - pts[:, 1]))
+            
+            best_pt = pts[np.argmax(dists)]
+            new_r = np.max(dists[np.argmax(dists)])
+            
+            c_new = np.vstack([c_tmp, best_pt])
+            r_new = np.append(r_tmp, [new_r])
+            
+            c_next, r_next = _solve_once(n, rng)
+            c_next = np.clip(c_next, 0, 1)
+            r_next = _repair(c_next, r_next)
+            
+            if r_next.sum() > r_best.sum():
+                best = (c_next, r_next)
+                
+    return best
+-----
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+        if best is not None and rng.random() < 0.15:
+            c_b, r_b = best
+            idx = np.argmin(r_b)
+            c_tmp = np.delete(c_b, idx, axis=0)
+            r_tmp = np.delete(r_b, idx, 0)
+            
+            pts = rng.uniform(0, 1, (5000, 2))
+            # distance to centers
+            d_c = np.min(np.linalg.norm(pts[:, None] - c_tmp, axis=2), axis=1)
+            # distance to boundaries
+            d_b = np.minimum(pts[:, 0], 1 - pts[:, 0])
+            d_b = np.minimum(d_b, pts[:, 1], 1 - pts[:, 1])
+            
+            dists = np.minimum(d_c, d_b)
+            best_pt = pts[np.argmax(dists)]
+            new_r = np.max(dists[np.argmax(dists)])
+            
+            c_new = np.vstack([c_tmp, best_pt])
+            r_new = np.append(r_tmp, [new_r])
+            
+            c_next, r_next = _solve_once(n, rng)
+            c_next = np.clip(c_next, 0, 1)
+            r_next = _repair(c_next, r_next)
+            
+            if r_next.sum() > r_b.sum():
+                best = (c_next, r_next)
+    return best
+-----
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+        if best is not None and rng.random() < 0.2:
+            c_b, r_b = best
+            idx = np.argmin(r_b)
+            c_tmp = np.delete(c_b, idx, axis=0)
+            r_tmp = np.delete(r_b, idx, 0)
+            
+            pts = rng.uniform(0, 1, (5000, 2))
+            d_c = np.min(np.linalg.norm(pts[:, None] - c_tmp, axis=2), axis=1)
+            d_bound = np.minimum(pts[:, 0], 1 - pts[:, 0])
+            d_bound = np.minimum(d_bound, np.minimum(pts[:, 1], 1 - pts[:, 1]))
+            dists = np.minimum(d_c, d_bound)
+            
+            best_idx = np.argmax(dists)
+            new_r = dists[best_idx]
+            
+            c_new = np.vstack([c_tmp, pts[best_idx]])
+            r_new = np.append(r_tmp, [new_r])
+            
+            # Re-run solver from this new configuration
+            c_next, r_next = _solve_once(n, rng)
+            c_next = np.clip(c_next, 0, 1)
+            r_next = _repair(c_next, r_next)
+            
+            if r_next.sum() > r_b.sum():
+                best = (c_next, r_next)
+    return best
+>>>>>>> REPLACE
+-----

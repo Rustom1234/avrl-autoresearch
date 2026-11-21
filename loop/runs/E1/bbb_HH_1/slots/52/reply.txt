@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+=======
+    rs = np.random.RandomState(seed)
+    q25, q75 = np.percentile(X_train[:, N_BITS:], [25, 75], axis=0)
+    iqr = q75 - q25
+    copies = [X_train]
+    for _ in range(3):
+        noise = np.zeros_like(X_train)
+        noise[:, N_BITS:] = rs.normal(0.0, 0.05, size=(X_train.shape[0], X_train.shape[1] - N_BITS)) * iqr
+        copies.append(X_train + noise)
+    X_aug = np.vstack(copies)
+    y_aug = np.tile(y, 4)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        min_child_samples=40, random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_aug, y_aug)
+>>>>>>> REPLACE
+-----

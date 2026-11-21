@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from scipy.optimize import minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    y = np.asarray(train_y, dtype=np.float64)
+    n = len(y)
+    rng = np.random.default_rng(seed)
+    pi, pj = [], []
+    for i in range(n):
+        cand = np.flatnonzero(y != y[i])
+        if len(cand) == 0:
+            continue
+        pick = rng.choice(cand, size=min(20, len(cand)), replace=False)
+        pi.extend([i] * len(pick))
+        pj.extend(pick.tolist())
+    pi, pj = np.array(pi), np.array(pj)
+    s = np.sign(y[pi] - y[pj])  # +1 where molecule pi should rank above pj
+    lam = 0.01
+    P = len(pi)
+
+    def obj(a):
+        f = K_train @ a
+        h = np.maximum(0.0, 1.0 - s * (f[pi] - f[pj]))
+        loss = h.mean() + lam * (a @ K_train @ a)
+        coef = -s * (h > 0) / P
+        g_f = np.bincount(pi, weights=coef, minlength=n) - np.bincount(pj, weights=coef, minlength=n)
+        grad = K_train @ g_f + 2.0 * lam * (K_train @ a)
+        return loss, grad
+
+    res = minimize(obj, np.zeros(n), jac=True, method="L-BFGS-B", options={"maxiter": 500})
+    return K_test @ res.x
+>>>>>>> REPLACE
+-----

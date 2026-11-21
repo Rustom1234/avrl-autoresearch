@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+def count_featurize(smiles):
+    # Radius-3 count Morgan vectors for the MinMax kernel, clipped at 4.
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=N_BITS)
+    rows = [np.minimum(gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)), 4) for s in smiles]
+    return np.array(rows, dtype=np.float64)
+
+
+_DESC_CACHE = {}
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+    dot = A @ B.T
+    na = (A * A).sum(axis=1)[:, None]
+    nb = (B * B).sum(axis=1)[None, :]
+    return dot / np.maximum(na + nb - dot, 1e-9)
+=======
+def minmax(A, B):
+    # MinMax kernel on clipped counts: sum_j min(a_j, b_j) / sum_j max(a_j, b_j).
+    # For integer counts in 0..4, sum of mins = sum over t=1..4 of co-occurrences of (count >= t).
+    smin = np.zeros((len(A), len(B)))
+    for t in range(1, 5):
+        smin += (A >= t).astype(np.float64) @ (B >= t).astype(np.float64).T
+    na = A.sum(axis=1)[:, None]
+    nb = B.sum(axis=1)[None, :]
+    return smin / np.maximum(na + nb - smin, 1e-9)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ta, Ra = tanimoto(Fa, Fa), rbf(Za, Za)
+    best_err, best_cfg = np.inf, (0.5, 1.0)
+    for lam in (0.1, 0.5, 2.0):
+        for wr in (0.5, 1.0, 2.0):
+=======
+    Ta, Ra = minmax(Fa, Fa), rbf(Za, Za)
+    best_err, best_cfg = np.inf, (0.5, 1.0)
+    for lam in (0.03, 0.1, 0.3, 1.0):
+        for wr in (0.25, 0.5, 1.0, 2.0, 4.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+=======
+    p_krr = (minmax(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Tanimoto kernel uses the ECFP bits only (first N_BITS columns).
+    Ftr, Fte = Ftr[:, :N_BITS].astype(np.float64), Fte[:, :N_BITS].astype(np.float64)
+=======
+    # MinMax kernel uses radius-3 count Morgan vectors.
+    Ftr, Fte = count_featurize(train_smiles), count_featurize(test_smiles)
+>>>>>>> REPLACE
+-----

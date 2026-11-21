@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import ExtraTreesRegressor
+=======
+import lightgbm as lgb
+from sklearn.model_selection import train_test_split
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = ExtraTreesRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64) - crippen(train_smiles))
+    return model.predict(featurize(test_smiles)) + crippen(test_smiles)
+=======
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64) - crippen(train_smiles)
+    Xt, Xv, yt, yv = train_test_split(X, y, test_size=0.1, random_state=seed)
+    model = lgb.LGBMRegressor(objective="l1", learning_rate=0.01, n_estimators=3000, num_leaves=15,
+                              min_child_samples=10, reg_lambda=5, colsample_bytree=0.3,
+                              n_jobs=8, random_state=seed, verbose=-1)
+    model.fit(Xt, yt, eval_set=[(Xv, yv)], callbacks=[lgb.early_stopping(100, verbose=False)])
+    return model.predict(featurize(test_smiles)) + crippen(test_smiles)
+>>>>>>> REPLACE
+-----

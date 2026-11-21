@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+try:
+    from rdkit.Avalon import pyAvalonTools
+except Exception:
+    pyAvalonTools = None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    K_train = tanimoto(X, X) + rbf(D, D, gamma)
+    K_test = tanimoto(Xt, X) + rbf(Dt, D, gamma)
+    n_k = 2.0
+    if pyAvalonTools is not None:
+        def avalon(smiles):
+            return np.array([list(pyAvalonTools.GetAvalonFP(Chem.MolFromSmiles(s), nBits=1024))
+                             for s in smiles], dtype=np.float64)
+        A, At = avalon(train_smiles), avalon(test_smiles)
+        K_train = K_train + tanimoto(A, A)
+        K_test = K_test + tanimoto(At, A)
+        n_k = 3.0
+    K_train = K_train / n_k
+    K_test = K_test / n_k
+>>>>>>> REPLACE
+-----

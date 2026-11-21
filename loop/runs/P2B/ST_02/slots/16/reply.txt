@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+t_start_training = time.time()
+smooth_train_loss = 0
+=======
+t_start_training = time.time()
+EMA_DECAY = 0.999       # decay for EMA of weights (swapped in for final eval)
+EMA_START_STEP = 100    # skip EMA updates for the first steps
+ema_params = [p.detach().clone() for p in model.parameters()]
+smooth_train_loss = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+
+    # EMA of weights: initialise at EMA_START_STEP, then update every step
+    if step == EMA_START_STEP:
+        with torch.no_grad():
+            for e, p in zip(ema_params, model.parameters()):
+                e.copy_(p.detach())
+    elif step > EMA_START_STEP:
+        with torch.no_grad():
+            for e, p in zip(ema_params, model.parameters()):
+                e.lerp_(p.detach(), 1 - EMA_DECAY)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Final eval
+with torch.no_grad():
+    for p, e in zip(model.parameters(), ema_params):
+        p.copy_(e)
+model.eval()
+>>>>>>> REPLACE
+-----

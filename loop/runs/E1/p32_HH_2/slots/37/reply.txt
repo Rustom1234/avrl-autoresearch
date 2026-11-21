@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _lattice_start(n, rng):
+    """Points on a random skewed periodic lattice, folded mod 1 with a random shift into [INIT_LOW, 1 - INIT_LOW]^2."""
+    m = int(np.ceil(np.sqrt(n)))
+    g = np.stack(np.meshgrid(np.arange(m), np.arange(m)), -1).reshape(-1, 2)
+    g = g[rng.permutation(len(g))[:n]]
+    skew = np.eye(2) + rng.uniform(-0.3, 0.3, (2, 2))
+    p = ((g + rng.uniform(0, 1, 2)) / m) @ skew
+    return INIT_LOW + (1 - 2 * INIT_LOW) * (p % 1)
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+=======
+        pool = sorted((_relax(_lattice_start(n, rng).ravel() if k % 2 else rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n)
+                       for k in range(POOL)), key=lambda t: t[0])
+>>>>>>> REPLACE
+-----

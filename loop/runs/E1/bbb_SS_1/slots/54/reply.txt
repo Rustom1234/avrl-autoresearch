@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+=======
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    gen1 = rdFingerprintGenerator.GetMorganGenerator(radius=1, fpSize=1024)
+    gen3 = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=3072)
+    rows = []
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        fp = gen.GetCountFingerprintAsNumPy(m).astype(np.float32)
+        desc = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        rows.append(np.concatenate([desc, fp]))
+=======
+        fp = (gen.GetCountFingerprintAsNumPy(m) > 0).astype(np.float32)
+        fp1 = gen1.GetCountFingerprintAsNumPy(m).astype(np.float32)
+        fp3 = gen3.GetCountFingerprintAsNumPy(m).astype(np.float32)
+        desc = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        rows.append(np.concatenate([desc, fp1, fp3, fp]))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for m in models:
+        m.fit(X, y)
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+=======
+    for m in models:
+        m.fit(X[:, :-N_BITS], y)
+        preds.append(rankdata(m.predict_proba(Xt[:, :-N_BITS])[:, 1]) / len(Xt))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    A = (X[:, nd:] > 0).astype(np.float32)
+    B = (Xt[:, nd:] > 0).astype(np.float32)
+=======
+    A = X[:, -N_BITS:]
+    B = Xt[:, -N_BITS:]
+>>>>>>> REPLACE
+-----

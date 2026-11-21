@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import rdReducedGraphs, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def extra(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        erg = np.asarray(rdReducedGraphs.GetErGFingerprint(m), dtype=np.float64)
+        mqn = np.asarray(rdMolDescriptors.MQNs_(m), dtype=np.float64)
+        rows.append(np.concatenate([erg, mqn]))
+    return np.array(rows, dtype=np.float64)
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gamma = 1.0 / D.shape[1]
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    E, Et = extra(train_smiles), extra(test_smiles)
+    emu, esd = E.mean(axis=0), E.std(axis=0) + 1e-9
+    E = np.clip((E - emu) / esd, -5.0, 5.0)
+    Et = np.clip((Et - emu) / esd, -5.0, 5.0)
+    Dk, Dkt = np.hstack([D, E]), np.hstack([Dt, Et])
+    gamma = 1.0 / Dk.shape[1]
+    K_train = 0.5 * (tanimoto(X, X) + rbf(Dk, Dk, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dkt, Dk, gamma))
+>>>>>>> REPLACE
+-----

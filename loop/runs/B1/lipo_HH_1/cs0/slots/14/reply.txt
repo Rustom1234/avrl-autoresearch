@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+    def rbf(A, B):
+        d2 = (A * A).sum(axis=1)[:, None] + (B * B).sum(axis=1)[None, :] - 2 * A @ B.T
+        return np.exp(-gamma * np.maximum(d2, 0))
+
+    Ta, Ra = tanimoto(Fa, Fa), rbf(Za, Za)
+    best_err, best_cfg = np.inf, (0.5, 1.0)
+    for lam in (0.1, 0.5, 2.0):
+        for wr in (0.5, 1.0, 2.0):
+            err = 0.0
+            for itr, iva in GroupKFold(n_splits=4).split(Ta, ya, ga):
+                w_in = np.linalg.solve(Ta[np.ix_(itr, itr)] + wr * Ra[np.ix_(itr, itr)] + lam * np.eye(len(itr)), ya[itr] - mu)
+                pv = (Ta[np.ix_(iva, itr)] + wr * Ra[np.ix_(iva, itr)]) @ w_in + mu
+                err += np.abs(pv - ya[iva]).sum()
+            if err < best_err:
+                best_err, best_cfg = err, (lam, wr)
+    lam, wr = best_cfg
+    w = np.linalg.solve(Ta + wr * Ra + lam * np.eye(len(ya)), ya - mu)
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+=======
+    def rbf(A, B, g):
+        d2 = (A * A).sum(axis=1)[:, None] + (B * B).sum(axis=1)[None, :] - 2 * A @ B.T
+        return np.exp(-gamma * g * np.maximum(d2, 0))
+
+    G_GRID = (0.5, 1.0, 2.0)
+    Ta = tanimoto(Fa, Fa)
+    Rs = {g: rbf(Za, Za, g) for g in G_GRID}
+    folds = list(GroupKFold(n_splits=4).split(Ta, ya, ga))
+    best_err, best_cfg = np.inf, (0.5, 1.0, 1.0)
+    for g in G_GRID:
+        Ra = Rs[g]
+        for lam in (0.1, 0.5, 2.0):
+            for wr in (0.5, 1.0, 2.0):
+                err = 0.0
+                for itr, iva in folds:
+                    w_in = np.linalg.solve(Ta[np.ix_(itr, itr)] + wr * Ra[np.ix_(itr, itr)] + lam * np.eye(len(itr)), ya[itr] - mu)
+                    pv = (Ta[np.ix_(iva, itr)] + wr * Ra[np.ix_(iva, itr)]) @ w_in + mu
+                    err += np.abs(pv - ya[iva]).sum()
+                if err < best_err:
+                    best_err, best_cfg = err, (lam, wr, g)
+    lam, wr, g = best_cfg
+    w = np.linalg.solve(Ta + wr * Rs[g] + lam * np.eye(len(ya)), ya - mu)
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za, g)) @ w + mu
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+=======
+def equal_init(rng):
+    """Stage 1: maximise a common radius (equal circles) with SLSQP; stage 2 input: 0.01 centre noise."""
+    from scipy.optimize import minimize
+    n = 26
+    I, Jp = np.triu_indices(n, 1)
+    c0 = hex_jitter(rng)
+    z0 = np.concatenate([c0[:, 0], c0[:, 1], [0.05]])
+
+    def cons(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[-1]
+        dx = x[I] - x[Jp]
+        dy = y[I] - y[Jp]
+        return np.concatenate([dx * dx + dy * dy - 4 * r * r, x - r, 1 - x - r, y - r, 1 - y - r])
+
+    res = minimize(lambda z: -z[-1], z0, constraints=[{"type": "ineq", "fun": cons}],
+                   bounds=[(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)], method="SLSQP", options={"maxiter": 100})
+    z = res.x if np.all(np.isfinite(res.x)) else z0
+    c = np.stack([z[:n], z[n:2 * n]], axis=1)
+    c = c + rng.normal(0.0, 0.01, c.shape)
+    return np.clip(c, 0.02, 0.98)
+
+
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = hex_jitter(rng)
+        c0 = sa_centers(c0, rng, t0)
+=======
+        if start % 2 == 1:
+            c0 = equal_init(rng)
+        else:
+            c0 = hex_jitter(rng)
+        c0 = sa_centers(c0, rng, t0)
+>>>>>>> REPLACE
+-----

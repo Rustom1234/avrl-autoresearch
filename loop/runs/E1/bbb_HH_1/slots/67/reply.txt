@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+HARD_WEIGHT = 2.0
+
+
+def scaffold_groups(smiles):
+    ids = {}
+    out = []
+    for s in smiles:
+        key = MurckoScaffold.MurckoScaffoldSmiles(smiles=s)
+        out.append(ids.setdefault(key, len(ids)))
+    return np.array(out)
+
+
+def fit_predict_pair(X_fit, y_fit, X_eval, w, seed):
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_fit, y_fit, sample_weight=w)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_fit, y_fit, sample_weight=w)
+    return rf.predict_proba(X_eval)[:, 1], gb.predict_proba(X_eval)[:, 1]
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors, Descriptors, Crippen
+=======
+from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors, Descriptors, Crippen
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from sklearn.model_selection import GroupKFold
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    # First pass: out-of-fold scores, grouped by scaffold, with a seed-dependent group shuffle.
+    rng = np.random.RandomState(seed)
+    groups = scaffold_groups(train_smiles)
+    groups = rng.permutation(groups.max() + 1)[groups]
+    oof = np.zeros(len(y))
+    for tr, te in GroupKFold(n_splits=5).split(X_train, y, groups):
+        p_rf, p_gb = fit_predict_pair(X_train[tr], y[tr], X_train[te], np.ones(len(tr)), seed)
+        oof[te] = 0.5 * (p_rf + p_gb)
+    oof_rank = scaled_rank(oof)
+    # Hard examples: positives ranked in the bottom half or negatives ranked in the top half.
+    wrong = ((y == 1) & (oof_rank < 0.5)) | ((y == 0) & (oof_rank > 0.5))
+    w = np.where(wrong, HARD_WEIGHT, 1.0)
+    # Second pass: refit both members with the hard-example weights and rank-average as before.
+    p_rf, p_gb = fit_predict_pair(X_train, y, X_test, w, seed)
+    return 0.5 * (scaled_rank(p_rf) + scaled_rank(p_gb))
+>>>>>>> REPLACE
+-----

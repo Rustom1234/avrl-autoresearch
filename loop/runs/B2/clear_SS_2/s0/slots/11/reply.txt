@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    from sklearn.linear_model import Ridge
+=======
+    from lightgbm import LGBMRanker
+    lab = np.clip(np.floor(y * 32).astype(int), 0, 31)
+    try:
+        rk = LGBMRanker(objective='lambdarank', n_estimators=400, learning_rate=0.05, num_leaves=15,
+                        colsample_bytree=0.3, min_child_samples=10, n_jobs=8, random_state=seed,
+                        verbose=-1, label_gain=list(range(32)))
+        rk.fit(Xtr, lab, group=[len(lab)])
+        pk = rk.predict(Xte)
+    except Exception as e:
+        print("LGBMRanker failed, falling back to LGBMRegressor huber:", e)
+        pk = LGBMRegressor(objective='huber', n_estimators=400, learning_rate=0.05, num_leaves=15,
+                           colsample_bytree=0.3, min_child_samples=10, n_jobs=8, random_state=seed,
+                           verbose=-1).fit(Xtr, y).predict(Xte)
+    preds.append(rankdata(pk) / len(pk))
+    from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+-----

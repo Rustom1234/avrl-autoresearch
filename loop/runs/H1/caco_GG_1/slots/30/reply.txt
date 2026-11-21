@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+ =======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Count hydroxyls, amines, and carbonyls
+        oh = sum(1 for atom in mol.GetAtoms() if atom.GetSymbol() == 'O' and atom.Get(*Chem.valence.IsAttachedToHydrogen(mol, atom)))
+        # Simple heuristic for functional groups
+        # Using Smarts patterns is safer but might be overkill; 
+        # we'll stick to counts of specific atoms/patterns for simplicity
+        nh = sum(1 for atom in mol.GetAtoms() if atom.GetSymbol() == 'N' and atom.Get(*Chem.valence.IsAttachedToHydrogen(mol, atom)))
+        # Carbonyls (C=O)
+        co = sum(1 for atom in mol.GetAtoms() if atom.GetSymbol() == 'O' and atom.GetBond0() and atom.GetBond0().GetBondType() == Chem.rdchem.BondType.DOUBLE and atom.GetBond0().GetAtom0().GetSymbol() == 'C')
+        
+        features.append(np.concatenate([fp, [oh, nh, co]], axis=0))
+    return np.array(features, dtype=np.float32)
+>>>>>>> REPLACE
+-----

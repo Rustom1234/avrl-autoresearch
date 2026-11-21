@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    from sklearn.linear_model import Ridge
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+=======
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.linear_model import Ridge
+    sc = StandardScaler().fit(Xtr[:, :-N_BITS])
+    lin = Ridge(alpha=10.0).fit(sc.transform(Xtr[:, :-N_BITS]), y)
+    res = y - lin.predict(sc.transform(Xtr[:, :-N_BITS]))
+    rf_res = RandomForestRegressor(n_estimators=300, max_features=0.2, n_jobs=8, random_state=seed).fit(Xtr, res)
+    p_stack = lin.predict(sc.transform(Xte[:, :-N_BITS])) + rf_res.predict(Xte)
+    preds.append(rankdata(p_stack) / len(p_stack))
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+>>>>>>> REPLACE
+-----

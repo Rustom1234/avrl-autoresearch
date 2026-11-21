@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+=======
+DESC_CACHE = {}
+
+
+def rdkit_descriptors(smiles):
+    rows = []
+    for s in smiles:
+        if s not in DESC_CACHE:
+            m = Chem.MolFromSmiles(s)
+            DESC_CACHE[s] = [f(m) for _, f in Descriptors.descList]
+        rows.append(DESC_CACHE[s])
+    return np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    d_tr = rdkit_descriptors(train_smiles)
+    d_te = rdkit_descriptors(test_smiles)
+    lo, hi = np.percentile(d_tr, [1, 99], axis=0)
+    d_tr = np.clip(d_tr, lo, hi).astype(np.float32)
+    d_te = np.clip(d_te, lo, hi).astype(np.float32)
+    train_sets[0] = np.hstack([train_sets[0], d_tr])
+    test_sets[0] = np.hstack([test_sets[0], d_te])
+>>>>>>> REPLACE
+-----

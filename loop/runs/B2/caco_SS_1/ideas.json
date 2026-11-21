@@ -1,0 +1,642 @@
+[
+ {
+  "id": "b001",
+  "title": "Average two LightGBMs of different depth on the same descriptors",
+  "spec": "Keep the descriptor-only feature block, the kNN term and the 0.75/0.25 blend structure, but replace the single LightGBM with the simple mean of two LightGBM fits that differ only in capacity: one with num_leaves=8, min_child_samples=15 and n_estimators=700, the other with num_leaves=31, min_child_samples=20 and n_estimators=400, both using the current objective, learning_rate=0.03, subsample=0.8 with subsample_freq=1, colsample_bytree=0.5, random_state=seed and n_jobs=8. Earlier same-configuration seed bagging did not help because the models were nearly identical; varying tree depth gives genuinely different bias-variance trade-offs, so the average can beat either member. Average the two prediction vectors, then blend that average with the kNN exactly as before. Keep the code to two constructor calls and one mean, with no inner validation.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8374583721160889,
+  "sim_tried_bge": 0.83492112159729,
+  "sim_hist_mini": 0.759566068649292,
+  "sources": [
+   [
+    "fable",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Ionization-corrected logD proxy features",
+  "spec": "Add approximate pH 7.4 ionization features. Count carboxylic acids (existing ACID SMARTS), aliphatic amines (existing AMINE SMARTS), and quaternary or permanently charged nitrogens (SMARTS [N+;!$(N=O);!$(N-[O-])]). Compute an ionization penalty equal to 3.0 times the acid count plus 1.0 times the amine count capped at 1 per molecule, and then a logD proxy equal to MolLogP minus that penalty. Append the logD proxy, the penalty, the permanent charge count, and the net formal charge to the descriptor block fed to LightGBM. Keep the rest unchanged. This is a rule-based stand-in for the pH-dependent partitioning that governs passive permeability.",
+  "family": "data",
+  "sim_hist_bge": 0.7838341593742371,
+  "sim_tried_bge": 0.7838341593742371,
+  "sim_hist_mini": 0.4940793216228485,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Objective-diversity LightGBM average",
+  "spec": "Replace the single LightGBM in fit_predict with the simple average of two LightGBM models trained on the same RDKit 2D descriptor features with identical hyperparameters (500 trees, lr 0.03, 15 leaves, subsample 0.8 freq 1, colsample 0.5, min_child_samples 10, random_state=seed) but different losses: one with objective='l1' and one with objective='huber' (default alpha). Average their test predictions with equal weight, then keep the existing final blend of 0.75 on that averaged GBM prediction and 0.25 on the Tanimoto kNN. The two losses make different errors on outlier-permeability molecules, so their mean may be more stable than either alone.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8454111814498901,
+  "sim_tried_bge": 0.8454111814498901,
+  "sim_hist_mini": 0.7208608388900757,
+  "sources": [
+   [
+    "opus",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Lower learning rate, longer boosting",
+  "spec": "Set the LightGBM learning rate to 0.01 and n_estimators to 1500. Keep the other parameters and the L1 objective. The lower rate should give a smoother fit on the small dataset. Check that the 10 minute limit is not at risk.",
+  "family": "schedule",
+  "sim_hist_bge": 0.881054162979126,
+  "sim_tried_bge": 0.8255332708358765,
+  "sim_hist_mini": 0.7028467059135437,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Label smoothing by similarity neighborhood",
+  "spec": "Regularize the training targets using Tanimoto neighbors within the training fold. Compute the pairwise Tanimoto similarity matrix of training Morgan bit vectors (the same morgan_bits helper). For each training molecule, take its top 5 most similar other training molecules and set its smoothed target to 0.8 times its own measured value plus 0.2 times the similarity-weighted mean of those neighbors' measured values. Fit the L1 LightGBM and the kNN component on the smoothed targets, while kNN still uses the original labels for its neighbor averages. Blend as before with weights 0.75 and 0.25. This shrinks noisy labels toward the local chemical neighborhood.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8558420538902283,
+  "sim_tried_bge": 0.8426212072372437,
+  "sim_hist_mini": 0.7385255098342896,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "kNN residual correction instead of prediction blending",
+  "spec": "Replace the current convex blend (0.75 LightGBM + 0.25 Tanimoto kNN of the raw target) with a residual-correction scheme. First fit the existing descriptor-only LightGBM on all training rows and compute its out-of-fold residuals using an internal 5-fold KFold(shuffle=True, random_state=seed) over the training molecules. Then run the same distance-weighted Tanimoto kNN (Morgan radius-2 2048 bits, k=7, inverse distance weights) on those out-of-fold residuals rather than on train_y, and return the full-data LightGBM prediction plus 0.5 times the kNN residual estimate. This lets the nearest-neighbour term only carry structural information the gradient boosting missed, instead of competing with it, which should help on folds where a test scaffold has one close analogue. Keep features and all LightGBM hyperparameters unchanged; the inner 5-fold refit multiplies runtime by about six, which is still far inside the budget.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9319318532943726,
+  "sim_tried_bge": 0.8499470949172974,
+  "sim_hist_mini": 0.7912681102752686,
+  "sources": [
+   [
+    "fable",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Residual kNN correction",
+  "spec": "Fit LightGBM as now. Compute its out-of-fold predictions on the training set with 5-fold KFold, using the seed. Then predict the test residuals with a Tanimoto kNN (k=7) fitted to the OOF residuals. Final prediction = lgbm + 0.5*knn_residual_pred. Drop the existing 0.25 kNN blend, or keep it at a smaller weight of 0.1.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9641215205192566,
+  "sim_tried_bge": 0.8211370706558228,
+  "sim_hist_mini": 0.9268777370452881,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Local-similarity gated blend weight",
+  "spec": "Compute each test molecule's mean Tanimoto similarity to its k nearest training neighbours. Set the kNN weight per molecule to w = clip(0.1 + 0.6*(meansim-0.3), 0.1, 0.45), and use (1-w)*lgbm + w*knn. This gives kNN more weight on close analogues and less on novel scaffolds. Modify knn_predict to return the mean similarity too.",
+  "family": "other",
+  "sim_hist_bge": 0.987909197807312,
+  "sim_tried_bge": 0.8401814103126526,
+  "sim_hist_mini": 0.9384397864341736,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Random-subspace LightGBM bag",
+  "spec": "Train 5 L1 LightGBM models, each with a different seed. Set colsample_bytree=0.3 and subsample=0.7 for each, and use all training rows. Average their predictions, then blend 0.75/0.25 with kNN. This differs from the earlier row-subsample bagging because the rows stay full and only the feature randomness changes.",
+  "family": "regularization",
+  "sim_hist_bge": 0.9126401543617249,
+  "sim_tried_bge": 0.8698829412460327,
+  "sim_hist_mini": 0.8715299963951111,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Morgan SVD components added to descriptors",
+  "spec": "Fit TruncatedSVD with 20 components, using random_state=seed, on the training Morgan count fingerprints (1024 bits). Append the transformed components for train and test to the descriptor matrix given to LightGBM. Keep the kNN blend unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.9709053635597229,
+  "sim_tried_bge": 0.7877528071403503,
+  "sim_hist_mini": 0.9483913779258728,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Similarity-gated blend weight for the kNN term",
+  "spec": "Currently every test molecule receives the same mixture, 0.75 LightGBM + 0.25 kNN. Make the kNN weight depend on how close that molecule actually is to the training set: inside fit_predict compute, for each test molecule, the maximum Tanimoto similarity s to any training molecule using the existing Morgan radius-2 2048-bit bit vectors (reuse morgan_bits and the intersection-over-union matrix already computed in knn_predict, returning it alongside the prediction or recomputing it). Then set a per-molecule weight w = clip(0.45 * s, 0.0, 0.40) and return (1 - w) * lgbm + w * knn. Molecules with a near-duplicate analogue in training lean on the neighbour average, while novel scaffolds fall back almost entirely on the descriptor model, which is the regime the scaffold-split harness emphasizes. Keep the features, the LightGBM hyperparameters and k=7 unchanged; use plain numpy, no extra model.",
+  "family": "other",
+  "sim_hist_bge": 0.9451093077659607,
+  "sim_tried_bge": 0.832732617855072,
+  "sim_hist_mini": 0.8679395914077759,
+  "sources": [
+   [
+    "fable",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Scaffold-cluster inverse-size sample weights",
+  "spec": "Compute the Murcko scaffold SMILES of each training molecule with rdkit.Chem.Scaffolds.MurckoScaffold. Set the sample weight to 1/sqrt(cluster_size) and normalize the weights to mean 1. Pass them as sample_weight to LGBMRegressor.fit. The aim is to reduce the dominance of large series in training, so generalisation to unseen scaffolds improves.",
+  "family": "batch",
+  "sim_hist_bge": 0.9662705659866333,
+  "sim_tried_bge": 0.7083650231361389,
+  "sim_hist_mini": 0.9463036060333252,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Median aggregation over ExtraTrees-style tree outputs",
+  "spec": "Replace the mean of the final blend's tree component with a median-type estimator aligned to MAE. Train an ExtraTreesRegressor with 300 trees, max_features 0.3, min_samples_leaf 3, on the same descriptor and count-Morgan features. At prediction time, get the per-tree predictions with a loop over model.estimators_ and take the median across trees for each test molecule instead of the mean. Use this median as the tree component in place of the LightGBM output. Keep the kNN blend at 0.25. Only the aggregation changes, so the comparison is clean.",
+  "family": "other",
+  "sim_hist_bge": 0.7889312505722046,
+  "sim_tried_bge": 0.774494469165802,
+  "sim_hist_mini": 0.6714497804641724,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Salt stripping and largest fragment",
+  "spec": "In featurize and morgan_bits, parse each SMILES, keep only the largest heavy-atom fragment using rdkit.Chem.rdmolops.GetMolFrags(m, asMols=True) and max by GetNumHeavyAtoms, then compute descriptors and fingerprints from that fragment. Fall back to the original molecule if parsing the fragment fails. Leave the rest of the model unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.9691904187202454,
+  "sim_tried_bge": 0.7512845396995544,
+  "sim_hist_mini": 0.9233118891716003,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "LightGBM extra-trees split mode",
+  "spec": "Switch the existing descriptor-only LightGBM to randomized split selection by passing extra_trees=True (LightGBM's extremely-randomized split threshold mode), keeping the same objective, 500 trees, learning_rate 0.03, num_leaves 15, subsample 0.8, colsample_bytree 0.5, min_child_samples 10, and the unchanged 0.75 LightGBM + 0.25 Tanimoto kNN blend. Randomized thresholds add variance reduction that often helps when many descriptor columns are highly correlated and the training set is small, which is exactly this setting; earlier plain ExtraTrees helped as a family, so the same randomization inside boosting is worth one slot. Because randomized splits learn more slowly, also raise n_estimators to 800 while leaving the learning rate at 0.03. Only the LGBMRegressor keyword arguments change.",
+  "family": "regularization",
+  "sim_hist_bge": 0.9112539291381836,
+  "sim_tried_bge": 0.8367342948913574,
+  "sim_hist_mini": 0.7888987064361572,
+  "sources": [
+   [
+    "fable",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Post-hoc linear recalibration of blended predictions",
+  "spec": "Correct the shrinkage that blending tends to introduce. Inside fit_predict, run a 4-fold inner KFold on the training molecules (shuffled with seed). For each inner fold, fit the existing LightGBM and kNN blend on the inner-train part and predict the inner-validation part. Collect the out-of-fold blended predictions for all training molecules and fit a least-absolute-deviation line y = a + b*pred (use scipy.optimize.minimize with the L1 loss, starting at a=0, b=1). Fit the full model on all training data, apply the blend to the test molecules, and then apply a and b to the output. Clip the output to the training range of train_y. Cost is about 5 times the current job time, so use n_estimators 300 to stay within the limit.",
+  "family": "other",
+  "sim_hist_bge": 0.8551663160324097,
+  "sim_tried_bge": 0.8314051032066345,
+  "sim_hist_mini": 0.7527886629104614,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "kNN blend weight and k micro-sweep: 0.20 weight, k=12",
+  "spec": "The final line of the current script returns 0.75 * lgbm + 0.25 * knn, where knn_predict uses k=7 neighbours with inverse-distance weights on Tanimoto distances over Morgan radius-2 2048-bit fingerprints. Take one small step in both knobs at once: change the blend to 0.80 * lgbm + 0.20 * knn and call knn_predict with k=12. A larger k smooths the neighbour average, which pairs naturally with a smaller blend weight, and prior slots showed that moving the weight up (0.6/0.4 with k=5) hurt, so the untested direction is less kNN with more smoothing. Change only the k default or call argument and the two blend coefficients; leave the fingerprint, the distance metric, the model and the features alone.",
+  "family": "other",
+  "sim_hist_bge": 0.8577951192855835,
+  "sim_tried_bge": 0.8499875664710999,
+  "sim_hist_mini": 0.710534393787384,
+  "sources": [
+   [
+    "fable",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Inner early stopping for tree count",
+  "spec": "Instead of a fixed n_estimators=500, choose the number of boosting rounds per fold by early stopping. Inside fit_predict, split the training molecules into a 85/15 inner split using a seeded random split (seed from the argument), fit the L1 LightGBM with n_estimators=3000, learning_rate=0.03 and the current remaining hyperparameters using the inner holdout as eval_set with eval_metric='l1' and early_stopping_rounds=100, read off the best iteration, then refit a fresh model on the full training set with n_estimators set to round(best_iteration * 1.15) (clipped to [100, 3000]). Keep the final 0.75 GBM / 0.25 Tanimoto kNN blend unchanged. This adapts the boosting length to each fold instead of using one global guess.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8278673887252808,
+  "sim_tried_bge": 0.8278673887252808,
+  "sim_hist_mini": 0.6814183592796326,
+  "sources": [
+   [
+    "opus",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Longer, slower boosting: lr 0.015 with 1200 trees",
+  "spec": "In the current script the LightGBM on RDKit 2D descriptors uses learning_rate=0.03 with n_estimators=500. Replace these with learning_rate=0.015 and n_estimators=1200, keeping the objective, num_leaves, subsample, colsample_bytree, min_child_samples, the descriptor-only feature block and the 0.75/0.25 LightGBM/kNN blend exactly as they are. Lower learning rates with proportionally more rounds usually give a smoother, better-averaged fit on small noisy regression targets, and the MAE objective benefits from finer steps. Confirm the job still fits in the 10-minute budget for 15 fits; LightGBM on roughly 210 descriptor columns and 580 rows should remain only a few seconds per fit. No other changes.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8852313160896301,
+  "sim_tried_bge": 0.8852313160896301,
+  "sim_hist_mini": 0.7165487408638,
+  "sources": [
+   [
+    "fable",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Small-data LightGBM smoothing knobs",
+  "spec": "Keep the architecture and blend fixed and only add LightGBM's small-data regularizers to the existing L1 model: set max_bin=63 (fewer, coarser histogram bins), path_smooth=10.0 (shrinks leaf values toward their parent), min_child_samples=15, and feature_fraction_bynode=0.5 while removing colsample_bytree (set it to 1.0 so the per-node fraction is the only column sampling). Leave n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8 with subsample_freq=1, random_state=seed. The final prediction stays 0.75 * LightGBM + 0.25 * Tanimoto kNN. These knobs attack the main failure mode on 728 rows with ~210 descriptors, namely leaves fit on very few molecules.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8827282190322876,
+  "sim_tried_bge": 0.8827282190322876,
+  "sim_hist_mini": 0.7144956588745117,
+  "sources": [
+   [
+    "opus",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b021",
+  "title": "LightGBM capacity micro-tune",
+  "spec": "Keep the current pipeline exactly (L1-objective LightGBM on the RDKit 2D descriptor block, blended 0.75/0.25 with the Tanimoto kNN), and only change the LightGBM hyperparameters to a slightly different capacity point: num_leaves=31, learning_rate=0.02, n_estimators=1200, min_child_samples=20, colsample_bytree=0.6, subsample=0.8 with subsample_freq=1. Everything else, including the kNN and the blend weights, stays untouched. The aim is to test whether the incumbent is sitting on a sub-optimal point of the depth/learning-rate trade-off for 728 molecules; runtime should stay well under a minute per fit.",
+  "family": "regularization",
+  "sim_hist_bge": 0.911888837814331,
+  "sim_tried_bge": 0.911888837814331,
+  "sim_hist_mini": 0.798303484916687,
+  "sources": [
+   [
+    "opus",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b022",
+  "title": "Gasteiger partial-charge statistics as features",
+  "spec": "Add a small set of charge descriptors to the descriptor block. Using rdkit.Chem.AllChem.ComputeGasteigerCharges on each molecule (after Chem.AddHs is not needed), compute the max and min partial charge over heavy atoms, their sum of absolute values, the sum of positive charges, the sum of negative charges, and the charge span (max minus min). Also add the count of heavy atoms with |charge| > 0.2. Append these 7 numbers to the descriptor block before LightGBM, with NaN and inf replaced by 0. Leave the Morgan part and kNN unchanged. Charge features relate to the polarity that drives passive permeability.",
+  "family": "data",
+  "sim_hist_bge": 0.7385374307632446,
+  "sim_tried_bge": 0.7385374307632446,
+  "sim_hist_mini": 0.5141984224319458,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b023",
+  "title": "Linear-tree LightGBM",
+  "spec": "Add linear_tree=True and linear_lambda=1.0 to the LGBMRegressor, keeping the L1 objective. Use num_leaves=7 and min_child_samples=20 so the leaf linear models stay stable. Keep the descriptor features, and fill NaNs with the median, because linear_tree needs finite values. Keep the kNN blend unchanged.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9334611296653748,
+  "sim_tried_bge": 0.7925881147384644,
+  "sim_hist_mini": 0.8562015295028687,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b024",
+  "title": "Gaussian descriptor jitter augmentation",
+  "spec": "Augment the training set for the LightGBM only. After building the training descriptor matrix, compute each column's training standard deviation, then create two extra noisy copies of the whole training block by adding Gaussian noise of 0.05 * column_sd (drawn with a numpy Generator seeded from the seed argument) to every column, stacking the original and the two jittered copies into one training matrix of 3x the rows with the labels tiled accordingly. Fit the existing L1 LightGBM on this augmented set with no other hyperparameter changes, predict on the clean test descriptors, and keep the final 0.75 GBM / 0.25 Tanimoto kNN blend. The jitter blurs the exact split thresholds the trees can choose, acting like input-noise regularization for a 728-row dataset while runtime stays small.",
+  "family": "data",
+  "sim_hist_bge": 0.8131195306777954,
+  "sim_tried_bge": 0.8131195306777954,
+  "sim_hist_mini": 0.7069424390792847,
+  "sources": [
+   [
+    "opus",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b025",
+  "title": "Monotone constraints on LightGBM for polarity descriptors",
+  "spec": "Add domain-prior monotone constraints to the L1 LightGBM. Build the monotone_constraints list over the descriptor columns, which is aligned to the names in Descriptors.descList: set +1 for MolLogP and NumAromaticRings-free lipophilicity terms (MolLogP, MolMR), and -1 for TPSA, NumHDonors, NumHAcceptors, and fr_COO. Use 0 for every other column. Pass the list as monotone_constraints with monotone_constraints_method 'advanced' to LGBMRegressor. Keep the other hyperparameters and the kNN blend unchanged. Caco-2 permeability should fall with polar surface and hydrogen-bond donors, so this constrains the trees toward that prior.",
+  "family": "regularization",
+  "sim_hist_bge": 0.7523584961891174,
+  "sim_tried_bge": 0.7523584961891174,
+  "sim_hist_mini": 0.6012461185455322,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b026",
+  "title": "Linear-tree LightGBM on descriptors",
+  "spec": "Keep the current pipeline (RDKit 2D descriptor block, L1-style LightGBM, 0.75/0.25 blend with the Tanimoto kNN) but enable LightGBM's linear_tree=True so each leaf fits a ridge-regularized linear model of the features instead of a constant. Because many Caco-2-relevant descriptors (TPSA, logP, MW, HBD counts) relate to permeability in a near-linear fashion, linear leaves can extrapolate to unseen scaffolds better than piecewise constants. Use linear_tree=True together with linear_lambda=1.0, reduce num_leaves to about 8 and n_estimators to about 300 since linear leaves are far more expressive per split, and keep learning_rate, subsample, colsample_bytree, random_state=seed and n_jobs=8. If LightGBM errors on NaN or infinite feature values with linear trees, rely on the existing nan_to_num and clipping in featurize, and additionally cast the descriptor matrix to float64 contiguous before fitting.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8863780498504639,
+  "sim_tried_bge": 0.8172248601913452,
+  "sim_hist_mini": 0.738304078578949,
+  "sources": [
+   [
+    "fable",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b027",
+  "title": "Largest-fragment stripping and canonical standardization of SMILES",
+  "spec": "Several molecules in this dataset are salts or multi-component SMILES (dot-separated), which makes whole-molecule descriptors such as MW, TPSA and logP reflect the counter-ion rather than the permeating species. Add a small standardization helper used by both featurize and the fingerprint path: parse each SMILES, split on fragments with Chem.GetMolFrags(mol, asMols=True), keep the fragment with the largest heavy-atom count, neutralize trivially chargeable groups only if straightforward (otherwise skip), re-canonicalize with Chem.MolToSmiles and re-parse. Fall back to the original molecule whenever parsing or fragment selection fails so no row is ever dropped. Apply this once at the top of featurize and once inside morgan_bits so the descriptors, the Morgan fingerprints and the kNN all see the cleaned structure. Keep the model, hyperparameters and the 0.75/0.25 blend unchanged, so the slot measures the effect of standardization alone.",
+  "family": "data",
+  "sim_hist_bge": 0.896045446395874,
+  "sim_tried_bge": 0.7438457012176514,
+  "sim_hist_mini": 0.7801313400268555,
+  "sources": [
+   [
+    "fable",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b028",
+  "title": "Linear baseline plus LightGBM on residuals",
+  "spec": "In fit_predict, first fit a Ridge regression (alpha about 10) on standardized inputs. Use the RDKit descriptor block (nd columns) and fit it to train_y. Compute the in-sample residuals train_y minus the ridge prediction, and fit the existing L1 LightGBM on those residuals with the same descriptor features. For test molecules, the final prediction is the ridge prediction plus the LightGBM residual prediction. Keep the kNN blend at 0.25 and the rest unchanged. The aim is to let trees model what a linear logP/TPSA/MW trend cannot extrapolate.",
+  "family": "architecture",
+  "sim_hist_bge": 0.870049238204956,
+  "sim_tried_bge": 0.870049238204956,
+  "sim_hist_mini": 0.7409428358078003,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b029",
+  "title": "Averaged quantile-regression LightGBM",
+  "spec": "Swap the L1 objective of the LightGBM for LightGBM's quantile objective and average three models fit at alpha=0.45, 0.50 and 0.55, all on the same RDKit 2D descriptor features and with the same remaining hyperparameters as now (500 trees, lr 0.03, 15 leaves, subsample 0.8 freq 1, colsample 0.5, min_child_samples 10, random_state=seed, n_jobs=8). Take the unweighted mean of the three predictions and feed it into the unchanged 0.75/0.25 blend with the Tanimoto kNN. This is a mild smoothing of the median estimate that keeps the MAE-aligned loss but reduces the step-like behaviour of pure L1 boosting on small data.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8155112266540527,
+  "sim_tried_bge": 0.8155112266540527,
+  "sim_hist_mini": 0.6759797930717468,
+  "sources": [
+   [
+    "opus",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b030",
+  "title": "Ring-system and scaffold size features",
+  "spec": "Add ring-topology features derived from the Murcko scaffold. For each molecule, compute the Murcko scaffold with MurckoScaffold.GetScaffoldForMol, count ring systems (connected groups of rings sharing atoms), the size of the largest ring system in heavy atoms, the number of fused ring junctions (atoms shared by two or more rings), the number of spiro atoms, the fraction of heavy atoms that are in the scaffold, and the number of acyclic heavy atoms. Append these 6 numbers to the descriptor block for the L1 LightGBM. Leave the Morgan kNN and the blend weights unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8098986148834229,
+  "sim_tried_bge": 0.6971170902252197,
+  "sim_hist_mini": 0.6010246872901917,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b031",
+  "title": "Blend in a ridge regression on robust-scaled descriptors",
+  "spec": "Add a third, purely linear component to the ensemble. Build the existing RDKit 2D descriptor matrix, winsorize each column to its training 1st/99th percentiles, standardize with the training mean and standard deviation (guarding zero-variance columns), and fit sklearn RidgeCV over alphas logspace(-1, 3, 13) on the training labels. The final prediction becomes 0.65 * LightGBM + 0.20 * Tanimoto kNN + 0.15 * ridge, with the LightGBM and kNN parts unchanged. A regularized linear model extrapolates smoothly to unseen scaffolds where trees are forced to predict a constant leaf value, so a small linear share may cover the tails that the GBM flattens.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8177220821380615,
+  "sim_tried_bge": 0.8177220821380615,
+  "sim_hist_mini": 0.604891300201416,
+  "sources": [
+   [
+    "opus",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b032",
+  "title": "Three-dimensional shape descriptors from a seeded conformer",
+  "spec": "For each molecule, add hydrogens, embed one conformer with ETKDG using randomSeed set from the seed argument, and run a light MMFF optimization with maxIters 200 (fall back to no optimization if it fails, and to zeros if embedding fails). Compute rdMolDescriptors PMI1, PMI2, PMI3, NPR1, NPR2, radius of gyration, and asphericity, and append these 7 values to the descriptor block for LightGBM. Remove hydrogens before the existing 2D descriptors are computed so that they are unchanged. Keep the rest of the pipeline the same. Cap the total runtime by using a fixed seed and no retries.",
+  "family": "data",
+  "sim_hist_bge": 0.7834159135818481,
+  "sim_tried_bge": 0.7834159135818481,
+  "sim_hist_mini": 0.6083202362060547,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b033",
+  "title": "Multi-k Tanimoto kNN average",
+  "spec": "Keep the LightGBM half of the model untouched and only strengthen the kNN component: compute the distance-weighted Tanimoto kNN prediction on Morgan radius-2 2048-bit fingerprints at three neighbourhood sizes k=3, k=7 and k=15, and average the three predictions with equal weight to form the kNN term. The final prediction stays 0.75 * LightGBM + 0.25 * (averaged kNN). Averaging over k gives a smoother local estimator: k=3 keeps the sharp nearest-neighbour signal for molecules with a close analogue, while k=15 damps the variance for isolated scaffolds, and the cost is three argsorts on one small distance matrix.",
+  "family": "other",
+  "sim_hist_bge": 0.894808292388916,
+  "sim_tried_bge": 0.894808292388916,
+  "sim_hist_mini": 0.7474073171615601,
+  "sources": [
+   [
+    "opus",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b034",
+  "title": "Truncated-SVD components of Morgan counts appended to descriptors",
+  "spec": "The incumbent uses RDKit 2D descriptors only, because raw Morgan count columns (2048 sparse features) diluted the gradient boosting. Instead, compress the structural information: build the Morgan radius-2 count fingerprint (1024 bits, as the existing featurize helper already does), fit sklearn.decomposition.TruncatedSVD(n_components=32, random_state=seed) on the training fingerprint matrix only, and append the 32 transformed components to the descriptor block for both train and test (transform test with the training-fitted SVD, never refit on test). Feed this descriptors-plus-32-components matrix to the unchanged LightGBM and keep the 0.75/0.25 kNN blend as is. Dense low-rank substructure axes are cheap for trees to split on and avoid the sparsity problem that sank the raw-count variant.",
+  "family": "data",
+  "sim_hist_bge": 0.9195644855499268,
+  "sim_tried_bge": 0.8379738330841064,
+  "sim_hist_mini": 0.827003002166748,
+  "sources": [
+   [
+    "fable",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b035",
+  "title": "Quantile-clipped descriptor inputs",
+  "spec": "Inside fit_predict, compute the 1st and 99th percentile of each descriptor column on the training features. Clip both train and test features to those bounds before fitting LightGBM. This limits the effect of extreme descriptor outliers such as Ipc and BCUT on the splits. The kNN and the rest stay unchanged.",
+  "family": "regularization",
+  "sim_hist_bge": 0.9808993339538574,
+  "sim_tried_bge": 0.8341550827026367,
+  "sim_hist_mini": 0.9261789917945862,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b036",
+  "title": "Finer LightGBM capacity step: 31 leaves, min_child_samples 20",
+  "spec": "The current script fits a single LightGBM regressor (L1/Huber objective, 500 trees, lr 0.03, num_leaves 15, subsample 0.8, colsample_bytree 0.5, min_child_samples 10) on the RDKit 2D descriptor block only, then blends 0.75 LightGBM + 0.25 Tanimoto kNN. Make one minimal hyperparameter step: set num_leaves=31 and min_child_samples=20, leaving every other setting, the feature block and the blend untouched. The intent is to test whether the tree capacity is slightly under-fit on 580-molecule training folds while keeping leaf population large enough to stay stable under scaffold-held-out folds. Change only the two keyword arguments in the LGBMRegressor constructor; do not add new code paths, extra models, or feature columns. Keep random_state=seed and n_jobs=8.",
+  "family": "regularization",
+  "sim_hist_bge": 0.893017053604126,
+  "sim_tried_bge": 0.893017053604126,
+  "sim_hist_mini": 0.7660852670669556,
+  "sources": [
+   [
+    "fable",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b037",
+  "title": "Inner-CV shrinkage and range clipping of predictions",
+  "spec": "Add a cheap post-hoc calibration. Inside fit_predict, run a seeded 5-fold CV on the training molecules with the current full model (LightGBM + kNN blend) to obtain out-of-fold predictions, fit the single scalar a that minimizes the mean absolute error of mean_y + a * (oof_pred - mean_y) over a small grid a in {0.85, 0.90, 0.95, 1.00, 1.05}, then apply that same shrinkage to the test predictions and finally clip them to the observed [min, max] range of train_y. Keep features, model and blend weights exactly as they are. Scaffold-split predictions on unseen skeletons tend to be over-dispersed, so a slight shrink plus range clipping can take MAE off without touching the model.",
+  "family": "other",
+  "sim_hist_bge": 0.800920844078064,
+  "sim_tried_bge": 0.7943964600563049,
+  "sim_hist_mini": 0.6196290254592896,
+  "sources": [
+   [
+    "opus",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b038",
+  "title": "Neighbour label smoothing of the target",
+  "spec": "Before fitting, smooth the training labels: for each training molecule compute the distance-weighted Tanimoto kNN estimate of its own label from the other training molecules only (Morgan radius-2 2048 bits, k=7, exclude self by masking the diagonal of the train-train distance matrix), then replace train_y by y_smooth = 0.85 * y + 0.15 * y_neighbour. Fit the existing L1 LightGBM on the smoothed labels, keep the kNN test prediction computed from the original (unsmoothed) train_y, and keep the final 0.75/0.25 blend. Measured Caco-2 values carry assay noise; shrinking each label slightly toward its chemical neighbourhood should reduce the variance the trees fit, without changing features or model family.",
+  "family": "data",
+  "sim_hist_bge": 0.840222954750061,
+  "sim_tried_bge": 0.8267719149589539,
+  "sim_hist_mini": 0.688987672328949,
+  "sources": [
+   [
+    "opus",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b039",
+  "title": "LightGBM extra_trees mode",
+  "spec": "Set extra_trees=True in the LightGBM parameters. Raise n_estimators to 800 to compensate for the weaker trees. Keep the L1 objective, the descriptor features and the 0.75/0.25 kNN blend.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8873003721237183,
+  "sim_tried_bge": 0.796408474445343,
+  "sim_hist_mini": 0.8115971088409424,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b040",
+  "title": "Decaying learning-rate schedule for LightGBM",
+  "spec": "Keep the L1 LightGBM on descriptors but replace the constant learning rate with a decaying schedule. Use n_estimators 1000 and pass callbacks=[lgb.reset_parameter(learning_rate=...)] to fit, where the learning rate at iteration i equals 0.05 times (0.1 raised to i/1000), so it decays smoothly from 0.05 to about 0.005. Keep num_leaves 15, colsample_bytree 0.5, subsample 0.8, min_child_samples 10 and the L1 objective. The kNN blend stays at 0.25. The change is only in the learning-rate schedule and the number of rounds.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8558727502822876,
+  "sim_tried_bge": 0.8558727502822876,
+  "sim_hist_mini": 0.70204758644104,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    5
+   ]
+  ]
+ }
+]

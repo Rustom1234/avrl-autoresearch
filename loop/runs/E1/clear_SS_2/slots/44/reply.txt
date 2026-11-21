@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def minmax_kernel(A, B):
+=======
+def autocorr_bcut(smiles):
+    from rdkit.Chem import rdMolDescriptors
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        try:
+            a = list(rdMolDescriptors.CalcAUTOCORR2D(m))
+        except Exception:
+            a = [0.0] * 192
+        try:
+            b = list(Descriptors.BCUT2D(m))
+        except Exception:
+            b = [0.0] * 8
+        rows.append(a + b)
+    X = np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+
+
+def minmax_kernel(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = np.hstack([descriptors(train_smiles), erg(train_smiles), featurize(train_smiles)])
+    Xte = np.hstack([descriptors(test_smiles), erg(test_smiles), featurize(test_smiles)])
+=======
+    Xtr = np.hstack([descriptors(train_smiles), erg(train_smiles), autocorr_bcut(train_smiles), featurize(train_smiles)])
+    Xte = np.hstack([descriptors(test_smiles), erg(test_smiles), autocorr_bcut(test_smiles), featurize(test_smiles)])
+>>>>>>> REPLACE
+-----

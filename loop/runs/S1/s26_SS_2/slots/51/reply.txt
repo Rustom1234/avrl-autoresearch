@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 200:
+=======
+    while time.time() - t0 < 175:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+
+
+# EVOLVE-BLOCK-END
+=======
+    try:
+        from scipy.optimize import NonlinearConstraint, Bounds
+        v0 = np.concatenate([best[0][:, 0], best[0][:, 1], best[1] + 1e-10])
+        dl = t0 + 215
+        def stop_cb(xk, state):
+            return time.time() > dl
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), v0,
+                           jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                           method="trust-constr",
+                           bounds=Bounds(np.zeros(3 * n), np.concatenate([np.ones(2 * n), np.full(n, 0.5)])),
+                           constraints=[NonlinearConstraint(cons, 0, np.inf, jac=cjac)],
+                           callback=stop_cb,
+                           options={"gtol": 1e-12, "maxiter": 500})
+            c, r = finalize(res.x)
+            if r.sum() > bs:
+                bs = r.sum(); best = (c, r); v0 = res.x
+        except Exception:
+            pass
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), v0,
+                           jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                           method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                           options={"maxiter": 300, "ftol": 1e-15})
+            c, r = finalize(res.x)
+            if r.sum() > bs:
+                bs = r.sum(); best = (c, r)
+        except Exception:
+            pass
+    except Exception:
+        pass
+    return best
+
+
+# EVOLVE-BLOCK-END
+>>>>>>> REPLACE
+-----

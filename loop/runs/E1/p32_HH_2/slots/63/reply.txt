@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    budget = TIME_FRACTION * time_limit
+    k = 0   # hops since the last improvement, drives the cosine cycle
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        s = 0.005 + 0.5 * (0.08 - 0.005) * (1 + np.cos(2 * np.pi * (k % 15) / 15))
+        k += 1
+        c, r = best
+        p = (c + rng.normal(0, s, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+            k = 0
+    return best
+>>>>>>> REPLACE
+-----

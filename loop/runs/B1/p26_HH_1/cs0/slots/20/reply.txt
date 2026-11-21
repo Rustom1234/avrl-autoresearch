@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+        x1 = np.concatenate([x0[:2 * n], [INIT_RADIUS]])
+=======
+        x1 = np.concatenate([x0[:2 * n], [rng.uniform(0.03, 0.12)]])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None:   # first start: a random restart
+            c, r = _solve_once(n, rng)
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+=======
+    rng, t0, pool = np.random.default_rng(seed), time.process_time(), []
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:
+        if len(pool) < 3 or time.process_time() - t0 < 0.25 * budget:   # random restart
+            c, r = _solve_once(n, rng)
+        else:              # local kick on a random pool member
+            b = pool[rng.integers(len(pool))]
+            c, r = b[0].copy(), b[1].copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if len(pool) < 3:
+            pool.append((c, r))
+        else:
+            w = min(range(3), key=lambda i: pool[i][1].sum())
+            if r.sum() > pool[w][1].sum():
+                pool[w] = (c, r)
+    return max(pool, key=lambda b: b[1].sum())
+>>>>>>> REPLACE
+-----

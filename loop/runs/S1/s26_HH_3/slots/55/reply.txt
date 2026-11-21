@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _coulomb_spread(c, steps=200, lr=0.002):
+    """Gradient descent on E = sum_pairs d^-p + sum_walls (2w)^-p, p annealed 1 -> 6.
+    Per-circle step norm is capped so the steep 1/d^p terms cannot blow up."""
+    n = len(c)
+    c = np.clip(np.asarray(c, dtype=float).copy(), 0.0, 1.0)
+    iu, ju = np.triu_indices(n, 1)
+    for t in range(steps):
+        p = 1.0 + 5.0 * t / max(steps - 1, 1)
+        dv = c[iu] - c[ju]
+        d = np.sqrt(np.sum(dv * dv, axis=1)) + 1e-9
+        coef = -p * d ** (-(p + 2.0))
+        contrib = coef[:, None] * dv
+        g = np.zeros_like(c)
+        np.add.at(g, iu, contrib)
+        np.add.at(g, ju, -contrib)
+        xl = np.maximum(c[:, 0], 1e-3)
+        yl = np.maximum(c[:, 1], 1e-3)
+        xr = np.maximum(1.0 - c[:, 0], 1e-3)
+        yr = np.maximum(1.0 - c[:, 1], 1e-3)
+        g[:, 0] += -2.0 * p * (2.0 * xl) ** (-p - 1.0) + 2.0 * p * (2.0 * xr) ** (-p - 1.0)
+        g[:, 1] += -2.0 * p * (2.0 * yl) ** (-p - 1.0) + 2.0 * p * (2.0 * yr) ** (-p - 1.0)
+        step = lr * g
+        sn = np.sqrt(np.sum(step * step, axis=1))
+        step = step * np.minimum(1.0, 0.02 / (sn + 1e-12))[:, None]
+        c = np.clip(c - step, 0.0, 1.0)
+    return c
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c0, r0 = _relax(c0, r0)
+=======
+            c0 = _coulomb_spread(c0)
+            dmat = np.sqrt(((c0[:, None, :] - c0[None, :, :]) ** 2).sum(-1)) + np.eye(n) * 1e9
+            r0 = np.maximum(0.5 * dmat.min(axis=1), 1e-3)
+>>>>>>> REPLACE
+-----

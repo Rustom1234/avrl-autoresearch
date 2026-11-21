@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Recomputed z = 1.93 (diff 0.0942 - 0.08265 = 0.01155; SE = 0.0049*sqrt(1/2 + 1/1) = 0.0060), consistent with the reported 1.915; still only 2 candidate runs vs 1 incumbent run, so the margin is thin relative to the 0.0049 noise sd.",
+  "Fit/transform discipline looks correct: QuantileTransformer, TruncatedSVD and all models are fit on training rows only; the kNN block uses train labels only and test molecules contribute just similarity values.",
+  "Robustness: standardize() returns Chem.MolFromSmiles(smi) which is None for an unparseable SMILES, and the descriptor loop would then raise. The incumbent had the same exposure, so this is not a new defect, but it is a crash risk on the final full-data fit.",
+  "Complexity cost: the diff adds standardization, a Tanimoto kNN, SVD+quantile features and an MLP all at once, so the per-component contribution is unknown and the added runtime is unmeasured against the 10-minute cap.",
+  "Ensemble members are averaged with equal rank weights, so the newly added kNN and MLP each get the same weight as the tree models without any validation evidence that this is the right split."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 1.93
+ }
+}

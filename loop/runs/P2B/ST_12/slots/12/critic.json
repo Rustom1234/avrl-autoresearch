@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine. The diff changes only TOTAL_BATCH_SIZE (2**19 to 2**18) and its comment. It does not touch the val_bpb measurement, the data, the seed lines, the prepare.py import line or the evaluation call, and the harness raised no integrity flags.",
+  "No bug makes the result meaningless. Halving the total batch is a valid hyperparameter change, provided train.py still asserts that TOTAL_BATCH_SIZE divides evenly by DEVICE_BATCH_SIZE * sequence length. At 64 * 2048 = 2**17 tokens per micro-batch it does, giving 2 accumulation steps.",
+  "The comment is probably wrong. If the sequence length is 2048 (it comes from prepare.py, so I couldn't check it), 2**18 / (64 * 2048) = 2 micro-batches per step, not 4. The 4 in the comment matches the old 2**19 setting. This only affects the comment, not the result.",
+  "I couldn't reproduce z = 3.035 exactly, because the incumbent's individual run values weren't given (only its mean, 1.0832 over 2 runs). Candidate mean = 1.06665, so the difference is 0.01655 in the candidate's favour. Using only the candidate's spread (sample SD about 0.0019, n = 2) would give z of about 12. The harness's 3.035 implies a standard error of about 0.0055, so it is probably using a pooled or noise-floor variance. Either way, the direction and the accept decision are consistent with the numbers.",
+  "With n = 2 per arm, the evidence is thin. Since the program card counts replicate runs as slots, one more replicate run would be prudent before treating this as a firm improvement."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.06665,
+  "delta_vs_incumbent": -0.01655
+ }
+}

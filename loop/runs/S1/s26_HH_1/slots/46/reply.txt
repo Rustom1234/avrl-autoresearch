@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def run_packing():
+=======
+def _quantised_escape(c, r, best_s, rng, deadline):
+    # Snap 6 random centres to a 0.02 grid, nudge them, re-optimise, keep only if the sum improves.
+    n = 26
+    if time.perf_counter() > deadline:
+        return c, r, best_s
+    cand = np.array(c, dtype=float)
+    idx = rng.choice(n, 6, replace=False)
+    snapped = np.round(cand[idx] / 0.02) * 0.02
+    snapped = np.clip(snapped + rng.uniform(-0.01, 0.01, (6, 2)), 0.0, 1.0)
+    cand[idx] = snapped
+    cc, rr = _local_opt(cand)
+    s = float(np.sum(rr))
+    if s > best_s + 1e-9 and _valid_packing(cc, rr):
+        return cc, rr, s
+    return c, r, best_s
+
+
+def run_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = float(np.sum(r))
+        if s > best_s and _valid_packing(c, r):
+            best_c, best_r, best_s = c, r, s
+        k += 1
+=======
+        s = float(np.sum(r))
+        if s > best_s and _valid_packing(c, r):
+            best_c, best_r, best_s = c, r, s
+        if k % 3 == 2 and best_c is not None:
+            best_c, best_r, best_s = _quantised_escape(
+                best_c, best_r, best_s, np.random.default_rng(4242 + k), t_start + 200.0)
+        k += 1
+>>>>>>> REPLACE
+-----

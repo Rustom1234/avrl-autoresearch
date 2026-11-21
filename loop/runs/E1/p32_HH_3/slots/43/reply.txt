@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    k = int(np.argmin(r))
+    best = None
+    for _ in range(trials):
+        p = rng.uniform(0, 1, 2)
+        d = np.sqrt(((c - p) ** 2).sum(1))
+        d[k] = np.inf
+        rk = max(min(p.min(), (1 - p).min(), (d - r).min()), 0)
+        nb = d < rk + r + 0.05
+        score = rk + r[nb].sum()
+=======
+    k = int(np.argmin(r))
+    cand = rng.uniform(0, 1, (200, 2))
+    d0 = np.sqrt(((cand[:, None] - c[None]) ** 2).sum(-1))
+    d0[:, k] = np.inf
+    clear = np.maximum(np.minimum(np.minimum(cand.min(1), (1 - cand).min(1)), (d0 - r[None]).min(1)), 0)
+    pool = cand[clear >= 0.8 * clear.max()]
+    best = None
+    for _ in range(trials):
+        p = pool[rng.integers(len(pool))]
+        d = np.sqrt(((c - p) ** 2).sum(1))
+        d[k] = np.inf
+        rk = max(min(p.min(), (1 - p).min(), (d - r).min()), 0)
+        nb = d < rk + r + 0.05
+        contacts = int((np.abs(d - r - rk) < 1e-3).sum())
+        score = rk + r[nb].sum() + 0.5 * contacts
+>>>>>>> REPLACE
+-----

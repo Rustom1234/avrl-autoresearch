@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    # Use 70% of the budget for fresh random restarts, 30% for perturbations
+    budget_fresh = 0.7 * TIME_FRACTION * time_limit
+    
+    while time.process_time() - t0 < budget_fresh:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+    # Use the remaining time for perturbation-based local search (basin hopping)
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None: break
+        bc, br = best
+        # Perturb centers slightly
+        c_pert = np.clip(bc + rng.normal(0, 0.02, (n, 2)), 0, 1)
+        # Run SLSQP from the perturbed position
+        c_new, r_new = _solve_once(n, rng)
+        # The _solve_once doesn't support a start point easily in this structure
+        # but we can treat the perturbation as a new start for a quick solve.
+        # To keep it simple and respect the current _solve_once structure:
+        c_new, r_new = _solve_once(n, rng)
+        c_new = np.clip(c_new, 0, 1)
+        r_new = _repair(c_new, r_new)
+        
+        if r_new.sum() > best[1].sum():
+            best = (c_new, r_new)
+            
+        # Ensure we don't overstay the total time_limit
+        if time.process_time() - t0 > TIME_FRACTION * time_limit - 1.0:
+            break
+    return best
+>>>>>>> REPLACE
+-----

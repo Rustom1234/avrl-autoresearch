@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def avalon(smiles):
+    from rdkit.Avalon import pyAvalonTools
+    rows = []
+    for s in smiles:
+        fp = pyAvalonTools.GetAvalonCountFP(Chem.MolFromSmiles(s), nBits=1024)
+        v = np.zeros(1024, dtype=np.float32)
+        for k, c in fp.GetNonzeroElements().items():
+            v[k] = c
+        rows.append(v)
+    return np.array(rows, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+    pr = r.predict(np.log1p(Xte[:, -N_BITS:]))
+=======
+    Atr = np.hstack([Xtr[:, -N_BITS:], avalon(train_smiles)])
+    Ate = np.hstack([Xte[:, -N_BITS:], avalon(test_smiles)])
+    r = Ridge(alpha=10.0).fit(np.log1p(Atr), y)
+    pr = r.predict(np.log1p(Ate))
+>>>>>>> REPLACE
+-----

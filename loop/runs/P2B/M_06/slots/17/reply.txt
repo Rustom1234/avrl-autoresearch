@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+total_training_time = 0
+step = 0
+=======
+total_training_time = 0
+step = 0
+avg_params = None
+avg_count = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+
+    # Tail averaging: uniform running average of weights once progress >= 0.8
+    if progress >= 0.8:
+        cur = [p.detach().float() for p in model.parameters()]
+        if avg_params is None:
+            avg_params = [c.clone() for c in cur]
+            avg_count = 1
+        else:
+            avg_count += 1
+            torch._foreach_lerp_(avg_params, cur, 1.0 / avg_count)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Tail averaging: load averaged weights for final eval
+if avg_params is not None:
+    with torch.no_grad():
+        for p, a in zip(model.parameters(), avg_params):
+            p.copy_(a)
+
+# Final eval
+model.eval()
+>>>>>>> REPLACE
+-----

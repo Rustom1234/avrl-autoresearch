@@ -1,0 +1,75 @@
+<<<<<<< SEARCH
+    centers = np.column_stack([np.clip(z[:n], 0.0, 1.0), np.clip(z[n:2 * n], 0.0, 1.0)])
+    radii = _repair(centers, np.maximum(z[2 * n:], 0.0))
+    return centers, radii
+=======
+    centers = np.column_stack([np.clip(z[:n], 0.0, 1.0), np.clip(z[n:2 * n], 0.0, 1.0)])
+    radii = _repair(centers, np.maximum(z[2 * n:], 0.0))
+
+    lo_u = np.log(1e-4)
+    hi_u = np.log(0.5)
+
+    def obj_log(v):
+        return -np.sum(np.exp(v[2 * n:]))
+
+    def obj_log_jac(v):
+        g = np.zeros_like(v)
+        g[2 * n:] = -np.exp(v[2 * n:])
+        return g
+
+    def cons_log(v):
+        x = v[:n]
+        y = v[n:2 * n]
+        r = np.exp(v[2 * n:])
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        d = np.sqrt(dx * dx + dy * dy + 1e-18)
+        pair = d - r[iu] - r[ju]
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    def cons_log_jac(v):
+        x = v[:n]
+        y = v[n:2 * n]
+        r = np.exp(v[2 * n:])
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        d = np.sqrt(dx * dx + dy * dy + 1e-18)
+        ux = dx / d
+        uy = dy / d
+        J = np.zeros((m + 4 * n, 3 * n))
+        rows = np.arange(m)
+        J[rows, iu] = ux
+        J[rows, ju] = -ux
+        J[rows, n + iu] = uy
+        J[rows, n + ju] = -uy
+        J[rows, 2 * n + iu] = -r[iu]
+        J[rows, 2 * n + ju] = -r[ju]
+        J[m + k, k] = 1.0
+        J[m + k, 2 * n + k] = -r[k]
+        J[m + n + k, k] = -1.0
+        J[m + n + k, 2 * n + k] = -r[k]
+        J[m + 2 * n + k, n + k] = 1.0
+        J[m + 2 * n + k, 2 * n + k] = -r[k]
+        J[m + 3 * n + k, n + k] = -1.0
+        J[m + 3 * n + k, 2 * n + k] = -r[k]
+        return J
+
+    try:
+        v0 = z.copy()
+        v0[2 * n:] = np.log(np.maximum(z[2 * n:], 1e-4))
+        v0[2 * n:] = np.clip(v0[2 * n:], lo_u, hi_u)
+        ubounds = [(0.0, 1.0)] * (2 * n) + [(lo_u, hi_u)] * n
+        resl = minimize(obj_log, v0, jac=obj_log_jac, method="SLSQP", bounds=ubounds,
+                        constraints=[{"type": "ineq", "fun": cons_log, "jac": cons_log_jac}],
+                        options={"maxiter": 500, "ftol": 1e-12})
+        zl = resl.x
+        cl = np.column_stack([np.clip(zl[:n], 0.0, 1.0), np.clip(zl[n:2 * n], 0.0, 1.0)])
+        rl = _repair(cl, np.exp(zl[2 * n:]))
+        if np.sum(rl) > np.sum(radii):
+            centers, radii = cl, rl
+    except Exception:
+        pass
+    return centers, radii
+>>>>>>> REPLACE
+-----

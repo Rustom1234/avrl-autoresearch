@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _sub_solve(c, r, free):
+    """Optimise only the free circles (maximise their radius sum); the others stay fixed."""
+    n = len(r)
+    f = np.flatnonzero(free)
+    k = len(f)
+    iu = np.triu_indices(n, 1)
+    keep = free[iu[0]] | free[iu[1]]
+    pi, pj = iu[0][keep], iu[1][keep]
+
+    def unpack(v):
+        cc, rr = c.copy(), r.copy()
+        cc[f] = v[:2 * k].reshape(k, 2)
+        rr[f] = v[2 * k:]
+        return cc, rr
+
+    def cons(v):
+        cc, rr = unpack(v)
+        d = np.sqrt(((cc[pi] - cc[pj]) ** 2).sum(1)) - rr[pi] - rr[pj]
+        fc, fr = cc[f], rr[f]
+        return np.concatenate([d, fc[:, 0] - fr, fc[:, 1] - fr, 1 - fc[:, 0] - fr, 1 - fc[:, 1] - fr, fr])
+
+    x0 = np.concatenate([c[f].ravel(), r[f]])
+    res = minimize(lambda v: -v[2 * k:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": 100})
+    return unpack(res.x)
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+=======
+            r[m] = 0
+            free = m | (np.hypot(*(c - p).T) < R + 0.15)
+            c, r = _sub_solve(c, r, free)
+            if r.sum() < best[1].sum() - 0.01:
+                continue
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+>>>>>>> REPLACE
+-----

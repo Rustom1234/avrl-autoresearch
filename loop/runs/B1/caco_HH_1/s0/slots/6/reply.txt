@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import StandardScaler
+=======
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVR
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def tanimoto_count(A, B):
+    K = np.empty((A.shape[0], B.shape[0]))
+    for i in range(A.shape[0]):
+        mn = np.minimum(A[i], B).sum(axis=1)
+        mx = np.maximum(A[i], B).sum(axis=1)
+        K[i] = mn / np.maximum(mx, 1e-12)
+    return K
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    Ftr = Xtr[:, :N_BITS].astype(np.float64)
+    Fte = Xte[:, :N_BITS].astype(np.float64)
+    svr = SVR(kernel='precomputed', C=1.0, epsilon=0.05)
+    svr.fit(tanimoto_count(Ftr, Ftr), y - base_tr)
+    svr_te = svr.predict(tanimoto_count(Fte, Ftr))
+    return base_te + 0.5 * stage2.predict(Xte) + 0.5 * svr_te
+>>>>>>> REPLACE
+-----

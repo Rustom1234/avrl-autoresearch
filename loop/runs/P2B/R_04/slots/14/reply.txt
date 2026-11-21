@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+        self.mlp = MLP(config)
+
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(norm(x))
+        return x
+=======
+        self.mlp = MLP(config)
+        self.lam = 0.02 * (layer_idx + 1) / config.n_layer
+
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + F.softshrink(self.attn(norm(x), ve, cos_sin, window_size), self.lam)
+        x = x + F.softshrink(self.mlp(norm(x)), self.lam)
+        return x
+>>>>>>> REPLACE
+-----

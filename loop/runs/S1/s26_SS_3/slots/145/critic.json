@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing found that gets around the measurement. The diff only adds another way to choose starting points for 3 of every 10 restarts: a radius field mixing a radial and a linear profile, then greedy non-overlap picking from random points, then 3 Lloyd (k-means) steps. It reads no files, pastes no coordinates and uses only seeded rng.",
+  "No bug that makes the result meaningless. rfield uses rng_th and b_w, which are set after rfield is defined but before it is first called, so it works. If the greedy pick finds fewer than 26 points, the code falls back to the existing c0/r0. The final packing still goes through the existing optimiser and validity check.",
+  "Runtime risk, not a veto: the greedy pick is a pure-Python double loop over 6000 points times up to 26 picks, repeated for each kf step down to 0.3, so one call can take seconds. It runs on 30% of restarts and uses up time the optimiser could have had. This run finished, but the 5-minute limit is worth watching.",
+  "The candidate scored -2.636, the same as the incumbent's -2.6360, so it gives no gain. Rejecting it is right, and nothing claimed disagrees with the numbers. The score is about equal to the known best (~2.6358, reported as 2.635), so it is plausible.",
+  "Each side has only one run, so the variance can't be estimated. The difference is 0, which makes z = 0 under any variance."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0
+ }
+}

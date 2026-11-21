@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, init=None, init_r=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    r0 = np.full(n, INIT_RADIUS) if init_r is None else init_r
+    x0 = np.concatenate([base.ravel(), r0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _swap_kick(c, r, rng):
+    """Swap the centres of two circles whose radii differ by more than a factor 1.3."""
+    n = len(r)
+    for _ in range(100):
+        i, j = rng.choice(n, 2, replace=False)
+        if max(r[i], r[j]) > 1.3 * min(r[i], r[j]):
+            c = c.copy()
+            c[[i, j]] = c[[j, i]]
+            break
+    return c
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        if guided:
+            c, r = _solve_once(n, rng, _swap_kick(best[0], best[1], rng), 0.9 * best[1])
+        else:
+            c, r = _solve_once(n, rng)
+>>>>>>> REPLACE
+-----

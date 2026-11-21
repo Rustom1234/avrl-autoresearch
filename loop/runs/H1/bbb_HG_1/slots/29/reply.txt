@@ -1,0 +1,226 @@
+<<<<<<< SEARCH
+from catboost import CatBoostClassifier
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        features.append(np.concatenate([fp, desc]))
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        features.append(np.concatenate([fp, desc]))
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+    
+    # Use a nested 3-fold CV to select the best C
+    cv_inner = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
+    param_grid = {'C': [0.01, 0.1, 1, 10]}
+    
+    # We use a subset of the data for the inner CV to stay within time limits
+    # if the dataset is large, but here 1624 is small enough to just do it.
+    model = LogisticRegression(max_iter=2000, solver='lbfgs', multi_class='ovr')
+    
+    # Standardize the features
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    
+    # GridSearchCV for C selection
+    grid = GridSearchCV(model, param_grid, cv=cv_inner, scoring='accuracy')
+    grid.fit(X_train_scaled, y_train)
+    
+    best_model = grid.best_estimator_
+    
+    X_test = featurize(test_smiles)
+    X_test_scaled = scaler.transform(X_test)
+    return best_model.predict_proba(X_test_scaled)[:, 1]
+-----
+<<<<<<< SEARCH
+from catboost import CatBoostClassifier
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        features.append(np.concatenate([fp, desc]))
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+Dos
+>>>>>>> REPLACE
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        features.append(np.concatenate([fp, desc]))
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+    
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    
+    cv_inner = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
+    param_grid = {'C': [0.01, 0.1, 1, 10]}
+    
+    lr = LogisticRegression(max_iter=2000, solver='lbfgs')
+    grid = GridSearchCV(lr, param_grid, cv=cv_inner, scoring='accuracy')
+    grid.fit(X_train_scaled, y_train)
+    
+    X_test = featurize(test_smiles)
+    X_test_scaled = scaler.transform(X_test)
+    return grid.best_estimator_.predict_proba(X_test_scaled)[:, 1]
+-----
+<<<<<<< SEARCH
+from catboost import CatBoostClassifier
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        features.append(np.concatenate([fp, desc]))
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+ нюанс
+>>>>>>> REPLACE
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import StratifiedKFold, GridSearchCV
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        features.append(np.concatenate([fp, desc]))
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+    
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    
+    cv_inner = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
+    param_grid = {'C': [0.01, 0.1, 1, 10]}
+    
+    lr = LogisticRegression(max_iter=2000, solver='lbfgs', multi_class='ovr')
+    grid = GridSearchCV(lr, param_grid, cv=cv_inner, scoring='accuracy')
+    grid.fit(X_train_scaled, y_train)
+    
+    X_test = featurize(test_smiles)
+    X_test_scaled = scaler.transform(X_test)
+    return grid.best_estimator_.predict_proba(X_test_scaled)[:, 1]
+-----

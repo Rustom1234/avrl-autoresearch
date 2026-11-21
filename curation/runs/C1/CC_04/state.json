@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/CC_04/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.9181554863109738
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Calculate the average length of the documents in target_sample, then filter the docs pool to only include documents whose first 300 characters have a high cosine similarity to the average of the target_sample's first 300 characters (using a simple character-frequency-based vector or just including documents that share common keywords with the target_sample).",
+   "outcome": "dev 1.9182 against 1.9586 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace the character-frequency vector with a word-frequency vector using a whitelist of common English words and Wikipedia-style terms, and calculate the centroid of these word counts for the target sample.",
+   "outcome": "dev 1.9703 against 1.9182 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Implement a TF-IDF inspired approach where we calculate the average character/word frequency for the target sample and then score the pool documents based on the Cosine Similarity to this target centroid, but instead of just selecting the top 50%, we use a 'Soft-Max' style weighting: calculate similarity for all docs and return a sample of the top indices where the number of tokens in the selected indices is at least 2 * T to ensure high-quality repetition.",
+   "outcome": "dev 1.9769 against 1.9182 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Use tiktoken to encode the first 100 tokens of both the target_sample and the pool documents, then calculate the cosine similarity between the mean embedding of the target_sample and each document in the pool.",
+   "outcome": "dev 1.9543 against 1.9182 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the character-frequency vector with a N-gram (bigram) count vector (using the first 300 characters) and calculate the cosine similarity between the target sample centroid and the pool documents.",
+   "outcome": "dev 1.9452 against 1.9182 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Compute the character frequency vectors for the target sample and the pool documents, but instead of using a fixed alphabet, use a dynamic vocabulary based on all unique characters present in the target_sample combined with the most frequent 100 characters found in the pool.",
+   "outcome": "dev 1.9589 against 1.9182 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Instead of a global centroid, calculate the average character frequency vector for the target_sample and use it as a 'prior'. Score each doc in the pool by its cosine similarity to this target centroid, then rank the docs and select the top N indices where N is large enough so that the total token count of the unique selected documents is at least 2*T (relying on the trainer cycling them).",
+   "outcome": "dev 1.9969 against 1.9182 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Use tiktoken to encode the first 200 tokens of each document in the pool and the target_sample, then calculate the cosine similarity between the mean of the target_sample's token-count vectors (using a frequency count of the token IDs) and the token-count vectors of the pool documents.",
+   "outcome": "dev 1.9443 against 1.9182 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Use a Jaccard similarity-based approach for the first 300 characters: tokenize the start of the target_sample documents into a set of unique words/n-grams, then calculate the intersection-over-union with the first 300 characters of each document in the pool.",
+   "outcome": "dev 1.9717 against 1.9182 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Implement a Weighted Jaccard Similarity based on a character-level n-gram (bi-grams) approach: extract all unique bigrams from the first 300 characters of the target sample, and for each document in the pool, calculate the Jaccard similarity between its bigrams and the target sample's bigram set, selecting the top indices that sum to at least 2*T tokens.",
+   "outcome": "dev 2.0822 against 1.9182 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Use tiktoken to encode the first 300 characters of both the target_sample and the pool documents, and then calculate the cosine similarity between the word-frequency vectors (counts of token IDs) of the target_sample centroid and each pool document.",
+   "outcome": "dev 1.9626 against 1.9182 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Use a simple heuristic to identify 'Wikipedia-like' formatting (e.g., titles in brackets or quotes followed by a definition or description) in both the target_sample and the pool. Calculate the character-frequency similarity of only those documents that match this 'encyclopedic' style pattern to find the best structural matches.",
+   "outcome": "dev 2.0456 against 1.9182 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.015023699999999997,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0007289999999999999,
+   "dev": 1.9181554863109738,
+   "inc": 1.958580622644482,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.563602578242251,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0019648499999999998,
+   "dev": 1.9703021852358993,
+   "inc": 1.9181554863109738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.563602578242251,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00107655,
+   "dev": 1.9769484559901798,
+   "inc": 1.9181554863109738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.563602578242251,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0013912499999999997,
+   "dev": 1.9542614832348524,
+   "inc": 1.9181554863109738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.563602578242251,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0010627499999999995,
+   "dev": 1.9451923826014144,
+   "inc": 1.9181554863109738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.563602578242251,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0009523499999999994,
+   "dev": 1.958875745326999,
+   "inc": 1.9181554863109738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.563602578242251,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0010630500000000003,
+   "dev": 1.996895942890253,
+   "inc": 1.9181554863109738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.563602578242251,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0016998000000000013,
+   "dev": 1.9443266474622591,
+   "inc": 1.9181554863109738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.563602578242251,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0010351499999999986,
+   "dev": 1.971739299329193,
+   "inc": 1.9181554863109738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.563602578242251,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0011311499999999992,
+   "dev": 2.082247477416153,
+   "inc": 1.9181554863109738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.563602578242251,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0017017500000000001,
+   "dev": 1.9626346860736203,
+   "inc": 1.9181554863109738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.563602578242251,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0012160499999999998,
+   "dev": 2.045571386082223,
+   "inc": 1.9181554863109738,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.958580622644482,
+ "inc_slot": 1
+}

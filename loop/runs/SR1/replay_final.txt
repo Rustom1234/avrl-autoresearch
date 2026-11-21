@@ -1,0 +1,84 @@
+portfolio 1: schedule tuned on memory = 3 cheap tries, 0 middle tries, then the strongest; best in hindsight = 12 cheap, 0 middle (99 = until used up)
+portfolio 2: schedule tuned on memory = 3 cheap tries, 0 middle tries, then the strongest; best in hindsight = 6 cheap, 0 middle (99 = until used up)
+portfolio 3: schedule tuned on memory = 3 cheap tries, 1 middle tries, then the strongest; best in hindsight = 3 cheap, 0 middle (99 = until used up)
+60 problems in 3 portfolios (folds), 100 worlds; memory per portfolio: 64, 64, 64 problems
+stored attempts per problem (fewest): haiku 12, sonnet 4, fable 1
+mean cost of one attempt: haiku 0.0075 USD, sonnet 0.0741 USD, fable 0.4747 USD
+largest budget 28.48 USD in total = one fable attempt on every problem
+
+Problems solved of 60 (mean over worlds, summed over portfolios) at each budget
+| policy | 0.57 USD | 1.42 USD | 2.85 USD | 5.70 USD | 11.39 USD | 19.94 USD | 28.48 USD | area |
+|---|---|---|---|---|---|---|---|---|
+| always haiku | 16.9 | 21.5 | 23.8 | 25.0 | 25.0 | 25.0 | 25.0 | 0.408 |
+| always sonnet | 2.6 | 6.0 | 11.5 | 19.9 | 23.9 | 26.0 | 26.0 | 0.370 |
+| always fable | 1.1 | 2.5 | 4.7 | 9.4 | 18.8 | 32.5 | 49.0 | 0.392 |
+| cascade: 1 try each, cheap to strong | 16.1 | 17.4 | 19.2 | 22.5 | 28.6 | 37.6 | 46.9 | 0.526 |
+| cascade: 3 cheap tries, then strongest | 16.9 | 21.0 | 22.3 | 25.3 | 31.5 | 40.4 | 49.0 | 0.572 |
+| cascade: every model used up in turn | 16.9 | 21.5 | 23.8 | 25.8 | 27.6 | 31.2 | 38.7 | 0.484 |
+| cascade: schedule tuned on the memory problems | 16.9 | 21.1 | 22.2 | 24.4 | 30.5 | 39.5 | 48.0 | 0.559 |
+| cascade: best schedule in hindsight | 16.9 | 21.4 | 23.2 | 26.3 | 32.2 | 40.7 | 49.0 | 0.579 |
+| bandit over models, cost blend | 2.7 | 9.4 | 18.7 | 26.1 | 28.5 | 32.0 | 39.1 | 0.476 |
+| Thompson, no cost | 2.0 | 3.9 | 7.2 | 13.4 | 24.2 | 37.2 | 46.5 | 0.454 |
+| Thompson, cost aware | 16.1 | 21.4 | 23.8 | 25.6 | 27.6 | 31.4 | 38.7 | 0.485 |
+| index, separate beliefs | 16.9 | 21.5 | 23.8 | 25.8 | 27.6 | 31.2 | 38.7 | 0.484 |
+| index, memory of failures only | 16.9 | 21.5 | 23.8 | 25.8 | 29.7 | 37.9 | 46.0 | 0.546 |
+| INDEX RULE (memory: failures and how close) | 18.4 | 22.8 | 24.6 | 26.2 | 33.8 | 40.9 | 47.1 | 0.577 |
+| clairvoyant (reference) | 25.4 | 27.5 | 30.3 | 35.4 | 43.3 | 49.0 | 49.0 | 0.714 |
+
+area = share of problems solved, averaged over all budgets from 0 to the largest (higher is better)
+
+Dollars to solve 25% of the problems of a portfolio (median over worlds, summed over portfolios; 'never' if not reached in half the worlds of some portfolio)
+  always haiku                                   0.40
+  always sonnet                                  3.41
+  always fable                                   8.36
+  cascade: 1 try each, cheap to strong           0.40
+  cascade: 3 cheap tries, then strongest         0.40
+  cascade: every model used up in turn           0.40
+  cascade: schedule tuned on the memory problems 0.40
+  cascade: best schedule in hindsight            0.40
+  bandit over models, cost blend                 1.73
+  Thompson, no cost                              5.73
+  Thompson, cost aware                           0.44
+  index, separate beliefs                        0.40
+  index, memory of failures only                 0.40
+  INDEX RULE (memory: failures and how close)    0.40
+  clairvoyant (reference)                        0.08
+
+Dollars to solve 50% of the problems of a portfolio (median over worlds, summed over portfolios; 'never' if not reached in half the worlds of some portfolio)
+  always haiku                                   never
+  always sonnet                                  never
+  always fable                                   17.52
+  cascade: 1 try each, cheap to strong           11.48
+  cascade: 3 cheap tries, then strongest         8.64
+  cascade: every model used up in turn           13.77
+  cascade: schedule tuned on the memory problems 9.27
+  cascade: best schedule in hindsight            8.02
+  bandit over models, cost blend                 12.59
+  Thompson, no cost                              14.24
+  Thompson, cost aware                           13.64
+  index, separate beliefs                        13.77
+  index, memory of failures only                 9.77
+  INDEX RULE (memory: failures and how close)    8.92
+  clairvoyant (reference)                        2.11
+
+The rule's attempts per world, by model: haiku 475.0, sonnet 52.8, fable 33.5
+
+Signal check: problems where every haiku attempt failed: 35, of which a stronger model solved 24
+  best haiku training error (log10) as predictor of 'a stronger model solves it': AUC 0.49 (0.28 to 0.70)
+  median log10 error where solved later -4.3, where not -4.2
+
+Area of the rule minus area of each policy (200 resamples of the problems, 95% interval)
+  always haiku                                   +0.169 (+0.119 to +0.217)
+  always sonnet                                  +0.200 (+0.134 to +0.277)
+  always fable                                   +0.177 (+0.079 to +0.262)
+  cascade: 1 try each, cheap to strong           +0.046 (-0.003 to +0.097)
+  cascade: 3 cheap tries, then strongest         +0.001 (-0.044 to +0.049)
+  cascade: every model used up in turn           +0.094 (+0.038 to +0.146)
+  cascade: schedule tuned on the memory problems +0.017 (-0.031 to +0.065)
+  cascade: best schedule in hindsight            -0.014 (-0.054 to +0.023)
+  bandit over models, cost blend                 +0.101 (+0.050 to +0.148)
+  Thompson, no cost                              +0.124 (+0.057 to +0.192)
+  Thompson, cost aware                           +0.093 (+0.041 to +0.145)
+  index, separate beliefs                        +0.094 (+0.038 to +0.146)
+  index, memory of failures only                 +0.032 (-0.004 to +0.069)
+  clairvoyant (reference)                        -0.133 (-0.190 to -0.077)

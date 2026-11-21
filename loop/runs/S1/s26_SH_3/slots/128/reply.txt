@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    def optimize(z0):
+=======
+    def optimize(z0, maxiter=300):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                       method="SLSQP", options={"maxiter": 300, "ftol": 1e-12})
+=======
+                       method="SLSQP", options={"maxiter": maxiter, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+        cur = optimize(z)
+=======
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+        cands = [z]
+        for _ in range(3):
+            zj = z.copy()
+            zj[:2 * n] = np.clip(zj[:2 * n] + rng.normal(0, 0.003, 2 * n), 0.0, 1.0)
+            cands.append(zj)
+        scr = [optimize(zc, 60) for zc in cands]
+        scr_vals = [float(np.sum(s[2 * n:])) for s in scr]
+        z = scr[int(np.argmax(scr_vals))]
+        cur = optimize(z)
+>>>>>>> REPLACE
+-----

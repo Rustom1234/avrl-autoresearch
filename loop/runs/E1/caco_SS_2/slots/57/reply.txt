@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(np.hstack([Xtr, extra_feats(train_smiles)]), y)
+    p_lgb = model.predict(np.hstack([Xte, extra_feats(test_smiles)]))
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+    mk = lambda: SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale')
+    oof = np.zeros(len(y))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Str):
+        oof[va] = mk().fit(Str[tr], y[tr]).predict(Str[va])
+    p_svr = mk().fit(Str, y).predict(Ste)
+    model.fit(np.hstack([Xtr, extra_feats(train_smiles), oof[:, None]]), y)
+    p_lgb = model.predict(np.hstack([Xte, extra_feats(test_smiles), p_svr[:, None]]))
+    return 0.5 * p_lgb + 0.5 * p_svr
+>>>>>>> REPLACE
+-----

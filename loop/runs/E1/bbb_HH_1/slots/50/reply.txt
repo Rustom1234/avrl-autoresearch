@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from sklearn.model_selection import GroupKFold
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def scaffold_keys(smiles_list):
+    murcko, generic = [], []
+    for s in smiles_list:
+        scaf = MurckoScaffold.GetScaffoldForMol(Chem.MolFromSmiles(s))
+        murcko.append(Chem.MolToSmiles(scaf))
+        generic.append(Chem.MolToSmiles(MurckoScaffold.MakeScaffoldGeneric(scaf)))
+    return murcko, generic
+
+
+def target_encode(fit_keys, fit_y, apply_keys, global_mean, smooth=5.0):
+    sums, counts = {}, {}
+    for k, t in zip(fit_keys, fit_y):
+        sums[k] = sums.get(k, 0.0) + float(t)
+        counts[k] = counts.get(k, 0) + 1
+    enc = np.zeros(len(apply_keys))
+    cnt = np.zeros(len(apply_keys))
+    for i, k in enumerate(apply_keys):
+        n = counts.get(k, 0)
+        enc[i] = (sums.get(k, 0.0) + smooth * global_mean) / (n + smooth)
+        cnt[i] = n
+    return enc, cnt
+
+
+def oof_scaffold_encode(generic_keys, groups, y, n_splits=5):
+    keys = np.asarray(generic_keys, dtype=object)
+    enc = np.zeros(len(y))
+    cnt = np.zeros(len(y))
+    for tr, va in GroupKFold(n_splits=n_splits).split(keys, y, np.asarray(groups)):
+        e, c = target_encode(keys[tr], y[tr], keys[va], y[tr].mean())
+        enc[va] = e
+        cnt[va] = c
+    return enc, cnt
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    murcko_tr, generic_tr = scaffold_keys(train_smiles)
+    _, generic_te = scaffold_keys(test_smiles)
+    enc_tr, cnt_tr = oof_scaffold_encode(generic_tr, murcko_tr, y)
+    enc_te, cnt_te = target_encode(generic_tr, y, generic_te, y.mean())
+    X_train = np.hstack([X_train, np.column_stack([enc_tr, cnt_tr]).astype(np.float32)])
+    X_test = np.hstack([X_test, np.column_stack([enc_te, cnt_te]).astype(np.float32)])
+>>>>>>> REPLACE
+-----

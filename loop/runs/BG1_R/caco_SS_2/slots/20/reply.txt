@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64))
+=======
+PATTERNS = [Chem.MolFromSmarts(p) for p in [
+    'C(=O)[OX2H1,OX1-]',                      # carboxylic acid
+    '[NX3;H2,H1,H0;!$(NC=[O,S,N]);!$(N-a);!$(N-S(=O)=O)]',  # basic amine
+    'C(=O)[NX3]',                             # amide
+    'S(=O)(=O)[NX3]',                         # sulfonamide
+    'c[OX2H]',                                # phenol
+    '[NX4+]',                                 # quaternary N
+    '[F,Cl,Br,I]',                            # halogen
+]]
+
+
+def featurize(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        d = [f(m) for _, f in Descriptors.descList]
+        d += [len(m.GetSubstructMatches(p)) for p in PATTERNS]
+        rows.append(np.array(d, dtype=np.float64))
+>>>>>>> REPLACE
+-----

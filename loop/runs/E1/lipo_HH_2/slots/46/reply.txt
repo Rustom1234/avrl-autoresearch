@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def base_predict(Xtr, ytr, Xte, seed):
+    lg = lgb.LGBMRegressor(objective="l1", n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE,
+                           colsample_bytree=0.3, n_jobs=8, random_state=seed, verbose=-1)
+    lg.fit(Xtr, ytr)
+    rf = lgb.LGBMRegressor(num_leaves=31, learning_rate=LEARNING_RATE, n_estimators=600, colsample_bytree=0.3,
+                           subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                           random_state=seed, verbose=-1)
+    rf.fit(Xtr, ytr)
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr[:, :N_BITS], Xtr[:, :N_BITS]), ytr)
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS]))])
+=======
+def base_predict(Xtr, ytr, Xte, seed):
+    Ktr = tanimoto(Xtr[:, :N_BITS], Xtr[:, :N_BITS])
+    Kte = tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS])
+    # out-of-fold SVR predictions on training rows, used as the boosting offset
+    svr_tr = np.zeros(len(ytr))
+    for itr, iva in KFold(3, shuffle=True, random_state=seed).split(Xtr):
+        s = SVR(kernel="precomputed", C=5.0, epsilon=0.1).fit(Ktr[np.ix_(itr, itr)], ytr[itr])
+        svr_tr[iva] = s.predict(Ktr[np.ix_(iva, itr)])
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1).fit(Ktr, ytr)
+    svr_te = svr.predict(Kte)
+    lg = lgb.LGBMRegressor(objective="l1", n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE,
+                           colsample_bytree=0.3, n_jobs=8, random_state=seed, verbose=-1)
+    lg.fit(Xtr, ytr, init_score=svr_tr)
+    rf = lgb.LGBMRegressor(num_leaves=31, learning_rate=LEARNING_RATE, n_estimators=600, colsample_bytree=0.3,
+                           subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                           random_state=seed, verbose=-1)
+    rf.fit(Xtr, ytr)
+    # predict() returns only the boosted residual, so the SVR offset is added back here
+    return np.column_stack([svr_te + lg.predict(Xte), rf.predict(Xte), svr_te])
+>>>>>>> REPLACE
+-----

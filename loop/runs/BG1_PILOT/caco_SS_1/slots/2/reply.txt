@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from lightgbm import LGBMRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(a, b):
+=======
+def featurize_desc(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([f(m) for _, f in Descriptors.descList])
+    X = np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+
+
+def tanimoto(a, b):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * rf_pred + 0.5 * svr_pred
+=======
+    gbm = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                        colsample_bytree=0.5, min_child_samples=10, random_state=seed, n_jobs=8, verbose=-1)
+    gbm.fit(featurize_desc(train_smiles), y)
+    gbm_pred = gbm.predict(featurize_desc(test_smiles))
+    return (rf_pred + svr_pred + gbm_pred) / 3
+>>>>>>> REPLACE
+-----

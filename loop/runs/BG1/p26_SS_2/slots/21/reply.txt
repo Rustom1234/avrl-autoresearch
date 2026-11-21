@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+
+    def run(x, pi, pj):
+        def cons(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c[pi] - c[pj]) ** 2).sum(1)) - r[pi] - r[pj]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        return minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                        constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER}).x
+
+    c0 = x0[:2 * n].reshape(n, 2)
+    near = np.sqrt(((c0[iu[0]] - c0[iu[1]]) ** 2).sum(1)) < 0.45
+    x = run(x0, iu[0][near], iu[1][near])
+    c, r = x[:2 * n].reshape(n, 2), x[2 * n:]
+    if (np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]).min() < -1e-7:
+        x = run(x, iu[0], iu[1])
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    from sklearn.linear_model import Ridge
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+    pr = r.predict(np.log1p(Xte[:, -N_BITS:]))
+    return 0.7 * np.mean(preds, axis=0) + 0.3 * rankdata(pr) / len(pr)
+=======
+    from sklearn.linear_model import Ridge
+    from sklearn.neural_network import MLPRegressor
+    from sklearn.preprocessing import QuantileTransformer
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+    pr = r.predict(np.log1p(Xte[:, -N_BITS:]))
+    nd = Xtr.shape[1] - N_BITS
+    qt = QuantileTransformer(output_distribution='normal', random_state=seed).fit(Xtr[:, :nd])
+    Ztr, Zte = qt.transform(Xtr[:, :nd]), qt.transform(Xte[:, :nd])
+    pm = np.mean([MLPRegressor(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True,
+                               max_iter=300, random_state=seed + k).fit(Ztr, y).predict(Zte)
+                  for k in range(3)], axis=0)
+    base = 0.7 * np.mean(preds, axis=0) + 0.3 * rankdata(pr) / len(pr)
+    return 0.85 * base + 0.15 * rankdata(pm) / len(pm)
+>>>>>>> REPLACE
+-----

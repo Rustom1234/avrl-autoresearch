@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    mu = y.mean()
+
+    def shrink(p, s, a, b):
+        w = np.clip((s - a) / (b - a), 0, 1)
+        return mu + w * (p - mu)
+
+    # Applicability domain: max ECFP Tanimoto similarity to other training molecules (self excluded).
+    S_tr = tanimoto(Ftr, Ftr)
+    np.fill_diagonal(S_tr, -1.0)
+    s_tr = S_tr.max(axis=1)
+    p_oof = meta.predict(oof)
+    best_err, best_ab = np.inf, (0.3, 0.7)
+    for a in (0.2, 0.3, 0.4, 0.5, 0.6):
+        for b in (0.5, 0.6, 0.7, 0.8, 0.9):
+            if b <= a:
+                continue
+            err = np.abs(shrink(p_oof, s_tr, a, b) - y).mean()
+            if err < best_err:
+                best_err, best_ab = err, (a, b)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    s_te = tanimoto(Fte, Ftr).max(axis=1)
+    return shrink(meta.predict(base_te), s_te, *best_ab)
+>>>>>>> REPLACE
+-----

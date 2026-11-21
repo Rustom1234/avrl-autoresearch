@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def morgan_bits(smiles):
+    fps = [rdMolDescriptors.GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(s), RADIUS, nBits=N_BITS)
+           for s in smiles]
+    return np.array([list(fp) for fp in fps], dtype=np.float64)
+
+
+def knn_proba(Atr, y, Ate, k=10):
+    inter = Ate @ Atr.T
+    union = Ate.sum(1)[:, None] + Atr.sum(1)[None, :] - inter
+    sim = inter / np.maximum(union, 1e-12)
+    idx = np.argsort(-sim, axis=1)[:, :k]
+    w = np.take_along_axis(sim, idx, 1) ** 3
+    tot = w.sum(1)
+    frac = (w * y[idx]).sum(1) / np.maximum(tot, 1e-12)
+    return np.where(tot > 0, frac, 0.5)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * rankdata(p_rf) / len(p_rf) + 0.5 * rankdata(p_mlp) / len(p_mlp)
+=======
+    p_knn = knn_proba(morgan_bits(train_smiles), y, morgan_bits(test_smiles))
+    n = len(p_rf)
+    return (rankdata(p_rf) / n + rankdata(p_mlp) / n + rankdata(p_knn) / n) / 3
+>>>>>>> REPLACE
+-----

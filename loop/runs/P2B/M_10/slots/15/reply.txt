@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+=======
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+EMA_DECAY = 0.999       # decay for weight EMA, evaluated at the end of training
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+raw_model = model
+model = torch.compile(model, dynamic=False)
+ema_params = [p.detach().clone() for p in raw_model.parameters()]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    with torch.no_grad():
+        for e, p in zip(ema_params, raw_model.parameters()):
+            e.lerp_(p, 1 - EMA_DECAY)
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Final eval
+with torch.no_grad():
+    for p, e in zip(raw_model.parameters(), ema_params):
+        p.copy_(e)
+model.eval()
+>>>>>>> REPLACE
+-----

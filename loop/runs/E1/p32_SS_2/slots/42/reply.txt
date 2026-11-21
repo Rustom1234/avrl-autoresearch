@@ -1,0 +1,13 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    expand = lambda w: np.concatenate([w[:2 * n], np.full(n, w[2 * n])])
+    w0 = np.concatenate([pts.ravel(), [INIT_RADIUS]])
+    r1 = minimize(lambda w: -w[2 * n], w0, method="SLSQP",
+                  constraints={"type": "ineq", "fun": lambda w: cons(expand(w))}, options={"maxiter": 60})
+    x0 = expand(r1.x)
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER - 60})
+>>>>>>> REPLACE
+-----

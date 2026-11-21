@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from sklearn.decomposition import TruncatedSVD
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+    X = featurize(list(train_smiles) + list(test_smiles))
+    Z = TruncatedSVD(n_components=64, random_state=seed).fit_transform(X[:, :N_BITS])
+    X = np.hstack([X, Z.astype(np.float32)])
+    n_tr = len(train_smiles)
+    model.fit(X[:n_tr], np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(X[n_tr:])[:, 1]
+>>>>>>> REPLACE
+-----

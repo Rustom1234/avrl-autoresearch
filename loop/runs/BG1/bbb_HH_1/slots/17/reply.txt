@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def ring_keys(smiles):
+    # Key = sorted fused ring-system fragments (side chains and linkers removed) of each molecule.
+    keys = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        systems = []
+        for ring in m.GetRingInfo().AtomRings():
+            atoms = set(ring)
+            for old in [x for x in systems if x & atoms]:
+                systems.remove(old)
+                atoms |= old
+            systems.append(atoms)
+        keys.append(".".join(sorted(Chem.MolFragmentToSmiles(m, atomsToUse=sorted(x)) for x in systems)))
+    arr = np.empty(len(keys), dtype=object)
+    arr[:] = keys
+    return arr
+
+
+def te_fit(keys, y):
+    stats = {}
+    for k, t in zip(keys, y):
+        pos, n = stats.get(k, (0, 0))
+        stats[k] = (pos + int(t), n + 1)
+    return stats
+
+
+def te_apply(stats, keys, prior, m=10.0):
+    # Columns: smoothed positive rate (unseen -> prior), and number of training molecules with this key.
+    out = np.zeros((len(keys), 2), dtype=np.float32)
+    for i, k in enumerate(keys):
+        pos, n = stats.get(k, (0, 0))
+        out[i] = [(pos + m * prior) / (n + m), n]
+    return out
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    X_tr, X_te = featurize(train_smiles), featurize(test_smiles)
+    k_tr, k_te = ring_keys(train_smiles), ring_keys(test_smiles)
+    te_tr = np.zeros((len(y), 2), dtype=np.float32)
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(X_tr):
+        te_tr[b] = te_apply(te_fit(k_tr[a], y[a]), k_tr[b], y[a].mean())
+    te_te = te_apply(te_fit(k_tr, y), k_te, y.mean())
+    X_tr = np.hstack([X_tr, te_tr])
+    X_te = np.hstack([X_te, te_te])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+    model.fit(X_tr, y)
+    return model.predict_proba(X_te)[:, 1]
+>>>>>>> REPLACE
+-----

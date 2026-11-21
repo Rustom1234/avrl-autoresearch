@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+=======
+TIME_FRACTION = 0.8
+PS_FRACTION = 0.95
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+def _valid(c, r):
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    np.fill_diagonal(d, np.inf)
+    return bool(np.all(d >= r[:, None] + r[None] - 1e-12))
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    c, r = best
+    h, cur = 0.01, r.sum()
+    while h > 1e-5 and time.process_time() - t0 < PS_FRACTION * time_limit:   # compass pattern search
+        improved = False
+        for i in rng.permutation(n):
+            for dx, dy in ((h, 0), (-h, 0), (0, h), (0, -h)):
+                c2 = c.copy()
+                c2[i] += (dx, dy)
+                c2 = np.clip(c2, 0, 1)
+                r2 = _repair(c2, r.copy())
+                if r2.sum() > cur + 1e-12 and _valid(c2, r2):
+                    c, r, cur, improved = c2, r2, r2.sum(), True
+                    break
+        if not improved:
+            h /= 2
+    return c, r
+>>>>>>> REPLACE
+-----

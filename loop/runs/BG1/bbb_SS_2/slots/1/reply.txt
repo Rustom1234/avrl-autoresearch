@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
+from rdkit.Chem import MACCSkeys
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def descriptors(smiles):
+=======
+def rich_extra(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=1024)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.concatenate([np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float32),
+                                    gen.GetCountFingerprintAsNumPy(m).astype(np.float32)]))
+    return np.array(rows, dtype=np.float32)
+
+
+def descriptors(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(np.hstack([Dtr, Ftr]), y)
+    preds.append(rf.predict_proba(np.hstack([Dte, Fte]))[:, 1])
+=======
+    Rtr, Rte = np.hstack([Dtr, rich_extra(train_smiles)]), np.hstack([Dte, rich_extra(test_smiles)])
+    rf = RandomForestClassifier(n_estimators=500, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(Rtr, y)
+    rf_p = rf.predict_proba(Rte)[:, 1]
+    et = ExtraTreesClassifier(n_estimators=500, max_features=MAX_FEATURES, min_samples_leaf=2,
+                              n_jobs=-1, random_state=seed)
+    et.fit(Rtr, y)
+    preds.append((rf_p + et.predict_proba(Rte)[:, 1]) / 2)
+>>>>>>> REPLACE
+-----

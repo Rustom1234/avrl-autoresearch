@@ -1,0 +1,196 @@
+<<<<<<< SEARCH
+def build_model_config(depth):
+    base_dim = depth * ASPECT_RATIO
+    model_dim = ((base_dim + HEAD_DIM - 1) // HEAD_DIM) * HEAD_DIM
+    num_heads = model_dim // HEAD_DIM
+    return GPTConfig(
+        sequence_len=MAX_SEQ_LEN, vocab_size=vocab_size,
+        n_layer=depth, n_head=num_heads, n_kv_head=num_heads, n_embd=model_dim,
+        window_pattern=WINDOW_PATTERN,
+    )
+=======
+def build_model_config(depth):
+    base_dim = depth * ASPECT_RATIO
+    model_dim = ((base_dim + HEAD_DIM - 1) // HEAD_DIM) * HEAD_DIM
+    num_heads = model_dim // HEAD_DIM
+    return GPTConfig(
+        sequence_len=MAX_SEQ_LEN, vocab_size=vocab_size,
+        n_layer=depth, n_head=num_heads, n_kv_head=num_heads, n_embd=model_dim,
+        window_pattern=WINDOW_PATTERN,
+    )
+
+# Batch-size ramping
+BATCH_LENGTH_L16 = 90  # seconds at which we switch to 2**19 (30% of 300s)
+=======
+
+df_shape = 32
+
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+def train():
+    model = torch.compile(model, dynamic=False)
+    return model
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+# Model size
+DEPTH = 8               # number of transformer layers
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+=======
+# Model size
+DEPTH = 8               # number of transformer layers
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+# Batch-size ramping
+BATCH_SWITCH_TIME = 90  # seconds to switch from 2^18 to 2^19 (30% of 300s)
+BATCH_SIZE_LOW = 2**18  # smaller batch for early steps
+=======
+# Model size
+DEPTH = 8               # number of transformer layers
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+# Batch-size ramping
+BATCH_SWITCH_TIME = 90  # seconds to switch from 2^18 to 2^19 (30% of 300s)
+BATCH_SIZE_LOW = 2**18   # smaller batch for early steps
+BATCH_SIZE_HIGH = 2**19  # larger batch for later steps
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+total_tokens_per_step = DEVICE_BATCH_SIZE * MAX_SEQ_LEN
+assert TOTAL_BATCH_SIZE % total_tokens_per_step == 0
+grad_accum_steps = TOTAL_BATCH_SIZE // total_tokens_per_step
+=======
+token_per_step = DEVICE_BATCH_SIZE * MAX_SEQ_LEN
+assert BATCH_SIZE_LOW % token_per_step == 0
+assert BATCH_SIZE_HIGH % token_per_step == 0
+initial_grad_accum = BATCH_SIZE_LOW // token_per_step
+grad_accum_steps = initial_grad_accum
+=======
+initial_grad_accum = BATCH_SIZE_HIGH // token_per_step
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+optimizer = model.setup_optimizer(
+    unembedding_lr=UNEMBEDDING_LR,
+    embedding_lr=EMBEDDING_LR,
+    scalar_lr=SCALAR_LR,
+    adam_betas=ADAM_BETAS,
+    matrix_lr=MATRIX_LR,
+    weight_decay=WEIGHT_DECAY,
+)
+=======
+optimizer = model.setup_optimizer(
+    unembedding_lr=UNEMBEDDING_LR,
+    embedding_lr=EMBEDDING_LR,
+    scalar_lr=SCALAR_LR,
+    adam_betas=ADAM_BETAS,
+    matrix_lr=MATRIX_LR,
+    weight_decay=WEIGHT_DECAY,
+)
+=======
+# Initial setup
+model = torch.compile(model, dynamic=False)
+train_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, "train")
+x, y, epoch = next(train_loader)
+
+print(f"Time budget: {TIME_BUDGET}s")
+print(f"Gradient accumulation steps (initial): {initial_grad_accum}")
+t_uniform = total_tokens - step * TOTAL_BATCH_SIZE
+t_remain = TIME_BUDGET - total_training_time
+>>>>>>> REPLACE
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    token_per_step = DEVICE_BATCH_SIZE * MAX_SEQ_LEN
+    for micro_step in range(grad_accum_steps):
+        if total_training_time < switch_time:
+            bs = BATCH_SIZE_LOW
+        else:
+            bs = BATCH_SIZE_HIGH
+        gac = bs // token_per_step
+        if gac != grad_accum_steps:
+            grad_accum_steps = gac
+            print(f"Switched batch size: {bs // token_per_step} (was {grad_accum_steps})")
+            grad_accum_steps = gac# small diverge then reconstitute
+>>>>>>> REPLACE
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss_f
+    debiased_smooth_loss = smooth_train_loss / (1 - ema_beta**(step + 1))
+    pct_done = 100 * progress
+    tok_per_sec = int(TOTAL_BATCH_SIZE / dt)
+    mfu = 100 * num_flops_per_token * TOTAL_BATCH_SIZE / dt / H100_BF16_PEAK_FLOPS
+    remaining = max(0, TIME_BUDGET - total_training_time)
+=======
+    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss_f
+    debiased_smooth_loss = smooth_train_loss / (1 - ema_beta**(step + 1))
+    pct_done = 100 * progress
+    tok_per_sec = int(TOTAL_BATCH_SIZE / dt)
+    mfu = 100 * num_flops_per_token * TOTAL_BATCH_SIZE / dt / H100_BF16_PEAK_FLOPS
+    remaining = max(0, TIME_BUDGET - total_training_time)
+>>>>>>> REPLACE
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Logging
+    ema_beta = 0.9
+    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss_f
+    debiased_smooth_loss = smooth_train_loss / (1 - ema_beta**(step + 1))
+    pct_done = 100 * progress
+    tok_per_sec = int(TOTAL_BATCH_SIZE / dt)
+    mfu = 100 * num_flops_per_token * TOTAL_BATCH_SIZE / dt / H100_BF16_PEAK_FLOPS
+    remaining = max(0, TIME_BUDGET - total_training_time)
+=======
+    # Logging
+    ema_beta = 0.9
+    smooth_train_loss = ema_beta * smooth_train_loss + (1 - ema_beta) * train_loss_f
+    debiased_smooth_loss = smooth_train_loss / (1 - ema_beta**(step + 1))
+    pct_done = 100 * progress
+    tok_per_sec = int(TOTAL_BATCH_SIZE / dt)
+    mfu = 100 * num_flops_per_token * TOTAL_BATCH_SIZE / dt / H100_BF16_PEAK_FLOPS
+    remaining = max(0, TIME_BUDGET - total_training_time)
+>>>>>>> REPLACE
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+# Model size
+DEPTH = 8               # number of transformer layers
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+=======
+# Model size
+DEPTH = 8               # number of transformer layers
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+# Batch-size ramping
+BATCH_SWITCH_TIME = 90  # seconds at which to switch batch size (30% of 300s)
+BATCH_SIZE_LOW = 2**18
+BATCH_SIZE_HIGH = 2**19
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    token_per_step = DEVICE_BATCH_SIZE * MAX_SEQ_LEN
+    for micro_step in range(grad_accum_steps):
+        if total_training_time < BATCH_SWITCH_TIME:
+            bs = BATCH_SIZE_LOW
+        else:
+            bs = BATCH_SIZE_HIGH
+        gac = bs // token_per_step
+        if gac != grad_accum_steps:
+            grad_accum_steps = gac
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+>>>>>>> REPLACE
+-----

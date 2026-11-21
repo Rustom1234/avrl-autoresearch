@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+MOVES = 4
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _perturb(move, best_c, best_r, rng):
+    """Build a start from the incumbent: 1 = Gaussian kick, 2 = slice-and-rotate, 3 = remove-and-reinsert."""
+    c = best_c.copy()
+    if move == 1:
+        c = c + rng.normal(0, 0.03, c.shape)
+    elif move == 2:
+        cut, axis = rng.uniform(0.3, 0.7), rng.integers(2)
+        mask = c[:, axis] > cut
+        if mask.any():
+            cen = c[mask].mean(0)
+            th = rng.uniform(0, 2 * np.pi)
+            R = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
+            c[mask] = (c[mask] - cen) @ R.T + cen
+    else:
+        c[np.argmin(best_r)] = rng.uniform(0.1, 0.9, 2)
+    return np.clip(c, 0, 1)
+
+
+def _solve_once(n, rng, init=None):
+    pos = rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n) if init is None else init.ravel()
+    x0 = np.concatenate([pos, np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    counts, sums = np.zeros(MOVES), np.zeros(MOVES)
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None:
+            move = 0
+        else:   # UCB1 over move types
+            ucb = sums / np.maximum(counts, 1) + np.sqrt(2 * np.log(counts.sum() + 1) / np.maximum(counts, 1))
+            ucb[counts == 0] = np.inf
+            move = int(np.argmax(ucb))
+        init = None if move == 0 or best is None else _perturb(move, best[0], best[1], rng)
+        c, r = _solve_once(n, rng, init)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        reward = 1.0 if best is not None and r.sum() > best[1].sum() + 1e-6 else 0.0
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        counts[move] += 1
+        sums[move] += reward
+    return best
+>>>>>>> REPLACE
+-----

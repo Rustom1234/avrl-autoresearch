@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing in the diff touches how val_bpb is measured, the data, the seed lines, the evaluation call or the prepare.py import. It only changes two hyperparameters: TOTAL_BATCH_SIZE goes from 2**17 to 2**18 and DEPTH goes from 6 to 10.",
+  "No bugs found that would make the result meaningless. DEVICE_BATCH_SIZE stays at 64, so the larger total batch is reached through more gradient accumulation steps, not through extra memory per step.",
+  "The result is consistent with the change. A deeper model with twice the tokens per step gets far fewer optimizer steps in the fixed 300 s, so a worse val_bpb is expected: 1.1456 against the incumbent mean of 1.0617, a gap of +0.0839.",
+  "z cannot be recomputed independently because the standard deviation of the incumbent's 2 runs is not given. The reported z = -12.514 implies a standard deviation of about 0.0067. The sign matches the convention that negative z means the candidate is worse.",
+  "There is only one candidate run, but the gap is so large that a replicate would almost certainly not change the outcome. The provisional reject is justified.",
+  "The 450 s limit on startup plus training is not checked here. A deeper model may compile more slowly, but the harness enforces that limit."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "delta": 0.0839,
+  "implied_incumbent_sd": 0.0067
+ }
+}

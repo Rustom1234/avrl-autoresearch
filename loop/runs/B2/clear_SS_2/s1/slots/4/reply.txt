@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+TRIM_FRAC = 0.05
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xte = np.hstack([descriptors(test_smiles), erg(test_smiles), featurize(test_smiles)])
+=======
+    Xte = np.hstack([descriptors(test_smiles), erg(test_smiles), featurize(test_smiles)])
+    # inner OOF pass: drop the training rows with the largest out-of-fold residuals
+    from sklearn.model_selection import KFold
+    oof = np.zeros(len(y))
+    for tr_idx, va_idx in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        g = LGBMRegressor(n_estimators=300, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+                          subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                          random_state=seed, verbose=-1)
+        g.fit(Xtr[tr_idx], y[tr_idx])
+        oof[va_idx] = g.predict(Xtr[va_idx])
+    keep = np.argsort(np.abs(oof - y))[:len(y) - int(TRIM_FRAC * len(y))]
+    Xtr, y = Xtr[keep], rankdata(y[keep]) / len(keep)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    x = x0
+    for cap in (0.12, 0.2, 1.0):   # gradually relax the radius cap, warm-starting each pass
+        bounds = [(0, 1)] * (2 * n) + [(0, cap)] * n
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", bounds=bounds,
+                       constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

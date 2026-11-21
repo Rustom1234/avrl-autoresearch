@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    D = np.clip((D - dmu) / dsd, -5.0, 5.0)
+    Dt = np.clip((Dt - dmu) / dsd, -5.0, 5.0)
+    gamma = 1.0 / D.shape[1]
+=======
+    D = np.clip((D - dmu) / dsd, -5.0, 5.0)
+    Dt = np.clip((Dt - dmu) / dsd, -5.0, 5.0)
+    # Stability selection of descriptors (training data only)
+    rng = np.random.RandomState(seed)
+    yr = (rankdata(np.asarray(train_y, dtype=np.float64)) - 0.5) / len(train_y)
+    n_sub = int(round(0.7 * len(yr)))
+    counts = np.zeros(D.shape[1])
+    for _ in range(50):
+        idx = rng.choice(len(yr), n_sub, replace=False)
+        rd = rankdata(D[idx], axis=0)
+        ry = rankdata(yr[idx])
+        rd = rd - rd.mean(axis=0)
+        ryc = ry - ry.mean()
+        c = (rd * ryc[:, None]).sum(axis=0) / (np.sqrt((rd ** 2).sum(axis=0) * (ryc ** 2).sum()) + 1e-12)
+        counts[np.argsort(-np.abs(c))[:25]] += 1
+    stable = counts >= 0.6 * 50
+    if stable.sum() == 0:
+        stable = np.ones(D.shape[1], dtype=bool)
+    D, Dt = D[:, stable], Dt[:, stable]
+    gamma = 1.0 / D.shape[1]
+>>>>>>> REPLACE
+-----

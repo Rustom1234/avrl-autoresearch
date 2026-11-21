@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "Only one line changes: TOTAL_BATCH_SIZE goes from 2**19 to 2**17. The seed lines, the prepare.py import, the data and the evaluation call are all untouched, so there is no integrity problem.",
+  "Possible bug to check: this only works if 2**17 divides evenly by DEVICE_BATCH_SIZE (64) \u00d7 MAX_SEQ_LEN. If the sequence length is 2048 (not shown in the diff), that product is exactly 131072 = 2**17, so grad_accum_steps = 1. That is valid, and any assert on divisibility would still pass.",
+  "The learning rates were not rescaled for the 4x smaller batch. That is a tuning choice, not a bug. The gain fits the expected effect: about 4x more optimizer steps in the fixed 300 s.",
+  "z can't be recomputed exactly because the incumbent's individual run values aren't given, only its mean. Candidate mean = 1.06185 vs incumbent mean 1.0831, a difference of 0.02125 in the right direction. The reported z = 3.892 would need a pooled SE of about 0.0055, which is plausible but can't be checked.",
+  "Minor: the candidate's two runs differ by only 0.0001, which suggests the same seed gives almost deterministic results. That makes z depend mostly on the incumbent's spread."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "mean_diff": 0.02125,
+  "candidate_mean": 1.06185
+ }
+}

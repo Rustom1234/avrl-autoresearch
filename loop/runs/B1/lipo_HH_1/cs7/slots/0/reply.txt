@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+        _DESC_CACHE[smiles] = np.array([f(mol) for _, f in Descriptors._descList], dtype=np.float64)
+=======
+        base = [f(mol) for _, f in Descriptors._descList]
+        mqn = list(rdMolDescriptors.MQNs_(mol))
+        labels = []
+        rdMolDescriptors._CalcCrippenContribs(mol, True, [], labels)
+        crip = np.zeros(64)
+        for lab in labels:
+            crip[zlib.crc32(str(lab).encode()) % 64] += 1
+        feats = [f.GetFamily() for f in _FEAT_FACTORY.GetFeaturesForMol(mol)]
+        pharm = [feats.count(fam) for fam in _FEAT_FAMILIES]
+        _DESC_CACHE[smiles] = np.array(base + mqn + list(crip) + pharm, dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+_DESC_CACHE = {}
+_FEAT_FACTORY = ChemicalFeatures.BuildFeatureFactory(os.path.join(RDConfig.RDDataDir, "BaseFeatures.fdef"))
+_FEAT_FAMILIES = sorted(_FEAT_FACTORY.GetFeatureFamilies())
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+=======
+import os
+import zlib
+import numpy as np
+from rdkit import Chem, RDConfig
+from rdkit.Chem import ChemicalFeatures, rdMolDescriptors
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import os
+import zlib
+import numpy as np
+=======
+import numpy as np
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+ChemicalFeatures.BuildFeatureFactory(os.path.join(RDConfig.RDDataDir, "BaseFeatures.fdef"))
+=======
+ChemicalFeatures.BuildFeatureFactory(RDConfig.RDDataDir + "/BaseFeatures.fdef")
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            crip[zlib.crc32(str(lab).encode()) % 64] += 1
+=======
+            crip[sum((i + 1) * ord(c) for i, c in enumerate(str(lab))) % 64] += 1
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    m = lgb.train(lgb_params((31, 10, 0.2), seed), lgb.Dataset(Xa, ya), num_boost_round=N_ROUNDS)
+    p_lgb = m.predict(Xb)
+=======
+    p_lgb = np.zeros(len(Xb))
+    for s in (seed, seed + 1, seed + 2):
+        prm = lgb_params((31, 10, 0.2), s)
+        prm.update(bagging_fraction=0.8, bagging_freq=1)
+        p_lgb += lgb.train(prm, lgb.Dataset(Xa, ya), num_boost_round=N_ROUNDS).predict(Xb) / 3
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,84 @@
+<<<<<<< SEARCH
+def _optimize(centers0, radii0):
+=======
+def _optimize(centers0, radii0, maxiter=300):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                   bounds=bounds, options={"maxiter": 300, "ftol": 1e-12})
+=======
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                   bounds=bounds, options={"maxiter": maxiter, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _make_start(rng, d):
+    """Seeded start from descriptor d = (k, seed radius scale, spread)."""
+    n = 26
+    k, rs, sp = int(d[0]), float(d[1]), float(d[2])
+    c0 = 0.5 + (rng.uniform(0.0, 1.0, size=(n, 2)) - 0.5) * sp
+    c0 = np.clip(c0, 0.05, 0.95)
+    r0 = np.full(n, 0.07)
+    r0[:k] = 0.12 * rs
+    r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+    return c0, r0
+
+
+def _feats(D):
+    """Quadratic response-surface features for descriptor rows of D."""
+    k, rs, sp = D[:, 0], D[:, 1], D[:, 2]
+    return np.column_stack([np.ones(len(D)), k, rs, sp, k * k, rs * rs, sp * sp,
+                            k * rs, k * sp, rs * sp])
+
+
+def _surrogate_descs(rng):
+    """Score 60 cheap starts, fit a quadratic surrogate by least squares,
+    return the 8 descriptors with the highest predicted sum over 2000 candidates."""
+    m = 60
+    D = np.column_stack([rng.integers(2, 11, size=m).astype(float),
+                         rng.uniform(0.8, 1.3, size=m),
+                         rng.uniform(0.5, 1.0, size=m)])
+    y = np.zeros(m)
+    for i in range(m):
+        c0, r0 = _make_start(rng, D[i])
+        try:
+            c0, r0 = _relax(c0, r0)
+            c, r = _optimize(c0, r0, maxiter=60)
+            r = _repair(c, r)
+            y[i] = float(np.sum(r))
+        except Exception:
+            y[i] = 0.0
+    w = np.linalg.lstsq(_feats(D), y, rcond=None)[0]
+    M = 2000
+    Dc = np.column_stack([rng.integers(2, 11, size=M).astype(float),
+                          rng.uniform(0.8, 1.3, size=M),
+                          rng.uniform(0.5, 1.0, size=M)])
+    pred = _feats(Dc) @ w
+    top = np.argsort(-pred)[:8]
+    return [Dc[i] for i in top]
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for start in range(12):
+        k = (4, 6, 8, 10)[start % 4]
+        if time.time() - t0 > 150:
+            break
+        c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+        r0 = np.full(n, 0.07)
+        r0[:k] = 0.12
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+=======
+    descs = _surrogate_descs(rng)
+    for d in descs:
+        if time.time() - t0 > 150:
+            break
+        c0, r0 = _make_start(rng, d)
+>>>>>>> REPLACE
+-----

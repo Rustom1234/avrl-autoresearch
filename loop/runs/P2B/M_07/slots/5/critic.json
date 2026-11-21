@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine: the diff doesn't touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing. It only adds a uniform running average of parameters over the last 20% of training, sampled every 50 steps, and copies the average into raw_model before the final evaluation. raw_model and the compiled model share the same parameter tensors, so the harness evaluates the averaged weights. That is a legitimate training-side change.",
+  "No bugs that would make the result meaningless: the lerp_ with 1/avg_count is a correct incremental mean, the average is kept in fp32 and copy_ casts it back to the parameter dtype, and only parameters are averaged (buffers such as rotary tables are deterministic). One minor point: averaging while the LR is decaying may pull in weights from earlier in training that are worse, which would explain the lack of gain. That is a quality issue, not an integrity issue.",
+  "The numbers support rejection: the candidate scored 1.1182 against an incumbent mean of 1.1145 (lower is better), so it is 0.0037 worse. The negative z matches that direction. There's only one candidate run, but it doesn't beat the incumbent, so reject stands.",
+  "I can't recompute z independently because the incumbent's standard deviation over its 16 runs isn't given. The reported z = -0.657 implies a std of about 0.0056, which is plausible for this setting."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

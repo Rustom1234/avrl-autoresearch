@@ -1,0 +1,144 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+POLISH_TIME = 1.0
+POLISH_ROUNDS = 5
+
+
+def _lp_radii(c):
+    """Exact radii for fixed centres: maximise sum r subject to r_i + r_j <= d_ij and wall bounds."""
+    n = len(c)
+    iu = np.triu_indices(n, 1)
+    d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+    m = len(d)
+    A = np.zeros((m, n))
+    A[np.arange(m), iu[0]] = 1
+    A[np.arange(m), iu[1]] = 1
+    wall = np.maximum(np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])), 0)
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=np.column_stack([np.zeros(n), wall]), method="highs")
+    return res.x if res.status == 0 else None
+
+
+def _slsqp_polish(c, r):
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        cc, rr = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((cc[iu[0]] - cc[iu[1]]) ** 2).sum(1)) - rr[iu[0]] - rr[iu[1]]
+        return np.concatenate([d, cc[:, 0] - rr, cc[:, 1] - rr, 1 - cc[:, 0] - rr, 1 - cc[:, 1] - rr, rr])
+
+    x = np.concatenate([c.ravel(), r])
+    res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons}, options={"maxiter": 50})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _polish_packing(c, r, deadline):
+    best = (c, r)
+    cur_c, cur_r = c, r
+    for _ in range(POLISH_ROUNDS):
+        if time.process_time() > deadline:
+            break
+        lp = _lp_radii(cur_c)
+        if lp is not None:
+            cur_r = lp
+        cc, rr = _slsqp_polish(cur_c, cur_r)
+        cc = np.clip(cc, 0, 1)
+        rr = _repair(cc, rr)
+        cur_c, cur_r = cc, rr
+        if rr.sum() > best[1].sum():
+            best = (cc, rr)
+    return best
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit - POLISH_TIME:   # random restarts until the time is used
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+=======
+    return _polish_packing(best[0], best[1], t0 + TIME_FRACTION * time_limit + POLISH_TIME)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+POLISH_TIME = 1.0
+POLISH_ROUNDS = 5
+
+
+def _lp_radii(c):
+    """Exact radii for fixed centres: maximise sum r subject to r_i + r_j <= d_ij and wall bounds."""
+    n = len(c)
+    iu = np.triu_indices(n, 1)
+    d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+    m = len(d)
+    A = np.zeros((m, n))
+    A[np.arange(m), iu[0]] = 1
+    A[np.arange(m), iu[1]] = 1
+    wall = np.maximum(np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])), 0)
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=np.column_stack([np.zeros(n), wall]), method="highs")
+    return res.x if res.status == 0 else None
+
+
+def _slsqp_polish(c, r):
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        cc, rr = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((cc[iu[0]] - cc[iu[1]]) ** 2).sum(1)) - rr[iu[0]] - rr[iu[1]]
+        return np.concatenate([d, cc[:, 0] - rr, cc[:, 1] - rr, 1 - cc[:, 0] - rr, 1 - cc[:, 1] - rr, rr])
+
+    x = np.concatenate([c.ravel(), r])
+    res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons}, options={"maxiter": 50})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _polish_packing(c, r, deadline):
+    best = (c, r)
+    cur_c, cur_r = c, r
+    for _ in range(POLISH_ROUNDS):
+        if time.process_time() > deadline:
+            break
+        lp = _lp_radii(cur_c)
+        if lp is not None:
+            cur_r = lp
+        cc, rr = _slsqp_polish(cur_c, cur_r)
+        cc = np.clip(cc, 0, 1)
+        rr = _repair(cc, rr)
+        cur_c, cur_r = cc, rr
+        if rr.sum() > best[1].sum():
+            best = (cc, rr)
+    return best
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit - POLISH_TIME:   # random restarts until the time is used
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return _polish_packing(best[0], best[1], t0 + TIME_FRACTION * time_limit + POLISH_TIME)
+>>>>>>> REPLACE
+-----

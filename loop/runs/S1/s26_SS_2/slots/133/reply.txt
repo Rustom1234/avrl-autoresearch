@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), v, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+=======
+        try:
+            def reg_f(z):
+                rr = z[2 * n:]
+                return -rr.sum() + 0.5 * np.sum((rr - rr.mean()) ** 2)
+
+            def reg_g(z):
+                rr = z[2 * n:]
+                return np.concatenate([np.zeros(2 * n), -1.0 + (rr - rr.mean())])
+            pre = minimize(reg_f, v, jac=reg_g, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                           options={"maxiter": 60, "ftol": 1e-9})
+            if np.all(np.isfinite(pre.x)):
+                v = pre.x
+        except Exception:
+            pass
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), v, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+>>>>>>> REPLACE
+-----

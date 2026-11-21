@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    gamma = 1.0 / D.shape[1]
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    F = np.hstack([X, D])
+    Ft = np.hstack([Xt, Dt])
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    model = lgb.LGBMRegressor(objective="huber", alpha=0.2, n_estimators=500, learning_rate=0.03,
+                              min_child_samples=20, reg_lambda=5.0, colsample_bytree=0.3,
+                              random_state=seed, n_jobs=8, verbose=-1)
+    model.fit(F, y)
+    return model.predict(Ft)
+>>>>>>> REPLACE
+-----

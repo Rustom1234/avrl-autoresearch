@@ -1,0 +1,205 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+指导 =======
+from rdkit import Chem
+from rdkit import Descriptors
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    results = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        results.append([Descriptors.MolWt(mol)] + [getattr(Descriptors, f'Descriptor_{i}')(mol) for i in range(1, 201) if hasattr(Descriptors, f'Descriptor_{i}')])
+    # Fallback if descriptors are missing or limited, just take first 200 properties available
+    # Actually, let's use a more robust way to get descriptors
+    props = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        if m is None: props.append(np.zeros(200))
+        else: props.append(np.array([Descriptors.MolWt(m)] + [getattr(Descriptors, d)(m) if hasattr(Descriptors, d) else                                                                                                0.0 for d in Descriptors.__dict__ if d.startswith('Descriptor_')] 
+                                       [:200]))
+    # Standard RDKit Descriptor collection
+    features = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        if m is None: 
+            features.append(np.zeros(200))
+        else:
+            # Try to collect up to 200 descriptors
+            f = [Descriptors.MolWt(m)]
+            for name in sorted(Descriptors.__dict__.keys()):
+                if name.startswith('Descriptor_'):
+                    try:
+                        f.append(getattr(Descriptors, name)(m))
+                    except:
+                        f.append(0.0)
+                if len(f) >= 200: break
+            features.append(np.array(f, dtype=np.float32))
+    return np.array(features)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+Dos
+
+
+>>>>>>> REPLACE
+from rdkit import Chem
+from rdkit import Descriptors
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None:
+            features.append(np.zeros(200))
+            continue
+        
+        f = [Descriptors.MolWt(mol)]
+        # Collect descriptors that start with 'Descriptor_'
+        for name in sorted(Descriptors.__dict__.keys()):
+            if name.startswith('Descriptor_'):
+                try:
+                    f.append(getattr(Descriptors, name)(mol))
+                except:
+                    f.append(0.0)
+                if len(f) >= 200: break
+        
+        features.append(np.array(f, dtype=np.float32))
+    return np.array(features)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+Dos
+
+>>>>>>> REPLACE
+from rdkit import Chem
+from rdkit import Descriptors
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    features = []
+    # List of common descriptors to ensure we get a diverse set
+    # and then fill with others if needed.
+    # We use a fixed list to keep the feature order consistent across fits.
+    desc_names = [d for d in dir(Descriptors) if d.startswith('Descriptor_')] 
+                 .sort() # Note: dir() order is not guaranteed, but we use a stable list
+    
+    # A simpler way to get a consistent set of 200 descriptors:
+    # Since we want exactly 200 and reproducibility, we select them by name.
+    # However, the easiest way is to use the first 200 descriptors found.
+    
+    # Actually, let's just use a list of names we know exist to be safe.
+    # Or just use a broad range of descriptors.
+    
+    # Better: Use the first 200 descriptors found in the module.
+    # To ensure reproducibility, we sort the keys.
+    all_desc_names = sorted([name for name in dir(Descriptors) if name.startswith('Descriptor_')])
+    
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None:
+            features.append(np.zeros(200, dtype=np.float32))
+            continue
+        
+        f = []
+        for name in all_desc_names[:200]:
+            try:
+                func = getattr(Descriptors, name)
+                f.append(func(mol))
+            except:
+                f.append(0.0)
+        features.append(np.array(f, dtype=np.float32))
+    
+    return np.array(features)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+-----

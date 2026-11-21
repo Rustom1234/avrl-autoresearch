@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+    while len(pool) < 12 and _time.time() - t0 < 60:
+        c = rng.uniform(0.1, 0.9, size=(_N, 2))
+        c, _r = _relax(c, np.full(_N, 0.01), 400, 0.3, 0.05)
+=======
+    seeds = _riesz_seeds(24, 2024)
+    si = 0
+    while len(pool) < 12 and _time.time() - t0 < 60 and si < len(seeds):
+        c = seeds[si]
+        si += 1
+        c, _r = _relax(c, np.full(_N, 0.01), 400, 0.3, 0.05)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _template():
+=======
+def _riesz_stage(c, s):
+    """One Riesz stage: minimise sum (m/d)^s over pairs plus wall barriers, m = current min distance."""
+    n = c.shape[0]
+    eye = np.eye(n, dtype=bool)
+    d0 = np.sqrt(np.sum((c[:, None, :] - c[None, :, :]) ** 2, axis=-1))
+    m = max(float(d0[~eye].min()), 1e-6)
+
+    def fg(z):
+        cc = z.reshape(n, 2)
+        diff = cc[:, None, :] - cc[None, :, :]
+        d2 = np.sum(diff ** 2, axis=-1) + eye
+        d = np.sqrt(d2)
+        t = np.minimum(m / d, 1e3) ** s
+        t[eye] = 0.0
+        E = 0.5 * t.sum()
+        w = -s * t / d2
+        g = np.sum(w[:, :, None] * diff, axis=1)
+        x = np.clip(cc, 1e-6, 1 - 1e-6)
+        tl = np.minimum(m / x, 1e3) ** s
+        tr = np.minimum(m / (1 - x), 1e3) ** s
+        E += np.sum(tl + tr)
+        g += -s * tl / x + s * tr / (1 - x)
+        return E, g.ravel()
+
+    try:
+        res = _minimize(fg, c.ravel(), jac=True, method="L-BFGS-B",
+                        bounds=[(1e-6, 1 - 1e-6)] * (2 * n), options={"maxiter": 200})
+        out = res.x.reshape(n, 2)
+        if np.all(np.isfinite(out)):
+            return out
+    except Exception:
+        pass
+    return c
+
+
+def _riesz_seeds(k, seed):
+    """Deterministic Riesz-energy spread starts, exponent annealed 2 -> 48."""
+    rng = np.random.RandomState(seed)
+    seeds = []
+    for _ in range(k):
+        c = rng.uniform(0.05, 0.95, size=(_N, 2))
+        for s in (2.0, 6.0, 12.0, 24.0, 48.0):
+            c = _riesz_stage(c, s)
+        seeds.append(np.clip(c, 0.0, 1.0))
+    return seeds
+
+
+def _template():
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                          colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(np.hstack([Xtr, extra_feats(train_smiles)]), y)
+    p_lgb = model.predict(np.hstack([Xte, extra_feats(test_smiles)]))
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+def base_preds(Dtr, Ltr, y, Dte, Lte, seed):
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                          colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    model.fit(Ltr, y)
+    p_lgb = model.predict(Lte)
+    keep = Dtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Dtr)), random_state=seed)
+    Str = qt.fit_transform(Dtr[:, keep])
+    Ste = qt.transform(Dte[:, keep])
+    p_svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y).predict(Ste)
+    et = ExtraTreesRegressor(n_estimators=300, max_features=0.5, random_state=seed, n_jobs=8).fit(Dtr, y)
+    return np.column_stack([p_lgb, p_svr, et.predict(Dte)])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Dtr, Dte = featurize(train_smiles), featurize(test_smiles)
+    Ltr = np.hstack([Dtr, extra_feats(train_smiles)])
+    Lte = np.hstack([Dte, extra_feats(test_smiles)])
+    y = np.asarray(train_y, dtype=np.float64)
+    oof = np.zeros((len(y), 3))
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(Dtr):
+        oof[b] = base_preds(Dtr[a], Ltr[a], y[a], Dtr[b], Ltr[b], seed)
+    stack = Ridge(alpha=1.0, positive=True).fit(oof, y)
+    return stack.predict(base_preds(Dtr, Ltr, y, Dte, Lte, seed))
+>>>>>>> REPLACE
+-----

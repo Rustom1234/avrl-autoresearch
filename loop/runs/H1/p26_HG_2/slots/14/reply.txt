@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+    res = minimize(obj, x0, method="SLSQP", 
+                    constraintsMes_grad={"type": "ineq", "fun": cons, "jac": lambda v: cons(v)[1]},
+                    options={"maxiter": MAX_ITER})
+    # Wait, the constraint 'jac' parameter takes the Jacobian of the constraint function.
+    # My 'cons' returns (values, jacobian). So I can just wrap it.
+    
+    # Let's re-write the call to be cleaner:
+    
+    def constraint_fun(v):
+        return cons(v)[0]
+    
+    def constraint_jac(v):
+        return cons(v)[1]
+    
+    res = minimize(obj, x0, method="SLSQP", 
+                    constraints={{"type": "ineq", "fun": constraint_fun, "jac": constraint_jac}},
+                    options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def constraint_fun(v):
+        return cons(v)[0]
+
+    def constraint_jac(v):
+        return cons(v)[1]
+
+    res = minimize(obj, x0, method="SLSQP", 
+                    constraints={{"type": "ineq", "fun": constraint_fun, "jac": constraint_jac}},
+                    options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

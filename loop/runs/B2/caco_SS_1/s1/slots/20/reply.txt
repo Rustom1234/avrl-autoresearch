@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles)[:, :nd], y)
+=======
+    A = morgan_bits(train_smiles)
+    inter = A @ A.T
+    union = A.sum(1)[:, None] + A.sum(1)[None, :] - inter
+    dist = 1.0 - inter / np.maximum(union, 1e-9)
+    np.fill_diagonal(dist, np.inf)
+    idx = np.argsort(dist, axis=1)[:, :7]
+    d = np.take_along_axis(dist, idx, axis=1)
+    w = 1.0 / np.maximum(d, 1e-6)
+    y_s = 0.85 * y + 0.15 * (w * y[idx]).sum(1) / w.sum(1)
+    model.fit(featurize(train_smiles)[:, :nd], y_s)
+>>>>>>> REPLACE
+-----

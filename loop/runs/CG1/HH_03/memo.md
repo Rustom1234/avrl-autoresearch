@@ -1,0 +1,5 @@
+Helped: only slot 9, progressive resolution (first 40 percent of steps on downsampled images). It scored -0.0252 and -0.0664, so the incumbent mean is -0.0458. It is the only compute-saving change that beat the start. The three-stage ramp (slot 16, -0.0256 in one run) was not better than the incumbent mean (+0.0202 vs incumbent), though that is within noise (sd about 0.026).
+
+Did not help: schedule changes (trapezoid +0.4772, cosine +0.0103), the residual skip (+0.2822), cutout (+0.3046), removing the initial GELU (+0.2198), label smoothing schedule (+0.0812), Muon momentum warmup (+0.0550), and removing color jitter (+0.0468). Translation 3 (+0.0406) was also worse. The 5-view TTA (+0.0034) and head dropout (+0.0042) were neutral. Two slots crashed (learnable head scale, float32 head) and wrap-pad aborted.
+
+Next: tune progressive resolution (low-res fraction, lower resolution), and try cheaper predict or lighter layers. Replicate the incumbent. Avoid more regularization or schedule variants, and keep edits simple.

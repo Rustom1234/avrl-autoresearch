@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+            v = minimize(pen, v, args=(mu,), jac=True, method="L-BFGS-B",
+=======
+        use_sm = rng.random() < 0.5
+
+        def pen_sm(z, mu):
+            f, g = pen(z, mu)
+            rr = z[2 * n:]
+            a = -rr / 0.01
+            amax = a.max()
+            e = np.exp(a - amax)
+            S = e.sum()
+            sm = -0.01 * (amax + np.log(S))
+            g = g.copy()
+            g[2 * n:] -= 0.05 * e / S
+            return f - 0.05 * sm, g
+
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+            fn = pen_sm if (use_sm and mu <= 100) else pen
+            v = minimize(fn, v, args=(mu,), jac=True, method="L-BFGS-B",
+>>>>>>> REPLACE
+-----

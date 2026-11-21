@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+        y0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), [INIT_RADIUS]])
+=======
+        pts = (np.array([[i, j] for i in range(6) for j in range(6)], float) + 0.5) / 6
+        pick = rng.choice(36, n, replace=False)
+        c = pts[pick] + rng.uniform(-0.3, 0.3, (n, 2)) / 6
+        for _ in range(20):
+            dv = c[:, None] - c[None]
+            d2 = (dv ** 2).sum(-1) + np.eye(n)
+            f = (dv / d2[..., None] ** 1.5).sum(1) + 1 / c ** 2 - 1 / (1 - c) ** 2
+            s = np.minimum(1, 0.02 / np.maximum(np.sqrt((f ** 2).sum(1)), 1e-12))
+            c = np.clip(c + f * s[:, None], 0.05, 0.95)
+        y0 = np.concatenate([c.ravel(), [INIT_RADIUS]])
+>>>>>>> REPLACE
+-----

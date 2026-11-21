@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def solve_packing(time_budget=200.0):
+=======
+def solve_packing(time_budget=225.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.time() - t0 < 0.7 * time_budget:
+=======
+    while time.time() - t0 < 0.5 * time_budget:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while best is not None and time.time() - t0 < time_budget:
+=======
+    if best is not None:
+        cur_c, cur_r = best
+        cur_val = best_val
+        while time.time() - t0 < time_budget:
+            sg = rng.choice([0.01, 0.03, 0.06])
+            c0 = np.clip(cur_c + rng.normal(0, sg, cur_c.shape), 0.01, 0.99)
+            r0 = cur_r * 0.8
+            z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+            try:
+                res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                               constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                               options={"maxiter": 200, "ftol": 1e-11})
+            except Exception:
+                continue
+            out = finalize(res.x)
+            if out is None:
+                continue
+            c2, r2 = out
+            v2 = r2.sum()
+            if v2 > best_val:
+                best_val = v2
+                best = (c2, r2)
+            if v2 > cur_val or rng.random() < np.exp((v2 - cur_val) / 0.002):
+                cur_c, cur_r, cur_val = c2, r2, v2
+    while best is not None and time.time() - t0 < time_budget:
+>>>>>>> REPLACE
+-----

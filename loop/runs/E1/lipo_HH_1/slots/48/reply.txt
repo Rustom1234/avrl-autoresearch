@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from scipy import sparse
+from scipy.optimize import linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def l1_meta(oof, y):
+    # Convex MAE stacker: min sum|y - oof@w - b| s.t. w >= 0, sum(w) = 1, b in [min y, max y].
+    n, k = oof.shape
+    c = np.concatenate([np.zeros(k + 1), np.ones(n)])
+    I = sparse.identity(n, format="csr")
+    Xs = sparse.csr_matrix(oof)
+    ones = sparse.csr_matrix(np.ones((n, 1)))
+    A_ub = sparse.vstack([sparse.hstack([-Xs, -ones, -I]), sparse.hstack([Xs, ones, -I])]).tocsr()
+    b_ub = np.concatenate([-y, y])
+    A_eq = np.concatenate([np.ones(k), [0.0], np.zeros(n)])[None, :]
+    bounds = [(0, None)] * k + [(y.min(), y.max())] + [(0, None)] * n
+    res = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=[1.0], bounds=bounds, method="highs")
+    if res.status != 0:
+        return np.full(k, 1.0 / k), 0.0
+    return res.x[:k], res.x[k]
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    w, b0 = l1_meta(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return base_te @ w + b0
+>>>>>>> REPLACE
+-----

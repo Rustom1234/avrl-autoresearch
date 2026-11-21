@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+x, y, epoch = next(train_loader)  # prefetch first batch
+=======
+x, y, epoch = next(train_loader)  # prefetch first batch
+# Sequence-length curriculum: half length (double batch, same tokens) for the first 30% of training
+short_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE * 2, MAX_SEQ_LEN // 2, "train")
+SHORT_FRAC = 0.3
+prev_short = None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    lrm = get_lr_multiplier(progress)
+=======
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    short = progress < SHORT_FRAC
+    if short != prev_short:
+        x, y, epoch = next(short_loader if short else train_loader)
+        prev_short = short
+    cur_loader = short_loader if short else train_loader
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(cur_loader)
+
+    # Schedules
+    lrm = get_lr_multiplier(progress)
+>>>>>>> REPLACE
+-----

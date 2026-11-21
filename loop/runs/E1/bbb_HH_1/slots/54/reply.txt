@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+N_BINS = 16
+EBM_ROUNDS = 40
+EBM_LR = 0.1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def scaled_rank(p):
+    return (rankdata(p) - 1) / max(len(p) - 1, 1)
+=======
+def scaled_rank(p):
+    return (rankdata(p) - 1) / max(len(p) - 1, 1)
+
+
+def ebm_scores(D_train, y, D_test, seed):
+    """Additive shape-function model: per-feature quantile-bin scores fitted by cyclic shrunk Newton steps."""
+    n_feat = D_train.shape[1]
+    bins_tr = np.zeros(D_train.shape, dtype=np.int64)
+    bins_te = np.zeros(D_test.shape, dtype=np.int64)
+    for j in range(n_feat):
+        qs = np.unique(np.quantile(D_train[:, j], np.linspace(0, 1, N_BINS + 1)[1:-1]))
+        bins_tr[:, j] = np.searchsorted(qs, D_train[:, j], side="right")
+        bins_te[:, j] = np.searchsorted(qs, D_test[:, j], side="right")
+    shape = np.zeros((n_feat, N_BINS))
+    order = np.random.RandomState(seed).permutation(n_feat)
+    base = np.log(y.mean() / (1 - y.mean()))
+    F_tr = np.full(len(y), base)
+    for _ in range(EBM_ROUNDS):
+        for j in order:
+            p = 1 / (1 + np.exp(-F_tr))
+            g = np.bincount(bins_tr[:, j], weights=y - p, minlength=N_BINS)
+            h = np.bincount(bins_tr[:, j], weights=p * (1 - p), minlength=N_BINS)
+            step = EBM_LR * g / (h + 1.0)
+            shape[j] += step
+            F_tr += step[bins_tr[:, j]]
+    F_te = base + sum(shape[j][bins_te[:, j]] for j in range(n_feat))
+    return 1 / (1 + np.exp(-F_te))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    ebm = ebm_scores(np.clip(D_train, lo, hi), y, np.clip(D_test, lo, hi), seed)
+    return (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1])
+            + scaled_rank(ebm)) / 3.0
+>>>>>>> REPLACE
+-----

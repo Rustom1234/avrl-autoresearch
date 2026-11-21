@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    # XGB on fingerprints + descriptors to predict residuals
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred
+=======
+    # XGB on fingerprints + descriptors to predict residuals
+    # Descriptors are at the end: MolWt, MolLogP, NumHDonors, NumHAcceptors, TPSA
+    # Monotone constraints: MolWt(-1), MolLogP(+1), NumHDonors(-1), NumHAcceptors(-1), TPSA(-1)
+    # Fingerprints (first 2048 bits) are 0.
+    constraints = [0] * N_BITS + [-1, 1, -1, -1, -1]
+    
+    xgb_model = XGBRegressor(n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE, 
+                               max_depth=6, subsample=0.8, colsample_bytree=0.5, 
+                               objective='reg:absoluteerror', n_jobs=-1, random_state=seed,
+                               monotone_constraints=constraints)
+    xgb_model.fit(X_all, oof_res)
+    
+    # Final Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -5:]
+    ridge_pred = ridge.predict(scaler.transform(X_test_desc))
+    xgb_res_pred = xgb_model.predict(X_test)
+    
+    return ridge_pred + xgb_res_pred
+>>>>>>> REPLACE
+-----

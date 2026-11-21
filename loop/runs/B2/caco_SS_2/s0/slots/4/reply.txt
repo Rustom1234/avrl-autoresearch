@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors, MACCSkeys
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def extra_fps(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=2, fpSize=512,
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen())
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        maccs = np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float32)
+        fc = gen.GetCountFingerprintAsNumPy(m).astype(np.float32)
+        rows.append(np.concatenate([maccs, fc]))
+    return np.array(rows, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    Ltr = np.hstack([Xtr, extra_fps(train_smiles)])
+    Lte = np.hstack([Xte, extra_fps(test_smiles)])
+    model.fit(Ltr, y)
+    p_lgb = model.predict(Lte)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _local_search(c, r, rng, steps=200):
+    """Jitter one random centre at a time; keep the move if its largest feasible radius grows."""
+    c, r = c.copy(), r.copy()
+    for k in range(steps):
+        i = rng.integers(len(r))
+        s = 0.05 * (1 - k / steps) + 1e-4
+        p = np.clip(c[i] + rng.normal(0, s, 2), 0, 1)
+        d = np.sqrt(((c - p) ** 2).sum(1))
+        d[i] = np.inf
+        rad = max(min(p.min(), (1 - p).min(), (d - r).min()) - SHRINK, 0)
+        if rad > r[i]:
+            c[i], r[i] = p, rad
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+=======
+        r = _repair(c, r)
+        c, r = _local_search(c, r, rng)
+        if best is None or r.sum() > best[1].sum():
+>>>>>>> REPLACE
+-----

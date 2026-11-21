@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from scipy.spatial.distance import cdist
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def sp_features(train_smiles, test_smiles):
+    def counts(smiles):
+        out = []
+        for s in smiles:
+            m = Chem.MolFromSmiles(s)
+            dm = Chem.GetDistanceMatrix(m)
+            atoms = list(m.GetAtoms())
+            sym = [a.GetSymbol() for a in atoms]
+            c = {}
+            for i, a in enumerate(atoms):
+                k = ("atom", sym[i], a.GetIsAromatic())
+                c[k] = c.get(k, 0) + 1
+                for j in range(i + 1, len(atoms)):
+                    k = ("pair", tuple(sorted((sym[i], sym[j]))), min(int(dm[i, j]), 10))
+                    c[k] = c.get(k, 0) + 1
+            out.append(c)
+        return out
+    Ctr, Cte = counts(train_smiles), counts(test_smiles)
+    vocab = {}
+    for c in Ctr + Cte:
+        for k in c:
+            vocab.setdefault(k, len(vocab))
+
+    def dense(C):
+        M = np.zeros((len(C), len(vocab)))
+        for r, c in enumerate(C):
+            for k, v in c.items():
+                M[r, vocab[k]] = v
+        return M / np.maximum(M.sum(axis=1, keepdims=True), 1e-9)
+
+    return dense(Ctr), dense(Cte)
+
+
+def hik(A, B):
+    # histogram intersection on L1-normalized rows: sum(min(a,b)) = 1 - 0.5 * L1(a,b)
+    return 1.0 - 0.5 * cdist(A, B, "cityblock")
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+=======
+    S, St = sp_features(train_smiles, test_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    K_train = 0.5 * (hik(S, S) + rbf(D, D, gamma))
+    K_test = 0.5 * (hik(St, S) + rbf(Dt, D, gamma))
+>>>>>>> REPLACE
+-----

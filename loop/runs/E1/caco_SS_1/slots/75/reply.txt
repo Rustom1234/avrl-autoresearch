@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+=======
+def base_predict(train_smiles, train_y, test_smiles, seed, n_est=500):
+    y = np.asarray(train_y, dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+n_estimators=500, learning_rate=0.03
+=======
+n_estimators=n_est, learning_rate=0.03
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.75 * et + 0.25 * knn
+=======
+    return 0.75 * et + 0.25 * knn
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    from sklearn.isotonic import IsotonicRegression
+    from sklearn.model_selection import KFold
+    smi = np.asarray(train_smiles, dtype=object)
+    y = np.asarray(train_y, dtype=np.float64)
+    oof = np.zeros(len(y))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(smi):
+        oof[va] = base_predict(list(smi[tr]), y[tr], list(smi[va]), seed, n_est=200)
+    iso = IsotonicRegression(out_of_bounds='clip').fit(oof, y)
+    p = base_predict(train_smiles, y, test_smiles, seed)
+    return 0.5 * p + 0.5 * iso.predict(p)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+=======
+def base_predict(train_smiles, train_y, test_smiles, seed, n_est=500):
+    y = np.asarray(train_y, dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = lgb.LGBMRegressor(objective='huber', n_estimators=500, learning_rate=0.03, num_leaves=15,
+=======
+    model = lgb.LGBMRegressor(objective='huber', n_estimators=n_est, learning_rate=0.03, num_leaves=15,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.75 * et + 0.25 * knn
+=======
+    return 0.75 * et + 0.25 * knn
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    from sklearn.isotonic import IsotonicRegression
+    from sklearn.model_selection import KFold
+    smi = np.asarray(train_smiles, dtype=object)
+    y = np.asarray(train_y, dtype=np.float64)
+    oof = np.zeros(len(y))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(smi):
+        oof[va] = base_predict(list(smi[tr]), y[tr], list(smi[va]), seed, n_est=200)
+    iso = IsotonicRegression(out_of_bounds='clip').fit(oof, y)
+    p = base_predict(list(train_smiles), y, list(test_smiles), seed)
+    return 0.5 * p + 0.5 * iso.predict(p)
+>>>>>>> REPLACE
+-----

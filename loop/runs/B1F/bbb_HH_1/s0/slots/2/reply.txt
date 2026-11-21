@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    rf_p = 0.0
+    gb_p = 0.0
+    for k in range(3):
+        rf = RandomForestClassifier(n_estimators=200, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                    n_jobs=-1, random_state=seed + k)
+        rf.fit(X_train, y)
+        rf_p = rf_p + rf.predict_proba(X_test)[:, 1] / 3
+        gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                            random_state=seed + k, n_jobs=8, verbose=-1)
+        gb.fit(X_train, y)
+        gb_p = gb_p + gb.predict_proba(X_test)[:, 1] / 3
+    return 0.5 * (scaled_rank(rf_p) + scaled_rank(gb_p))
+>>>>>>> REPLACE
+-----

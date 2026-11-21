@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/SS_01/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.8339727309619516,
+  "12": 1.8277674605800402
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace random order with a filtered, target-matched selection. (1) Exact-dedupe docs (hash of whitespace-normalized text) and near-dedupe by hashing the first 200 chars. (2) Drop junk: docs with <200 chars, or with high internal repetition (unique-lines/total-lines < 0.5, or zlib compressed-size/raw-size < 0.2). (3) Score domain match: fit a TfidfVectorizer on character n-grams (analyzer='char_wb', ngram_range=(2,4), sublinear_tf, max_features=200k) and train LogisticRegression with positives = the 200 target_sample docs plus pool docs showing WikiText formatting markers (start with '= ' title line and contain ' @-@ ' or ' , ' / ' . ' spaced punctuation), negatives = a seeded random sample of pool docs lacking those markers; score every pool doc. (4) Detect word-shuffled wiki docs (they have the '= Title =' header but scrambled body): build a set of word bigrams from target_sample, and for each doc compute the fraction of its first 300 word bigrams that appear in that set, plus the fraction of sentence-like fragments where ' the ,' / ' of .' / ' , .' style function-word\u2013punctuation adjacency occurs; drop docs whose bigram-hit rate falls below a threshold set at about the 5th percentile of the target_sample's own leave-one-out bigram-hit rate (roughly half of clean level). (5) Keep docs with classifier prob > 0.5 that pass all filters, shuffle them with CURATE_SEED, and return them; if they total fewer than T tokens (estimate tokens with tiktoken gpt2 or len/4), just return that list and let the trainer cycle it rather than padding with off-domain text.",
+   "outcome": "dev 1.8340 against 1.9638 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Make the damage and domain checks cover the whole document instead of only its head, then fill the T budget with reshuffled epochs. (a) For each doc that survives dedupe and junk filtering, take up to 4 windows of 300 words (start, 1/3, 2/3, end; fewer for short docs). Compute the word-bigram hit rate and the function-word/punctuation adjacency rate in each window, using the existing target-derived thresholds. Drop the doc if any window fails, which catches docs that are shuffled, corrupted or have spam spliced in after a clean opening. Also drop docs where under 85% of characters in any window are ASCII letters, digits, spaces or common punctuation, or where the mean word length in a window is outside 3 to 8 characters; this catches character-level noise. (b) Build the classifier snippet from the same 4 windows (L/4 chars each) rather than head plus middle, so p > 0.5 reflects the full document. (c) After selection, count tokens with tiktoken gpt2. If the kept set has fewer than T tokens, return a concatenation of several independently seeded shuffles of the kept set (random.Random(seed + k) for epoch k) until T tokens are covered, so repeated epochs see different orderings rather than an identical cycle. Do not pad with off-domain docs.",
+   "outcome": "dev 1.8373 against 1.8340 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Reorder the pipeline so near-duplicate resolution happens after quality filtering, and make it choose the best copy instead of the first one seen. (1) Keep exact dedupe (md5 of whitespace-normalized text) and the junk filter as the first pass. (2) Run the word-shuffle filter and the classifier on all exact-unique non-junk docs, with no first-200-char dedupe beforehand. (3) Among docs that pass (shuffle filter OK and prob > 0.5), group near-duplicates by a key: the lowercased, whitespace-normalized first line if the doc starts with '= ' (the article title), otherwise the md5 of the first 200 normalized chars. Within each group keep exactly one doc, the one with the highest head bigram-hit rate against the target bigram set, with ties (within 0.02) broken by longer length. This way a clean full copy is never discarded because a truncated or damaged copy with the same opening appeared earlier in the pool. (4) Count gpt2 tokens of the final set with tiktoken. If it exceeds T, drop the lowest-classifier-prob docs until it is just above T. If it is below T, return it as is and let the trainer cycle. (5) Seeded shuffle as before.",
+   "outcome": "dev 1.8240 against 1.8340 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Keep the current wiki selection unchanged, but stop relying on blind cycling: build the list to cover exactly T tokens as a curriculum that starts with a limited amount of clean general English and ends on in-domain text. \n\n(1) Count gpt2 tokens with tiktoken (encode_ordinary_batch) for the kept wiki set W and for filler candidates. \n\n(2) Filler candidates are docs that pass exact/near dedupe and the junk filter, lack the '= Title =' marker, and were not picked by the classifier. They must also look like clean natural prose: head word-bigram hit rate against the target bigram set >= the existing hit_thr (this removes char-scrambled and word-shuffled text); adjacency rate under adj_thr; at least 80% of chars are letters or spaces; fewer than 2% of chars are any of '{};=<>_#/\\\\' (removes code); and none of the spam phrases 'discount code', 'coupon', 'free shipping', 'buy now', 'click here to order', 'best price' (case-insensitive). Rank the candidates by bigram hit rate, highest first. \n\n(3) If tokens(W) >= T, return shuffled W as now. Otherwise set F = min(0.25*T, T - tokens(W)) and take top-ranked filler docs until they total F tokens. \n\n(4) Return: [filler, seeded shuffle] + [W shuffled with seed] + [W reshuffled with seed+1] + ... until the cumulative token count reaches T. The filler is seen only once, at the beginning (high-LR phase), and every later step, including the final ones, trains on target-domain wiki text with a different order each epoch. No spam, code, shuffled or scrambled docs are ever used.",
+   "outcome": "dev 1.8359 against 1.8340 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Keep the current selection (same dedupe, junk filter, shuffle filter and classifier, prob > 0.5) unchanged, and change only how the list is laid out, so the last training steps see the cleanest in-domain text and no off-domain filler is added. (1) Count gpt2 tokens for each kept doc with tiktoken (encode_ordinary_batch on the kept docs only; fall back to len/4 if time since start exceeds 120 s). (2) Give each kept doc a quality score q = classifier prob + head word-bigram hit rate (both are already computed; store the hit rate during the shuffle filter). (3) Define the 'finish set' as the kept docs with q at or above the kept set's median that also start with the '= Title =' marker, seeded-shuffled and truncated to 0.2*T tokens. (4) Build the body: a seeded shuffle of the kept docs not in the finish set; if the body has fewer than 0.8*T tokens, append further reshuffled passes (random.Random(seed + k) for pass k) over all kept docs outside the finish set until the body reaches 0.8*T tokens, then cut it at that point. If the body has more than 0.8*T tokens, drop the lowest-q docs until it is just above 0.8*T. (5) Return body + finish set, so the list covers T tokens exactly, the trainer never wraps around, and the final ~60 low-learning-rate steps train on the highest-confidence clean target-format articles that have not been seen earlier in the run.",
+   "outcome": "dev 1.8493 against 1.8340 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Raise recall of clean in-domain docs by replacing the hard word-shuffle cutoff with a data-driven one; leave dedupe, junk filter, classifier and layout unchanged. (1) For every candidate doc compute the word-bigram hit rate against the target bigram set as now, but average it over two 300-word windows (the head and one starting at the middle of the doc) instead of the head only. (2) Do not use the 5th percentile of the target leave-one-out rate as the threshold, since by construction it throws away about 5% of clean articles. Instead take the hit rates of all candidate docs with the '= Title =' marker, which are bimodal (clean articles high, word-shuffled ones low), and find the split with a 1-D 2-means / Otsu threshold on a 100-bin histogram. Use that valley as hit_thr, clamped to [0.5 * the old hit_thr, the old hit_thr] so it can only become more permissive. If the two cluster means differ by less than 0.05 (not bimodal), fall back to the old threshold. (3) Keep the adjacency-rate test, but drop a doc only when it fails in both windows. (4) Then classifier prob > 0.5, seeded shuffle and return as now, with no padding and no layout change. Note: experiment 3 is logged as rejected although its 1.8240 is lower than the 1.8340 best; this proposal does not repeat it, but that entry is worth rechecking.",
+   "outcome": "dev 1.8358 against 1.8340 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Keep dedupe, junk filter, shuffle filter and classifier as they are; change only what happens around the token budget, using second-tier in-domain text instead of blind cycling or off-domain filler.\n\n(1) Count gpt2 tokens for the kept set W (prob > 0.5, passes shuffle filter) with tiktoken encode_ordinary_batch; fall back to len/4 if more than 120 s have elapsed.\n\n(2) If tokens(W) >= T: sort W by classifier prob, drop the lowest-prob docs until the total is just above T, then seeded-shuffle and return.\n\n(3) If tokens(W) < T: build a second tier S of docs not in W that are still wiki-formatted. A doc qualifies if it passes exact dedupe and the junk filter, passes the head bigram-hit and adjacency tests, and either (a) has classifier prob in [0.15, 0.5], or (b) was removed only by the first-200-char near-dedupe but has a body that differs from the kept copy (md5 of normalized chars 200..2200 differs) and has prob > 0.5. To score (b), run the classifier on all exact-unique non-junk docs rather than only on head-deduped ones. Every S doc must also contain WikiText spaced punctuation (' , ' and ' . ' at a combined rate of at least 1 per 200 chars), so no web, spam or code text gets in.\n\n(4) Take S docs in descending prob until tokens(W) + tokens(S) reaches T, or S runs out. Return one seeded shuffle of W \u222a S, mixed and not staged. If still under T, let the trainer cycle.",
+   "outcome": "dev 1.8352 against 1.8340 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Add a character-damage (typo) filter and a content-based near-duplicate resolver; leave the junk filter, word-shuffle filter, classifier, prob > 0.5 cut and layout (single seeded shuffle, no padding, trainer cycles) unchanged.\n\n(1) Vocabulary: after exact dedupe and the junk filter, lowercase every candidate doc and extract purely alphabetic words (regex [a-z]+ on the first 30,000 chars). Count document frequency over the candidates. V = words that occur in at least 3 distinct candidate docs.\n\n(2) Rare-word rate: for each doc, r = fraction of its alphabetic words of length >= 4 that are not in V. Random character deletions and substitutions (e.g. 'Senatos', 'ounded' in the pool sample) produce words that are not in V, so damaged docs have high r. Calibrate on the target sample: compute r for each target doc against the same pool-only V, and set thr = max(1.5 * the 95th percentile of the target r, the 95th percentile + 0.01). Drop every pool doc with r > thr.\n\n(3) Content near-dedupe, replacing the first-200-char head dedupe: for each doc that passes the shuffle filter and prob > 0.5, hash all word 5-grams of the first 3,000 words (zlib.crc32 of the lowercased joined 5-gram) and keep the 8 smallest hashes as a sketch. Process docs in order of ascending r (cleanest first, ties broken by longer length). Skip a doc if at least 3 of its 8 sketch hashes are already owned by a kept doc; otherwise keep it and register its hashes. This way the cleanest and longest copy of each article survives, even when the damaged copy has a different opening or a typo in its title.\n\n(4) Seeded shuffle and return as now.\n\nNote on the log: experiment 3 scored 1.8240, which is lower than the 1.8340 best, yet it is recorded as rejected. Either the score or the verdict is wrong. This proposal does not repeat experiment 3, but that entry should be rechecked, because if the score is right the reference best should be 1.8240.",
+   "outcome": "dev 1.8353 against 1.8340 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Change only the order in which the first-200-char near-dedupe resolves collisions, so the longest copy wins instead of the first one seen in the pool. (1) Run exact dedupe (md5 of whitespace-normalized text) and the junk filter first, on all docs in pool order, as now. (2) Sort the survivors by normalized character length, longest first (ties broken by lower index, for determinism). Walk them in that order and apply the existing head dedupe (md5 of the lowercased first 200 normalized chars), keeping the first doc seen for each key, which is now the longest copy. (3) Restore the kept docs to ascending index order and continue exactly as now: same word-shuffle filter, same classifier and prob > 0.5 cut, a single seeded shuffle, no padding, no token trimming, and the trainer cycles. No title-based grouping, no bigram-hit-based copy choice and no cut to T, so this is not experiment 3; it tests only whether truncated copies shadowing full articles is what costs bpb. Note on the log: experiment 3 scored 1.8240, below the 1.8340 best, yet it is recorded as rejected. Either the score or the verdict is wrong, and that entry should be rechecked before the remaining experiments are spent.",
+   "outcome": "dev 1.8285 against 1.8340 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Move near-duplicate resolution to after the quality filters and let the longest passing copy win; change nothing else.\n\n(1) First pass: exact dedupe (md5 of whitespace-normalized text) and the junk filter only. Remove the first-200-char head dedupe from this pass.\n\n(2) Train the classifier as now, but build its positive and negative pools from a head-deduped view of the candidates (first seen per md5 of the lowercased first 200 normalized chars), so the training set is unchanged and duplicates do not skew it.\n\n(3) Run the existing word-shuffle filter (same hit_thr and adj_thr) and the classifier on all exact-unique non-junk docs. If the document count pushes scoring past the time guard, lower the snippet length L (floor 300) rather than skipping documents.\n\n(4) Among docs that pass both (shuffle filter OK and prob > 0.5), group near-duplicates by key: the lowercased, whitespace-normalized first line if the doc starts with '= ' (the article title), otherwise the md5 of the lowercased first 200 normalized chars. Keep one doc per group: the longest by normalized character length, ties broken by lower index.\n\n(5) Single seeded shuffle and return. No cut to T, no padding, no bigram-hit-based copy choice, and the trainer cycles.\n\nThis differs from experiment 3 (which chose by bigram hit rate and trimmed to T) and from experiment 9 (which picked the longest copy before filtering, so a long damaged copy could win its group and then be filtered out, losing the article).\n\nNote on the log: experiments 3 (1.8240) and 9 (1.8285) both scored below the 1.8340 best yet are recorded as rejected. Either those scores or those verdicts are wrong, and they should be rechecked. If the scores are right, the reference best should be 1.8240 and this proposal should be judged against that.",
+   "outcome": "dev 1.8254 against 1.8340 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Fix label noise in the domain classifier so in-domain docs without a '= Title =' first line are no longer trained as negatives; leave dedupe, junk filter, word-shuffle filter, the prob > 0.5 cut and the layout (single seeded shuffle, no padding, trainer cycles) unchanged.\n\n(1) For every candidate compute a WikiText-style score on the first 20,000 chars: s = (count of ' , ' + ' . ' + ' @-@ ' + ' ( ' + \" 's \") per 100 chars. Calibrate on target_sample: s_lo = 5th percentile of the target docs' s.\n\n(2) Negatives: sample only from candidates that lack the '= ' header AND have s < 0.5 * s_lo. Candidates that lack the header but have s >= 0.5 * s_lo are 'unlabelled' and are excluded from training. At present they are sampled as negatives, which teaches the classifier to reject headerless in-domain text such as article fragments or continuations.\n\n(3) Positives: target_sample plus header-marked candidates that pass the word-shuffle filter. At present the positive pool is drawn from all header-marked candidates, including shuffled ones. Same caps: 3000 positives, 3000 negatives.\n\n(4) Fit the same TF-IDF char_wb (2,4) + LogisticRegression (C=10, balanced). Then do one self-training round: score the unlabelled candidates, add those with prob > 0.9 that pass the shuffle filter to the positives and those with prob < 0.1 to the negatives (cap 3000 each, seeded sample), and refit once. If more than 90 s have elapsed, skip the refit.\n\n(5) Score all survivors, keep prob > 0.5, seeded shuffle, return as now.\n\nNote on the log: experiments 3 (1.8240), 9 (1.8285) and 10 (1.8254) all scored below the 1.8340 best but are recorded as rejected. Either those scores or those verdicts are wrong. If the scores are right, the real best is the longest-copy-after-filtering dedupe from experiment 10, and this change should be applied on top of it and judged against about 1.824.",
+   "outcome": "dev 1.8345 against 1.8340 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Replace the first-200-char head dedupe with a whole-document containment dedupe that runs after the quality filters and lets the longest copy win. Leave the junk filter, shuffle-filter thresholds, classifier settings, prob > 0.5 cut and layout (single seeded shuffle, no padding, no trim to T, trainer cycles) unchanged.\n\n(1) First pass: exact dedupe (md5 of whitespace-normalized text) and the junk filter only. No head dedupe here.\n\n(2) Classifier training: build the positive and negative pools from a head-deduped view of the candidates (first seen per md5 of the lowercased first 200 normalized chars), so the training set is the same as now. Then run the existing word-shuffle filter and the classifier on all exact-unique non-junk docs. If scoring would pass the 150 s time guard, lower the snippet length L (floor 300) rather than skipping docs.\n\n(3) Containment dedupe over the docs that pass both the shuffle filter and prob > 0.5:\n- For each doc, lowercase and split into words, and take all word 6-grams of the whole document.\n- Hash each with zlib.crc32 of the space-joined 6-gram, and keep only hashes with h % 4 == 0 as the doc's shingle set. If a doc has fewer than 5 such shingles, use all its 6-gram hashes.\n- Process docs longest first by word count, ties broken by lower index.\n- Keep a global set `owned` of shingle hashes from kept docs. Drop a doc if at least 50% of its shingles are already in `owned`; otherwise keep it and add its shingles.\n- If more than 165 s have elapsed, stop and fall back to title/head-key dedupe with longest-first for the remaining docs.\n\n(4) Restore ascending index order, do the seeded shuffle and return.\n\nHow this differs from earlier entries: there is no title or head key, so truncated or typo-headed copies are removed only when a longer passing copy actually contains their text, and distinct articles or fragments that share an opening or title are all kept. Experiments 3 and 10 grouped by title, experiment 9 picked the longest copy before filtering, and experiment 8 used an 8-hash sketch ordered by typo rate, so a truncated copy could win.\n\nNote on the log: experiments 3 (1.8240), 9 (1.8285) and 10 (1.8254) all scored below the 1.8340 best yet are recorded as rejected. I cannot tell from the log whether the scores or the verdicts are wrong, and they should be rechecked. If the scores are right, the true reference is about 1.824 and this result should be judged against that.",
+   "outcome": "dev 1.8240 against 1.8340 for the best at the time, rejected"
+  }
+ ],
+ "usd": 6.7900432,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.3927636,
+   "dev": 1.8339727309619516,
+   "inc": 1.9638107734077026,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.86925990169984,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6278916,
+   "dev": 1.837287573629063,
+   "inc": 1.8339727309619516,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.86925990169984,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5252676000000001,
+   "dev": 1.824008934799307,
+   "inc": 1.8339727309619516,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.86925990169984,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5330755999999996,
+   "dev": 1.8358669683060769,
+   "inc": 1.8339727309619516,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.86925990169984,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5815076000000001,
+   "dev": 1.849330808790564,
+   "inc": 1.8339727309619516,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.86925990169984,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.4957956000000001,
+   "dev": 1.8357544887624955,
+   "inc": 1.8339727309619516,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.86925990169984,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6217396000000002,
+   "dev": 1.8351838260870557,
+   "inc": 1.8339727309619516,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.86925990169984,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6095156000000004,
+   "dev": 1.8353269576013793,
+   "inc": 1.8339727309619516,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.86925990169984,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.4546196,
+   "dev": 1.8284574114113428,
+   "inc": 1.8339727309619516,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.86925990169984,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5697795999999995,
+   "dev": 1.8254353496447293,
+   "inc": 1.8339727309619516,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.86925990169984,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6903715999999998,
+   "dev": 1.8344999385152927,
+   "inc": 1.8339727309619516,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.86925990169984,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6877156000000006,
+   "dev": 1.8240257765995633,
+   "inc": 1.8339727309619516,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9638107734077026,
+ "inc_slot": 1
+}

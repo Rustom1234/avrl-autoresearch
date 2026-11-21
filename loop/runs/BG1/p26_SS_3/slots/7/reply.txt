@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    x = x0
+    for sd in (0.01, 0.005, 0.0):
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": 50})
+        x = res.x.copy()
+        if sd > 0:
+            x[:2 * n] += rng.normal(0, sd, 2 * n)
+            x[2 * n:] *= 0.9
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

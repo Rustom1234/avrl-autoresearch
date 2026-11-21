@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+=======
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    # Descriptor member (featurize column order: TPSA, MW, logP, HBD, HBA, RotB, Fsp3, charge, acid, basic amine)
+    # with monotone constraints: TPSA, HBD, HBA, acid count decreasing; the rest unconstrained.
+    train_sets.append(featurize(train_smiles))
+    test_sets.append(featurize(test_smiles))
+    constraints = [None] * (len(train_sets) - 1) + [(-1, 0, 0, -1, -1, 0, 0, 0, -1, 0)]
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te, mono in zip(train_sets, test_sets, constraints):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8,
+                              monotone_constraints=mono)
+>>>>>>> REPLACE
+-----

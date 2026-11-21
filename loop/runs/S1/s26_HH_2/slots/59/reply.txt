@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+def _old_construct_packing():
+=======
+def _subspace_search(c0, r0, deadline, k=6, rounds=30):
+    """Random k-dim subspace moves of the 52-D center vector, Nelder-Mead over the coefficients."""
+    n = c0.shape[0]
+    rng = np.random.RandomState(99)
+    st = {"c": np.array(c0, dtype=float).copy(), "r": np.asarray(r0, dtype=float).copy()}
+    st["s"] = float(st["r"].sum())
+    for _ in range(rounds):
+        if _time.time() > deadline:
+            break
+        base = st["c"].ravel().copy()
+        P, _q = np.linalg.qr(rng.normal(size=(2 * n, k)))
+        tpl = st["c"].copy()
+
+        def f(z, base=base, P=P, tpl=tpl):
+            if _time.time() > deadline:
+                return 1e3
+            c = np.clip((base + P @ z).reshape(n, 2), 0.0, 1.0)
+            c, _r = _relax(c, np.full(n, 0.005), 60, 0.05, 0.01, 0.5, tpl)
+            rv, s = _score(c)
+            if rv is None:
+                return 1e3
+            if s > st["s"]:
+                st["c"], st["r"], st["s"] = c.copy(), rv.copy(), s
+            return -s
+
+        simplex = np.vstack([np.zeros(k), 0.05 * np.eye(k)])
+        try:
+            _minimize(f, np.zeros(k), method="Nelder-Mead",
+                      options={"initial_simplex": simplex, "maxfev": 80,
+                               "xatol": 1e-5, "fatol": 1e-7})
+        except Exception:
+            pass
+    return st["c"], st["r"], st["s"]
+
+
+def _old_construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_c, best_r, best_s = cur_c.copy(), cur_r.copy(), cur_s
+    rng = np.random.RandomState(7)
+    T = 0.002
+=======
+    best_c, best_r, best_s = cur_c.copy(), cur_r.copy(), cur_s
+    sc, sr, ss = _subspace_search(cur_c, cur_r, T0 + 170.0)
+    if ss > cur_s:
+        cur_c, cur_r, cur_s = sc.copy(), sr.copy(), ss
+        best_c, best_r, best_s = sc.copy(), sr.copy(), ss
+    rng = np.random.RandomState(7)
+    T = 0.002
+>>>>>>> REPLACE
+-----

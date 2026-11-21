@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+    pool = []
+    while _time.time() - t0 < 80:
+        c = rng.uniform(0.1, 0.9, size=(_N, 2))
+        c, _r = _relax(c, np.full(_N, 0.01), 400, 0.3, 0.05)
+        rv, s = _score(c)
+        if rv is not None:
+            pool.append((s, c.copy()))
+            pool.sort(key=lambda p: -p[0])
+            del pool[5:]
+    best_s, best_c, best_r = -1.0, None, None
+    for s0, c0 in pool:
+=======
+    pool = []
+    while len(pool) < 12 and _time.time() - t0 < 60:
+        c = rng.uniform(0.1, 0.9, size=(_N, 2))
+        c, _r = _relax(c, np.full(_N, 0.01), 400, 0.3, 0.05)
+        rv, s = _score(c)
+        if rv is not None:
+            pool.append((s, c.copy()))
+    while len(pool) >= 2 and _time.time() - t0 < 130:
+        i, j = rng.choice(len(pool), 2, replace=False)
+        A = pool[i][1]
+        B = pool[j][1]
+        child = np.vstack([A[A[:, 0] < 0.5], B[B[:, 0] >= 0.5]])
+        if child.shape[0] > _N:
+            child = child[rng.choice(child.shape[0], _N, replace=False)]
+        elif child.shape[0] < _N:
+            child = np.vstack([child, rng.uniform(0.1, 0.9, size=(_N - child.shape[0], 2))])
+        child = np.clip(child + rng.normal(0.0, 0.005, size=child.shape), 0.0, 1.0)
+        c, _r = _relax(child, np.full(_N, 0.005), 300, 0.2, 0.02)
+        rv, s = _score(c)
+        if rv is None:
+            continue
+        worst = min(range(len(pool)), key=lambda k: pool[k][0])
+        if s > pool[worst][0]:
+            pool[worst] = (s, c.copy())
+    pool.sort(key=lambda p: -p[0])
+    del pool[5:]
+    best_s, best_c, best_r = -1.0, None, None
+    for s0, c0 in pool:
+>>>>>>> REPLACE
+-----

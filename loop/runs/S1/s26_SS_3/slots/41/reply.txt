@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+    while best is not None and time.time() - t0 < time_budget:
+        c, r = best
+        k = rng.choice(np.argsort(r)[:4])
+=======
+    ii6, jj6 = np.triu_indices(6, 1)
+    while best is not None and time.time() - t0 < 0.88 * time_budget:
+        c, r = best
+        k = rng.integers(n)
+        dk = np.sqrt(((c - c[k]) ** 2).sum(1))
+        cl = np.argsort(dk)[:6]
+        fx = np.setdiff1d(np.arange(n), cl)
+        cf = c[fx]
+        rf = r[fx]
+        lo = np.clip(c[cl].min(0) - 0.05, 0.0, 1.0)
+        hi = np.clip(c[cl].max(0) + 0.05, 0.0, 1.0)
+
+        def ccons(w, cf=cf, rf=rf):
+            xs = w[:6]
+            ys = w[6:12]
+            rs = w[12:]
+            P = np.stack([xs, ys], axis=1)
+            dd = np.sqrt(((P[:, None, :] - cf[None]) ** 2).sum(2)) - rf[None] - rs[:, None]
+            dc = np.sqrt((xs[ii6] - xs[jj6]) ** 2 + (ys[ii6] - ys[jj6]) ** 2) - rs[ii6] - rs[jj6]
+            return np.concatenate([dd.ravel(), dc, xs - rs, 1 - xs - rs, ys - rs, 1 - ys - rs])
+
+        bw = None
+        bs = -1.0
+        for _ in range(5):
+            p0 = lo + rng.random((6, 2)) * (hi - lo)
+            w0 = np.concatenate([p0[:, 0], p0[:, 1], np.full(6, 0.03)])
+            try:
+                rs_ = minimize(lambda w: -np.sum(w[12:]), w0, method="SLSQP",
+                               bounds=[(0, 1)] * 12 + [(0, 0.5)] * 6,
+                               constraints=[{"type": "ineq", "fun": ccons}],
+                               options={"maxiter": 100, "ftol": 1e-10})
+            except Exception:
+                continue
+            if ccons(rs_.x).min() < -1e-6:
+                continue
+            sc = rs_.x[12:].sum()
+            if sc > bs:
+                bs = sc
+                bw = rs_.x
+        if bw is None:
+            continue
+        c0 = c.copy()
+        r0 = r.copy()
+        c0[cl, 0] = bw[:6]
+        c0[cl, 1] = bw[6:12]
+        r0[cl] = bw[12:]
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is None:
+            continue
+        c2, r2 = out
+        if r2.sum() > best_val:
+            best_val = r2.sum()
+            best = (c2, r2)
+    while best is not None and time.time() - t0 < time_budget:
+        c, r = best
+        k = rng.choice(np.argsort(r)[:4])
+>>>>>>> REPLACE
+-----

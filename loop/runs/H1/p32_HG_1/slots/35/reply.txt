@@ -1,0 +1,118 @@
+<<<<<<< SEARCH
+    from scipy.optimize import LBFGSB
+    
+    # c = x[:2*n], r = x[2*n:]
+    # Boundary constraints: x_i in [0, 1], r_i in [0, 0.5]
+    # Let's use LBFGSB and handle boundaries by clipping or just bound the variables
+    # x_i in [0, 1], r_i in [0, 0.5]
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    
+    # Initial values for Lagrange multipliers (lambdas)
+    lambdas = np.zeros(n * (n - 1) // 2)
+    mu = 10.0
+    
+    curr_x = x0
+    for _ in range(6):
+        def obj_func(v):
+            c_v = v[:2 * n].reshape(n, 2)
+            r_v = v[2 * n:]
+            
+            # Non-overlap g_ij = r_i + r_j - d_ij <= 0
+            # In inequality terms, we want g_ij <= 0, so we penalize max(0, g_ij)^2
+            # However, SLSQP handles g_ij <= 0 directly. 
+            # For Augmented Lagrangian, we use: min -sum(r) + (mu/2) * sum(max(0, g_ij + lambda_ij/mu)^2)
+            
+            dist = np.sqrt(((c_v[:, None] - c_v[None]) ** 2).sum(-1))
+            # Get upper triangle indices
+            iu = np.triu_indices(n, 1)
+            # g_ij = r_i + r_j - dist_ij
+            g = r_v[iu[0]] + r_v[iu[1]] - dist[iu]
+            
+            penalty = 0
+            for k, (i, j) in enumerate(zip(*iu)):
+                val = g[k] + lambdas[k] / mu
+                if val > 0: penalty += 0.5 * mu * (val ** 2)
+            
+            return -r_v.sum() + penalty
+        
+        res = minimize(obj_func, curr_x, method='L-BFGS-B', bounds=bounds, options={'maxiter': MAX_ITER // 7})
+        curr_x = res.x
+        
+        # Update lambdas
+        c_v = curr_x[:2 * n].reshape(n, 2)
+        r_v = curr_x[2 * n:]
+        dist = np.sqrt(((c_v[:, None] - c_v[None]) ** 2).sum(-1))
+        iu = np.triu_indices(n, 1)
+        g = r_v[iu[0]] + r_v[iu[1]] - dist[iu]
+        lambdas = np.maximum(0, lambdas + mu * g)
+        mu *= 3
+
+    # Final SLSQP polish
+    def cons(v):
+        c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+    
+    res_final = minimize(lambda v: -v[2 * n:].sum(), curr_x, method="SLSQP", 
+                           constraintsZur={"type": "ineq", "fun": cons}, 
+                           options={"maxiter": 100})
+    return res_final.x[:2 * n].reshape(n, 2), res_final.x[2 * n:]
+========
+    # c = x[:2*n], r = x[2*n:]
+    # Boundary constraints: x_i in [0, 1], r_i in [0, 0.5]
+    # Let's use L-BFGS-B and handle boundaries by clipping or just bound the variables
+    # x_i in [0, 1], r_i in [0, 0.5]
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    
+    # Initial values for Lagrange multipliers (lambdas)
+    lambdas = np.zeros(n * (n - 1) // 2)
+    mu = 10.0
+    
+    curr_x = x0
+    for _ in range(6):
+        def obj_func(v):
+            c_v = v[:2 * n].reshape(n, 2)
+            r_v = v[2 * n:]
+            
+            # Non-overlap g_ij = r_i + r_j - d_ij <= 0
+            # In inequality terms, we want g_ij <= 0, so we penalize max(0, g_ij)^2
+            # However, SLSQP handles g_ij <= 0 directly. 
+            # For Augmented Lagrangian, we use: min -sum(r) + (mu/2) * sum(max(0, g_ij + lambda_ij/mu)^2)
+            
+            dist = np.sqrt(((c_v[:, None] - c_v[None]) ** 2).sum(-1))
+            # Get upper triangle indices
+            iu = np.triu_indices(n, 1)
+            # g_ij = r_i + r_j - dist_ij
+            g = r_v[iu[0]] + r_v[iu[1]] - dist[iu]
+            
+            penalty = 0
+            for k, (i, j) in enumerate(zip(*iu)):
+                val = g[k] + lambdas[k] / mu
+                if val > 0: penalty += 0.5 * mu * (val ** 2)
+            
+            return -r_v.sum() + penalty
+        
+        res = minimize(obj_func, curr_x, method='L-BFGS-B', bounds=bounds, options={'maxiter': MAX_ITER // 7})
+        curr_x = res.x
+        
+        # Update lambdas
+        c_v = curr_x[:2 * n].reshape(n, 2)
+        r_v = curr_x[2 * n:]
+        dist = np.sqrt(((c_v[:, None] - c_v[None]) ** 2).sum(-1))
+        iu = np.triu_indices(n, 1)
+        g = r_v[iu[0]] + r_v[iu[1]] - dist[iu]
+        lambdas = np.maximum(0, lambdas + mu * g)
+        mu *= 3
+
+    # Final SLSQP polish
+    def cons(v):
+        c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+    
+    res_final = minimize(lambda v: -v[2 * n:].sum(), curr_x, method="SLSQP", 
+                           constraints={"type": "ineq", "fun": cons}, 
+                           options={"maxiter": 100})
+    return res_final.x[:2 * n].reshape(n, 2), res_final.x[2 * n:]
+>>>>>>> REPLACE
+-----

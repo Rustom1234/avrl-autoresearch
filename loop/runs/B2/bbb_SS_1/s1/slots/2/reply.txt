@@ -1,0 +1,80 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        fp = gen.GetCountFingerprintAsNumPy(m).astype(np.float32)
+=======
+def standardize(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    try:
+        m = rdMolStandardize.LargestFragmentChooser().choose(mol)
+        return rdMolStandardize.Uncharger().uncharge(m)
+    except Exception:
+        return mol
+
+
+def featurize(mols):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for m in mols:
+        fp = gen.GetCountFingerprintAsNumPy(m).astype(np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    Xt = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize([standardize(s) for s in train_smiles])
+    Xt = featurize([standardize(s) for s in test_smiles])
+    y = np.asarray(train_y, dtype=np.int64)
+    nd = len(Descriptors.descList)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    preds = []
+    for m in models:
+        m.fit(X, y)
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+=======
+    preds = []
+    for m in models:
+        m.fit(X, y)
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    # Tanimoto kNN (k=10, similarity-weighted votes) on binary Morgan bits
+    B = (X[:, nd:] > 0).astype(np.float32)
+    Bt = (Xt[:, nd:] > 0).astype(np.float32)
+    inter = Bt @ B.T
+    sim = inter / (Bt.sum(1)[:, None] + B.sum(1)[None, :] - inter + 1e-9)
+    K = 10
+    idx = np.argpartition(-sim, K - 1, axis=1)[:, :K]
+    s = np.take_along_axis(sim, idx, 1)
+    knn = (s * y[idx]).sum(1) / (s.sum(1) + 1e-9)
+    preds.append(rankdata(knn) / len(Xt))
+    # MLP on quantile-scaled descriptors, averaged over 3 seeds
+    qt = QuantileTransformer(n_quantiles=200, output_distribution="normal", random_state=seed)
+    Dtr = qt.fit_transform(X[:, :nd])
+    Dte = qt.transform(Xt[:, :nd])
+    mlp = np.mean([MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-3, early_stopping=True,
+                                 max_iter=500, random_state=seed + k).fit(Dtr, y).predict_proba(Dte)[:, 1]
+                   for k in range(3)], axis=0)
+    preds.append(rankdata(mlp) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

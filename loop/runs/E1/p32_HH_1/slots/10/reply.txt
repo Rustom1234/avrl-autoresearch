@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+LAM0 = 0.05
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    st = {"k": 0, "lam": LAM0}
+
+    def obj(v):
+        c = v[:2 * n].reshape(n, 2)
+        return -v[2 * n:].sum() + st["lam"] * ((c - 0.5) ** 2).sum()
+
+    def cb(xk):
+        st["k"] += 1
+        st["lam"] = LAM0 * max(0, 1 - st["k"] / MAX_ITER)
+
+    res = minimize(obj, x0, method="SLSQP", constraints={"type": "ineq", "fun": cons}, callback=cb,
+                   options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+-----

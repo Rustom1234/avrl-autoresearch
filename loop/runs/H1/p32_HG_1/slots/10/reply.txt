@@ -1,0 +1,135 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={{"type": "ineq", "fun": cons}},
+                   options={{"maxiter": MAX_ITER}})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def obj(v):
+        return -v[2 * n:].sum()
+
+    def grad_obj(v):
+        grad = np.zeros_like(v)
+        grad[2 * n:] = -1.0
+        return grad
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def jac_cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        n_c = 2 * n
+        # Jacobian for d (pairwise distances)
+        # d_k = sqrt((cx_i - cx_j)^2 + (cy_i - cy_j)^2) - r_i - r_j
+        # grad_ckx = (cx_i - cx_j) / d_k
+        # grad_cky = (cy_i - cy_j) / d_k
+        # grad_rk_i = -1, grad_rk_j = -1
+        jac = np.zeros((len(iu) + 5 * n, 2 * n + n))
+        
+        diff = c[iu[0]] - c[iu[1]]
+        dist = np.sqrt((diff**2).sum(1))
+        
+        # Avoid division by zero
+        dist_safe = np.where(dist == 0, 1e-9, dist)
+        
+        # Partial derivatives wrt centers
+        jac[:len(iu), 2 * iu[0]] += diff / dist_safe[:, None]
+        jac[:len(iu), 2 * iu[1] + n] -= diff / dist_safe[:, None]
+        # Partial derivatives wrt radii
+        jac[:len(iu), iu[0] + 2 * n] -= 1
+        jac[:len(iu), iu[1] + 2 * n] -= 1
+        
+        # Boundary constraints: c_x - r, c_y - r, 1 - c_x - r, 1 - c_y - r
+        # c_x - r: grad_cx = 1, grad_r = -1
+        jac[len(iu) : len(iu) + n, :n] += 1
+        jac[len(iu) : len(iu) + n, 2 * n:] -= 1
+        
+        # c_y - r: grad_cy = 1, grad_r = -1
+        jac[len(iu) + n : len(iu) + 2 * n, n:2 * n] += 1
+        jac[len(iu) + n : len(iu) + 2 * n, 2 * n:] -= 1
+        
+        # 1 - c_x - r: grad_cx = -1, grad_r = -1
+        jac[len(iu) + 2 * n : len(iu) + 3 * n, :n] -= 1
+        jac[len(iu) + 2 * n : len(iu) + 3 * n, 2 * n:] -= 1
+        
+        # 1 - c_y - r: grad_cy = -1, grad_r = -1
+        jac[len(iu) + 3 * n : len(iu) + 4 * n, n:2 * n] -= 1
+        jac[len(iu) + 3 * n : len(iu) + 4 * n, 2 * n:] -= 1
+        
+        # r >= 0: grad_r = 1
+        jac[len(iu) + 4 * n : len(iu) + 5 * n, 2 * n:] += 1
+        
+        return jac
+
+    res = minimize(obj, x0, method="SLSQP", jac=grad_obj, 
+                   constraints={{"type": "ineq", "fun": cons, "jac": jac_cons}},
+                   options={{"maxiter": MAX_ITER}})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={{"type": "ineq", "fun": cons}},
+                   options={{"maxiter": MAX_ITER}})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+ 삼
+    def obj(v):
+        return -v[2 * n:].sum()
+
+    def grad_obj(v):
+        grad = np.zeros_like(v)
+        grad[2 * n:] = -1.0
+        return grad
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def jac_cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        n_c = 2 * n
+        diff = c[iu[0]] - c[iu[1]]
+        dist = np.sqrt((diff**2).sum(1))
+        dist_safe = np.where(dist == 0, 1e-9, dist)
+        
+        jac = np.zeros((len(iu) + 5 * n, 2 * n + n))
+        jac[:len(iu), 2 * iu[0]] += diff / dist_safe[:, None]
+        jac[:len(iu), 2 * iu[1] + n] -= diff / dist_safe[:, None]
+        jac[:len(iu), iu[0] + 2 * n] -= 1
+        jac[:len(iu), iu[1] + 2 * n] -= 1
+        
+        jac[len(iu) : len(iu) + n, :n] += 1
+        jac[len(iu) : len(iu) + n, 2 * n:] -= 1
+        jac[len(iu) + n : len(iu) + 2 * n, n:2 * n] += 1
+        jac[len(iu) + n : len(iu) + 2 * n, 2 * n:] -= 1
+        jac[len(iu) + 2 * n : len(iu) + 3 * n, :n] -= 1
+        jac[len(iu) + 2 * n : len(iu) + 3 * n, 2 * n:] -= 1
+        jac[len(iu) + 3 * n : len(iu) + 4 * n, n:2 * n] -= 1
+        jac[len(iu) + 3 * n : len(iu) + 4 * n, 2 * n:] -= 1
+        jac[len(iu) + 4 * n : len(iu) + 5 * n, 2 * n:] += 1
+        return jac
+
+    res = minimize(obj, x0, method="SLSQP", jac=grad_obj, 
+                   constraints={{"type": "ineq", "fun": cons, "jac": jac_cons}},
+                   options={{"maxiter": MAX_ITER}})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

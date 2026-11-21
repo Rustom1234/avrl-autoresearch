@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+=======
+        x = res.x
+    c, r = x[:2 * n].reshape(n, 2), x[2 * n:]
+    gap = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+    touch = gap < 1e-6
+    act = np.bincount(iu[0][touch], minlength=n) + np.bincount(iu[1][touch], minlength=n)
+    wall = np.stack([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r], 1) < 1e-6
+    act = act + wall.sum(1)
+    ratt = np.where(act < 2)[0]
+    if len(ratt):
+        x2 = x.copy()
+        c2, r2 = x2[:2 * n].reshape(n, 2), x2[2 * n:]
+        c2[ratt] = rng.uniform(0, 1, (len(ratt), 2))
+        r2[ratt] = 0.01
+        res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v: cons(v, 1.0)},
+                       options={"maxiter": MAX_ITER})
+        if res.x[2 * n:].sum() > x[2 * n:].sum():
+            x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

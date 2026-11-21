@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    scaf = np.array([MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(s)) for s in train_smiles])
+    uniq = sorted(set(scaf))
+    np.random.RandomState(seed).shuffle(uniq)
+    fold_of = {g: i % 5 for i, g in enumerate(uniq)}
+    fold_ids = np.array([fold_of[g] for g in scaf])
+    oof = np.zeros((len(y), 3))
+    for k in range(5):
+        tr = np.where(fold_ids != k)[0]
+        va = np.where(fold_ids == k)[0]
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed)
+    meta = LinearRegression(positive=True).fit(oof, y)
+    return meta.predict(base_predict(X, y, Xte, seed)) + a + b * Lte
+=======
+    return base_predict(X, y, Xte, seed).mean(axis=1) + a + b * Lte
+>>>>>>> REPLACE
+-----

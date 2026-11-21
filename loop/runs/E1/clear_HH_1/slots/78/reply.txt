@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+=======
+def sparse_counts(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS)
+    return [gen.GetSparseCountFingerprint(Chem.MolFromSmiles(s)).GetNonzeroElements() for s in smiles]
+
+
+def folded_bits(counts, size):
+    B = np.zeros((len(counts), size))
+    for i, c in enumerate(counts):
+        for k in c:
+            B[i, k % size] = 1.0
+    return B
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Ctr = sparse_counts(train_smiles)
+    Cte = sparse_counts(test_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    tan_tr = np.mean([tanimoto(folded_bits(Ctr, s), folded_bits(Ctr, s)) for s in (1024, 2048, 4096)], axis=0)
+    tan_te = np.mean([tanimoto(folded_bits(Cte, s), folded_bits(Ctr, s)) for s in (1024, 2048, 4096)], axis=0)
+    K_train = 0.5 * (tan_tr + rbf(D, D, gamma))
+    K_test = 0.5 * (tan_te + rbf(Dt, D, gamma))
+>>>>>>> REPLACE
+-----

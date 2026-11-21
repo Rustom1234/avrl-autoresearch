@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def run_packing():
+=======
+def _vogel_start(rng):
+    # Vogel (sunflower) spiral, centred rescale to [0.1, 0.9], seeded rotation about the centre, jitter 0.02.
+    n = 26
+    k = np.arange(n)
+    rad = np.sqrt(k + 0.5) / np.sqrt(n + 0.5)
+    th = k * np.pi * (3.0 - np.sqrt(5.0))
+    pts = np.stack([rad * np.cos(th), rad * np.sin(th)], axis=1)
+    lo = pts.min(axis=0)
+    hi = pts.max(axis=0)
+    pts = 0.1 + 0.8 * (pts - lo) / np.maximum(hi - lo, 1e-12)
+    ang = rng.uniform(0.0, 2.0 * np.pi)
+    ca, sa = np.cos(ang), np.sin(ang)
+    d = pts - 0.5
+    rot = np.stack([ca * d[:, 0] - sa * d[:, 1], sa * d[:, 0] + ca * d[:, 1]], axis=1)
+    c = 0.5 + rot + rng.uniform(-0.02, 0.02, (n, 2))
+    return np.clip(c, 0.0, 1.0)
+
+
+def run_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        start = None
+        if k > 0:
+            amp = 0.01 + 0.09 * ((k - 1) % 4) / 3.0
+            start = _lattice_start(np.random.default_rng(999 + k), amp)
+=======
+        start = None
+        if k > 0 and k % 5 == 4:
+            start = _vogel_start(np.random.default_rng(4242 + k))
+        elif k > 0:
+            amp = 0.01 + 0.09 * ((k - 1) % 4) / 3.0
+            start = _lattice_start(np.random.default_rng(999 + k), amp)
+>>>>>>> REPLACE
+-----

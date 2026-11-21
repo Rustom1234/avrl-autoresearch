@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=600, max_depth=4, learning_rate=0.03, subsample=0.8,
+                         colsample_bytree=0.4, reg_lambda=5, n_jobs=8, random_state=seed)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(Xtr, y)
+    p_xgb = model.predict(Xte)
+    et = ExtraTreesRegressor(n_estimators=500, max_features=0.3, min_samples_leaf=2,
+                             n_jobs=8, random_state=seed)
+    et.fit(Xtr, y)
+    p_et = et.predict(Xte)
+    nd = len(Descriptors.descList)
+    svr = make_pipeline(StandardScaler(),
+                        QuantileTransformer(n_quantiles=min(200, len(y)), output_distribution="normal",
+                                            random_state=seed),
+                        SVR(kernel="rbf", C=3, epsilon=0.1))
+    svr.fit(Xtr[:, :nd], y)
+    p_svr = svr.predict(Xte[:, :nd])
+    return 0.5 * p_xgb + 0.25 * p_et + 0.25 * p_svr
+=======
+def base_preds(Xtr, y, Xte, seed):
+    model = XGBRegressor(n_estimators=600, max_depth=4, learning_rate=0.03, subsample=0.8,
+                         colsample_bytree=0.4, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(Xtr, y)
+    et = ExtraTreesRegressor(n_estimators=500, max_features=0.3, min_samples_leaf=2,
+                             n_jobs=8, random_state=seed)
+    et.fit(Xtr, y)
+    nd = len(Descriptors.descList)
+    svr = make_pipeline(StandardScaler(),
+                        QuantileTransformer(n_quantiles=min(200, len(y)), output_distribution="normal",
+                                            random_state=seed),
+                        SVR(kernel="rbf", C=3, epsilon=0.1))
+    svr.fit(Xtr[:, :nd], y)
+    return np.column_stack([model.predict(Xte), et.predict(Xte), svr.predict(Xte[:, :nd])])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    oof = np.zeros((len(y), 3))
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        oof[b] = base_preds(Xtr[a], y[a], Xtr[b], seed)
+    w, _ = nnls(oof, y)
+    w = w / w.sum() if w.sum() > 0 else np.full(3, 1 / 3)
+    return base_preds(Xtr, y, Xte, seed) @ w
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+from scipy.optimize import nnls
+>>>>>>> REPLACE
+-----

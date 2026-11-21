@@ -1,0 +1,82 @@
+<<<<<<< SEARCH
+def run_packing():
+=======
+def _barrier_polish(c, r, deadline):
+    # Log-barrier interior-point polish: maximise sum(r) - (1/t) * sum(log slack),
+    # with t increasing geometrically. Infeasible trial points get a large value so
+    # L-BFGS-B backtracks. The result is kept only if it passes the exact check.
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    best_c = np.array(c, dtype=float)
+    best_r = np.array(r, dtype=float)
+    best_s = float(np.sum(best_r))
+    try:
+        z = np.concatenate([best_c[:, 0], best_c[:, 1], np.maximum(best_r * (1.0 - 1e-7), 1e-9)])
+
+        def slacks(z):
+            x = z[:n]
+            y = z[n:2 * n]
+            r_ = z[2 * n:]
+            dx = x[I] - x[J]
+            dy = y[I] - y[J]
+            d = np.sqrt(dx * dx + dy * dy) + 1e-15
+            sp = d - r_[I] - r_[J]
+            sb = np.concatenate([x - r_, 1 - x - r_, y - r_, 1 - y - r_, r_])
+            return sp, sb, dx, dy, d
+
+        def f_and_g(z, t):
+            sp, sb, dx, dy, d = slacks(z)
+            if np.min(sp) <= 0 or np.min(sb) <= 0:
+                return 1e12, np.zeros_like(z)
+            f = -np.sum(z[2 * n:]) - (np.sum(np.log(sp)) + np.sum(np.log(sb))) / t
+            w = -1.0 / (t * sp)
+            gx = np.zeros(n)
+            gy = np.zeros(n)
+            gr = np.zeros(n)
+            np.add.at(gx, I, w * dx / d)
+            np.add.at(gx, J, -w * dx / d)
+            np.add.at(gy, I, w * dy / d)
+            np.add.at(gy, J, -w * dy / d)
+            np.add.at(gr, I, -w)
+            np.add.at(gr, J, -w)
+            wb = -1.0 / (t * sb)
+            w0, w1, w2, w3, w4 = wb[:n], wb[n:2 * n], wb[2 * n:3 * n], wb[3 * n:4 * n], wb[4 * n:]
+            gx += w0 - w1
+            gy += w2 - w3
+            gr += -(w0 + w1 + w2 + w3) + w4
+            gr -= 1.0
+            return f, np.concatenate([gx, gy, gr])
+
+        sp, sb, _, _, _ = slacks(z)
+        if np.min(sp) > 0 and np.min(sb) > 0:
+            t = 1e2
+            while t <= 1e9 and time.perf_counter() < deadline:
+                res = minimize(f_and_g, z, args=(t,), jac=True, method="L-BFGS-B",
+                               options={"maxiter": 300})
+                if np.isfinite(res.fun) and res.fun < 1e11:
+                    sp2, sb2, _, _, _ = slacks(res.x)
+                    if np.min(sp2) > 0 and np.min(sb2) > 0:
+                        z = res.x
+                t *= 10.0
+            cc = np.clip(np.stack([z[:n], z[n:2 * n]], axis=1), 0.0, 1.0)
+            rr = np.maximum(z[2 * n:], 0.0)
+            s = float(np.sum(rr))
+            if s > best_s and _valid_packing(cc, rr):
+                best_c, best_r, best_s = cc, rr, s
+    except Exception:
+        pass
+    return best_c, best_r
+
+
+def run_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best_c is None:
+        # Last-resort valid output (all radii zero).
+=======
+    if best_c is not None:
+        best_c, best_r = _barrier_polish(best_c, best_r, t_start + 255.0)
+    if best_c is None:
+        # Last-resort valid output (all radii zero).
+>>>>>>> REPLACE
+-----

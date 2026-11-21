@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors
+=======
+from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors, rdReducedGraphs
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+_DESC_CACHE = {}
+_ERG_CACHE = {}
+
+
+def erg_features(smiles):
+    rows = []
+    for s in smiles:
+        if s not in _ERG_CACHE:
+            v = np.asarray(rdReducedGraphs.GetErGFingerprint(Chem.MolFromSmiles(s)), dtype=np.float64)
+            _ERG_CACHE[s] = np.where(np.isfinite(v), v, 0.0)
+        rows.append(_ERG_CACHE[s])
+    return np.array(rows, dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.clip(X, -1e6, 1e6)
+=======
+    X = np.hstack([X, erg_features(smiles)])
+    return np.clip(X, -1e6, 1e6)
+>>>>>>> REPLACE
+-----

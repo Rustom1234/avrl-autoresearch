@@ -1,0 +1,56 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (regression).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from scipy.stats import rankdata
+from lightgbm import LGBMRegressor
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.kernel_ridge import KernelRidge
+
+
+def minmax_kernel(A, B):
+    A = A.astype(np.float64)
+    B = B.astype(np.float64)
+    K = np.empty((len(A), len(B)))
+    sb = B.sum(1)
+    for i, a in enumerate(A):
+        mn = np.minimum(a, B).sum(1)
+        K[i] = mn / np.maximum(a.sum() + sb - mn, 1e-9)
+    return K
+
+# Settings
+N_BITS = 1024
+RADIUS = 3
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        fp = gen.GetCountFingerprintAsNumPy(m).astype(np.float64)
+        desc = np.array([f(m) for _, f in Descriptors._descList], dtype=np.float64)
+        rows.append(np.concatenate([desc, fp]))
+    X = np.array(rows)
+    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    nd = len(Descriptors._descList)
+    ym = y.mean()
+    krr = KernelRidge(alpha=0.5, kernel='precomputed')
+    krr.fit(minmax_kernel(Xtr[:, nd:], Xtr[:, nd:]), y - ym)
+    p_rf = krr.predict(minmax_kernel(Xte[:, nd:], Xtr[:, nd:])) + ym
+    gbm = LGBMRegressor(n_estimators=400, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                        colsample_bytree=0.5, min_child_samples=10, n_jobs=8, random_state=seed, verbose=-1)
+    gbm.fit(Xtr[:, :nd], y)
+    p_gbm = gbm.predict(Xte[:, :nd])
+    return 0.5 * rankdata(p_rf) + 0.5 * rankdata(p_gbm)

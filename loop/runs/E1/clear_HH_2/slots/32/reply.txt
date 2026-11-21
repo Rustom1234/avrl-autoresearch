@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import MACCSkeys
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def bit_fingerprints(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float64)
+=======
+def bit_fingerprints(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        maccs = np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float64)
+        rows.append(np.concatenate([gen.GetFingerprintAsNumPy(m).astype(np.float64), maccs]))
+    return np.array(rows, dtype=np.float64)
+>>>>>>> REPLACE
+-----

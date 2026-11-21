@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    I, J = iu
+    m = len(I)
+    k = np.arange(m)
+    a = np.arange(n)
+    W = np.zeros((4 * n, 3 * n))
+    W[a, 2 * a] = 1
+    W[a, 2 * n + a] = -1
+    W[n + a, 2 * a + 1] = 1
+    W[n + a, 2 * n + a] = -1
+    W[2 * n + a, 2 * a] = -1
+    W[2 * n + a, 2 * n + a] = -1
+    W[3 * n + a, 2 * a + 1] = -1
+    W[3 * n + a, 2 * n + a] = -1
+    b = np.concatenate([np.zeros(2 * n), np.ones(2 * n)])
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = c[I] - c[J]
+        g = (d ** 2).sum(1) - (r[I] + r[J]) ** 2
+        return np.concatenate([g, W @ v + b])
+
+    def jac(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = c[I] - c[J]
+        s = r[I] + r[J]
+        P = np.zeros((m, 3 * n))
+        P[k, 2 * I] = 2 * d[:, 0]
+        P[k, 2 * I + 1] = 2 * d[:, 1]
+        P[k, 2 * J] = -2 * d[:, 0]
+        P[k, 2 * J + 1] = -2 * d[:, 1]
+        P[k, 2 * n + I] = -2 * s
+        P[k, 2 * n + J] = -2 * s
+        return np.vstack([P, W])
+
+    grad = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, jac=lambda v: grad, method="SLSQP", bounds=bounds,
+                   constraints={"type": "ineq", "fun": cons, "jac": jac}, options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+-----

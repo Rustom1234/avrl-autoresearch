@@ -1,0 +1,217 @@
+<<<<<<< SEARCH
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ITERATIONS = 1500
+LEARNING_RATE = 0.05
+DEPTH = 6
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train, y_train)
+    
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+=======
+# Settings
+N_BITS = 2048
+ITERATIONS = 1500
+LEARNING_RATE = 0.05
+DEPTH = 6
+
+
+def get_wl_counts(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    if mol is None: return None
+    
+    # Initial labels: (atomic_num, degree, formal_charge, aromaticity)
+    labels = []
+    for atom in mol.GetAtoms():
+        labels.append((atom.GetAtomicNum(), atom.GetDegree(), atom.GetFormalCharge(), atom.GetIsAromatic()))
+    
+    # 3 iterations of refinement
+    for _ in range(3):
+        new_labels = []
+        for i, atom in enumerate(mol.GetAtoms()):
+            neighbor_labels = []
+            for neighbor in atom.GetNeighbors():
+                neighbor_labels.append(labels[neighbor.GetIdx()])
+            neighbor_labels.sort()
+            new_labels.append(hash((labels[i], tuple(neighbor_labels))type(labels[i])))
+        labels = new_labels
+    
+    return labels
+
+def featurize(smiles):
+    # Get WL labels for all molecules
+    wl_data = [get_wl_counts(s) for s in smiles]
+    # Flatten labels to a list of lists (handling None from failed smiles)
+    wl_list = [l for l in wl_data if l is not None]
+    
+    # Build vocabulary from training data to count occurrences
+    # This logic is simplified: we'll build a global count of unique labels
+    all_labels = []
+    for l in wl_list: all_labels.extend(l)
+    
+    # This is a simplified WL-count implementation
+    # To stay within time limits, we use a simpler approach for the vectorization
+    # We use the labels to create a count vector
+    unique_labels = sorted(list(set(all_labels)))[:N_BITS]
+    label_to_idx = {l: i for i, l in enumerate(unique_labels)}
+    
+    # Re-featurize to generate the counts for the actual smiles
+    fps = []
+    # We need to make this pass-dependent, but for simplicity in a single script:
+    # In a real scenario, we'd pass the vocabulary from the training set
+    # Here we use a simplified fixed-size hashing of the labels to mimic the behavior
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        
+        # Use RDKit descriptors + a fixed-size hash of the WL labels
+        # because true vocabulary building requires a two-pass or a global scope
+        # Let's use a stable hash to simulate the 
+-----
+<<<<<<< SEARCH
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ITERATIONS = 1500
+LEARNING_RATE = 0.05
+DEPTH = 6
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train, y_train)
+    
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+=======
+-----
+<<<<<<< SEARCH
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ITERATIONS = 1500
+LEARNING_RATE = 0.05
+DEPTH = 6
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train, y_train)
+    
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+ ঘু>>>>>>> REPLACE
+-----

@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+N_CHAINS = 4
+T_LADDER = np.geomspace(0.0005, 0.01, N_CHAINS)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    best = (c, r)
+    chains = [(c, r) for _ in T_LADDER]
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # replica-exchange basin hopping
+        for k, T in enumerate(T_LADDER):
+            bc, br = chains[k]
+            c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+            r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+            c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            delta = r.sum() - br.sum()
+            if delta > 0 or rng.random() < np.exp(delta / T):
+                chains[k] = (c, r)
+            if r.sum() > best[1].sum():
+                best = (c, r)
+        for k in range(N_CHAINS - 1):   # neighbour swap, standard replica-exchange acceptance
+            fi, fj = chains[k][1].sum(), chains[k + 1][1].sum()
+            log_a = (fj - fi) * (1 / T_LADDER[k] - 1 / T_LADDER[k + 1])
+            if np.log(rng.random()) < log_a:
+                chains[k], chains[k + 1] = chains[k + 1], chains[k]
+    return best
+>>>>>>> REPLACE
+-----

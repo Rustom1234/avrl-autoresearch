@@ -1,0 +1,79 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _anneal(c, r, rng, steps=3000, T0=1e-3):
+    """Short simulated annealing: move one circle, reset its radius to the largest feasible value, keep the best."""
+    c, r = c.copy(), r.copy()
+    best = (c.copy(), r.copy())
+    for k in range(steps):
+        frac = 1 - k / steps
+        T = T0 * frac + 1e-12
+        i = rng.integers(len(r))
+        cand = c[i] + rng.normal(0, 0.05 * frac + 0.001, 2)
+        if (cand < 0).any() or (cand > 1).any():
+            continue
+        d = np.sqrt(((c - cand) ** 2).sum(1)) - r
+        d[i] = np.inf
+        new_r = max(min(cand.min(), (1 - cand).min(), d.min()) - SHRINK, 0)
+        delta = new_r - r[i]
+        if delta >= 0 or rng.random() < np.exp(delta / T):
+            c[i], r[i] = cand, new_r
+            if r.sum() > best[1].sum():
+                best = (c.copy(), r.copy())
+    return best
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+=======
+    c, r = best
+    return _anneal(c, r, rng)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _anneal(c, r, rng, steps=3000, T0=1e-3):
+    """Short simulated annealing: move one circle, reset its radius to the largest feasible value, keep the best."""
+    c, r = c.copy(), r.copy()
+    best = (c.copy(), r.copy())
+    for k in range(steps):
+        frac = 1 - k / steps
+        T = T0 * frac + 1e-12
+        i = rng.integers(len(r))
+        cand = c[i] + rng.normal(0, 0.05 * frac + 0.001, 2)
+        if (cand < 0).any() or (cand > 1).any():
+            continue
+        d = np.sqrt(((c - cand) ** 2).sum(1)) - r
+        d[i] = np.inf
+        new_r = max(min(cand.min(), (1 - cand).min(), d.min()) - SHRINK, 0)
+        delta = new_r - r[i]
+        if delta >= 0 or rng.random() < np.exp(delta / T):
+            c[i], r[i] = cand, new_r
+            if r.sum() > best[1].sum():
+                best = (c.copy(), r.copy())
+    return best
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    c, r = best
+    return _anneal(c, r, rng)
+>>>>>>> REPLACE
+-----

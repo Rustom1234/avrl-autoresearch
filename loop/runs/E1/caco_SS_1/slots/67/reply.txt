@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    pi = [names.index(n) for n in ['MolLogP', 'TPSA', 'NumHDonors', 'NumHAcceptors', 'MolWt', 'NumRotatableBonds']]
+=======
+    pi = [names.index(n) for n in ['MolLogP', 'TPSA', 'NumHDonors', 'NumHAcceptors', 'MolWt', 'NumRotatableBonds',
+                                   'NumAromaticRings', 'FractionCSP3', 'HeavyAtomCount', 'RingCount']]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    ridge = Ridge(alpha=10.0).fit(sc.transform(Xtr[:, pi]), y)
+    rtr = ridge.predict(sc.transform(Xtr[:, pi]))
+    rte = ridge.predict(sc.transform(Xte[:, pi]))
+    model.fit(Xtr, y - rtr)
+    et = model.predict(Xte) + rte
+=======
+    ridge = Ridge(alpha=30.0).fit(sc.transform(Xtr[:, pi]), y)
+    rtr = ridge.predict(sc.transform(Xtr[:, pi]))
+    rte = ridge.predict(sc.transform(Xte[:, pi]))
+    from sklearn.model_selection import KFold
+    oof = np.zeros(len(y))
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        s2 = StandardScaler().fit(Xtr[a][:, pi])
+        r2 = Ridge(alpha=30.0).fit(s2.transform(Xtr[a][:, pi]), y[a])
+        oof[b] = r2.predict(s2.transform(Xtr[b][:, pi]))
+    Xtr = np.column_stack([Xtr, oof])
+    Xte = np.column_stack([Xte, rte])
+    model.fit(Xtr, y - rtr)
+    et = model.predict(Xte) + rte
+>>>>>>> REPLACE
+-----

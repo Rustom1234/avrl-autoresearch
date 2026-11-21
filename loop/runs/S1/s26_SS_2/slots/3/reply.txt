@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+            v = minimize(pen, v, args=(mu,), jac=True, method="L-BFGS-B",
+                         bounds=bounds, options={"maxiter": 400}).x
+=======
+        if rng.random() < 0.5:
+            def fe(z):
+                return np.concatenate([z[:2 * n], np.full(n, z[2 * n])])
+
+            def ce(z):
+                return cons(fe(z))
+
+            def cje(z):
+                Jm = cjac(fe(z))
+                return np.concatenate([Jm[:, :2 * n], Jm[:, 2 * n:].sum(1, keepdims=True)], 1)
+
+            z = np.concatenate([v[:2 * n], [0.03]])
+            gz = np.zeros(2 * n + 1); gz[-1] = -1
+            try:
+                z = minimize(lambda q: -q[2 * n], z, jac=lambda q: gz, method="SLSQP",
+                             bounds=[(0, 1)] * (2 * n) + [(0, 0.5)],
+                             constraints=[{"type": "ineq", "fun": ce, "jac": cje}],
+                             options={"maxiter": 150, "ftol": 1e-12}).x
+            except Exception:
+                pass
+            v = fe(z)
+        else:
+            for mu in (10, 100, 1e3, 1e4, 1e5):
+                v = minimize(pen, v, args=(mu,), jac=True, method="L-BFGS-B",
+                             bounds=bounds, options={"maxiter": 400}).x
+>>>>>>> REPLACE
+-----

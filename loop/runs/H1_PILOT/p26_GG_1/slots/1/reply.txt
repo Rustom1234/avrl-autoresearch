@@ -1,0 +1,136 @@
+<<<<<<< SEARCH
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+=======
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+
+    # Quick Simulated Annealing refinement
+    temp = 0.1
+    for _ in range(50):
+        idx = rng.integers(0, n)
+        old_c = c[idx].copy()
+        old_r = r[idx]
+        
+        move = rng.normal(0, 0.02, size=2)
+        c[idx] = np.clip(c[idx] + move, 0, 1)
+        
+        # Quick feasibility check
+        dist_sq = np.sum((c - c[idx])**2, axis=1)
+        min_dist = np.sqrt(np.maximum(dist_sq, 0))
+        radii_sum = r + r[idx]
+        
+        if np.all(min_dist >= radii_sum - 1e-9) and 
+           np.all(c[idx, 0] >= r[idx]) and 
+           np.all(c[idx, 1] >= r[idx]) and 
+           np.all(c[idx, 0] <= 1 - r[idx]) and 
+           np.all(c[idx, 1] <= 1 - r[idx]):
+            
+            current_sum = r.sum()
+            new_sum = (r * (1 - 1/temp)) + (r[idx] * (1 + 1/temp))
+            
+            if new_sum > current_sum or rng.random() < np.exp((new_sum - current_sum) / (temp + 1e-9)):
+                pass
+            else:
+                c[idx] = old_c
+                r[idx] = old_r
+        else:
+            c[idx] = old_c
+            r[idx] = old_r
+        temp *= 0.95
+
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+-----
+<<<<<<< SEARCH
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+=======
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+
+    # Quick Simulated Annealing refinement
+    temp = 0.05
+    for _ in range(40):
+        idx = rng.integers(0, n)
+        old_c = c[idx].copy()
+        old_r = r[idx]
+        
+        move = rng.normal(0, 0.01, size=2)
+        new_c = np.clip(c[idx] + move, 0, 1)
+        
+        # Check feasibility
+        dist_sq = np.sum((c - new_c)**2, axis=1)
+        dist = np.sqrt(np.maximum(dist_sq, 0))
+        # Use a small epsilon to ensure strict inequality for the harness
+        valid_dist = dist >= (r + r[idx]) - 1e-9
+        valid_bounds = (new_c[0] >= r[idx]) and (new_c[1] >= r[idx]) and 
+                         (new_c[0] <= 1 - r[idx]) and (new_c[1] <= 1 - r[idx])
+        
+        if np.all(valid_dist) and valid_bounds:
+            current_sum = r.sum()
+            # Try increasing radius of selected circle slightly
+            new_r = r.copy()
+            new_r[idx] += rng.uniform(0, 0.005)
+            new_sum = new_r.sum()
+            
+            if new_sum > current_sum or rng.random() < np.exp((new_sum - current_sum) / (temp + 1e-9)):
+                c[idx] = new_c
+                r[idx] = new_r[idx]
+        
+        temp *= 0.98
+
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+-----
+<<<<<<< SEARCH
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+=======
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    
+    # Quick Simulated Annealing / Perturbation
+    temp = 0.1
+    for _ in range(30):
+        idx = rng.integers(0, n)
+        old_c = c[idx].copy()
+        old_r = r[idx]
+        
+        move = rng.normal(0, 0.01, size=2)
+        new_c = np.clip(old_c + move, r[idx], 1 - r[idx])
+        
+        # Check overlap
+        dists = np.sqrt(np.sum((c - new_c)**2, axis=1))
+        valid = np.all(dists >= (r + r[idx]) - 1e-9)
+        
+        if valid:
+            # Try to expand radius slightly
+            new_r = old_r + rng.uniform(0, 0.002)
+            if new_r <= np.minimum(new_c[0], new_c[1], 1 - new_c[0], 1 - new_c[1]):
+                current_sum = r.sum()
+                new_r_arr = r.copy()
+                new_r_arr[idx] = new_r
+                new_sum = new_r_arr.sum()
+                
+                if new_sum > current_sum or rng.random() < np.exp((new_sum - current_sum) / (temp + 1e-9)):
+                    c[idx] = new_c
+                    r[idx] = new_r
+        
+        temp *= 0.95
+
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+-----

@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def descriptors(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([f(m) for _, f in Descriptors.descList])
+=======
+def _count(m, pred):
+    return sum(1 for a in m.GetAtoms() if pred(a))
+
+
+CURATED = [Descriptors.MolLogP, Descriptors.MolMR, Descriptors.TPSA, Descriptors.MolWt,
+           Descriptors.NumHDonors, Descriptors.NumHAcceptors, Descriptors.NumRotatableBonds,
+           Descriptors.FractionCSP3, Descriptors.NumAromaticRings, Descriptors.NumAliphaticRings,
+           Descriptors.NumSaturatedRings, Descriptors.RingCount, Descriptors.HeavyAtomCount,
+           Descriptors.NHOHCount, Descriptors.NOCount, Descriptors.BertzCT, Descriptors.BalabanJ,
+           Descriptors.qed]
+
+
+def descriptors(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        r = [f(m) for f in CURATED]
+        r.append(_count(m, lambda a: a.GetAtomicNum() in (9, 17, 35, 53)))
+        r.append(_count(m, lambda a: a.GetAtomicNum() == 7))
+        r.append(_count(m, lambda a: a.GetAtomicNum() == 16))
+        r.append(_count(m, lambda a: a.GetAtomicNum() == 7 and a.GetIsAromatic()))
+        rows.append(r)
+>>>>>>> REPLACE
+-----

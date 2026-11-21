@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+    attempt = 0
+    while time.perf_counter() < deadline:
+=======
+    attempt = 0
+    swap_rng = np.random.default_rng(4242)
+    while time.perf_counter() < deadline:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > best_s + 1e-9 and _valid_packing(cc, rr):
+            best_c, best_r, best_s = cc, rr, s
+            attempt = 0
+    return best_c, best_r
+=======
+        if s > best_s + 1e-9 and _valid_packing(cc, rr):
+            best_c, best_r, best_s = cc, rr, s
+            attempt = 0
+        else:
+            # Pairwise swap of centres between circles of clearly different radii.
+            pairs = [(a, b) for a in range(n) for b in range(a + 1, n)
+                     if abs(best_r[a] - best_r[b]) > 0.03]
+            if pairs and time.perf_counter() < deadline:
+                a, b = pairs[int(swap_rng.integers(len(pairs)))]
+                sc = best_c.copy()
+                sc[[a, b]] = sc[[b, a]]
+                sc2, sr2 = _local_opt(sc)
+                s2 = float(np.sum(sr2))
+                if s2 > best_s + 1e-9 and _valid_packing(sc2, sr2):
+                    best_c, best_r, best_s = sc2, sr2, s2
+                    attempt = 0
+    return best_c, best_r
+>>>>>>> REPLACE
+-----

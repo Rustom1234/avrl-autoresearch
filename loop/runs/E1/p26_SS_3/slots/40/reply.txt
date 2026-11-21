@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    f = lambda v: -v[2 * n:].sum()
+    con = {"type": "ineq", "fun": cons}
+    iters = MAX_ITER
+    if start is None:
+        ub = np.full(n, 0.09)
+        ub[rng.choice(n, rng.integers(4, 9), replace=False)] = 0.2
+        bnds = [(None, None)] * (2 * n) + [(0, u) for u in ub]
+        x0 = minimize(f, x0, method="SLSQP", bounds=bnds, constraints=con, options={"maxiter": 60}).x
+        iters = MAX_ITER - 60
+    bnds = [(None, None)] * (2 * n) + [(0, 0.5)] * n
+    res = minimize(f, x0, method="SLSQP", bounds=bnds, constraints=con, options={"maxiter": iters})
+>>>>>>> REPLACE
+-----

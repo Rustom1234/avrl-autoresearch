@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def nn_feature(Xq, Xref, yref, k=10):
+    S = tanimoto(Xq, Xref)
+    idx = np.argsort(-S, axis=1)[:, :k]
+    return yref[idx].mean(1)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+=======
+    nn_tr = np.zeros(len(y))
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        nn_tr[b] = nn_feature(Xtr[b], Xtr[a], y[a])
+    nn_te = nn_feature(Xte, Xtr, y)
+    model.fit(np.hstack([xgb_features(train_smiles), nn_tr[:, None]]), y)
+    p_rf = model.predict(np.hstack([xgb_features(test_smiles), nn_te[:, None]]))
+>>>>>>> REPLACE
+-----

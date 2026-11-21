@@ -1,0 +1,51 @@
+<<<<<< SEARCH
+            if g.size(-2) > g.size(-1):
+                for a, b, c in polar_express_coeffs[:ns_steps]:
+                    A = X.mT @ X
+                    B = b * A + c * (A @ A)
+                    X = a * X + X @ B
+            else:
+=======
+            if g.size(-2) > g.size(-1):
+                for a, b, c in polar_express_coeffs[:ns_steps]:
+                    A = X.mT @ X
+                    B = b * A + c * (A @ A)
+                    X = a * X + X @ B
+            else:
+                for a, b, c in polar_express_coeffs[:ns_steps]:
+                    A = X @ X.mT
+                    B = b * A + c * (A @ A)
+                    X = a * X + B @ X
+                    X = a * X + B @ X
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    # Polar express orthogonalization
+    X = g.bfloat16()
+    X = X / (X.norm(dim=(-2, -1), keepdim=True) * 1.02 + 1e-6)
+    if g.size(-2) > g.size(-1):
+        for a, b, c in polar_express_coeffs[:ns_steps]:
+            A = X.mT @ X
+            B = b * A + c * (A @ A)
+            X = a * X + X @ B
+    else:
+        for a, b, c in polar_express_coeffs[:ns_steps]:
+            A = X @ X.mT
+            B = b * A + c * (A @ A)
+            X = a * X + B @ X
+=======
+    # Polar express orthogonalization with aggressive coefficients
+    X = g.bfloat16()
+    X = X / (X.norm(dim=(-2, -1), keepdim=True) * 1.02 + 1e-6)
+    if g.size(-2) > g.size(-1):
+        for a, b, c in [(3.4445, -4.7750, 2.0315)]:
+            A = X.mT @ X
+            B = b * A + c * (A @ A)
+            X = a * X + X @ B
+    else:
+        for a, b, c in [(3.4445, -4.7750, 2.0315)]:
+            A = X @ X.mT
+            B = b * A + c * (A @ A)
+            X = a * X + B @ X
+>>>>>>> REPLACE
+-----

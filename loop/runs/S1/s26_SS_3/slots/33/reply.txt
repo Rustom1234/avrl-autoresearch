@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 3 == 0:
+            rad = np.clip(np.concatenate([
+                rng.normal(0.13, 0.01, 4), rng.normal(0.11, 0.01, 8),
+                rng.normal(0.08, 0.01, 14)]), 0.03, 0.2)
+            cor = [(0, 0), (1, 0), (0, 1), (1, 1)]
+            for _try in range(30):
+                P = []
+                ok = True
+                for i in range(n):
+                    placed = False
+                    for _ in range(300):
+                        ri = rad[i]
+                        if i < 4:
+                            p = np.array([abs(cor[i][0] - ri), abs(cor[i][1] - ri)])
+                        elif i < 12:
+                            t = rng.random() * (1 - 2 * ri) + ri
+                            w = rng.integers(4)
+                            p = [np.array([ri, t]), np.array([1 - ri, t]),
+                                 np.array([t, ri]), np.array([t, 1 - ri])][w]
+                        else:
+                            p = rng.random(2) * (1 - 2 * ri) + ri
+                        if all(np.hypot(*(p - P[j])) >= ri + rad[j] for j in range(i)):
+                            P.append(p)
+                            placed = True
+                            break
+                    if not placed:
+                        ok = False
+                        break
+                if ok:
+                    break
+                rad = rad * 0.95
+            if ok:
+                c0 = np.array(P)
+                r0 = rad.copy()
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+>>>>>>> REPLACE
+-----

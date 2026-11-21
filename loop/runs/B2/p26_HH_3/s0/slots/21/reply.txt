@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+=======
+    c, r = best
+    k, fails = 0, 0
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the k-th smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argsort(r2)[k % n]
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+            k, fails = 0, 0
+        else:
+            fails += 1
+            if fails == 3:
+                k, fails = k + 1, 0
+    return c, r
+>>>>>>> REPLACE
+-----

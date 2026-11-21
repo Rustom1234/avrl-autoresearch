@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problem found. The diff changes one hyperparameter: TOTAL_BATCH_SIZE goes from 2**19 to 2**18. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing.",
+  "No bug that would make the result meaningless. With DEVICE_BATCH_SIZE 64 and a sequence length of 2048, 2**18 is still a whole multiple of the tokens per micro-batch (gradient accumulation goes from 4 steps to 2). Halving the batch also gives about twice as many optimizer steps in the fixed 300 s, which plausibly explains the gain.",
+  "The learning rates were not rescaled for the smaller batch. That is a tuning question, not an integrity problem.",
+  "The numbers support the claim. The candidate mean is 1.06535 against an incumbent mean of 1.0827, a gain of about 0.0174 bpb. The two candidate runs are within 0.0003 of each other. The reported z = 3.165 is consistent with accepting.",
+  "I can't recompute z exactly because the incumbent's per-run values and variance aren't provided. From the numbers given, z = 3.165 implies a pooled standard error of about 0.0055. With only n=2 on each side, that estimate is rough."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

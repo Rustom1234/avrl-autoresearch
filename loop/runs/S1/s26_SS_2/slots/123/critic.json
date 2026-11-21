@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The diff adds no file or network access and no pasted coordinates. It adds a randomised SLSQP pre-stage (50% chance per restart) that caps the radii at 0.10 and then 0.13. The existing uncapped SLSQP still runs after it, so the final packing still goes through the original solve and the harness's validity check.",
+  "Not a bug, but worth knowing: the extra rng.random() call shifts the random stream for every later draw. Candidate and incumbent therefore explore different random paths, so any difference mixes the effect of the change with seed noise.",
+  "Minor: if the capped minimize raises an exception, w is left with the cap already applied (the cap is set before the try body's solve). This only changes the starting point for the later uncapped solve, so it is harmless.",
+  "Small runtime cost: up to 2 extra SLSQP solves of 40 iterations each per restart. Check this stays within the roughly 4-minute budget.",
+  "Can't recompute z: there is 1 run on each side, so there is no variance estimate. The means are equal at the precision shown (-2.636 vs -2.6360), so the difference is about 0. That matches the reported z \u2248 -0.001 and the provisional reject: no evidence of improvement."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

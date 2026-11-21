@@ -1,0 +1,15 @@
+{
+ "ok": false,
+ "issues": [
+  "The diff only changes the logged throughput (`tok_per_sec`). The optimizer, batch size, data loading and training loop are untouched, so training is the same as the incumbent's. The 1.0517 vs 1.0531 difference is run-to-run noise.",
+  "The new comment says the change alternates the batch size between 64 and 128 every 2 steps to improve stability and val_bpb. That is false: nothing in training changes. Also, 64/128 tokens is not what TOTAL_BATCH_SIZE means.",
+  "The change makes logging wrong: on odd steps `tok_per_sec` is shown at twice the real throughput. MFU is still computed from TOTAL_BATCH_SIZE, so it now disagrees with `tok_per_sec`.",
+  "No changes to the evaluation call, the val_bpb metric, the data, the seed lines or the prepare.py import line, so there are no grounds to veto.",
+  "I can't recompute z because the per-run incumbent values and spread aren't given. A z of 0.221 from a 0.0014 gap implies a standard deviation of about 0.0063. Either way the gain is not significant, so the provisional reject stands.",
+  "Recommend rejecting: the change adds misleading code and brings no real gain."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

@@ -1,0 +1,76 @@
+<<<<<<< SEARCH
+from xgboost import XGBClassifier
+=======
+import xgboost as xgb
+from sklearn.metrics import log_loss
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+=======
+BASE_PARAMS = {'objective': 'binary:logistic', 'max_depth': 5, 'subsample': 0.8, 'colsample_bytree': 0.3,
+               'min_child_weight': 2, 'nthread': 8}
+CHUNK = 25
+PATIENCE = 75
+MAX_ROUNDS = 600
+MIN_LR = 0.00625
+
+
+def inner_holdout(smiles, seed):
+    scaffolds = [MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(s)) for s in smiles]
+    rng = np.random.default_rng(seed)
+    uniq = sorted(set(scaffolds))
+    draw = dict(zip(uniq, rng.random(len(uniq))))
+    return np.array([draw[s] < 0.2 for s in scaffolds])
+
+
+def plateau_schedule(x_fit, y_fit, x_hold, y_hold, seed):
+    d_fit = xgb.DMatrix(x_fit, label=y_fit)
+    d_hold = xgb.DMatrix(x_hold)
+    eta, etas, best, since, bst = 0.1, [], np.inf, 0, None
+    while eta >= MIN_LR and CHUNK * len(etas) < MAX_ROUNDS:
+        bst = xgb.train(dict(BASE_PARAMS, eta=eta, seed=seed), d_fit, CHUNK, xgb_model=bst)
+        etas.append(eta)
+        loss = log_loss(y_hold, bst.predict(d_hold))
+        if loss < best - 1e-6:
+            best, since = loss, 0
+        else:
+            since += CHUNK
+        if since >= PATIENCE:
+            eta, since = eta / 2, 0
+    return etas
+
+
+def replay_schedule(x, y, etas, seed):
+    d = xgb.DMatrix(x, label=y)
+    bst = None
+    for eta in etas:
+        bst = xgb.train(dict(BASE_PARAMS, eta=eta, seed=seed), d, CHUNK, xgb_model=bst)
+    return bst
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    hold = inner_holdout(train_smiles, seed)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        etas = plateau_schedule(x_tr[~hold], y[~hold], x_tr[hold], y[hold], seed)
+        bst = replay_schedule(x_tr, y, etas, seed)
+        total += rankdata(bst.predict(xgb.DMatrix(x_te)))
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+>>>>>>> REPLACE
+-----

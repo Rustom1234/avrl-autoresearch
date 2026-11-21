@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def _two_phase():
+=======
+def _hex_start():
+    """Staggered hex-like lattice of 30 points in [0.05,0.95]^2; drop the 4 most corner-ward points."""
+    dx = 0.2
+    dy = dx * np.sqrt(3) / 2
+    pts = []
+    for row in range(6):
+        off = 0.0 if row % 2 == 0 else dx / 2
+        for col in range(5):
+            pts.append([0.05 + off + col * dx, 0.05 + row * dy])
+    pts = np.clip(np.array(pts), 0.05, 0.95)
+    while pts.shape[0] > _N:
+        k = int(np.argmax(np.sum(np.abs(pts - 0.5), axis=1)))
+        pts = np.delete(pts, k, axis=0)
+    return pts
+
+
+def _two_phase():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_s, best_c, best_r = -1.0, None, None
+    for s0, c0 in pool:
+=======
+    hc = _hex_start()
+    hr, hs = _score(hc)
+    pool.insert(0, (hs, hc.copy()))
+    best_s, best_c, best_r = -1.0, None, None
+    for s0, c0 in pool:
+>>>>>>> REPLACE
+-----

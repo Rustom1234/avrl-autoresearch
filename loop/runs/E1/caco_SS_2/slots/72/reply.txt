@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    model.fit(np.hstack([Xtr, extra_feats(train_smiles)]), y)
+    p_lgb = model.predict(np.hstack([Xte, extra_feats(test_smiles)]))
+=======
+    Ftr = np.hstack([Xtr, extra_feats(train_smiles)])
+    Fte = np.hstack([Xte, extra_feats(test_smiles)])
+    rng = np.random.RandomState(seed)
+    preds = []
+    for i in range(5):
+        Fm = Ftr.copy()
+        drop = rng.rand(len(Fm), Xtr.shape[1]) > 0.9
+        Fm[:, :Xtr.shape[1]][drop] = np.nan
+        model.set_params(random_state=seed + i)
+        model.fit(Fm, y)
+        preds.append(model.predict(Fte))
+    p_lgb = np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

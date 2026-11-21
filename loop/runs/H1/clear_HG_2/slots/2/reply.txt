@@ -1,0 +1,96 @@
+<<<<<<< SEARCH
+    X_train_all = featurize(train_smiles)
+    y_train_all = np.asarray(train_y, dtype=np.float64)
+    
+    # Inner validation split
+    indices = np.arange(len(train_y_all)) 
+    np.random.SeedState.reset()
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(len(train_y_all))
+    
+    train_idx = perm[:-int(0.15 * len(train_y_all))]
+    val_idx = perm[-int(0.15 * len(train_y_all)):]
+    
+    X_train = X_train_all[train_idx]
+    y_train = y_train_all[train_idx]
+    X_val = X_train_all[val_idx]
+    y_val = y_train_all[val_idx]
+    
+    model = LGBMRegressor(
+        n_estimators=2000, max_depth=7, learning_rate=0.03, 
+        subsample=0.8, colsample_bytree=0.8, 
+        min_child_weight=5, random_state=seed,
+        importance_type='gain', 
+        verbosity=-1
+    )
+    
+    model.fit(
+        X_train, y_train, 
+        eval_set=[(X_val, y_val)], 
+        eval_metric='l2', 
+        early_stopping_rounds=50, 
+        callback=None
+    )
+    
+    best_iter = model.best_iteration_
+    
+    # Retrain on all data
+    final_model = LGBMRegressor(
+        n_estimators=best_iter, max_depth=7, learning_rate=0.03, 
+        subsample=0.8, colsample_bytree=0.8, 
+        min_child_weight=5, random_state=seed, 
+        importance_type='gain', 
+        verbosity=-1
+    )
+    final_model.fit(X_train_all, y_train_all)
+    
+    return final_model.predict(featurize(test_smiles))
+=======
+    X_train_all = featurize(train_smiles)
+    y_train_all = np.asarray(train_y, dtype=np.float64)
+    
+    # Inner validation split
+    indices = np.arange(len(y_train_all))
+    np.random.SeedState.reset()
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(len(y_train_all))
+    
+    train_idx = perm[:-int(0.15 * len(y_train_all))]
+    val_idx = perm[-int(0.15 * len(y_train_all)):]
+    
+    X_train = X_train_all[train_idx]
+    y_train = y_train_all[train_idx]
+    X_val = X_train_all[val_idx]
+    y_val = y_train_all[val_idx]
+    
+    model = LGBMRegressor(
+        n_estimators=2000, max_depth=7, learning_rate=0.03, 
+        subsample=0.8, colsample_bytree=0.8, 
+        min_child_weight=5, random_state=seed,
+        importance_type='gain', 
+        verbosity=-1
+    )
+    
+    model.fit(
+        X_train, y_train, 
+        eval_set=[(X_val, y_val)], 
+        eval_metric='l2', 
+        early_stopping_rounds=50, 
+        callback=None
+    )
+    
+    best_iter = model.best_iteration_
+    
+    # Retrain on all data
+    final_model = LGBMRegressor(
+        n_estimators=best_iter, max_depth=7, learning_rate=0.03, 
+        subsample=0.8, colsample_bytree=0.8, 
+        min_child_weight=5, random_state=seed, 
+        importance_type='gain', 
+        verbosity=-1
+    )
+    final_model.fit(X_train_all, y_train_all)
+    
+    return final_model.predict(featurize(test_smiles))
+>>>>>>> REPLACE
+-----

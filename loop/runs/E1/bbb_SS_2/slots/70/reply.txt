@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from sklearn.neural_network import MLPClassifier
+=======
+from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import GroupKFold
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def mlp_run(Qtr, y, Qev, seed, checkpoints):
+    mlp = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-2, random_state=seed)
+    out = {}
+    for ep in range(1, max(checkpoints) + 1):
+        mlp.partial_fit(Qtr, y, classes=[0, 1])
+        if ep in checkpoints:
+            out[ep] = mlp.predict_proba(Qev)[:, 1]
+    return out
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_mlp = np.zeros(len(Xte))
+    for i in range(5):
+        mlp = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True,
+                            random_state=seed + i, max_iter=200)
+        mlp.fit(Qtr, y)
+        p_mlp += mlp.predict_proba(Qte)[:, 1] / 5
+=======
+    groups = [MurckoScaffold.MurckoScaffoldSmiles(s) for s in train_smiles]
+    tr_i, va_i = next(GroupKFold(n_splits=5).split(Qtr, y, groups))
+    cps = [10, 20, 40, 80]
+    preds = mlp_run(Qtr[tr_i], y[tr_i], Qtr[va_i], seed, cps)
+    best = max(cps, key=lambda c: roc_auc_score(y[va_i], preds[c]))
+    p_mlp = np.zeros(len(Xte))
+    for i in range(5):
+        p_mlp += mlp_run(Qtr, y, Qte, seed + i, [best])[best] / 5
+>>>>>>> REPLACE
+-----

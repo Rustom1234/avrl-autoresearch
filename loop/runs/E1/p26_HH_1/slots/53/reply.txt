@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _polish(c, r, steps=3):
+    """Gauss-Newton on the active contacts; keep a step only if sum(r) grows and the packing stays valid."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+
+    def valid(c, r):
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        return (r >= 0).all() and (c >= r[:, None]).all() and (c <= 1 - r[:, None]).all() and (d >= r[iu[0]] + r[iu[1]]).all()
+
+    for _ in range(steps):
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        pa = np.where(d - r[iu[0]] - r[iu[1]] < 1e-7)[0]
+        ip, jp = iu[0][pa], iu[1][pa]
+        u = (c[ip] - c[jp]) / d[pa][:, None]
+        kl, al = np.where(c - r[:, None] < 1e-7)
+        kh, ah = np.where(1 - c - r[:, None] < 1e-7)
+        p, a, b = len(pa), len(kl), len(kh)
+        m = p + a + b
+        if m == 0:
+            break
+        F = np.empty(m)
+        J = np.zeros((m, 3 * n))
+        q = np.arange(p)
+        F[:p] = d[pa] - r[ip] - r[jp]
+        J[q, 2 * ip] = u[:, 0]
+        J[q, 2 * ip + 1] = u[:, 1]
+        J[q, 2 * jp] = -u[:, 0]
+        J[q, 2 * jp + 1] = -u[:, 1]
+        J[q, 2 * n + ip] = -1
+        J[q, 2 * n + jp] = -1
+        q = p + np.arange(a)
+        F[q] = c[kl, al] - r[kl]
+        J[q, 2 * kl + al] = 1
+        J[q, 2 * n + kl] = -1
+        q = p + a + np.arange(b)
+        F[q] = 1 - c[kh, ah] - r[kh]
+        J[q, 2 * kh + ah] = -1
+        J[q, 2 * n + kh] = -1
+        dv = np.linalg.lstsq(J, -F, rcond=None)[0]
+        c2 = c + dv[:2 * n].reshape(n, 2)
+        r2 = r + dv[2 * n:]
+        if r2.sum() > r.sum() + 1e-12 and valid(c2, r2):
+            c, r = c2, r2
+        else:
+            break
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+=======
+        c = np.clip(c, 0, 1)
+        c, r = _polish(c, r)
+        r = _repair(c, r)
+>>>>>>> REPLACE
+-----

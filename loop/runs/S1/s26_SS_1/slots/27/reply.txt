@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 110:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    cur_c, cur_r = best
+    cur_s = cur_r.sum()
+    while time.time() - t0 < 150:
+        try:
+            c = cur_c.copy()
+            order = np.argsort(cur_r)
+            a = order[rng.integers(0, 8)]
+            b = order[rng.integers(_N - 8, _N)]
+            c[[a, b]] = c[[b, a]]
+            c = np.clip(c + rng.normal(0, 0.003, c.shape), 0.02, 0.98)
+            r0 = _lp_radii(c)
+            c2 = np.clip(_polish(c, r0), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        if r2.sum() > cur_s:
+            cur_s = r2.sum()
+            cur_c, cur_r = c2, r2
+    c, r = cur_c, cur_r
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,34 @@
+<<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+=======
+def _soft_relax(P, steps=200, step=0.1, d0=0.09):
+    """Spread points by gradient descent on soft pair and wall repulsion energy."""
+    P = P.copy()
+    for _ in range(steps):
+        D = P[:, None, :] - P[None, :, :]
+        dist = np.sqrt((D ** 2).sum(-1)) + 1e-12
+        ov = np.maximum(0.0, 2 * d0 - dist)
+        np.fill_diagonal(ov, 0.0)
+        coef = -2.0 * ov / dist
+        g = (coef[:, :, None] * D).sum(axis=1)
+        wall = np.zeros_like(P)
+        wall[:, 0] += -2.0 * np.maximum(0.0, d0 - P[:, 0])
+        wall[:, 0] += 2.0 * np.maximum(0.0, P[:, 0] - (1.0 - d0))
+        wall[:, 1] += -2.0 * np.maximum(0.0, d0 - P[:, 1])
+        wall[:, 1] += 2.0 * np.maximum(0.0, P[:, 1] - (1.0 - d0))
+        P = np.clip(P - step * (g + wall), 0.03, 0.97)
+    return P
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+=======
+        P = _soft_relax(rng.uniform(0.05, 0.95, size=(_N, 2)))
+        x0 = P[:, 0].copy()
+>>>>>>> REPLACE
+-----

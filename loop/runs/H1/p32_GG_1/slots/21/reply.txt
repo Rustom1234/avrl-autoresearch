@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+    # Use a jittered grid for better coverage than pure random
+    grid_size = int(np.ceil(np.sqrt(n)))
+    x = np.linspace(0, 1, grid_size)
+    xx, yy = np.meshgrid(x, x)
+    pts = np.stack([xx.ravel(), yy.ravel()], axis=-1).reshape(-1, 2)
+    pts = pts[:n] # Take first n points
+    
+    # Jitter the points and keep them within bounds
+    jitter = rng.uniform(-0.05, 0.05, pts.shape)
+    pts = np.clip(pts + jitter, INIT_LOW, 1 - INIT_LOW)
+    
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+========
+    # Area-based initialization: Partition into a grid and assign radii proportional to cell area
+    grid_dim = int(np.ceil(np.sqrt(n)))
+    cell_w = 1.0 / grid_dim
+    cell_h = 1.0 / grid_dim
+    
+    # Create grid coordinates
+    grid_coords = np.indices((grid_dim, grid_dim)).reshape(2, -1).T
+    # Adjust to be the centers of the cells
+    pts = (grid_coords + 0.5 * cell_w) * (grid_coords + 0.5 * cell_h) # This is slightly wrong, let's use cell_w
+    # Corrected: centers of cells
+    pts = (grid_coords / grid_dim + 0.5) * (1.0 / grid_dim)
+    # Wait, the above is still confusing. Let's do it simply:
+    indices = np.arange(n).reshape(grid_dim, grid_dim)
+    pts = indices * (1.0 / grid_dim)
+    # Shift to centers and ensure bounds
+    pts = (pts + 0.5) * (1.0 / grid_dim)
+    
+    # Clamp to ensure they are inside [0.1, 0.9]
+    pts = np.clip(pts, INIT_LOW, 1 - INIT_LOW)
+    
+    # Initialize radii: area of cell is (1/grid_dim)^2. 
+    # Sum of area pi*r^2 = Area of square = 1. So r = 
+    # sqrt(1 / (n * pi)) is a rough average. 
+    # For individual cells, r = sqrt(cell_area / pi) = (1/grid_dim) / sqrt(pi)
+    r_init = (1.0 / grid_dim) / np.sqrt(np.pi)
+    # Scale slightly to allow for overlap in the initial configuration
+    r_init *= 0.8
+    
+    x0 = np.concatenate([pts.flatten(), np.full(n, r_init)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+        if time.time() - t0 > 200.0 and best is not None:
+=======
+        if time.time() - t0 > 150.0 and best is not None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _perturb_loop(best, rng, t0, t_end=210.0):
+    # local perturbation of the incumbent: re-randomize the 4-6 circles nearest
+    # a random point, shrink them to 0.03, scale the others to 0.9x, re-optimize;
+    # accept only strict improvements
+    cur = best
+    while time.time() - t0 < t_end:
+        s0, C, R = cur
+        c = rng.uniform(0.0, 1.0, size=2)
+        k = int(rng.integers(4, 7))
+        d = np.sqrt(((C - c) ** 2).sum(-1))
+        idx = np.argsort(d)[:k]
+        x = C[:, 0].copy()
+        y = C[:, 1].copy()
+        r = 0.9 * R
+        for i in idx:
+            ang = rng.uniform(0.0, 2 * np.pi)
+            rr = 0.15 * np.sqrt(rng.uniform())
+            x[i] = np.clip(c[0] + rr * np.cos(ang), 0.05, 0.95)
+            y[i] = np.clip(c[1] + rr * np.sin(ang), 0.05, 0.95)
+            r[i] = 0.03
+        x, y = _optimize(x, y, r)
+        rn = _lp_radii(x, y)
+        if rn is None:
+            continue
+        s = float(np.sum(rn))
+        if s > s0 + 1e-12:
+            cur = (s, np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)]), rn)
+    return cur
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best is None:
+        centers = np.column_stack(_seed(rng)[:2])
+        radii = np.zeros(_N)
+        return centers, radii
+    return best[1], best[2]
+=======
+    if best is None:
+        centers = np.column_stack(_seed(rng)[:2])
+        radii = np.zeros(_N)
+        return centers, radii
+    best = _perturb_loop(best, rng, t0)
+    return best[1], best[2]
+>>>>>>> REPLACE
+-----

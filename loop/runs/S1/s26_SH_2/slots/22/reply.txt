@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    base = np.array([[0.13, 0.13], [0.87, 0.13], [0.13, 0.87], [0.87, 0.87],
+                     [0.5, 0.13], [0.5, 0.87], [0.13, 0.5], [0.87, 0.5]])
+    interior = []
+    for row, yy in enumerate([0.3, 0.5, 0.7]):
+        shift = 0.04 if row % 2 else 0.0
+        for xx in np.linspace(0.3, 0.7, 6) + shift:
+            interior.append([xx, yy])
+    pts = np.vstack([base, np.array(interior)])
+    pts = pts + rng.normal(0.0, 0.02, size=pts.shape)
+    pts = np.clip(pts, 0.05, 0.95)
+=======
+    pts = rng.uniform(0.05, 0.95, size=(n, 2))
+    wts = rng.uniform(0.5, 1.5, size=n)
+    gg = np.linspace(0.0, 1.0, 100)
+    gx, gy = np.meshgrid(gg, gg)
+    S = np.column_stack([gx.ravel(), gy.ravel()])
+    for _ in range(int(rng.integers(5, 16))):
+        d2 = ((S[:, None, :] - pts[None, :, :]) ** 2).sum(axis=2)
+        lab = np.argmin(d2 - 0.01 * wts[None, :] ** 2, axis=1)
+        cnt = np.bincount(lab, minlength=n).astype(float)
+        sx = np.bincount(lab, weights=S[:, 0], minlength=n)
+        sy = np.bincount(lab, weights=S[:, 1], minlength=n)
+        ok = cnt > 0
+        pts[ok, 0] = sx[ok] / cnt[ok]
+        pts[ok, 1] = sy[ok] / cnt[ok]
+    pts = np.clip(pts, 0.05, 0.95)
+>>>>>>> REPLACE
+-----

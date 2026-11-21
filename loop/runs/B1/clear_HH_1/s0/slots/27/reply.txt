@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata, spearmanr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    yz = (y - mu) / sd
+    best_alpha, best_score = None, -np.inf
+    for a in [0.03, 0.1, 0.3, 1.0, 3.0]:
+        preds = np.zeros(len(yz))
+        for tr, va in KFold(5, shuffle=True, random_state=seed).split(K_train):
+            m = KernelRidge(kernel="precomputed", alpha=a)
+            m.fit(K_train[np.ix_(tr, tr)], yz[tr])
+            preds[va] = m.predict(K_train[np.ix_(va, tr)])
+        score = spearmanr(preds, yz).correlation
+        if score > best_score:
+            best_alpha, best_score = a, score
+    model = KernelRidge(kernel="precomputed", alpha=best_alpha)
+    model.fit(K_train, yz)
+    return model.predict(K_test)
+>>>>>>> REPLACE
+-----

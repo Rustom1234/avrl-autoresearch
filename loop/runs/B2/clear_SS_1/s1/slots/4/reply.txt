@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from scipy.spatial.distance import cdist
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    D_tr = cdist(Xtr, Xtr, metric="cityblock")
+    gamma = 1.0 / D_tr[np.triu_indices(len(Xtr), 1)].mean()
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(np.exp(-gamma * D_tr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(np.exp(-gamma * cdist(Xte, Xtr, metric="cityblock")))
+>>>>>>> REPLACE
+-----

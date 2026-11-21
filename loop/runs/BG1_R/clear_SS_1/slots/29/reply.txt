@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def featurize2(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, fpSize=1024, atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen())
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        av = np.array(list(pyAvalonTools.GetAvalonCountFP(m, nBits=1024)), dtype=np.float32)
+        rows.append(np.concatenate([av, gen.GetCountFingerprintAsNumPy(m).astype(np.float32)]))
+    return np.array(rows, dtype=np.float32)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    Ztr, Zte = featurize2(train_smiles), featurize2(test_smiles)
+    K_tr = 0.5 * (tanimoto(Xtr, Xtr) + tanimoto(Ztr, Ztr))
+    K_te = 0.5 * (tanimoto(Xte, Xtr) + tanimoto(Zte, Ztr))
+    svr.fit(K_tr, (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(K_te)
+>>>>>>> REPLACE
+-----

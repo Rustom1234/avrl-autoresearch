@@ -1,0 +1,642 @@
+[
+ {
+  "id": "b001",
+  "title": "Wider neighbour cutoff in basin hopping",
+  "spec": "In _solve_once, when start is given, change the pair-filter cutoff from d0 < 0.15 to d0 < 0.3. Fewer real contacts are then dropped after the jitter, and the repair step has less to shrink, which may help larger perturbations reach valid optima. Only this constant changes.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8173016905784607,
+  "sim_tried_bge": 0.8096998333930969,
+  "sim_hist_mini": 0.6836277842521667,
+  "sources": [
+   [
+    "opus",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Bandit time allocation between fresh starts and basin hopping",
+  "spec": "Replace the fixed switch at 0.4*time_limit with an adaptive allocation. Track, for the fresh-start arm and the basin-hopping arm, the total time spent and the total improvement in best sum of radii each produced. After the first 10% of the time, choose the arm for each new run with probability proportional to (improvement + 1e-4) / (time spent + 1e-3), with a 20% floor on each arm so neither is starved. Basin hopping always perturbs the current best packing as before. Use the seeded rng for all choices.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8320330381393433,
+  "sim_tried_bge": 0.8320330381393433,
+  "sim_hist_mini": 0.6707691550254822,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Full pair constraints for the last hop on the best",
+  "spec": "After the main while loop in solve, run one extra SLSQP from the best packing with no jitter and with all pair constraints (not just pairs with gap below 0.15), maxiter 100 and ftol 1e-12, then repair and keep the result only if its sum is higher. Implement by adding two optional arguments to _solve_once (jitter sd, default 0.02, and gap cut-off, default 0.15) and calling it with 0 and infinity. This recovers the slack that the default ftol 1e-6 and the repair shrink leave, and is different from the rejected LP polish of slot 2 because radii and centres move together.",
+  "family": "other",
+  "sim_hist_bge": 0.8568599820137024,
+  "sim_tried_bge": 0.8298133015632629,
+  "sim_hist_mini": 0.7551519274711609,
+  "sources": [
+   [
+    "fable",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Two-size-class weighted common-radius stage",
+  "spec": "In the fresh-start branch of _solve_once, give each circle a weight w_i drawn with rng: 1.0 with probability 0.75 and 0.6 with probability 0.25. Change cons_eq so circle i has radius w_i * r: pair constraints become distance - (w_i + w_j) * r, wall constraints c - w_i * r and 1 - c - w_i * r. Initial radii for the main SLSQP become w_i * max(y[-1], 0.01). Apply this to half of the fresh starts (the other half keep all weights 1). This produces mixed-size starting topologies, which the best known 32-circle packing has, without the fully random radii that failed in slot 20.",
+  "family": "data",
+  "sim_hist_bge": 0.875787615776062,
+  "sim_tried_bge": 0.8518298864364624,
+  "sim_hist_mini": 0.7718450427055359,
+  "sources": [
+   [
+    "fable",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Greedy farthest-point sequential insertion start",
+  "spec": "For a fresh start, build the initial centres sequentially: place the first circle uniformly at random, then for each next circle draw 500 random candidate points in the square and keep the candidate whose distance to its nearest existing centre (including the walls) is largest. Use the resulting n centres as the SLSQP start with the usual initial radius. The seed controls all candidate draws. This gives a maximin-spread start that differs from Lloyd relaxation and from pure uniform sampling.",
+  "family": "data",
+  "sim_hist_bge": 0.8614591360092163,
+  "sim_tried_bge": 0.8614591360092163,
+  "sim_hist_mini": 0.7599971294403076,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Accept near-ties in basin hopping to drift",
+  "spec": "In solve, during the late phase only, change the acceptance test from 'r.sum() > best[1].sum()' to 'r.sum() > best[1].sum() - 1e-6', while separately tracking the true best-ever packing in a second variable that is returned at the end. This lets the basin-hopping centre drift across plateaus of essentially equal packings (for example with rattlers in different positions) instead of always perturbing the same configuration. Fresh-start phase acceptance is unchanged.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8667868971824646,
+  "sim_tried_bge": 0.8667868971824646,
+  "sim_hist_mini": 0.7423902750015259,
+  "sources": [
+   [
+    "fable",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Duplicate-aware restarts with a signature memory",
+  "spec": "Keep a set of signatures for each finished local optimum, where the signature is the sorted radii rounded to 3 decimals together with the rounded sum of radii. When a new fresh start's result has a signature already in the set, do not treat it as a new candidate and instead spend the next start on a fresh random layout. Count duplicates and log nothing. This avoids wasting budget on repeatedly re-finding the same basin and keeps the restart loop otherwise unchanged. Use only numpy and the standard library.",
+  "family": "batch",
+  "sim_hist_bge": 0.7598286271095276,
+  "sim_tried_bge": 0.7482099533081055,
+  "sim_hist_mini": 0.49607253074645996,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Boundary-first initial placement",
+  "spec": "For a fresh start, place about 4*floor(n/8) circles along the four walls first, at evenly spaced positions with small random jitter along each wall, and fill the remaining circles uniformly at random in the interior. Clip the centres to [INIT_LOW, 1-INIT_LOW] and then run the usual common-radius SLSQP and main SLSQP. Half of the fresh starts use this layout and half use the existing uniform layout, selected by the rng. Boundary-heavy starts may match the wall-touching structure of the best packings.",
+  "family": "data",
+  "sim_hist_bge": 0.8080487251281738,
+  "sim_tried_bge": 0.8080487251281738,
+  "sim_hist_mini": 0.7562565803527832,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Sequential LP with trust region as local solver in basin hopping",
+  "spec": "In the basin-hopping phase, replace the SLSQP call on a perturbed packing with a sequential linear programme: at each of up to 30 iterations, linearise the pair-distance and wall constraints around the current centres and radii, maximise the sum of radii subject to the linearised constraints and a box trust region of half-width delta on the centre moves and radii moves (scipy.optimize.linprog with highs). Accept a step if the true packing remains feasible in the sense of the linearised constraints within 1e-9, otherwise shrink delta by half; grow delta by 1.5 after success. Return the final centres and repaired radii. Keep SLSQP for fresh starts.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8575881719589233,
+  "sim_tried_bge": 0.8418571352958679,
+  "sim_hist_mini": 0.7735018730163574,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Basin hopping with radius-shrink before SLSQP",
+  "spec": "In the basin-hopping phase, after jittering the centres, multiply the starting radii by 0.8 so the SLSQP starts strictly feasible and can re-grow circles into new arrangements instead of getting stuck on the old contact graph.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8821344971656799,
+  "sim_tried_bge": 0.8490176200866699,
+  "sim_hist_mini": 0.8452351689338684,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Gap-inflating rescale of the best packing",
+  "spec": "After the time budget is used, take the best packing and try a few deterministic affine rescales of the centres about (0.5, 0.5), with factors 1.0, 1.001, 1.002, 1.005 and each mapped into the square with the required wall margin. For each candidate, recompute radii as the minimum of wall distances and half pairwise gaps, then keep the candidate with the largest valid sum of radii. This is a cheap final step that may recover slack left by the repair. It only runs in the last 0.2 seconds of the budget.",
+  "family": "other",
+  "sim_hist_bge": 0.8094668984413147,
+  "sim_tried_bge": 0.7704783082008362,
+  "sim_hist_mini": 0.7480486035346985,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Boundary-biased perturbation",
+  "spec": "In basin hopping, make the jitter sd depend on the circle: circles whose centre is within 0.15 of the square's boundary get sd 0.01, interior circles get sd 0.05. Interior rearrangements are expected to matter more, while boundary contacts are retained.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9566341638565063,
+  "sim_tried_bge": 0.8769108057022095,
+  "sim_hist_mini": 0.9036301374435425,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Tune common-radius stage length",
+  "spec": "In the fresh-start branch of _solve_once, change the maxiter of the common-radius SLSQP from 50 to 100 and name it as a module setting INIT_ITER = 100. Slot 7 showed that this stage is the largest single gain so far, yet its length was never tuned; a better-converged equal-circle start may give better final basins at the cost of somewhat fewer fresh starts. No other change.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8169375658035278,
+  "sim_tried_bge": 0.7928515672683716,
+  "sim_hist_mini": 0.7107160091400146,
+  "sources": [
+   [
+    "fable",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Longer common-radius pre-solve",
+  "spec": "In the fresh-start branch, raise the maxiter of the common-radius SLSQP from 50 to 120. The main SLSQP then starts from a better-converged equal-circle packing. This costs only 2n+1 variables per iteration, so the number of restarts should drop only a little. No other change.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8757502436637878,
+  "sim_tried_bge": 0.8507510423660278,
+  "sim_hist_mini": 0.7222413420677185,
+  "sources": [
+   [
+    "opus",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "Local-patch jitter in basin hopping",
+  "spec": "In the start-is-not-None branch of _solve_once, replace the global Gaussian jitter of all centres with a local one: pick a random circle k with rng, find all circles whose centre is within 0.25 of centre k, and add normal(0, 0.05) noise only to those centres. All other centres stay exactly as in the best packing. Keep the clip to [0.01, 0.99] and the rest unchanged. The idea is that the best packing is near-optimal almost everywhere, so a strong local rearrangement is more likely to improve it than a weak global shake.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9008284211158752,
+  "sim_tried_bge": 0.8897671103477478,
+  "sim_hist_mini": 0.7252713441848755,
+  "sources": [
+   [
+    "fable",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Halton low-discrepancy initial centres",
+  "spec": "Replace the uniform random initial centres in _solve_once's fresh-start branch with a scrambled Halton sequence (bases 2 and 3) mapped into [INIT_LOW, 1-INIT_LOW], with a random offset and random permutation drawn from the seeded rng so each restart differs. Keep the random radius start and all other code the same. The point set is more evenly spread than uniform sampling, which may give SLSQP better starting basins.",
+  "family": "data",
+  "sim_hist_bge": 0.8105221390724182,
+  "sim_tried_bge": 0.8105221390724182,
+  "sim_hist_mini": 0.6714259386062622,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Radius-proportional jitter in basin hopping",
+  "spec": "In _solve_once, when start is given, replace the fixed Gaussian jitter sd of 0.02 with a per-circle sd of 0.4*r_i, where r_i is that circle's radius in the start packing. Use the same rng and keep the clip to [0.01,0.99]. Small circles, which sit in holes, then move a little, and large circles explore more. Everything else is unchanged.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9027479887008667,
+  "sim_tried_bge": 0.8617912530899048,
+  "sim_hist_mini": 0.7694730758666992,
+  "sources": [
+   [
+    "opus",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Replicate incumbent with MAX_ITER 300",
+  "spec": "Change MAX_ITER from 200 to 300 for all SLSQP runs, leaving everything else unchanged. Checks whether deeper convergence of each start gives better final packings at the cost of fewer restarts.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.865848183631897,
+  "sim_tried_bge": 0.845011830329895,
+  "sim_hist_mini": 0.6939218640327454,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Early abort of hopeless SLSQP runs via callback",
+  "spec": "Pass a callback to scipy's SLSQP minimize call (or check the iterate inside the objective wrapper) that records the current sum of radii and the iteration count. If, after 25 iterations, the sum of radii is below 0.92 times the current best sum, raise a private exception that is caught in _solve_once and the partial iterate is returned for the repair step. Full runs are unchanged for promising starts. This saves time on bad basins without the separate screening stage used before.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8380008935928345,
+  "sim_tried_bge": 0.8380008935928345,
+  "sim_hist_mini": 0.657733142375946,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Deflate-and-reinflate basin-hopping move",
+  "spec": "In the basin-hopping phase, with probability 0.5 use a different move instead of the usual jitter. Multiply all start radii by a factor drawn uniformly from [0.8,0.9], and add only a tiny centre jitter (sd 0.005). Then run the usual sparse-constraint SLSQP. The extra slack lets the contact graph rearrange without destroying the overall structure. The other half of moves keep the current sd-0.02 jitter.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8828634023666382,
+  "sim_tried_bge": 0.8828634023666382,
+  "sim_hist_mini": 0.7343844771385193,
+  "sources": [
+   [
+    "opus",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b021",
+  "title": "Compression start via growing radii",
+  "spec": "Replace the fresh-start initialisation with a simple event-free compression: start with random centres and tiny radius; for 30 iterations alternate (a) growing a common radius by 5 percent and (b) pushing overlapping pairs apart by half the overlap along their centre line, clipping to the square. Use the result as input to the main SLSQP with radii set to 0.9 of the common radius.",
+  "family": "data",
+  "sim_hist_bge": 0.8897060751914978,
+  "sim_tried_bge": 0.8652244210243225,
+  "sim_hist_mini": 0.6972901821136475,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b022",
+  "title": "Elite LP polish in the last second",
+  "spec": "Reserve the final 1 s of CPU. At that point take the best packing, run SLSQP with ftol 1e-12 and maxiter 500 from it using only pairs with gap below 0.02, then repair; keep it only if the sum of radii after repair is higher.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8522601127624512,
+  "sim_tried_bge": 0.8522601127624512,
+  "sim_hist_mini": 0.7472320795059204,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b023",
+  "title": "Best-candidate (blue-noise) initial centres",
+  "spec": "For fresh starts, replace the uniform random centres in y0 with Mitchell best-candidate sampling: place the first point uniformly in [INIT_LOW, 1 - INIT_LOW]^2; for each following point draw 10 uniform candidates in the same box with rng and keep the one whose minimum distance to the points already placed is largest. This costs a few hundred microseconds, gives well-spread but irregular starts (unlike the grid and hex lattices already tried), and should let the 50-iteration common-radius SLSQP converge further.",
+  "family": "data",
+  "sim_hist_bge": 0.8186951875686646,
+  "sim_tried_bge": 0.8180636167526245,
+  "sim_hist_mini": 0.7903716564178467,
+  "sources": [
+   [
+    "fable",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b024",
+  "title": "Replicate slot 14 repulsion pre-step alone",
+  "spec": "Re-implement slot 14 exactly. For fresh starts, before the common-radius SLSQP, run 20 steps of 1/d^2 repulsion between centres plus repulsion from the four walls. Cap each step at 0.02 per circle and clip to [0.05,0.95]. Feed the result as the starting centres of the common-radius SLSQP. This is a replicate to check whether the -0.0030 single-run gain is real. Nothing else changes.",
+  "family": "other",
+  "sim_hist_bge": 0.8605986833572388,
+  "sim_tried_bge": 0.8605986833572388,
+  "sim_hist_mini": 0.6504547595977783,
+  "sources": [
+   [
+    "opus",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b025",
+  "title": "No-op replicate of the incumbent",
+  "spec": "Make no functional change to train.py: only reword the module docstring's first line (for example append 'Fresh starts, then basin hopping.') so the edit applies. The purpose is a third and fourth measurement of the incumbent, because nearly every later result is -2.9374 against an incumbent mean of -2.9366 and the per-job noise sd is 0.0034. Any later accept decision needs a tighter incumbent estimate.",
+  "family": "other",
+  "sim_hist_bge": 0.72698974609375,
+  "sim_tried_bge": 0.72698974609375,
+  "sim_hist_mini": 0.5006920099258423,
+  "sources": [
+   [
+    "fable",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b026",
+  "title": "Sorted-radii structured start",
+  "spec": "For half of fresh starts, after the common-radius stage assign radii by ranking: compute each circle's distance to the nearest wall or corner, and set initial radii to 0.07 for the circles nearest the centre, 0.1 for those near the middle band, and 0.08 for edge circles, plus small noise, so a large/small mix is seeded. Then run the main SLSQP.",
+  "family": "data",
+  "sim_hist_bge": 0.9306454062461853,
+  "sim_tried_bge": 0.8689271211624146,
+  "sim_hist_mini": 0.8848135471343994,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b027",
+  "title": "Independent dual chains",
+  "spec": "In the basin-hopping phase keep two chains: the global best and a second packing which is the best from a different fresh start (sum within 0.01 of best but different). Alternate basin-hopping steps between the chains; each chain replaces its own state only on improvement. Return the best overall.",
+  "family": "schedule",
+  "sim_hist_bge": 0.838765025138855,
+  "sim_tried_bge": 0.838765025138855,
+  "sim_hist_mini": 0.6808133125305176,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b028",
+  "title": "Dual-scale radius regulariser inside the first SLSQP stage",
+  "spec": "In the common-radius stage used for fresh starts, add a small quadratic term -0.05 * sum((r_i - mean(r))^2) to the objective so the optimiser prefers slightly more uniform radii before the main SLSQP. Remove the term for the main stage so the final objective is exactly the sum of radii. The regulariser is only a smoothing device to escape the flat direction in the radius block and must not change the final objective. Keep the code change to a few lines.",
+  "family": "regularization",
+  "sim_hist_bge": 0.9173771142959595,
+  "sim_tried_bge": 0.8922672271728516,
+  "sim_hist_mini": 0.8627190589904785,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b029",
+  "title": "Combine repulsion pre-step (slot 14) with Metropolis basin-hopping chain (slot 25)",
+  "spec": "Make two changes together. First, for fresh starts only, before the common-radius SLSQP, run 20 steps of pairwise 1/d^2 repulsion on the random centres: force on i is the sum over j of (c_i-c_j)/|c_i-c_j|^3. Add a wall repulsion term too. Cap each step's per-circle displacement at 0.02 and clip the centres to [0.05,0.95]. Second, in the late phase (after 0.4*time_limit), keep a 'current' packing alongside the best. Perturb the current packing with the existing jitter (sd 0.02) and run SLSQP. Accept the new packing as current if its sum is higher, or with probability exp((new-cur)/0.002) otherwise. Update best whenever the sum improves. Everything else stays the same.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8620268702507019,
+  "sim_tried_bge": 0.833648681640625,
+  "sim_hist_mini": 0.7490338087081909,
+  "sources": [
+   [
+    "opus",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b030",
+  "title": "Smaller initial common radius",
+  "spec": "Set INIT_RADIUS to 0.02 and INIT_LOW to 0.05 in the fresh-start common-radius stage so that SLSQP starts from a feasible, non-overlapping-ish configuration and the early iterations are less constrained.",
+  "family": "other",
+  "sim_hist_bge": 0.8414182066917419,
+  "sim_tried_bge": 0.8125457763671875,
+  "sim_hist_mini": 0.8332343101501465,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b031",
+  "title": "Wall constraints as variable bounds",
+  "spec": "In _solve_once main SLSQP call, remove the four wall constraint blocks and the r>=0 block from cons, and pass bounds to minimize: centres in [0,1], radii in [0,0.5]. Add the wall constraints back only as linear inequality via a small constraint function if needed for validity; _repair still clamps radii by wall distance so output stays valid. Fewer constraints should make each SLSQP iteration faster, allowing more restarts.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9525747299194336,
+  "sim_tried_bge": 0.7988891005516052,
+  "sim_hist_mini": 0.9444901943206787,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b032",
+  "title": "Small rotation move about the square centre",
+  "spec": "In the basin-hopping phase, with probability 0.3, perturb the best packing differently. Rotate all centres about (0.5,0.5) by an angle drawn uniformly from plus or minus [2,6] degrees, then add Gaussian jitter of sd 0.005, clip to [0.01,0.99], and multiply the radii by 0.95. Then run the usual sparse SLSQP. Otherwise use the existing jitter move. The rotation shifts all wall contacts together, which local jitter rarely does.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9009147882461548,
+  "sim_tried_bge": 0.9009147882461548,
+  "sim_hist_mini": 0.8566446304321289,
+  "sources": [
+   [
+    "opus",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b033",
+  "title": "Variable scaling for SLSQP conditioning",
+  "spec": "Before each SLSQP call, rescale the decision vector so that coordinates live in [0,1] units and radii are multiplied by a constant of about 10 (for example, optimise u = (c, 10*r) and map back before returning). Pass the scaled objective and constraints so the gradient magnitudes of the centre and radius blocks are comparable. Keep the rest of the pipeline (restarts, repair, time limit) unchanged. The goal is to reduce SLSQP stalls on the radius block, which currently has entries near 0.09 while centres span about 1.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8233010768890381,
+  "sim_tried_bge": 0.8233010768890381,
+  "sim_hist_mini": 0.7069454193115234,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b034",
+  "title": "Lower INIT_LOW so random starts reach walls and corners",
+  "spec": "Change INIT_LOW from 0.1 to 0.03. Fresh random centres are then drawn from [0.03,0.97] instead of [0.1,0.9]. Good packings put many circles against the walls and in the corners, and starting them there may cut the distance the common-radius stage must move them. No other change.",
+  "family": "data",
+  "sim_hist_bge": 0.7846601009368896,
+  "sim_tried_bge": 0.7846601009368896,
+  "sim_hist_mini": 0.63730788230896,
+  "sources": [
+   [
+    "opus",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b035",
+  "title": "Greedy largest-hole construction for fresh starts",
+  "spec": "For every second fresh start (alternate with a counter), replace the uniform random initial centres fed to the common-radius SLSQP with a greedy construction: draw 2000 candidate points uniformly in the unit square with rng; repeat n times: for each candidate compute the largest radius allowed by the walls and the circles already placed (min of wall distance and distance to placed centre minus its radius), pick the candidate with the largest allowed radius capped at a cap drawn from uniform(0.07, 0.12), and place it. Use the resulting centres as the first 2n entries of y0; the rest of _solve_once is unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8226616382598877,
+  "sim_tried_bge": 0.8058027625083923,
+  "sim_hist_mini": 0.7206652164459229,
+  "sources": [
+   [
+    "fable",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b036",
+  "title": "Combine repulsion pre-step with Metropolis chain",
+  "spec": "Combine the two best single-run variants (slots 14 and 25), which have not been tried together. (a) In _solve_once for fresh starts, before the common-radius SLSQP, apply 20 steps of pairwise 1/d^2 repulsion to the random centres: for each step compute the force sum over j of (c_i - c_j)/|c_i - c_j|^3, scale so the largest displacement is 0.02, add it, and clip to [0.02, 0.98]. (b) In solve, during the late phase keep a 'current' packing separate from 'best': perturb current (not best), accept the new packing as current if its sum is higher or with probability exp((new - cur)/0.002) using rng, and always update best when improved. Return best.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8249412775039673,
+  "sim_tried_bge": 0.8249412775039673,
+  "sim_hist_mini": 0.6606489419937134,
+  "sources": [
+   [
+    "fable",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b037",
+  "title": "Random-weighted common-radius init stage",
+  "spec": "In the fresh-start branch, change the cheap init SLSQP so that circle i has radius t*w_i rather than a single shared radius t. The weights w_i are drawn once per start from rng.uniform(0.6,1.4). The constraints become dist_ij >= t*(w_i+w_j) and the wall constraints use t*w_i, and the problem still has only 2n+1 variables, maximising t. Initialise the main SLSQP with radii max(t*w_i, 0.01). This seeds unequal sizes while keeping the low-dimensional pre-solve that worked in slot 7.",
+  "family": "data",
+  "sim_hist_bge": 0.855114221572876,
+  "sim_tried_bge": 0.855114221572876,
+  "sim_hist_mini": 0.7028589844703674,
+  "sources": [
+   [
+    "opus",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b038",
+  "title": "Combine repulsion pre-step (slot 14) with jittered 6x6 grid starts (slot 10)",
+  "spec": "For fresh starts, build the initial centres from a 6x6 grid of cell centres ((k+0.5)/6). Choose 32 of the 36 cells at random with rng, and add uniform jitter of plus or minus 0.3 cell widths. Then run 20 steps of 1/d^2 pairwise and wall repulsion, with per-circle displacement capped at 0.02 and centres clipped to [0.05,0.95]. Use the result as y0 for the existing common-radius SLSQP. The basin-hopping phase is unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8584288358688354,
+  "sim_tried_bge": 0.8584288358688354,
+  "sim_hist_mini": 0.8058809041976929,
+  "sources": [
+   [
+    "opus",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b039",
+  "title": "LP-optimal radii after each SLSQP",
+  "spec": "After each _solve_once returns centres c and radii, solve a linear program with scipy.optimize.linprog (highs) maximizing sum r subject to r_i + r_j <= d_ij for all pairs, r_i <= wall distance, r>=0, with centres fixed. Use these radii instead of SLSQP radii before the repair step (repair then only does a tiny shrink). This picks the best radii for each candidate when ranking restarts.",
+  "family": "other",
+  "sim_hist_bge": 0.9379459619522095,
+  "sim_tried_bge": 0.8826770186424255,
+  "sim_hist_mini": 0.8530775308609009,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b040",
+  "title": "Radius-dependent jitter size",
+  "spec": "In the start-is-not-None branch of _solve_once, scale the Gaussian jitter per circle inversely to its radius: sd_i = 0.02 * (mean(r0) / max(r0_i, 0.02)) clipped to [0.01, 0.06], and use c0 = clip(start[0] + rng.normal(size=(n, 2)) * sd_i[:, None], 0.01, 0.99). Small circles, which sit in holes and are cheap to move, get large moves; the large load-bearing circles are barely disturbed. Nothing else changes.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.803153932094574,
+  "sim_tried_bge": 0.8023923635482788,
+  "sim_hist_mini": 0.6507635116577148,
+  "sources": [
+   [
+    "fable",
+    "c",
+    6
+   ]
+  ]
+ }
+]

@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+SMOOTH_ALPHA = 0.75
+SMOOTH_K = 5
+SMOOTH_MIN_SIM = 0.2
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def smooth_scores(score, fp):
+    # fp: test feature matrix; first N_BITS columns are the Morgan bits
+    A = fp[:, :N_BITS].astype(np.float64)
+    inter = A @ A.T
+    cnt = A.sum(axis=1)
+    union = cnt[:, None] + cnt[None, :] - inter
+    sim = inter / np.maximum(union, 1e-12)
+    np.fill_diagonal(sim, -1.0)
+    n = len(score)
+    k = min(SMOOTH_K, n - 1)
+    if k < 1:
+        return score
+    out = score.copy()
+    for i in range(n):
+        idx = np.argsort(-sim[i])[:k]
+        s = sim[i, idx]
+        if s[0] < SMOOTH_MIN_SIM:
+            continue
+        w = np.clip(s, 0, None) ** 3
+        if w.sum() <= 0:
+            continue
+        out[i] = SMOOTH_ALPHA * score[i] + (1 - SMOOTH_ALPHA) * np.sum(w * score[idx]) / w.sum()
+    return out
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    score = 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+    return smooth_scores(score, X_test)
+>>>>>>> REPLACE
+-----

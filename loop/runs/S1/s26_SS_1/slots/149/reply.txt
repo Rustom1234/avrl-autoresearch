@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+=======
+    while time.time() - t0 < 100:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    t1 = time.time()
+    while time.time() - t1 < 50:
+        try:
+            c = best[0].copy()
+            if rng.random() < 0.5:
+                c = c[:, ::-1].copy()
+            if rng.random() < 0.5:
+                c[:, 0] = 1 - c[:, 0]
+            if rng.random() < 0.5:
+                c[:, 1] = 1 - c[:, 1]
+            ax = int(rng.integers(2))
+            lo = rng.uniform(0, 0.8)
+            hi = lo + rng.uniform(0.1, 0.4)
+            m = (c[:, ax] >= lo) & (c[:, ax] <= hi)
+            o = 1 - ax
+            c[m, o] = (c[m, o] + rng.uniform(-0.08, 0.08)) % 1.0
+            c = np.clip(c, 0.02, 0.98)
+            r = _lp_radii(c)
+            c2 = np.clip(_polish(c, r), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    ptr = phys(train_smiles)
+    pte = phys(test_smiles)
+    scaler = StandardScaler().fit(ptr)
+    lin = Ridge(alpha=1.0).fit(scaler.transform(ptr), y)
+    base_tr = lin.predict(scaler.transform(ptr))
+    base_te = lin.predict(scaler.transform(pte))
+    model = XGBRegressor(objective='reg:absoluteerror', tree_method='hist', max_depth=6, learning_rate=0.03,
+                         n_estimators=600, subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                         random_state=seed, n_jobs=8)
+    model.fit(featurize(train_smiles), y - base_tr)
+    return base_te + model.predict(featurize(test_smiles))
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    ftr = featurize(train_smiles)
+    fte = featurize(test_smiles)
+    xtr_fp = np.log1p(ftr[:, :N_BITS].astype(np.float64))
+    xte_fp = np.log1p(fte[:, :N_BITS].astype(np.float64))
+    # out-of-fold ridge predictions on the training set (avoids leaking y into the residual target)
+    base_tr = np.zeros(len(y))
+    for tr_idx, va_idx in KFold(5, shuffle=True, random_state=seed).split(xtr_fp):
+        base_tr[va_idx] = Ridge(alpha=10.0).fit(xtr_fp[tr_idx], y[tr_idx]).predict(xtr_fp[va_idx])
+    base_te = Ridge(alpha=10.0).fit(xtr_fp, y).predict(xte_fp)
+    ptr = phys(train_smiles)
+    pte = phys(test_smiles)
+    model = XGBRegressor(objective='reg:absoluteerror', tree_method='hist', max_depth=6, learning_rate=0.03,
+                         n_estimators=600, subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                         random_state=seed, n_jobs=8)
+    model.fit(np.hstack([ftr, ptr, base_tr[:, None]]), y - base_tr)
+    return base_te + model.predict(np.hstack([fte, pte, base_te[:, None]]))
+>>>>>>> REPLACE
+-----

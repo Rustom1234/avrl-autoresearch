@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, checks):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+=======
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+        if abs(cap - 0.11) < 1e-6:   # racing checkpoint
+            val = x[2 * n:].sum()
+            prune = len(checks) >= 6 and val < np.median(checks)
+            checks.append(val)
+            if prune:
+                return None
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+=======
+    rng, t0, best, checks = np.random.default_rng(seed), time.process_time(), None, []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        out = _solve_once(n, rng, checks)
+        if out is None:   # racing: restart pruned at the checkpoint
+            continue
+        c, r = out
+        c = np.clip(c, 0, 1)
+>>>>>>> REPLACE
+-----

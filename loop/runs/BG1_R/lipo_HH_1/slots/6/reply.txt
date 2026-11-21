@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+from sklearn.model_selection import GroupKFold
+=======
+from sklearn.model_selection import GroupKFold
+from sklearn.neural_network import MLPRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = lgb.train(lgb_params(best_cfg, seed), lgb.Dataset(Xtr, y), num_boost_round=N_ROUNDS)
+    return model.predict(Xte)
+=======
+    model = lgb.train(lgb_params(best_cfg, seed), lgb.Dataset(Xtr, y), num_boost_round=N_ROUNDS)
+    p_lgb = model.predict(Xte)
+    # MLP on the fingerprint columns only (ECFP + FCFP bits), with a standardised target.
+    mu, sd = y.mean(), y.std()
+    mlp = MLPRegressor(hidden_layer_sizes=(512, 128), activation="relu", alpha=1e-3,
+                       learning_rate_init=1e-3, early_stopping=True, validation_fraction=0.15,
+                       max_iter=300, random_state=seed)
+    mlp.fit(Xtr[:, :2 * N_BITS], (y - mu) / sd)
+    p_mlp = mlp.predict(Xte[:, :2 * N_BITS]) * sd + mu
+    return 0.5 * (p_lgb + p_mlp)
+>>>>>>> REPLACE
+-----

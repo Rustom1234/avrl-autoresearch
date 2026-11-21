@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None, sd=0.0):
+    if start is None:
+=======
+def _reinsert(best, rng):
+    c, r = best[0].copy(), best[1] * 0.7
+    idx = np.argsort(best[1])[:rng.integers(2, 4)]
+    keep = [i for i in range(len(r)) if i not in idx]
+    for i in idx:
+        p = rng.uniform(0, 1, (2000, 2))
+        d = np.sqrt(((p[:, None] - c[keep][None]) ** 2).sum(-1)) - r[keep]
+        s = np.minimum(d.min(1), np.minimum(p.min(1), (1 - p).min(1)))
+        c[i], r[i] = p[np.argmax(s)], 0.02
+        keep.append(i)
+    return np.concatenate([c.ravel(), r])
+
+
+def _solve_once(n, rng, start=None, sd=0.0, x0=None):
+    if x0 is not None:
+        pass
+    elif start is None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+=======
+            c, r = _solve_once(n, rng, x0=_reinsert(best, rng))
+>>>>>>> REPLACE
+-----

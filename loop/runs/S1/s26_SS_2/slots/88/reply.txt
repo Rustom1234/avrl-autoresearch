@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+                         bounds=bounds, options={"maxiter": 400}).x
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), v, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+=======
+                         bounds=bounds, options={"maxiter": 400}).x
+        if rng.random() < 0.3:
+            try:
+                u0 = np.concatenate([v, [max(v[2 * n:].min(), 0.0)]])
+                def ucons(u):
+                    return np.concatenate([cons(u[:3 * n]), u[2 * n:3 * n] - u[3 * n]])
+                def ujac(u):
+                    Jb = cjac(u[:3 * n])
+                    Jb = np.hstack([Jb, np.zeros((Jb.shape[0], 1))])
+                    Jt = np.zeros((n, 3 * n + 1))
+                    Jt[np.arange(n), 2 * n + np.arange(n)] = 1
+                    Jt[:, 3 * n] = -1
+                    return np.vstack([Jb, Jt])
+                gu = np.concatenate([np.zeros(2 * n), -np.ones(n), [-0.3]])
+                ru = minimize(lambda u: -u[2 * n:3 * n].sum() - 0.3 * u[3 * n], u0,
+                              jac=lambda u: gu, method="SLSQP",
+                              bounds=bounds + [(0, 0.5)],
+                              constraints=[{"type": "ineq", "fun": ucons, "jac": ujac}],
+                              options={"maxiter": 60, "ftol": 1e-12})
+                if np.all(np.isfinite(ru.x)):
+                    v = ru.x[:3 * n]
+            except Exception:
+                pass
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), v, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+>>>>>>> REPLACE
+-----

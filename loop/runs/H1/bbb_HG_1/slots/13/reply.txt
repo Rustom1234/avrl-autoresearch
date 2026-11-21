@@ -1,0 +1,199 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 600
+LEARNING_RATE = 0.03
+NUM_LEAVES = 31
+FEATURE_FRACTION = 0.3
+BAGGING_FRACTION = 0.8
+BAGGING_FREQ = 1
+MIN_CHILD_SAMPLES = 10
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMClassifier(
+        n_estimators=N_TREES,
+        learning_rate=LEARNING_RATE,
+        num_leaves=NUM_LEAVES,
+        feature_fraction=FEATURE_FRACTION,
+        bagging_fraction=BAGGING_FRACTION,
+        bagging_freq=BAGGING_FREQ,
+        min_child_samples=MIN_CHILD_SAMPLES,
+        random_state=seed,
+        n_jobs=8,
+        verbose=-1
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+from sklearn.svm import SVC
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def get_tanimoto_matrix(feats1, feats2):
+    dot = np.dot(feats1, feats2.T)
+    sum_sq1 = np.sum(feats1, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(feats2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_feats = featurize(train_smiles)
+    test_feats = featurize(test_smiles)
+    
+    K_train = get_tanimoto_matrix(train_feats, train_feats)
+    
+    model = SVC(kernel='precomputed', C=1.0, probability=True, random_state=seed)
+    model.fit(K_train, np.asarray(train_y, dtype=np.int64))
+    
+    K_test = get_tanimoto_matrix(test_feats, train_feats)
+    return model.predict_proba(K_test)[:, 1]
+-----
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 600
+LEARNING_RATE = 0.03
+NUM_LEAVES = 31
+FEATURE_FRACTION = 0.3
+BAGGING_FRACTION = 0.8
+BAGGING_FREQ = 1
+MIN_CHILD_SAMPLES = 10
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMClassifier(
+        n_estimators=N_TREES,
+        learning_rate=LEARNING_RATE,
+        num_leaves=NUM_LEAVES,
+        feature_fraction=FEATURE_FRACTION,
+        bagging_fraction=BAGGING_FRACTION,
+        bagging_freq=BAGGING_FREQ,
+        min_child_samples=MIN_CHILD_SAMPLES,
+        random_state=seed,
+        n_jobs=8,
+        verbose=-1
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+from sklearn.svm import SVC
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def get_tanimoto_matrix(feats1, feats2):
+    dot = np.dot(feats1, feats2.T)
+    sum_sq1 = np.sum(feats1, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(feats2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_feats = featurize(train_smiles)
+    test_feats = featurize(test_smiles)
+    
+    K_train = get_tanimoto_matrix(train_feats, train_feats)
+    
+    model = SVC(kernel='precomputed', C=1.0, probability=True, random_state=seed)
+    model.fit(K_train, np.asarray(train_y, dtype=np.int64))
+    
+    K_test = get_tanimoto_matrix(test_feats, train_feats)
+    return model.predict_proba(K_test)[:, 1]
+-----
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 600
+LEARNING_RATE = 0.03
+NUM_LEAVES = 31
+FEATURE_FRACTION = 0.3
+BAGGING_FRACTION = 0.8
+BAGGING_FREQ = 1
+MIN_CHILD_SAMPLES = 10
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMClassifier(
+        n_estimators=N_TREES,
+        learning_rate=LEARNING_RATE,
+        num_leaves=NUM_LEAVES,
+        feature_fraction=FEATURE_FRACTION,
+        bagging_fraction=BAGGING_FRACTION,
+        bagging_freq=BAGGING_FREQ,
+        min_child_samples=MIN_CHILD_SAMPLES,
+        random_state=seed,
+        n_jobs=8,
+        verbose=-1
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+ISSUES>>>>>>> REPLACE
+from sklearn.svm import SVC
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def get_tanimoto_matrix(feats1, feats2):
+    dot = np.dot(feats1, feats2.T)
+    sum_sq1 = np.sum(feats1, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(feats2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_feats = featurize(train_smiles)
+    test_feats = featurize(test_smiles)
+    
+    K_train = get_tanimoto_matrix(train_feats, train_feats)
+    
+    model = SVC(kernel='precomputed', C=1.0, probability=True, random_state=seed)
+    model.fit(K_train, np.asarray(train_y, dtype=np.int64))
+    
+    K_test = get_tanimoto_matrix(test_feats, train_feats)
+    return model.predict_proba(K_test)[:, 1]
+-----

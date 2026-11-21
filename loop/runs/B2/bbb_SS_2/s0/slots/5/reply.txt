@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+=======
+_CACHE = {}
+
+
+def featurize(smiles):
+    new = [s for s in dict.fromkeys(smiles) if s not in _CACHE]
+    if new:
+        for s, x in zip(new, featurize_raw(new)):
+            _CACHE[s] = x
+    return np.array([_CACHE[s] for s in smiles])
+
+
+def featurize_raw(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+>>>>>>> REPLACE
+-----

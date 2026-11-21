@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            if group['kind'] == 'adamw':
+                self._step_adamw(group)
+            elif group['kind'] == 'muon':
+                self._step_muon(group)",
+"=======
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            if group['kind'] == 'adamw':
+                self._step_adamw(group)
+            elif group['kind'] == 'muon':
+                self._step_muon(group)
+                # Symmetric gradient clipping for stability
+                param = group['params'][0]
+                if param.grad is not None:
+                    clip_threshold = group.get('threshold', 1.0) ** 0.5
+                    g = param.grad
+                    g.data[g.abs() > clip_threshold * torch.tensor([2048, 2], device=g.device)] = torch.sign(g[g.abs() > clip_threshold * torch.tensor([2048, 2], device=g.device冠状) * clip_threshold / clip_threshold)
+                    param.grad.data[:, :] = clip_threshold
+    g.data[g.abs() > clip_threshold * torch.tensor([2048, 2], device=g.device)] = torch.sign(g[g.abs() > clip_threshold * torch.tensor([2048, 2], device=g.device)] * 2048 / clip_threshold)",
+<<<<<<< SEARCH
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            if group['kind'] == 'adamw':
+                self._step_adamw(group)
+            elif group['kind'] == 'muon':
+                self._step_muon(group)
+            elif group['kind'] == 'adamw':
+                self._step_adamw(group)
+            elif group['kind'] == 'muon':
+                self._step_muon(group)
+-----
+<<<<<<< SEARCH
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+        
+        # Symmetric gradient clipping
+        total_grad_norm = torch.stack([p.grad.norm() for p in model.parameters()]).sum()
+        if total_grad_norm > 0.5:
+            scale = 0.5 / total_grad_norm
+            for p in model.parameters():
+                if p.grad is not None:
+                    p.grad = p.grad * scale
+>>>>>>> REPLACE
+-----

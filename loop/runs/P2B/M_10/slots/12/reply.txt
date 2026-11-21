@@ -1,0 +1,17 @@
+<<<<\u00b7\u00b7\u00b7\u00b7\u00b7 SEARCH\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\n# Hyperparameters (edit these directly, no CLI flags needed)\n# ---------------------------------------------------------------------------\n# Model architecture\nASPECT_RATIO = 64       # model_dim = depth * ASPECT_RATIO\nHEAD_DIM = 128          # target head dimension for attention\nWINDOW_PATTERN = "SSSL" # sliding window pattern: L=full, S=half context\n\n# Optimization\nTOTAL_BATCH_SIZE = 2**18 # ~262K tokens per optimizer step (halved from 512K)\nEMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)\nUNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)\nMATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)\nSCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)\nWEIGHT_DECAY = 0.2      # cautious weight decay for Muon\nADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2\nWARMUP_RATIO = 0.0      # fraction of time budget for LR warmup\nwar%dOWN_RATIO = 0.5    # fraction of time budget for LR warmdown\nFINAL_LR_FRAC = 0.0     # final LR as fraction of initial\n\n# Model size\nDEPTH = 8               # number of transformer layers\nDEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB\n
+
+# ---- SEARCH ----\n# hyperparameters (edit these directly, no CLI flags needed)\n# ---------------------------------------------------------------------------\n# Model architecture\nASPECT_RATIO = 64       # model_dim = depth * ASPECT_RATIO\nHEAD_DIM = 128          # target head dimension for attention\nWINDOW_PATTERN = "SSSL" # sliding window pattern: L=full, S=half context\n\n# Optimization\nTOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step\nEMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)\nUNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)\nMATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)\nSCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)\nWEIGHT_DECAY = 0.2      # cautious weight decay for Muon\nADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2\nWARMUP_RATIO = 0.0      # fraction of time budget for LR warmup\nWARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown\nFINAL_LR_FRAC = 0.0     # final LR as fraction of initial\n\n# Model size\nDEPTH = 8               # number of transformer layers\nDEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB\n# ---- SEARCH ----\n
+# ---- REPLACE ----\nTOTAL_BATCH_SIZE = 2**18 # ~262K tokens per optimizer step (halved from 512K)
+-----
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+=======
+    short_seq = total_training_time < 0.5 * TIME_BUDGET
+    for micro_step in range(grad_accum_steps):
+        xi, yi = (x.reshape(-1, MAX_SEQ_LEN // 2), y.reshape(-1, MAX_SEQ_LEN // 2)) if short_seq else (x, y)
+        with autocast_ctx:
+            loss = model(xi, yi)
+>>>>>>> REPLACE
+-----

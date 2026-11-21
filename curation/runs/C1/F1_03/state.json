@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/F1_03/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.8379869814536673
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random whole-pool order with a dedupe + target-likeness filter. (1) Drop exact and near-exact duplicates: key each doc by a hash of its lowercased, whitespace-collapsed text and keep the first occurrence. (2) Build a set of lowercased whitespace-token word bigrams from target_sample. For each pool doc compute h = fraction of its word bigrams (first ~2000 tokens) found in that set; this is low for word-shuffled docs, spam, off-domain web text and homoglyph-damaged text. Also compute a = fraction of non-ASCII characters. (3) Calibrate the threshold without labels: split target_sample into two halves, build the bigram set from each half and score the other half, then scale to full-sample conditions by setting thr to the 5th percentile of those held-out target scores (times 0.9 as slack). Keep a doc if h >= thr, a < 0.05 and length >= 200 chars. (4) Count tokens of kept docs with tiktoken gpt2 (encode_ordinary_batch). If kept tokens >= T, take the kept docs in seeded random order; if fewer than T, return only the kept docs in seeded random order and let the trainer cycle them, rather than padding with rejected docs. Seed from CURATE_SEED.",
+   "outcome": "dev 1.8380 against 1.9584 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Increase the complexity of the 'target-likeness' filter by using tri-grams instead of bigrams and adding a simple length-weighted score to prioritize longer documents within the filtered set.",
+   "outcome": "dev 1.8375 against 1.8380 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Replace the current bigram hit rate (h) with a weighted average where 'h' is the fraction of bigrams shared with the target_sample, but each bigram's contribution is boosted if it is also a high-frequency bigram in the target_sample (e.g., weight = count_in_target / total_target_bigrams).",
+   "outcome": "dev 1.9809 against 1.8380 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the bigram hit rate $h$ with a weighted Jaccard-like similarity where the denominator is the union of bigrams in the document and the target sample, and use a larger token window (first 3000 words) for the score.",
+   "outcome": "dev 1.8349 against 1.8380 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the bigram similarity score with a weighted score where bigrams that appear in the target sample are weighted by the inverse of their frequency (TF-IDF-lite), and increase the window to 4000 words.",
+   "outcome": "dev 1.9533 against 1.8380 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Instead of a hard threshold on the bigram hit rate 'h', sort the kept documents by a score that combines 'h' and the length of the document (weighted towards longer docs), and select the top K documents such that the total token count is at least T (or as many as possible).",
+   "outcome": "dev 2.0634 against 1.8380 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Replace the current bigram hit rate $h$ with a smoothed average where hits are counted but the denominator is the sum of (document_bigrams_count + target_sample_bigrams_count) / 2, and add a penalization for documents that contain many unique bigrams not found in the target sample (high 'novelty').",
+   "outcome": "dev 1.8326 against 1.8380 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Improve the target-likeness scoring by using a more robust 'content-density' metric: calculate the bigram hit rate (h) but only include bigrams that appear in at least 3 different documents in the target_sample (to filter out noise/typos) and apply a soft-penalty for high unique bigram counts in the document.",
+   "outcome": "dev 1.8690 against 1.8380 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Replace the bigram hit rate $h$ with a simple word-overlap score (fraction of unique words in the document's first 1000 words that also appear in the target sample's vocabulary), and increase the non-ASCII threshold to 0.10 while keeping the current calibration method.",
+   "outcome": "dev 1.9104 against 1.8380 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Use the target_sample to build a global vocabulary of 'safe' words (those appearing in the target_sample) and weight the bigram hit rate (h) by the significance of the bigram: a bigram is a hit only if BOTH words are in the target vocabulary, and the score is the fraction of document bigrams that satisfy this. This filters out 'noisy' bigrams formed by common non-target words.",
+   "outcome": "dev 1.8379 against 1.8380 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Replace the bigram hit rate (h) with a 'weighted bigram overlap' where bigrams that appear in multiple different documents in the target_sample are given higher weight, and use these weights to score the pool documents; keep the same calibration method and non-ASCII filter.",
+   "outcome": "dev 1.9182 against 1.8380 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Replace the bigram hit rate $h$ with a Jaccard similarity score of bigrams, but instead of the raw union/intersection, use a 'precision-biased' score where the denominator is the number of bigrams in the document (the pool doc), and use the current calibration method.",
+   "outcome": "dev 1.8382 against 1.8380 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.23412565000000005,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.21546760000000004,
+   "dev": 1.8379869814536673,
+   "inc": 1.9583829191512052,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.56976846924551,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0015980999999999912,
+   "dev": 1.8375170788393331,
+   "inc": 1.8379869814536673,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.56976846924551,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0017035499999999981,
+   "dev": 1.9809471782997696,
+   "inc": 1.8379869814536673,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.56976846924551,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0015939000000000092,
+   "dev": 1.8348677410194425,
+   "inc": 1.8379869814536673,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.56976846924551,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0015430499999999903,
+   "dev": 1.953293333457228,
+   "inc": 1.8379869814536673,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.56976846924551,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0016602000000000006,
+   "dev": 2.0633725610411484,
+   "inc": 1.8379869814536673,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.56976846924551,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0018084000000000156,
+   "dev": 1.8325591298402646,
+   "inc": 1.8379869814536673,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.56976846924551,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0018394499999999925,
+   "dev": 1.8689544637120776,
+   "inc": 1.8379869814536673,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.56976846924551,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0016614000000000073,
+   "dev": 1.9104065718986496,
+   "inc": 1.8379869814536673,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.56976846924551,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.001808100000000007,
+   "dev": 1.8378970686537437,
+   "inc": 1.8379869814536673,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.56976846924551,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0017411999999999983,
+   "dev": 1.9182168986193466,
+   "inc": 1.8379869814536673,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.56976846924551,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0017006999999999994,
+   "dev": 1.8382361539325667,
+   "inc": 1.8379869814536673,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9583829191512052,
+ "inc_slot": 1
+}

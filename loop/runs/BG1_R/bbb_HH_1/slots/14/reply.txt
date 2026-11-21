@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    preds = [scaled_rank(rf.predict_proba(X_test)[:, 1])]
+    n_phys = 11
+    groups = [slice(0, N_BITS), slice(N_BITS, N_BITS + n_phys), slice(N_BITS + n_phys, None),
+              slice(N_BITS, None)]
+    for g, cols in enumerate(groups):
+        gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.5,
+                            random_state=seed + g, n_jobs=8, verbose=-1)
+        gb.fit(X_train[:, cols], y)
+        preds.append(scaled_rank(gb.predict_proba(X_test[:, cols])[:, 1]))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from scipy.linalg import cho_factor, cho_solve
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    mu, sd = y.mean(), y.std() + 1e-9
+    yc = (y - mu) / sd
+    n = len(yc)
+    best = None
+    for lam in np.logspace(-3, 0, 13):
+        cf = cho_factor(K_train + lam * np.eye(n), lower=True)
+        a = cho_solve(cf, yc)
+        logdet = 2.0 * np.log(np.diag(cf[0])).sum()
+        lml = -0.5 * yc @ a - 0.5 * logdet - 0.5 * n * np.log(2 * np.pi)
+        if best is None or lml > best[0]:
+            best = (lml, a)
+    return K_test @ best[1]
+>>>>>>> REPLACE
+-----

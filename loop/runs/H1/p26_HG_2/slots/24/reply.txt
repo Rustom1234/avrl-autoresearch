@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})\n    c_p, r_p = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]\n    \n    # Log-barrier polish\n    def get_constraints(c, r):\n        c_mat, r_mat = c, r\n        iu = np.triu_indices(n, 1)\n        d_pair = np.sqrt(((c_mat[iu[0]] - c_mat[iu[1]])**2).sum(1)) - r_mat[iu[0]] - r_mat[iu[1]]\n        wall = np.concatenate([c_mat[:, 0] - r_mat, c_mat[:, 1] - r_mat, 1 - c_mat[:, 0] - r_mat, 1 - c_mat[:, 1] - r_mat])\n        return np.concatenate([d_pair, wall, r_mat])\n    \n    v_p = np.concatenate([c_p.flatten(), r_p])\n    mu = 1e-2\n    for _ in range(8):\n        cons_v = get_constraints(c_p, r_p)\n        def barrier_obj(v):\n            c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]\n            cv = get_constraints(c_v, r_v)\n            # Ensure strictly feasible for log; use max(..., 1e-12) to avoid -inf\n            return -r_v.sum() - mu * np.sum(np.log(np.maximum(cv, 1e-12)))\n        \n        res_p = minimize(barrier_obj, v_p, method="L-BFGS-B", options={"maxiter":         50})\n        v_p = res_p.x\n        c_p, r_p = v_p[:2 * n].reshape(n, 2), v_p[2 * n:]\n        mu *= 0.5\n    \n    return c_p, r_p
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraintsбить={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c_p, r_p = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+    def get_cons(c, r):
+        iu = np.triu_indices(n, 1)
+        d_pair = np.sqrt(((c[iu[0]] - c[iu[1]])**2).sum(1)) - r[iu[0]] - r[iu[1]]
+        wall = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        return np.concatenate([d_pair, wall, r])
+
+    v_p = np.concatenate([c_p.flatten(), r_p])
+    mu = 1e-2
+    for _ in range(8):
+        def barrier_obj(v):
+            c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+            cv = get_cons(c_v, r_v)
+            return -r_v.sum() - mu * np.sum(np.log(np.maximum(cv, 1e-15)))
+        
+        res_p = minimize(barrier_obj, v_p, method="L-BFGS-B", options={"maxiter": 50})\n        v_p = res_p.x
+        c_p, r_p = v_p[:2 * n].reshape(n, 2), v_p[2 * n:]
+        mu *= 0.5
+
+    return c_p, r_p
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraintsaci={"type": "ineq", "fun": cons},
+                   optionsaci={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c_p, r_p = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+    def get_cons(c, r):
+        iu = np.triu_indices(n, 1)
+        d_pair = np.sqrt(((c[iu[0]] - c[iu[1]])**2).sum(1)) - r[iu[0]] - r[iu[1]]
+        wall = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        return np.concatenate([d_pair, wall, r])
+
+    v_p = np.concatenate([c_p.flatten(), r_p])
+    mu = 1e-2
+    for _ in range(8):
+        def barrier_obj(v):
+            c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+            cv = get_cons(c_v, r_v)
+            return -r_v.sum() - mu * np.sum(np.log(np.maximum(cv, 1e-15)))
+        
+        res_p = minimize(barrier_obj, v_p, method="L-BFGS-B", options={"maxiter": 50})
+        v_p = res_p.x
+        c_p, r_p = v_p[:2 * n].reshape(n, 2), v_p[2 * n:]
+        mu *= 0.5
+
+    return c_p, r_p
+>>>>>>> REPLACE
+-----

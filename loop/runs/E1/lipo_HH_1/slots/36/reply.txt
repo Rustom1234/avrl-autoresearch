@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def propagate(Fall, y, p_test, n_tr, k=10, a=0.3, steps=20):
+    # Transductive label propagation on a kNN Tanimoto graph over train + test molecules.
+    S = tanimoto(Fall, Fall)
+    np.fill_diagonal(S, 0.0)
+    idx = np.argpartition(-S, k, axis=1)[:, :k]
+    rows = np.arange(S.shape[0])[:, None]
+    W = np.zeros_like(S)
+    W[rows, idx] = S[rows, idx]
+    W = W / np.maximum(W.sum(axis=1, keepdims=True), 1e-12)
+    F0 = np.concatenate([y, p_test])
+    F = F0.copy()
+    for _ in range(steps):
+        F = (1 - a) * F0 + a * (W @ F)
+        F[:n_tr] = y
+    return F[n_tr:]
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return meta.predict(base_te)
+=======
+    return propagate(np.vstack([Ftr, Fte]), y, meta.predict(base_te), len(y))
+>>>>>>> REPLACE
+-----

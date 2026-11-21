@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+_MORGAN = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS, includeChirality=True)
+_FEAT = rdFingerprintGenerator.GetMorganGenerator(radius=1, fpSize=256,
+                                                  atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen())
+
+
+def fingerprints(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.concatenate([_MORGAN.GetCountFingerprintAsNumPy(m), _FEAT.GetCountFingerprintAsNumPy(m)]))
+    return np.array(rows, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    Ftr, Fte = fingerprints(train_smiles), fingerprints(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(np.hstack([Xtr, Ftr]), y)
+    p_lgb = model.predict(np.hstack([Xte, Fte]))
+>>>>>>> REPLACE
+-----

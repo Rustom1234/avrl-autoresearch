@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+=======
+    # Corner/edge seeded starts: small circles at corners and edge positions, larger inside.
+    for _ in range(2):
+        if time.time() - t0 > 170:
+            break
+        cc = np.zeros((n, 2))
+        cc[0:4] = [[0.06, 0.06], [0.94, 0.06], [0.06, 0.94], [0.94, 0.94]]
+        cc[4:12] = [[0.25, 0.05], [0.75, 0.05], [0.25, 0.95], [0.75, 0.95],
+                    [0.05, 0.25], [0.05, 0.75], [0.95, 0.25], [0.95, 0.75]]
+        cc[12:] = rng.uniform(0.3, 0.7, size=(n - 12, 2))
+        r0 = np.full(n, 0.1)
+        r0[:12] = 0.06
+        r0[:4] = 0.05
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+        try:
+            cc, r0 = _relax(cc, r0)
+            c, r = _optimize(cc, r0)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+>>>>>>> REPLACE
+-----

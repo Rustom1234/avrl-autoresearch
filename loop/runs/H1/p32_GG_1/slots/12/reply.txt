@@ -1,0 +1,87 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+
+    def cons_full(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    # Active set selection: only include constraints that are violated or near-violated
+    # This reduces the number of constraints SLSQP handles in each iteration.
+    c_init = x0[:2 * n].reshape(n, 2)
+    r_init = x0[2 * n:]
+    d_init = np.sqrt(((c_init[iu[0]] - c_init[iu[1]]) ** 2).sum(1)) - r_init[iu[0]] - r_init[iu[1]]
+    
+    # Indices where the constraint is violated or within a small margin
+    active_iu = iu
+    if np.any(d_init < 0.01):
+        active_iu = iu[d_init < 0.01]
+        # Fallback if no constraints are violated yet
+        if active_iu[0] == 0 and len(active_iu) == 0: active_iu = iu
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Use only the active subset of overlap constraints
+        d = np.sqrt(((c[active_iu[0]] - c[active_iu[1]]) ** 2).sum(1)) - r[active_iu[0]] - r[active_iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+
+    # Active set selection: only include constraints that are violated or near-violated
+    # to reduce the number of constraints the SLSQP solver handles simultaneously.
+    c_init = x0[:2 * n].reshape(n, 2)
+    r_init = x0[2 * n:]
+    d_init = np.sqrt(((c_init[iu[0]] - c_init[iu[1]]) ** 2).sum(1)) - r_init[iu[0]] - r_init[iu[1]]
+    
+    active_mask = d_init < -0.01
+    if not np.any(active_mask):
+        active_mask = np.sort(np.argsort(d_init))[:min(len(iu), 100)]
+    
+    active_iu = iu[active_mask]
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[active_iu[0]] - c[active_iu[1]]) ** 2).sum(1)) - r[active_iu[0]] - r[active_iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

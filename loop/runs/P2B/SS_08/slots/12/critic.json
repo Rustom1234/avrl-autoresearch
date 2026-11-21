@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine. The diff only touches the training forward pass: for the first 25% of the training time, each (B, T) batch is reshaped to (-1, 512). The data, the seed lines, the evaluation call and the val_bpb path are all unchanged, and the harness raised no flags.",
+  "No bug makes the result meaningless. The reshape keeps every token and every target, and x and y are reshaped the same way, so labels stay aligned. This assumes T is a multiple of 512, which must hold or the run would have crashed. The cut chunks start mid-document without a BOS token. That is a normal sequence-length warmup and is not an error.",
+  "Side cost: changing the input shape will likely make torch.compile recompile at the start, and again when it switches back to full length at 25%. The recompile in the training window uses up training time, which can only hurt the candidate, and the run stayed under the 450 s limit.",
+  "Small cleanup: `short_seq` is computed on every step outside the micro-step loop. It works, and the change adds about 4 lines.",
+  "The evidence is weak. There are only 2 candidate runs, with a mean of 1.10745 against the incumbent's 1.1145 (a drop of about 0.00705), and z = 1.711 is borderline. I can't recompute z because the incumbent's standard deviation over its 16 runs is not given. Taking the harness z as reported, the claimed improvement matches the given numbers. A replicate run would make the acceptance more solid."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

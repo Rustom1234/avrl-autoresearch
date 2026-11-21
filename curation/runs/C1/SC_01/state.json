@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/SC_01/cand/s03_0.py",
+ "inc_scores": {
+  "11": 1.8342511968608508
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace random order with a target-domain filter plus dedup and damage removal. (1) Exact-dedup docs by hash of normalised text (keep first). (2) Drop junk: docs whose line-level repetition is high (unique lines / total lines < 0.5 for docs with >=4 lines) or whose zlib compression ratio (compressed/raw bytes) is < 0.2. (3) Score domain: fit a char n-gram (1-3, analyzer='char_wb' or word 1-2gram) HashingVectorizer + TF-IDF logistic regression with positives = target_sample (chunked into ~1500-char pieces) and negatives = a seeded random sample of ~3000 pool-doc chunks; also add cheap WikiText-style features: starts with '= ' title line, frequency of ' @-@ ', ' @,@ ', ' @.@ ', ' , ', ' . ' tokens. Keep docs with classifier probability above a threshold chosen so pool docs resembling the target (WikiText-style articles) are retained. (4) Remove word-shuffled damaged WikiText docs: build a word-bigram set from target_sample plus the high-confidence pool docs and compute for each candidate the fraction of its word bigrams that appear in that set (or simpler: rate of common function bigrams such as 'of the', 'in the', ', and', '. The', 'to the' per 1000 words, and the rate of impossible bigrams such as ', ,', '. ,', 'the the', 'of of', ', .'); drop docs whose well-formed-bigram rate is below ~half the median of the target_sample rate. (5) Count tokens of survivors with tiktoken gpt2; return survivors in seeded shuffled order; if they total less than T just return them (trainer cycles), and if more than T keep the highest-scoring ones up to ~T before shuffling.",
+   "outcome": "FAILED to run (1/cand/s01_1.py\", line 55, in select X_comb = np.vstack([X_pos, X_neg]).tolil() ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ AttributeError: 'numpy.ndarray' object has no attribute 'tolil'. Did you mean: 'tofile'?)"
+  },
+  {
+   "slot": 2,
+   "idea": "Re-do the failed filter as a simple, robust pipeline with no manual sparse/dense stacking (if a classifier is ever needed, call vectorizer.transform once on the concatenated text list pos+neg; here none is needed).\n\n1. Exact dedup: key = ' '.join(doc.split()).lower(); keep the first occurrence. Also dedup on the first 200 characters of that key to catch near-duplicates.\n\n2. Format gate: keep only docs whose first line, stripped, matches the WikiText title pattern ^= [^=].* =$ and that have at least 200 characters.\n\n3. Damage filter by bigram hit rate: build the set S of lowercase whitespace-token bigrams from all 200 target_sample docs. For each doc, h = fraction of its first 2000 token bigrams that are in S. Calibrate by building S_half from target docs 0-99 and computing h on target docs 100-199; set threshold = 0.75 * the 5th percentile of those values (apply this threshold to pool docs using S_half so the scales match). Drop pool docs below the threshold; this removes word-shuffled or character-corrupted articles.\n\n4. Extra junk guards: drop docs with zlib compressed/raw ratio < 0.2, or where the lowercased text contains 'discount code' or 'click here to order'.\n\n5. Return survivors in an order shuffled with random.Random(int(os.environ.get('CURATE_SEED', 0))). Do not pad with off-domain docs; if survivors total fewer than T tokens, let the trainer cycle them.",
+   "outcome": "FAILED to run (n <module> assert idx and all(0 <= i < len(docs) for i in idx), \"select must return indices into docs\" ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ AssertionError: select must return indices into docs)"
+  },
+  {
+   "slot": 3,
+   "idea": "Rewrite the filter as a robust pipeline with fallbacks, so it can never return an empty list. Experiment 2 most likely died because its hard gates removed every document.\n\n1. Normalise: for each doc, s = doc.strip(); key = ' '.join(s.split()).lower(). Exact-dedup on key, keeping the first occurrence. Do not use prefix dedup.\n\n2. Loose format gate (wiki-like): keep a doc if len(s) >= 200 and either s.startswith('=') or the doc contains at least one of ' @-@ ', ' @,@ ', ' @.@ ', or its rate of ' , ' plus ' . ' is at least 3 per 100 whitespace tokens. Do not use a strict title regex.\n\n3. Damage filter for word-shuffled articles: build S, the set of lowercased whitespace-token bigrams from target docs 0-99. For any text, h = fraction of its first 3000 token bigrams that are in S. Compute h on target docs 100-199 and take the median m. Keep wiki-like pool docs with h >= 0.6 * m. Print the counts and the h quantiles for debugging.\n\n4. Junk guards: drop docs whose zlib compressed/raw ratio is < 0.2, or whose lowercased text contains 'click here to order', 'free shipping' or 'best price guaranteed'.\n\n5. Fallbacks: if survivors have fewer than 200 docs, relax step 3 to h >= 0.4 * m. If still fewer than 200, use all wiki-like deduped docs. If still empty, use all deduped docs.\n\n6. Output: shuffle survivors with random.Random(int(os.environ.get('CURATE_SEED', 0))) and return [int(i) for i in survivors], as plain Python ints that index the original docs list. Do not pad with off-domain docs; the trainer cycles a short list.",
+   "outcome": "dev 1.8343 against 1.9618 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 4,
+   "idea": "Keep the current pipeline (exact dedup, loose wiki gate, junk guards, fallbacks, seeded shuffle, no padding) but replace the single loose damage threshold (h >= 0.6 * median on the first 3000 bigrams) with calibrated, window-level damage detection.\n\n1. Build S_half (lowercased whitespace-token bigrams) and V_half (lowercased token vocabulary) from target docs 0-99.\n\n2. For any text, split its full token sequence, not just the first 3000 tokens, into consecutive windows of 250 tokens; drop a final window shorter than 100 tokens unless it is the only one. Per window compute (a) the bigram hit rate against S_half and (b) the unigram hit rate against V_half. Per doc take h_mean = mean bigram hit rate over windows, h_min = minimum bigram hit rate over windows, u_min = minimum unigram hit rate over windows.\n\n3. Calibrate on target docs 100-199: compute the same three statistics and take the 2nd percentile of each, p_mean, p_min, p_u.\n\n4. Keep a wiki-like pool doc only if h_mean >= 0.9 * p_mean AND h_min >= 0.85 * p_min AND u_min >= 0.9 * p_u. This removes fully word-shuffled articles, partly or locally shuffled ones, and character-corrupted ones.\n\n5. Tighten the format gate: the stripped doc must start with '= ' and its first line must end with '='. As a fallback, if this strict gate leaves fewer than 200 docs, use the current loose gate.\n\n6. Keep the zlib and spam-phrase guards and the existing fallback chain: if fewer than 200 survivors, multiply the three thresholds by 0.7, then fall back to the wiki-like docs, then to all deduped docs.\n\n7. Print the number of survivors, their total gpt2 token count as a fraction of T, and the quantiles of the three statistics for pool and target. Return plain ints in seeded shuffled order.\n\nImplementation note: compute everything in one pass over the deduped docs; do not use list.index lookups.",
+   "outcome": "dev 2.2358 against 1.8343 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Keep the current best pipeline unchanged (exact dedup, loose wiki gate, zlib and spam-phrase guards, fallbacks, seeded shuffle, no padding, whole-document scoring with no windows and no strict title gate). Replace only the damage threshold `h >= 0.6 * m` with a bootstrapped, synthetically calibrated bigram score.\n\n1. Pass 1: run the current filter as it is (S from target docs 0-99, h on the first 3000 bigrams, keep h >= 0.6*m, then junk guards). Call the result A and keep h1 for each doc.\n\n2. Bootstrap a larger reference set S2: the lowercased whitespace-token bigrams of target docs 0-99, plus all bigrams of the docs in A whose h1 is at or above the median h1 of A. These are the most clearly clean pool articles.\n\n3. Rescore: h2 = fraction of a doc's first 3000 bigrams that are in S2. For a pool doc that contributed to S2, this is biased upward, which is acceptable because those docs are already the clean ones.\n\n4. Calibrate the threshold on target docs 100-199, which are not in S2:\n   - clean = h2 of each doc;\n   - damaged = h2 of the same docs after shuffling tokens within consecutive blocks of 10 tokens, using the seeded rng.\n   - thr = 0.5 * (5th percentile of clean + 95th percentile of damaged). If the 95th percentile of damaged is not below the 5th percentile of clean, use thr = 0.8 * (5th percentile of clean).\n\n5. Survivors B = docs in A with h2 >= thr. Docs that contributed to S2 are kept automatically.\n\n6. Safety: if B has fewer than 60% of the gpt2 tokens of A (estimate tokens as len(doc)/4 to save time), or fewer than 200 docs, return A, which is the current best behaviour. Otherwise return B.\n\n7. Print |A|, |B|, thr, and the quantiles of clean, damaged and pool h2. Return plain ints in seeded shuffled order. Use a dict or enumerate for index mapping, not list.index.",
+   "outcome": "dev 2.1248 against 1.8343 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Keep the current best filter exactly as it is (same dedup, loose wiki gate, h >= 0.6*m on the first 3000 bigrams, zlib and spam guards, fallbacks) to produce the survivor set A. Then stop relying on cycling: pad the stream to T tokens with the cleanest remaining prose, and put the in-domain text last.\n\n1. In one pass over the deduped docs, compute and store h (bigram hit rate against S from target docs 0-99) for every deduped doc, not only the wiki-like ones. Use a dict or enumerate for index mapping, not list.index.\n\n2. Count gpt2 tokens of A with tiktoken (encode_ordinary_batch with disallowed specials off; if that is slow, estimate as len(doc)/4). Call the total tokA.\n\n3. If tokA >= T, return A in seeded shuffled order, as now.\n\n4. If tokA < T, build the padding set P from deduped docs not in A that have len >= 200, zlib compressed/raw ratio >= 0.2, none of the spam phrases, and at most 30% of their lines repeated within the doc. Sort these by h descending and take docs from the top until tokens(A) + tokens(P) >= 1.02 * T. This picks up near-threshold wiki articles and the cleanest general English prose first; shuffled, spam and boilerplate docs have low h and come last.\n\n5. Order: shuffle A with the seeded rng and split it into halves A1 and A2. The output is shuffle(P + A1) followed by A2, so padding is mixed into the early part of training and the final part is pure target-style text. Every doc appears once and nothing is cycled.\n\n6. Print |A|, tokA/T, |P|, tokens(P)/T, and the min and median h of P. Return plain Python ints.",
+   "outcome": "FAILED to run (en/core.py\", line 119, in encode disallowed_special = self.special_tokens_set - allowed_special ~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~ TypeError: unsupported operand type(s) for -: 'set' and 'bool')"
+  },
+  {
+   "slot": 7,
+   "idea": "Retry the untested padding idea from experiment 6 (it crashed on a tiktoken call, it was never measured), with a safer implementation. Keep the current best filter exactly as it is to produce survivor set A (same dedup, loose wiki gate, h >= 0.6*m on the first 3000 bigrams, zlib and spam guards, fallbacks).\n\n1. Token counting: use `enc = tiktoken.get_encoding('gpt2')` and `enc.encode_ordinary_batch(list_of_texts, num_threads=8)` with no other arguments, inside try/except; on any exception estimate tokens as len(doc)/4. Never pass allowed_special or disallowed_special. Only count the docs that are needed (A and the padding candidates).\n\n2. If tokens(A) >= T, return A in seeded shuffled order, as now.\n\n3. Otherwise build padding candidates P from deduped docs that FAILED the wiki-like gate, so damaged or shuffled wiki articles rejected by the h test are never used as padding. Require len >= 300, zlib compressed/raw ratio >= 0.3, none of the spam phrases ('click here to order', 'free shipping', 'best price guaranteed', 'discount code', 'coupon', 'limited offer'), unique lines / total lines >= 0.7, and at least 80% of characters being ASCII letters or spaces.\n\n4. Rank P by a punctuation-robust bigram score: tokenise with re.findall(r\"\\w+|[^\\w\\s]\", text.lower()), build S2 from all 200 target docs tokenised the same way, and score g = fraction of the doc's first 2000 bigrams in S2. Sort by g descending and take docs until tokens(A) + tokens(P) >= 1.02 * T. If the candidates run out first, just use them all and let the trainer cycle.\n\n5. Order: shuffle A with the seeded rng and split into halves A1 and A2. Output = shuffle(P + A1) followed by A2, so the final part of training is pure target-style text and nothing is repeated.\n\n6. Print |A|, tokens(A)/T, |P|, tokens(P)/T, and the min and median g of P. Return plain Python ints; use dicts or enumerate for index mapping, not list.index.",
+   "outcome": "dev 2.1332 against 1.8343 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Keep the current best pipeline unchanged (exact dedup on the normalised key, loose wiki gate, zlib >= 0.2 and spam-phrase guards, fallbacks, seeded shuffle, no padding, no cycling tricks) and change only the damage threshold, in the looser direction: keep wiki-like docs with h >= 0.4 * m instead of h >= 0.6 * m (h = hit rate of the first 3000 lowercased whitespace-token bigrams against S from target docs 0-99, m = median of h on target docs 100-199).\n\nImplementation details:\n1. Compute h once per deduped doc in a single pass and store it in a list aligned with deduped_indices. Remove the dead loop that uses list.index.\n2. Survivors = wiki-like docs with h >= 0.4*m that pass the junk guards.\n3. Overflow guard: estimate tokens as len(doc)/4. If the survivors exceed 1.0 * T, sort by h descending, keep docs from the top until the estimate reaches T, and drop the rest. Otherwise keep all of them.\n4. Fix the fallback bug: the ratio must be len(zlib.compress(doc.encode('utf-8'))) / len(doc). If fewer than 200 survivors, fall back to all wiki-like deduped docs, then to all deduped docs.\n5. Print the number of wiki-like docs, the number of survivors and estimated tokens/T at thresholds 0.3*m, 0.4*m, 0.6*m and 0.8*m, and the deciles of h/m over wiki-like pool docs, so the next step can see how the damage is distributed.\n6. Return plain Python ints in seeded shuffled order.",
+   "outcome": "dev 1.9475 against 1.8343 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Keep the current best pipeline exactly (exact dedup on the normalised key, loose wiki gate, h >= 0.6*m on the first 3000 bigrams, zlib >= 0.2 and spam-phrase guards, seeded shuffle, no padding, no windows, no strict title gate, no bootstrapping). Add ONE extra, scale-free test for word-shuffled articles: sentence-start capitalisation.\n\n1. Define c(text): toks = text.split(). Over all positions i with toks[i] == '.' and i+1 < len(toks), take nxt = toks[i+1]; count it as OK if nxt[0] is an uppercase letter, a digit, or one of '=', '\"', \"'\", '(', '['. c = OK / number of such positions. If a text has fewer than 5 such positions, set c = 1.0 (pass). In clean WikiText the token after ' . ' almost always starts a sentence (c around 0.9); in a word-shuffled article it is a random word (c around 0.2-0.3); in a partly shuffled article it is in between.\n\n2. Calibrate on all 200 target_sample docs: c_ref = 5th percentile of c. Threshold c_thr = 0.85 * c_ref.\n\n3. Survivors B = docs of the current survivor set A (computed exactly as now) with c >= c_thr.\n\n4. Safety: if B has fewer than 200 docs, or fewer than 50% of the characters of A, return A (the current behaviour). Otherwise return B.\n\n5. Implementation: one pass over the deduped docs, storing h and c in lists aligned with deduped_indices; remove the dead loop that uses list.index; fix the fallback ratio to len(zlib.compress(doc.encode('utf-8'))) / len(doc). Print |A|, |B|, chars(B)/chars(A), c_ref, c_thr, the deciles of c over A, and the count of docs in A with c < 0.5, between 0.5 and c_thr, and >= c_thr. Return plain Python ints in seeded shuffled order.",
+   "outcome": "dev 1.8290 against 1.8343 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Keep the current best filter exactly as it is to produce survivor set A (same exact dedup, loose wiki gate, h >= 0.6*m on the first 3000 bigrams, zlib >= 0.2 and spam guards, fallbacks). Change only what is emitted: put a SMALL, capped block of clean general-English prose at the very START of the stream as warm-up, then fill all the rest of the T tokens with A only. This differs from experiment 7, which padded all the way to T and mixed the padding with A.\n\n1. Token counting: enc = tiktoken.get_encoding('gpt2'); enc.encode_ordinary_batch(texts, num_threads=8) with no other arguments, inside try/except; on any exception estimate tokens as len(doc)/4. Compute tokA.\n\n2. If tokA >= 0.8*T, return A in seeded shuffled order, exactly as now (no padding).\n\n3. Otherwise build padding candidates from deduped docs that FAILED the wiki-like gate, so damaged or shuffled wiki articles are never used. Require len >= 300, zlib compressed/raw ratio >= 0.3, none of the phrases 'click here to order', 'free shipping', 'best price guaranteed', 'discount code', 'coupon', 'limited offer', unique lines / total lines >= 0.7, at least 80% of characters being ASCII letters or spaces, and no '$' character. Rank by g = fraction of the doc's first 2000 bigrams, tokenised with re.findall(r\"\\w+|[^\\w\\s]\", text.lower()), that are in the bigram set built the same way from all 200 target docs. Take docs from the top of the ranking until tokens(P) reaches budget = min(0.2*T, T - tokA). Never exceed this budget.\n\n4. Output order: P in seeded shuffled order first, then A in seeded shuffled order, then further independently reshuffled copies of A (new permutation for each copy, same seeded rng) until the total token count of the list exceeds 1.05*T. The trainer therefore never cycles back into P: the first 20% of training at most is general prose and everything after is in-domain text.\n\n5. Print |A|, tokA/T, |P|, tokens(P)/T, the number of copies of A, and the min and median g of P. Return plain Python ints; use dicts or enumerate for index mapping, not list.index.",
+   "outcome": "dev 1.9702 against 1.8343 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Keep the current best pipeline exactly to produce survivor set A (exact dedup on the normalised key, loose wiki gate, h >= 0.6*m on the first 3000 bigrams, zlib >= 0.2 and spam-phrase guards, fallbacks, seeded shuffle, no padding, no windows, no strict title gate, no bootstrapping). Add ONE extra, topic-independent test for word-shuffled or partly shuffled articles: the function-word bigram hit rate.\n\n1. From target docs 0-99 (lowercased whitespace tokens) build F = the 150 most frequent tokens (these are 'the', ',', '.', 'of', 'and', 'in', ...) and S = the set of all bigrams (the same S as now).\n\n2. For any text define f(text): over ALL of its token bigrams (the whole doc, not just the first 3000) take those where both tokens are in F; f = fraction of those that are in S. If a text has fewer than 30 such bigrams, set f = 1.0 (pass). In clean text nearly every frequent-frequent bigram ('of the', ', and', '. the') has been seen, so f is high and hardly depends on topic. In shuffled text random pairs such as 'the the', ', ,' or 'of .' are unseen, so f is much lower.\n\n3. Calibrate on target docs 100-199: f_ref = 5th percentile of f. Threshold f_thr = 0.93 * f_ref.\n\n4. Survivors B = docs of A with f >= f_thr.\n\n5. Safety: if B has fewer than 200 docs or fewer than 50% of the characters of A, return A (the current behaviour). Otherwise return B.\n\n6. Implementation: one pass over the deduped docs, storing h and f in lists aligned with deduped_indices; remove the dead loop that uses list.index; fix the fallback ratio to len(zlib.compress(doc.encode('utf-8'))) / len(doc). Print |A|, |B|, chars(B)/chars(A), f_ref, f_thr, the deciles of f over A and over target docs 100-199, and estimated tokens(B)/T using len/4. Return plain Python ints in seeded shuffled order.",
+   "outcome": "dev 1.8317 against 1.8343 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Keep the current best pipeline exactly to produce survivor set A (exact dedup on the normalised key, loose wiki gate, h >= 0.6*m on the first 3000 bigrams, zlib >= 0.2 and spam-phrase guards, fallbacks, no padding, no windows, no strict title gate, no bootstrapping). Then add three mild refinements, each scale-free and each guarded.\n\n1. Sentence-start capitalisation test (from experiment 9). toks = text.split(). Over positions i with toks[i] == '.' and i+1 < len(toks), count OK if toks[i+1][0] is an uppercase letter, a digit, or one of '=', '\"', \"'\", '(', '['. c = OK / number of positions; c = 1.0 if there are fewer than 5 positions. Calibrate on all 200 target docs: c_thr = 0.85 * (5th percentile of c).\n\n2. Function-word bigram test (from experiment 11). F = the 150 most frequent lowercased whitespace tokens of target docs 0-99, S = the existing bigram set. Over ALL bigrams of the doc with both tokens in F, f = fraction that are in S; f = 1.0 if there are fewer than 30 such bigrams. Calibrate on target docs 100-199: f_thr = 0.93 * (5th percentile of f).\n\n3. B = docs of A with c >= c_thr AND f >= f_thr.\n\n4. Title-level near-duplicate removal on B. Key = the first line of the stripped doc, lowercased with whitespace collapsed, used only if that line starts with '=' and is under 200 characters; otherwise the doc is its own group. Within each group keep one doc: the one with the highest q = h * c * f, ties broken by greater length. Exception: if a group's docs have very different lengths (shortest < 0.5 * longest), keep the longest doc among those whose q >= 0.9 * the group's best q. This removes damaged, truncated or lightly edited copies of an article whose clean version is already present. Call the result C.\n\n5. Safety: if C has fewer than 200 docs or fewer than 50% of the characters of A, return B if B meets those same two conditions, else return A.\n\n6. Implementation: one pass over the deduped docs, storing h, c and f in lists aligned with deduped_indices. Remove the dead loop that uses list.index. Fix the fallback ratio to len(zlib.compress(doc.encode('utf-8'))) / len(doc). Print |A|, |B|, |C|, the number of title groups with more than one doc, chars(C)/chars(A), and estimated tokens(C)/T using len/4. Return plain Python ints in an order shuffled with random.Random(int(os.environ.get('CURATE_SEED', 0))).",
+   "outcome": "dev 1.8316 against 1.8343 for the best at the time, rejected"
+  }
+ ],
+ "usd": 2.6668487,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.0742795,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 1,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.0961165,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 2,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.11852365000000004,
+   "dev": 1.8342511968608508,
+   "inc": 1.9617564966716268,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.54821081898926,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.19217849999999997,
+   "dev": 2.235751230632744,
+   "inc": 1.8342511968608508,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.54821081898926,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.21583385,
+   "dev": 2.1247659157809005,
+   "inc": 1.8342511968608508,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.54821081898926,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.2037428,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 3,
+   "fails": 1,
+   "n_accept": 1,
+   "gain_sd": 17.54821081898926,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.2036981,
+   "dev": 2.133150306840083,
+   "inc": 1.8342511968608508,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.54821081898926,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.26210405000000003,
+   "dev": 1.9475048130526216,
+   "inc": 1.8342511968608508,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.54821081898926,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.30833385000000013,
+   "dev": 1.8289811723690261,
+   "inc": 1.8342511968608508,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.54821081898926,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.4120956,
+   "dev": 1.9701524354121212,
+   "inc": 1.8342511968608508,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.54821081898926,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.29591125000000007,
+   "dev": 1.8317269250021215,
+   "inc": 1.8342511968608508,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.54821081898926,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.28403104999999984,
+   "dev": 1.8316130287597114,
+   "inc": 1.8342511968608508,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9617564966716268,
+ "inc_slot": 3
+}

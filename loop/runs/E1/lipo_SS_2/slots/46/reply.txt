@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def crippen(smiles):
+    return np.array([Descriptors.MolLogP(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float64)
+=======
+def basic(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Descriptors.MolLogP(m), Descriptors.TPSA(m), Descriptors.MolWt(m),
+                     Descriptors.NumHDonors(m), Descriptors.NumHAcceptors(m), Descriptors.FractionCSP3(m)]
+                    + [len(m.GetSubstructMatches(p)) for p in GROUPS])
+    return np.array(rows, dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    ctr, cte = crippen(train_smiles), crippen(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64) - ctr
+=======
+    from sklearn.linear_model import Ridge
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+    Btr, Bte = basic(train_smiles), basic(test_smiles)
+    yraw = np.asarray(train_y, dtype=np.float64)
+    lin = make_pipeline(StandardScaler(), Ridge(alpha=10.0)).fit(Btr, yraw)
+    ctr, cte = lin.predict(Btr), lin.predict(Bte)
+    y = yraw - ctr
+>>>>>>> REPLACE
+-----

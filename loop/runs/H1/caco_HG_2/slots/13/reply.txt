@@ -1,0 +1,303 @@
+<<<<<<< SEARCH
+from sklearn.metrics.pairwise import tanimoto_similarity
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ALPHA = 0.5
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    return fps
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_fps = featurize(train_smiles)
+    test_fps = featurize(test_smiles)
+    
+    # Compute Tanimoto kernel matrix
+    K = tanimoto_similarity(train_fps, train_fps)
+    
+    # Center the target
+    y_train = np.asarray(train_y, dtype=np.float64)
+    y_mean = np.mean(y_train)
+    y_centered = y_train - y_mean
+    
+    # Solve (K + alpha*I) * alpha = y_centered
+    # Using regularization to handle multi-collinearity and over-fitting
+    A = K + ALPHA * np.eye(K.shape[0])
+    try:
+        weights = np.linalg.solve(A, y_centered)
+    except np.linalg.LinAlgError:
+        weights = np.linalg.lstsq(A, y_centered, rcond=None)[0]
+        
+    # Prediction: K_test_train * weights + y_mean
+    K_test = tanimoto_similarity(test_fps, train_fps)
+    return K_test @ weights + y_mean
+ Dent
+>>>>>>> REPLACE
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ALPHA = 0.5
+
+def tanimoto_similarity(fps1, fps2):
+    # fps are numpy arrays of bit vectors
+    # Tanimoto(a, b) = |a & b| / (|a| + |b| - |a & b|)
+    # Since these are bit vectors, we use dot product for intersection
+    
+    # Reshape to 3D: (N, 1, bits) or similar for broadcasting
+    # But for performance, we do it row by row or use matrix multiplication
+    
+    # Sum of bits set (popcount)
+    # Use bitwise logic for binary vectors
+    # Since the generator returns float32 for fingerprints, we treat them as binary
+    
+    # Optimization: calculate dot products first
+    # Because fingerprints are binary, dot product == number of common set bits
+    # However, Morgan fingerprints with atom invariants can have non-binary values
+    # (though the default generator returns bits)
+    
+    # Using a standard approach for binary fingerprints:
+    # Intersection: (A * B).sum(axis=1)
+    # Union: A.sum(axis=1) + B.sum(axis=1) - Intersection
+    
+    # Given the memory limits and small dataset, we can use matrix multiplication
+    # if we assume the fingerprints are binary (0 or 1)
+    
+    # Dot product of (N, 2048) and (M, 2048).T
+    inter = np.dot(fps1, fps2.T)
+    
+    # Count of bits set in each fingerprint
+    # We need to be careful: sum() on a bit vector
+    sum_bits1 = np.sum(fps1, axis=1).reshape(-1, 1)
+    sum_bits2 = np.sum(fps2, axis=1).reshape(1, -1)
+    
+    union = sum_bits1 + sum_bits2 - inter
+    return np.divide(inter, union, out=np.zeros_like(inter), where=union != 0)
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    return fps
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_fps = featurize(train_smiles)
+    test_fps = featurize(test_smiles)
+    
+    # Compute Tanimoto kernel matrix
+    K = tanimoto_similarity(train_fps, train_fps)
+    
+    # Center the target
+    y_train = np.asarray(train_y, dtype=np.float64)
+    y_mean = np.mean(y_train)
+    y_centered = y_train - y_mean
+    
+    # Solve (K + alpha*I) * alpha = y_centered
+    # Using regularization to handle multi-collinearity and over-fitting
+    A = K + ALPHA * np.eye(K.shape[0])
+    try:
+        weights = np.linalg.solve(A, y_centered)
+    except np.linalg.LinAlgError:
+        weights = np.linalg.lstsq(A, y_centered, rcond=None)[0]
+        
+    # Prediction: K_test_train * weights + y_mean
+    K_test = tanimoto_similarity(test_fps, train_fps)
+    return K_test @ weights + y_mean
+-----
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+from sklearn.metrics.pairwise import tanimoto_similarity
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ALPHA = 0.5
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    return fps
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_fps = featurize(train_smiles)
+    test_fps = featurize(test_smiles)
+    
+    # Compute Tanimoto kernel matrix
+    K = tanimoto_similarity(train_fps, train_fps)
+    
+    # Center the target
+    y_train = np.asarray(train_y, dtype=np.float64)
+    y_mean = np.mean(y_train)
+    y_centered = y_train - y_mean
+    
+    # Solve (K + alpha*I) * alpha = y_centered
+    # Using regularization to handle multi-collinearity and over-fitting
+    A = K + ALPHA * np.eye(K.shape[0])
+    try:
+        weights = np.linalg.solve(A, y_centered)
+    except np.linalg.LinAlgError:
+        weights = np.linalg.lstsq(A, y_centered, rcond=None)[0]
+        
+    # Prediction: K_test_train * weights + y_mean
+    K_test = tanimoto_similarity(test_fps, train_fps)
+    return K_test @ weights + y_mean
+Dos}
+>>>>>>> REPLACE
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ALPHA = 0.5
+
+def tanimoto_similarity(fps1, fps2):
+    # fps1: (N, bits), fps2: (M, bits)
+    inter = np.dot(fps1, fps2.T)
+    sum1 = np.sum(fps1, axis=1, keepdims=True)
+    sum2 = np.sum(fps2, axis=1, keepdims=True).T
+    union = sum1 + sum2 - inter
+    return np.divide(inter, union, out=np.zeros_like(inter), where=union != 0)
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    return fps
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_fps = featurize(train_smiles)
+    test_fps = featurize(test_smiles)
+    
+    # Compute Tanimoto kernel matrix
+    K = tanimoto_similarity(train_fps, train_fps)
+    
+    # Center the target
+    y_train = np.asarray(train_y, dtype=np.float64)
+    y_mean = np.mean(y_train)
+    y_centered = y_train - y_mean
+    
+    # Solve (K + alpha*I) * alpha = y_centered
+    # Using regularization to handle multi-collinearity and over-fitting
+    A = K + ALPHA * np.eye(K.shape[0])
+    try:
+        weights = np.linalg.solve(A, y_centered)
+    except np.linalg.LinAlgError:
+        weights = np.linalg.lstsq(A, y_centered, rcond=None)[0]
+        
+    # Prediction: K_test_train * weights + y_mean
+    K_test = tanimoto_similarity(test_fps, train_fps)
+    return K_test @ weights + y_mean
+-----
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+from sklearn.metrics.pairwise import tanimoto_similarity
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ALPHA = 0.5
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    return fps
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_fps = featurize(train_smiles)
+    test_fps = featurize(test_smiles)
+    
+    # Compute Tanimoto kernel matrix
+    K = tanimoto_similarity(train_fps, train_fps)
+    
+    # Center the target
+    y_train = np.asarray(train_y, dtype=np.float64)
+    y_mean = np.mean(y_train)
+    y_centered = y_train - y_mean
+    
+    # Solve (K + alpha*I) * alpha = y_centered
+    # Using regularization to handle multi-collinearity and over-fitting
+    A = K + ALPHA * np.eye(K.shape[0])
+    try:
+        weights = np.linalg.solve(A, y_centered)
+    except np.linalg.LinAlgError:
+        weights = np.linalg.lstsq(A, y_centered, rcond=None)[0]
+        
+    # Prediction: K_test_train * weights + y_mean
+    K_test = tanimoto_similarity(test_fps, train_fps)
+    return K_test @ weights + y_mean
+指导>>>>>>> REPLACE
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ALPHA = 0.5
+
+def tanimoto_similarity(fps1, fps2):
+    # fps1: (N, bits), fps2: (M, bits)
+    inter = np.dot(fps1, fps2.T)
+    sum1 = np.sum(fps1, axis=1, keepdims=True)
+    sum2 = np.sum(fps2, axis=1, keepdims=True).T
+    union = sum1 + sum2 - inter
+    return np.divide(inter, union, out=np.zeros_like(inter), where=union != 0)
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    return fps
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_fps = featurize(train_smiles)
+    test_fps = featurize(test_smiles)
+    
+    # Compute Tanimoto kernel matrix
+    K = tanimoto_similarity(train_fps, train_fps)
+    
+    # Center the target
+    y_train = np.asarray(train_y, dtype=np.float64)
+    y_mean = np.mean(y_train)
+    y_centered = y_train - y_mean
+    
+    # Solve (K + alpha*I) * alpha = y_centered
+    # Using regularization to handle multi-collinearity and over-fitting
+    A = K + ALPHA * np.eye(K.shape[0])
+    try:
+        weights = np.linalg.solve(A, y_centered)
+    except np.linalg.LinAlgError:
+        weights = np.linalg.lstsq(A, y_centered, rcond=None)[0]
+        
+    # Prediction: K_test_train * weights + y_mean
+    K_test = tanimoto_similarity(test_fps, train_fps)
+    return K_test @ weights + y_mean
+-----

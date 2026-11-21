@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import StandardScaler
+=======
+from sklearn.preprocessing import StandardScaler
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    ftr = np.log1p(Xtr[:, :N_BITS])
+    fte = np.log1p(Xte[:, :N_BITS])
+    pls_tr = np.zeros((len(y), 8))
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(ftr):
+        pls_f = PLSRegression(n_components=8).fit(ftr[a], y[a])
+        pls_tr[b] = pls_f.transform(ftr[b])
+    pls_full = PLSRegression(n_components=8).fit(ftr, y)
+    pls_te = pls_full.transform(fte)
+    Xtr = np.hstack([Xtr, pls_tr.astype(np.float32)])
+    Xte = np.hstack([Xte, pls_te.astype(np.float32)])
+>>>>>>> REPLACE
+-----

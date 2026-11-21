@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    oof = np.zeros((len(y), 2))
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+    for tr, va in skf.split(X_train, y):
+        oof[va] = fit_models(X_train[tr], y[tr], X_train[va], seed, 200)
+    oof = np.column_stack([scaled_rank(oof[:, 0]), scaled_rank(oof[:, 1])])
+    lr = LogisticRegression(C=1.0, max_iter=1000).fit(oof, y)
+    w = lr.coef_[0]
+    if not (w[0] > 0 and w[1] > 0):
+        w = np.array([0.5, 0.5])
+    p = fit_models(X_train, y, X_test, seed, N_TREES)
+    return w[0] * scaled_rank(p[:, 0]) + w[1] * scaled_rank(p[:, 1])
+
+
+def fit_models(X_train, y, X_test, seed, n_trees):
+    rf = RandomForestClassifier(n_estimators=n_trees, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return np.column_stack([rf.predict_proba(X_test)[:, 1], gb.predict_proba(X_test)[:, 1]])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold
+>>>>>>> REPLACE
+-----

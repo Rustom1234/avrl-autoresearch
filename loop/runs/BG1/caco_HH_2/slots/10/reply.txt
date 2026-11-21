@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from catboost import CatBoostRegressor
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    scaler = StandardScaler().fit(Xtr)
+    pca = PCA(n_components=30, random_state=seed).fit(scaler.transform(Xtr))
+    Xtr = np.hstack([Xtr, pca.transform(scaler.transform(Xtr))])
+    Xte = np.hstack([Xte, pca.transform(scaler.transform(Xte))])
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(Xtr, np.asarray(train_y, dtype=np.float64))
+    return model.predict(Xte)
+>>>>>>> REPLACE
+-----

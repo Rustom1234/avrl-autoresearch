@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    # We need fingerprints as bit vectors for Tanimoto, but GetFingerprintAsNumPy returns floats.
+    # However, SVR with precomputed kernel just needs a similarity matrix.
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+    # Use count fingerprints instead of bit fingerprints to preserve information about 
+    # repeated substructures. GetFingerprintAsNumPy returns a float array.
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Compute Tanimoto kernel: K(x,y) = sum(min(x,y)) / sum(max(x,y))
+    # For binary fingerprints, this is the standard Jaccard similarity.
+    # We use a simple efficient approximation:
+    # Since we have float vectors, we'll use a manual implementation of the kernel.
+    # To stay within memory limits, we avoid huge intermediates.
+    
+    def get_tanimoto(A, B):
+        # A: (n, d), B: (m, d)
+        # Tanimoto = dot(A, B) / (sum(A) + sum(B) - dot(A, B))
+        dot_prod = np.dot(A, B.T)
+        sum_A = np.sum(A, axis=1).reshape(-1, 1)
+        sum_B = np.sum(B, axis=1).reshape(1, -1)
+        return dot_prod / (sum_A + sum_B - dot_prod + 1e-9)
+=======
+    # Compute Tanimoto kernel: K(x,y) = sum(min(x,y)) / sum(max(x,y))
+    # For count fingerprints, this is the standard Jaccard similarity extended to counts.
+    
+    def get_tanimoto(A, B):
+        # A: (n, d), B: (m, d)
+        # Tanimoto = dot(A, B) / (sum(A) + sum(B) - dot(A, B))
+        dot_prod = np.dot(A, B.T)
+        sum_A = np.sum(A, axis=1).reshape(-1, 1)
+        sum_B = np.sum(B, axis=1).reshape(1, -1)
+        return dot_prod / (sum_A + sum_B - dot_prod + 1e-9)
+>>>>>>> REPLACE
+-----

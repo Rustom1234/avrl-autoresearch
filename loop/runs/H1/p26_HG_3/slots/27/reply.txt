@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d_vec = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((d_vec**2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def cons_grad(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        grad = np.zeros_like(v)
+        # Pairwise constraints
+        d_vec = c[iu[0]] - c[iu[1]]
+        dist = np.sqrt((d_vec**2).sum(1))
+        for k, (i, j) in enumerate(zip(iu[0], iu[1])):
+            # Grad w.r.t c_i, c_j, r_i, r_j
+            grad[i*2 : i*2+2] += d_vec[k] / dist[k]
+            grad[j*2 : j*2+2] -= d_vec[k] / dist[k]
+            grad[2*n + i] -= 1
+            grad[2*n + j] -= 1
+        # Boundary constraints
+        grad[0:2*n:2] -= 1 # c_x - r
+        grad[1:2*n:2] -= 1 # c_y - r
+        grad[2*n+1:4*n:2] += 1 # 1 - c_x - r
+        grad[2*n+2:4*n:2] += 1 # 1 - c_y - r
+        grad[4*n:6*n] -= 1 # r
+        return grad
+
+    def obj(v):
+        return -v[2 * n:].sum()
+
+    def obj_grad(v):
+        grad = np.zeros_like(v)
+        grad[2*n:] = -1
+        return grad
+
+    res = minimize(obj, x0, method="SLSQP", 
+                     jac=obj_grad, 
+                     constraints={"type": "ineq", "fun": cons, "jac": cons_grad}, 
+                     options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----

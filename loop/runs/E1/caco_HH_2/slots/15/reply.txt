@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from scipy.stats import norm, rankdata
+from catboost import CatBoostRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    resid = y - A_tr @ coef
+    z = norm.ppf(rankdata(resid) / (len(resid) + 1))
+    model.fit(featurize(train_smiles), z)
+    zp = model.predict(featurize(test_smiles))
+    return np.interp(zp, np.sort(z), np.sort(resid)) + A_te @ coef
+>>>>>>> REPLACE
+-----

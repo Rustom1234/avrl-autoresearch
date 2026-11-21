@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64))
+    X = np.array(rows)
+    X[~np.isfinite(X)] = 0.0
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def minmax_kernel(A, B, chunk=8):
+    sa, sb = A.sum(1), B.sum(1)
+    K = np.zeros((len(A), len(B)), dtype=np.float64)
+    for i in range(0, len(A), chunk):
+        mn = np.minimum(A[i:i + chunk, None, :], B[None, :, :]).sum(-1)
+        K[i:i + chunk] = mn / np.maximum(sa[i:i + chunk, None] + sb[None, :] - mn, 1e-9)
+    return K
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                          colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    svr = SVR(kernel='precomputed', C=5, epsilon=0.1).fit(minmax_kernel(Xtr, Xtr), y)
+    return svr.predict(minmax_kernel(Xte, Xtr))
+>>>>>>> REPLACE
+-----

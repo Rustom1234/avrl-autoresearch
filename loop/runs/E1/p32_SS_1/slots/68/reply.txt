@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _fresh_batch(n, rng, k=8, keep=2, R=0.09):
+    iu = np.triu_indices(n, 1)
+
+    def f(x):
+        c = x.reshape(n, 2)
+        dv = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((dv ** 2).sum(1)) + 1e-12
+        o = np.maximum(0, 2 * R - d)
+        lo, hi = np.maximum(0, R - c), np.maximum(0, c - (1 - R))
+        g = np.zeros((n, 2))
+        w = (-2 * o / d)[:, None] * dv
+        np.add.at(g, iu[0], w)
+        np.add.at(g, iu[1], -w)
+        g += -2 * lo + 2 * hi
+        return (o ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum(), g.ravel()
+
+    m = len(iu[0])
+    A = np.zeros((m, n))
+    A[np.arange(m), iu[0]] = 1
+    A[np.arange(m), iu[1]] = 1
+    out = []
+    for _ in range(k):
+        x = minimize(f, rng.uniform(0.1, 0.9, 2 * n), jac=True, method="L-BFGS-B",
+                     bounds=[(0, 1)] * (2 * n), options={"maxiter": 100}).x
+        c = x.reshape(n, 2)
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        wall = np.minimum(c.min(1), (1 - c).min(1))
+        res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=list(zip(np.zeros(n), wall)), method="highs")
+        if res.status == 0:
+            out.append((-res.fun, np.concatenate([x, np.maximum(res.x, 1e-3)])))
+    out.sort(key=lambda t: -t[0])
+    return [v for _, v in out[:keep]]
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pool = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+    pool, queue = [], []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        if len(pool) >= 2 and rng.random() < 0.7:
+            x0 = _cross(pool, n, rng)
+        else:
+            if not queue:
+                queue = _fresh_batch(n, rng)
+            x0 = queue.pop() if queue else None
+>>>>>>> REPLACE
+-----

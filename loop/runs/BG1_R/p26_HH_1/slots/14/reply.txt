@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+=======
+    """Exact best radii for fixed centres (LP), then the greedy guard against HiGHS feasibility tolerance."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+    m = len(iu[0])
+    d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+    A = np.zeros((m, n))
+    A[np.arange(m), iu[0]] = 1
+    A[np.arange(m), iu[1]] = 1
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=np.column_stack([np.zeros(n), np.maximum(wall, 0)]),
+                  method="highs")
+    if res.x is not None:
+        r = res.x - 1e-12
+    r = np.minimum(r, np.maximum(wall, 0))
+    r = np.maximum(r, 0)
+>>>>>>> REPLACE
+-----

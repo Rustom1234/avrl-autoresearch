@@ -1,0 +1,276 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_test, X_train)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+=======
+def get_features(smiles, radius, fp_type='morgan'):
+    if fp_type == 'morgan':
+        gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+        return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+    else:
+        # Atom pairs
+        gen = rdFingerprintGenerator.GetAtomPairFingerprintGenerator(fpSize=N_BITS)
+        return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    def get_combined_kernel(s1, s2):
+        k_sum = 0
+        # Morgan radii 1, 2, 3
+        for r in [1, 2, 3]:
+            x1 = get_features(s1, r)
+            x2 = get_features(s2, r)
+            k_sum += tanimoto_kernel(x1, x2)
+        # Atom Pairs
+        x1 = get_features(s1, 0, 'atom_pair')
+        x2 = get_features(s2, 0, 'atom_pair')
+        k_sum += tanimoto_kernel(x1, x2)
+        return k_sum / 4.0
+
+    # Precompute kernels
+    X_train_raw = [Chem.MolFromSmiles(s) for s in train_smiles]
+    X_test_raw = [Chem.MolFromSmiles(s) for s in test_smiles]
+    
+    # Optimization: get features once to avoid re-parsing
+    def get_all_feats(smiles_list):
+        mols = [Chem.MolFromSmiles(s) for s in smiles_list]
+        m_feats = [[gen.GetCountFingerprintAsNumPy(m) for gen in [rdFingerprintGenerator.GetMorganGenerator(r, N_BITS) for r in [1,2,3]]][i][j] for i, m in enumerate(mols) for j in range(3)]
+        # This nested list comprehension is getting messy, let's just do it linearly
+        return mols
+
+    # To stay simple and efficient for the 10-min limit, we re-use the logic but more cleanly
+    def get_kernel_matrix(smiles_list, target_smiles_list=None):
+        mols = [Chem.MolFromSmiles(s) for s in smiles_list]
+        # Pre-calculate all 4 types of fingerprints
+        f_types = []
+        for r in [1, 2, 3]:
+            gen = rdFingerprintGenerator.GetMorganGenerator(radius=r, fpSize=N_BITS)
+            f_types.append(gen)
+        ap_gen = rdFingerprintGenerator.GetAtomPairFingerprintGenerator(fpSize=N_BITS)
+        f_types.append(ap_gen)
+        
+        # Extract bit vectors
+        feat_matrices = []
+        for gen in f_types:
+            feat_matrices.append(np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32))
+        
+        # Calculate K1, K2, K3, K4
+        K_total = np.zeros((len(smiles_list), len(target_smiles_list)))
+        for i, mat in enumerate(feat_matrices):
+            K_mat = tanimoto_kernel(mat, mat if target_smiles_list is None else mat)
+            # Wait, tanimoto_kernel(X1, X2) handles the cross-product
+            # We need X_train and X_test matrices
+            pass
+            
+        # Refined approach for speed
+        K_sum = np.zeros((len(smiles_list), len(target_smiles_list)))
+        for gen in f_types:
+            mat1 = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+            if target_smiles_list is None:
+                K_sum += tanimoto_kernel(mat1, mat1)
+            else:
+                mols_t = [Chem.MolFromSmiles(s) for s in target_smiles_list]
+                mat2 = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols_t], dtype=np.float32)
+                K_sum += tanimoto_kernel(mat1, mat2)
+        return K_sum / 4.0
+
+    K_train = get_kernel_matrix(train_smiles)
+    K_test = get_kernel_matrix(train_smiles, test_smiles)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_test, X_train)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+=======
+def get_fp(smiles, radius=2, is_morgan=True):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS) if is_morgan else 
+          rdFingerprintGenerator.GetAtomPairFingerprintGenerator(fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    kernels = []
+    # Add Morgan fingerprints for radii 1, 2, and 3
+    for r in [1, 2, 3]:
+        X_train = get_fp(train_smiles, radius=r, is_morgan=True)
+        X_test = get_fp(test_smiles, radius=r, is_morgan=True)
+        kernels.append((tanimoto_kernel(X_train, X_train), tanimoto_kernel(X_test, X_train)))
+    
+    # Add Atom Pair fingerprint
+    X_train = get_fp(train_smiles, radius=2, is_morgan=False)
+    X_test = get_fp(test_smiles, radius=2, is_morgan=False)
+    kernels.append((tanimoto_kernel(X_train, X_train), tanimoto_kernel(X_test, X_train)))
+
+    K_train = np.mean([k[0] for k in kernels], axis=0)
+    K_test = np.mean([k[1] for k in kernels], axis=0)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_test, X_train)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+=======
+def get_fp(smiles, radius=2, is_morgan=True):
+    if is_morgan:
+        gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+    else:
+        gen = rdFingerprintGenerator.GetAtomPairFingerprintGenerator(fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    kernels_train = []
+    kernels_test = []
+    
+    # Morgan fingerprints for radii 1, 2, 3
+    for r in [1, 2, 3]:
+        X_train = get_fp(train_smiles, radius=r, is_morgan=True)
+        X_test = get_fp(test_smiles, radius=r, is_morgan=True)
+        kernels_train.append(tanimoto_kernel(X_train, X_train))
+        kernels_test.append(tanimoto_kernel(X_test, X_train))
+        
+    # Atom Pair fingerprint
+    X_train_ap = get_fp(train_smiles, radius=2, is_morgan=False)
+    X_test_ap = get_fp(test_smiles, radius=2, is_morgan=False)
+    kernels_train.append(tanimoto_kernel(X_train_ap, X_train_ap))
+    kernels_test.append(tanimoto_kernel(X_test_ap, X_train_ap))
+    
+    K_train = np.mean(kernels_train, axis=0)
+    K_test = np.mean(kernels_test, axis=0)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+>>>>>>> REPLACE
+-----

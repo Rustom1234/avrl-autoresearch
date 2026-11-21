@@ -1,0 +1,98 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        # Perturbation: if we have a best, try a 'remove and reinsert smallest' move
+        if best is not None:
+            bc, br = best
+            idx = np.argmin(br)
+            # Create new initial state by removing smallest
+            new_c = np.delete(bc, idx, axis=0)
+            new_r = np.delete(br, idx)
+            # Reinsert at random position with radius 0
+            new_c = np.vstack([new_c, rng.uniform(0, 1, 2)])
+            new_r = np.append(new_r, 0.0)
+            
+            # Run SLSQP on this new configuration
+            x0_pert = np.concatenate([new_c.flatten(), new_r])
+            iu = np.triu_indices(n, 1)
+            def cons_pert(v):
+                cp, rp = v[:2*n].reshape(n, 2), v[2*n:]
+                d_pert = np.sqrt(((cp[iu[0]] - cp[iu[1]]) ** 2).sum(1)) - rp[iu[0]] - rp[iu[1]]
+                return np.concatenate([d_pert, cp[:, 0] - rp, cp[:, 1] - rp, 1 - cp[:, 0] - rp, 1 - cp[:, 1] - rp, rp])
+            
+            res_pert = minimize(lambda v: -v[2*n:].sum(), x0_pert, method="SLSQP", 
+                                 constraints={"type": "ineq", "fun": cons_pert}, 
+                                 options={"maxiter": MAX_ITER})\n            
+            c_p = res_pert.x[:2*n].reshape(n, 2)
+            r_p = res_pert.x[2*n:]
+            c_p = np.clip(c_p, 0, 1)
+            r_p = _repair(c_p, r_p)
+            
+            if r_p.sum() > br.sum():
+                best = (c_p, r_p)
+
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+========
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        
+        if best is not None and rng.random() < 0.3:
+            bc, br = best
+            idx = np.argmin(br)
+            nc = np.delete(bc, idx, axis=0)
+            nr = np.delete(br, idx)
+            
+            # Reinsert at random location with radius 0
+            nc = np.vstack([nc, rng.uniform(0, 1, 2)])
+            nr = np.append(nr, 0.0)
+            
+            x0_p = np.concatenate([nc.flatten(), nr])
+            iu = np.triu_indices(n, 1)
+            
+            def cons_p(v):
+                cp, rp = v[:2*n].reshape(n, 2), v[2*n:]
+                dp = np.sqrt(((cp[iu[0]] - cp[iu[1]])**2).sum(1)) - rp[iu[0]] - rp[iu[1]]
+                return np.concatenate([dp, cp[:, 0] - rp, cp[:, 1] - rp, 1 - cp[:, 0] - rp, 1 - cp[:, 1] - rp, rp])
+            
+            res_p = minimize(lambda v: -v[2*n:].sum(), x0_p, method="SLSQP", 
+                               constraints={"type": "ineq", "fun": cons_p}, 
+                               options={"maxiter": MAX_ITER})
+            
+            cp_p = res_p.x[:2*n].reshape(n, 2)
+            rp_p = res_p.x[2*n:]
+            cp_p = np.clip(cp_p, 0, 1)
+            rp_p = _repair(cp_p, rp_p)
+            
+            if rp_p.sum() > br.sum():
+                best = (cp_p, rp_p)
+    return best
+>>>>>>> REPLACE
+-----

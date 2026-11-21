@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+    @torch.compile(mode="max-autotune", fullgraph=True)
+    def forward_step(inputs, labels, whiten_bias_grad):
+        outputs = model(inputs, whiten_bias_grad=whiten_bias_grad)
+        loss = F.cross_entropy(outputs, labels, label_smoothing=LABEL_SMOOTHING, reduction="sum")
+        return loss
+
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+=======
+    @torch.compile(mode="max-autotune", fullgraph=True)
+    def forward_step(inputs, labels, whiten_bias_grad, smooth):
+        outputs = model(inputs, whiten_bias_grad=whiten_bias_grad)
+        logp = F.log_softmax(outputs.float(), dim=1)
+        nll = -logp.gather(1, labels.unsqueeze(1)).squeeze(1)
+        uniform = -logp.mean(dim=1)
+        loss = ((1 - smooth) * nll + smooth * uniform).sum()
+        return loss
+
+    smooth_t = torch.zeros((), device="cuda")
+    ramp_steps = 0.5 * total_train_steps
+
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            loss = forward_step(inputs, labels, whiten_bias_grad)
+=======
+            smooth_t.fill_(LABEL_SMOOTHING * min(1.0, step / ramp_steps))
+            loss = forward_step(inputs, labels, whiten_bias_grad, smooth_t)
+>>>>>>> REPLACE
+-----

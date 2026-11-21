@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/SC_01/cand/s06_0.py",
+ "inc_scores": {
+  "11": 1.8019132355623166,
+  "12": 1.7997601018516107
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random shuffle with a filter-then-rank pipeline that keeps only clean, in-domain, non-duplicate documents.\n\n1. Dedupe: drop exact duplicates by hashing whitespace-normalised text. Also drop near-duplicates that share the same first 200 characters.\n\n2. Intact-order score (catches word-shuffled wiki articles, spam and code): split each doc on whitespace. Build the set of adjacent word bigrams from 150 of the target_sample docs. For each doc, compute `bigram_hit` = the fraction of bigrams in its first ~2000 words that are in that set. Calibrate on the other 50 target docs: threshold = their 5th percentile of `bigram_hit` times 0.85. Then rebuild the set from all 200 docs for the final scoring. Discard pool docs below the threshold.\n\n3. Domain score: fit TfidfVectorizer (word 1-2-grams on whitespace tokens, lowercase=False, sublinear_tf, min_df=2, max_features about 200k) plus LogisticRegression. Positives are the 200 target docs, split into ~2000-word chunks. Negatives are 3000 seeded-random pool docs. Use class_weight='balanced'. `p_domain` = the predicted probability for each pool doc, scored on its first 2000 words.\n\n4. Selection: among deduped docs passing the `bigram_hit` threshold, sort by `p_domain` descending. Take docs until the cumulative gpt2 token count reaches T. Estimate tokens as len(text)/4 if tiktoken is too slow, and overshoot by 3%. If the docs with `p_domain` > 0.5 hold less than T tokens, still keep only those plus the next-best clean docs up to T. Never admit docs that failed the `bigram_hit` filter.\n\n5. Order: shuffle the selected indices with random.Random(CURATE_SEED) and return them.",
+   "outcome": "dev 1.9283 against 1.9389 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Fix two bugs that currently make the filter stages ineffective; keep the rest of the pipeline unchanged.\n\n(1) The intact-order filter is a no-op. `get_bigrams` builds a set of zip objects, so every tuple lookup misses, every score is 0, the threshold is 0 and every doc passes. Replace it with `set(zip(words, words[1:]))`. Use this for both the 150-doc calibration set and the final 200-doc set. Compute `bigram_hit` over the first 2000 words as (hits / number of bigrams).\n\nCalibrate the threshold with leave-out scoring: score the 50 held-out target docs against the 150-doc set and set threshold = 0.6 * their 5th percentile. Score pool docs against the same 150-doc set so the scale matches the threshold. Drop pool docs below the threshold; this should remove word-shuffled articles, letter-scrambled text and spam. As a sanity guard, if fewer than 0.5*T estimated tokens survive, relax the threshold to 0.4 * the 5th percentile.\n\n(2) The classifier negatives are currently drawn from the duplicate docs (`i not in unique_indices`). Instead draw 3000 seeded-random docs from the deduped pool, with half of them forced from docs that failed the bigram filter when available. Use a set for membership tests. Raise the vectorizer to max_features=200000 with min_df=2.\n\nSelection is as before: only docs that pass the bigram filter, sorted by p_domain descending, taken until the estimated tokens reach T, then shuffled with the seeded RNG. If the passing docs hold less than T, return only those and let the trainer cycle them; never pad with docs that failed the filter.",
+   "outcome": "dev 1.8430 against 1.9283 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 3,
+   "idea": "Keep dedupe, the bigram filter, the classifier and the top-p_domain selection exactly as they are. Change only token counting and the final order.\n\n(1) Exact token counts. Replace the len/4*1.03 estimate with real gpt2 counts: tiktoken.get_encoding(\"gpt2\").encode_ordinary_batch(texts, num_threads=8), run only on the filtered docs. Walk the docs in descending p_domain and keep adding until the cumulative exact count is at least T * 1.01. This guarantees the list never falls short of T, so the trainer never cycles back to the start.\n\n(2) Curriculum order instead of a global shuffle. Split the selected docs into two blocks:\n- filler: p_domain < 0.5\n- in-domain: p_domain >= 0.5\n\nShuffle each block with the seeded RNG. Return filler first, then in-domain, so the last training steps are all on target-like text.\n\nIf the filler block is empty, this is identical to the current shuffle. If the filler block holds more than 60% of the selected tokens, the classifier threshold is uninformative; in that case split at the median p_domain instead, with the lower half first and the upper half last, each half shuffled.\n\nThe filter threshold and classifier settings stay unchanged.",
+   "outcome": "dev 1.9047 against 1.8430 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Keep dedupe, the bigram filter, the classifier and the final global seeded shuffle. Change only what fills the T budget: prefer repeating clean in-domain docs over out-of-domain filler.\n\n(1) Define the in-domain set D among docs that pass dedupe and the bigram filter. Check what fraction of target_sample docs have a first line matching the regex `^= .+ =$`. If at least 90% do, D = filtered pool docs whose first line matches that regex. Otherwise D = filtered docs with p_domain >= 0.5.\n\n(2) Get exact gpt2 token counts with tiktoken `encode_ordinary_batch` (num_threads=8), run on the filtered docs only. Let tokD = total tokens in D.\n\n(3) Build the selection:\n- If tokD >= 1.01*T: take docs of D in descending p_domain until the cumulative count reaches 1.01*T.\n- Otherwise: include every doc of D k times, where k = max(1, min(3, floor(1.01*T / tokD))). Then fill the remaining budget up to 1.01*T with filtered docs not in D, in descending p_domain, once each.\n\n(4) Shuffle the whole list (including repeats) once with random.Random(CURATE_SEED) and return it. No curriculum ordering.",
+   "outcome": "FAILED to run (/cand/s04_1.py\", line 136, in select for i, (f_idx, f_score) in enumerate(all_filtered_data): ^^^^^^^^^^^^^^^^^ NameError: name 'all_filtered_data' is not defined. Did you mean: 'other_filtered_data'?)"
+  },
+  {
+   "slot": 5,
+   "idea": "Retry experiment 4, which crashed on an undefined variable and was never measured. Keep dedupe, the bigram filter, the classifier and the final global seeded shuffle exactly as in the current best. Change only how the T budget is filled.\n\n(1) After computing p_domain for `filtered_indices`, build one list `cands = [(idx, p_domain[i]) for i, idx in enumerate(filtered_indices)]`. Use only this list from here on and define every variable before it is used.\n\n(2) Get exact token counts: `enc = tiktoken.get_encoding(\"gpt2\")`, then `ntok = {idx: len(t) for idx, t in zip(filtered_indices, enc.encode_ordinary_batch([docs[i] for i in filtered_indices], num_threads=8))}`.\n\n(3) Define the in-domain set D. Compute the fraction of target_sample docs whose first line matches `^= .+ =$`. If that fraction is at least 0.9, D = cands whose doc's first line (`docs[idx].split(\"\\n\", 1)[0].strip()`) matches the regex and whose p_domain >= 0.5. Otherwise D = cands with p_domain >= 0.5. Rest = cands not in D. Sort both by p_domain descending.\n\n(4) Build the selection with budget B = 1.01*T and tokD = total tokens in D:\n- If tokD >= B: take D in descending p_domain until the cumulative tokens reach B.\n- Otherwise: k = max(1, min(3, int(B // tokD))) and selection = D's indices repeated k times. Then append Rest docs in descending p_domain, once each, until the cumulative tokens reach B. If Rest runs out first, stop and let the trainer cycle.\n\n(5) `rng.shuffle(selection)` once over the whole list, repeats included, and return it. No curriculum ordering.",
+   "outcome": "dev 1.8123 against 1.8430 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 6,
+   "idea": "Keep dedupe, the bigram filter, the classifier, the definition of D, the exact token counts and the final global seeded shuffle exactly as in the current best. Change only how the budget B = 1.01*T is filled when tokD < B: stop padding with out-of-domain Rest docs and fill the remainder with extra copies of D.\n\nImplementation:\n- If tokD >= B: unchanged (take D in descending p_domain until B is reached).\n- Otherwise: k = int(B // tokD). If k <= 5: selection = every D index repeated k times. Then fill the remainder (B - k*tokD) with one extra copy of a seeded-random subset of D: shuffle a copy of D's indices with rng and append them one by one until the cumulative tokens reach B. No Rest docs are used.\n- Only if k > 5 (D is tiny, under about T/6): repeat D 5 times and fill the remaining budget with Rest docs in descending p_domain, as now.\n- Finally rng.shuffle(selection) over the whole list and return it.\n\nDefine every variable before it is used, and guard against tokD == 0 by falling back to Rest sorted by p_domain.",
+   "outcome": "dev 1.8019 against 1.8123 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 7,
+   "idea": "Change only how the in-domain set D is defined when match_fraction >= 0.9. Keep the first dedupe pass, the budget fill (k copies of D plus a seeded-random partial copy) and the final global shuffle unchanged.\n\n(1) Drop the `prob >= 0.5` requirement in the header branch. The classifier's negatives are random pool docs, which include genuine target-style articles, so p_domain is biased down and clean articles are being excluded. New rule: D = filtered docs whose first line matches `^= .+ =$` and that pass the whole-document intactness check in (2). Keep p_domain only as the sort key, and for the Rest and no-header fallback branches.\n\n(2) Whole-document intactness check. The current bigram score looks only at the first 2000 words. For each header-matching candidate, split all of its words into consecutive windows of 400 words; merge a final window shorter than 150 words into the previous one. Compute the bigram hit rate of each window against calib_bigrams. Calibrate on the 50 held-out target docs with the same windowing: thr_w = 0.6 * the 5th percentile of their per-window hit rates. Reject a candidate if its minimum window score is below thr_w. This catches articles that are only partly word-shuffled or scrambled.\n\n(3) Title dedupe inside D. Group D by the stripped first line. Within each group keep only the doc with the highest mean window hit rate, breaking ties by the larger token count. This removes near-duplicate or damaged-and-clean copies of the same article that the 200-character prefix dedupe misses.\n\n(4) Guard. If the new D holds fewer tokens than the old D (header + prob >= 0.5 + first-2000-word filter), fall back to the old D.\n\nCompute each doc's scores once and cache them, rather than calling get_score repeatedly, to stay inside the time limit. Then proceed with the existing fill logic on the new D.",
+   "outcome": "dev 1.8177 against 1.8019 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Change only the classifier's negative set, so that p_domain stops penalising clean target-style articles. Keep dedupe, the first-2000-word bigram filter, exact token counts, the D rule (header match and prob >= 0.5 when match_fraction >= 0.9), the budget fill (k copies of D plus a seeded-random partial copy) and the final global shuffle unchanged.\n\nNegatives now: 3000 docs, half from bigram-filter failures and half random from the whole deduped pool. The random half includes genuine clean '= Title =' articles labelled as negative.\n\nNew negatives, when match_fraction >= 0.9: draw only from deduped docs that are certainly not clean target articles:\n(a) docs that failed the bigram filter (word-shuffled articles, spam, scrambled text), up to 2000, seeded sample;\n(b) docs that passed the bigram filter but whose first line does not match `^= .+=$` (web text, code and similar), up to 2000, seeded sample.\nNever use a doc that both passes the bigram filter and has a matching header as a negative. If match_fraction < 0.9, keep the current negative sampling.\n\nPositives: the target_sample 2000-word chunks as now. Keep the same TfidfVectorizer and LogisticRegression(class_weight='balanced') settings. Truncate negatives to their first 2000 words before vectorising, so they match how pool docs are scored.\n\nScore filtered docs as before and define D = header match and new prob >= 0.5.\n\nGuard: compute the old D as well, using the old negative sampling. If the new D holds fewer tokens than the old D, use the union of the two.\n\nCompute each doc's bigram score once and cache it in a dict instead of calling get_score repeatedly. Define every variable before it is used.",
+   "outcome": "dev 1.8024 against 1.8019 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Add a topic-independent word-order test and use it to define D; keep dedupe, the bigram filter, the classifier, exact token counts, the budget fill (k copies of D plus a seeded-random partial copy) and the final global shuffle unchanged.\n\n(1) Order-asymmetry score. Use calib_bigrams, the set of (a, b) word pairs from the 150 calibration target docs. For a word list w, over adjacent pairs with w[i] != w[i+1]: fwd = number of pairs with (w[i], w[i+1]) in the set, rev = number with (w[i+1], w[i]) in the set. asym = fwd / (fwd + rev), or 0.5 if fwd + rev < 20. Intact prose scores high (about 0.8 or more); word-shuffled text scores about 0.5 whatever its topic.\n\n(2) Per-doc score. Compute asym over ALL words of the doc (not just the first 2000), separately for the first half and the second half of its words. doc_asym = the minimum of the two halves. For docs under 200 words use a single score over the whole doc.\n\n(3) Calibration. Compute doc_asym the same way for the 50 held-out target docs. Let p5 = their 5th percentile. thr_asym = 0.5 + 0.6 * (p5 - 0.5).\n\n(4) New D when match_fraction >= 0.9: docs that pass the existing bigram filter, have a first line matching the header regex, have doc_asym >= thr_asym, and have p_domain >= 0.3 (relaxed from 0.5, because the order test now handles shuffled articles). When match_fraction < 0.9: D = p_domain >= 0.5 and doc_asym >= thr_asym.\n\n(5) Guard. If the new D holds less than 70% of the tokens of the old D (header match and p_domain >= 0.5), fall back to the old D.\n\nCompute doc_asym only for the filtered candidates, once each. Sort D by p_domain as before, then apply the existing fill and shuffle.",
+   "outcome": "FAILED to run (ne 109, in select thr_asym = 0.5 + 0.6 * (np.percentile(held_out_asym, 5) - 0.5) if held_out_asym else 0.8 ^^^^^^^^^^^^^ NameError: name 'held_out_asym' is not defined. Did you mean: 'held_out_asyms'?)"
+  },
+  {
+   "slot": 10,
+   "idea": "Retry experiment 9, which crashed on a misspelled variable and was never measured. Keep dedupe, the first-2000-word bigram filter, the classifier, exact token counts, the budget fill (k copies of D plus a seeded-random partial copy) and the final global shuffle exactly as in the current best. Change only the definition of D, by adding a topic-independent word-order test.\n\n(1) Helper `asym(words)`: over adjacent pairs with words[i] != words[i+1], fwd = number of pairs with (words[i], words[i+1]) in calib_bigrams, rev = number with (words[i+1], words[i]) in calib_bigrams. Return fwd / (fwd + rev), or 0.5 if fwd + rev < 20.\n\n(2) Helper `doc_asym(text)`: w = text.split(), using ALL words rather than the first 2000. If len(w) < 200, return asym(w). Otherwise return min(asym(w[:len(w)//2]), asym(w[len(w)//2:])).\n\n(3) Calibration: `held_out_asym = [doc_asym(target_sample[i]) for i in other_indices]`. Use this one name everywhere. `p5 = np.percentile(held_out_asym, 5) if held_out_asym else 0.8`, then `thr_asym = 0.5 + 0.6 * (p5 - 0.5)`.\n\n(4) Compute `asym_of = {idx: doc_asym(docs[idx]) for idx in filtered_indices}` once.\n\n(5) New D. If match_fraction >= 0.9: header regex matches, asym_of[idx] >= thr_asym and prob >= 0.3. Otherwise: prob >= 0.5 and asym_of[idx] >= thr_asym. Rest = all other cands.\n\n(6) Guard: also build old_D with the current rule (header match and prob >= 0.5, or prob >= 0.5 alone when match_fraction < 0.9). If tokens(new D) < 0.7 * tokens(old D), use old_D and its Rest.\n\nSort D and Rest by prob descending, then run the existing fill and shuffle code unchanged. Define every variable before it is used and check that the names are consistent.",
+   "outcome": "dev 1.8027 against 1.8019 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Tighten the purity of D and let the existing repeat logic absorb the lost volume. Keep dedupe, the first-2000-word bigram filter (0.6 * p5), the classifier, exact token counts, the budget fill (k copies of D plus a seeded-random partial copy) and the final global shuffle unchanged.\n\n(1) Cache scores. Compute each doc's bigram score once into a dict instead of calling get_score repeatedly.\n\n(2) Whole-document cleanliness. Add a helper hit(words) = fraction of adjacent word pairs found in calib_bigrams (0.0 if fewer than 2 words). For a text with w = text.split(), over ALL words, compute:\n- full = hit(w)\n- tail = hit(w[len(w)//2:]) if len(w) >= 200, else full\n\n(3) Calibration. Compute full and tail the same way for the 50 held-out target docs (other_indices). Set thr_full = 0.85 * the 10th percentile of their full values, and thr_tail = 0.85 * the 10th percentile of their tail values.\n\n(4) New D. Start from the current D rule (header regex match and prob >= 0.5 when match_fraction >= 0.9; otherwise prob >= 0.5). Additionally require full >= thr_full and tail >= thr_tail. Everything else goes to Rest. Do NOT relax prob below 0.5.\n\n(5) Guard. If the new D holds fewer than 0.25 * T tokens, fall back to the old D and its Rest.\n\nSort D and Rest by prob descending, then run the existing fill and shuffle code unchanged. Define every variable before it is used and keep the names consistent.",
+   "outcome": "dev 1.8068 against 1.8019 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Keep the first dedupe pass, the bigram filter, the classifier, exact token counts and the D rule (header match and prob >= 0.5 when match_fraction >= 0.9; otherwise prob >= 0.5) exactly as in the current best. Make two changes, both applied after D is built.\n\n(1) Near-duplicate removal inside D, restricted to docs with the same title. Group D by the stripped first line. Within each group, process docs in descending token count and keep a list of kept docs. For each doc, compute its set of distinct whitespace words. Drop it if its Jaccard similarity with the word set of any already-kept doc in the group is >= 0.7. This removes damaged or truncated copies of one article that the 200-character prefix dedupe misses. It does not merge different docs that only share a generic header line such as '= = History = ='. Guard: if this removes more than 40% of D's tokens, skip the step and use the original D. Recompute tokD afterwards.\n\n(2) Epoch-structured order instead of one global shuffle over the multiset. With B = 1.01*T and k = int(B // tokD), in the 1 <= k <= 5 branch:\n- Build k full passes. Each pass is an independent rng.shuffle of all D indices.\n- Build the partial pass as now: a seeded-random subset of D, appended one by one until the cumulative tokens reach B.\n- Return partial pass + pass_1 + ... + pass_k, concatenated, with NO final global shuffle.\nThis way every doc is seen once before any is seen again, copies of one doc are about one epoch apart, and the full passes sit at the end of training.\n\nIn the other branches (tokD >= B, tokD == 0, k > 5), keep the current behaviour, including the final rng.shuffle. Define every variable before it is used.",
+   "outcome": "dev 1.8035 against 1.8019 for the best at the time, rejected"
+  }
+ ],
+ "usd": 2.5945969499999997,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.09713425,
+   "dev": 1.9283290351669076,
+   "inc": 1.9389487759324464,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.4615663040928768,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.1484597,
+   "dev": 1.8429807238643336,
+   "inc": 1.9283290351669076,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 13.207824396932669,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.17349989999999998,
+   "dev": 1.9047451212342341,
+   "inc": 1.8429807238643336,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 13.207824396932669,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.18439684999999995,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 2,
+   "fails": 1,
+   "n_accept": 2,
+   "gain_sd": 13.207824396932669,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.1540709,
+   "dev": 1.8123356506505561,
+   "inc": 1.8429807238643336,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 17.425423242759468,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.17068569999999994,
+   "dev": 1.8019132355623166,
+   "inc": 1.8123356506505561,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 4,
+   "gain_sd": 18.85983214562755,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.21315794999999993,
+   "dev": 1.8177446841614842,
+   "inc": 1.8019132355623166,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 4,
+   "gain_sd": 18.85983214562755,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.2418825,
+   "dev": 1.8023862377402478,
+   "inc": 1.8019132355623166,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 4,
+   "gain_sd": 18.85983214562755,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.3494549499999997,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 3,
+   "fails": 1,
+   "n_accept": 4,
+   "gain_sd": 18.85983214562755,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.24200259999999996,
+   "dev": 1.8026923731201838,
+   "inc": 1.8019132355623166,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 4,
+   "gain_sd": 18.85983214562755,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.3350826499999999,
+   "dev": 1.8068214753558989,
+   "inc": 1.8019132355623166,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 4,
+   "gain_sd": 18.85983214562755,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.28476900000000027,
+   "dev": 1.8035270284449347,
+   "inc": 1.8019132355623166,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9389487759324464,
+ "inc_slot": 6
+}

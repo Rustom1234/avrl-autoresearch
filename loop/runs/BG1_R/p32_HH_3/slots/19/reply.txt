@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+    best = (c, _repair(c, r))
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    best = (c, _repair(c, r))
+    cur = best
+    budget = TIME_FRACTION * time_limit
+    while True:
+        el = time.process_time() - t0
+        if el >= budget:
+            break
+        T = 0.01 * (1 - el / budget)   # threshold shrinks linearly to 0
+        cc, cr = cur
+        c0 = np.clip(cc + rng.normal(0, 0.02, cc.shape), 0, 1)
+        r0 = np.maximum(cr + rng.normal(0, 0.02, cr.shape), 0)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > cur[1].sum() - T:
+            cur = (c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,112 @@
+<<<<<<< SEARCH
+from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb
+=======
+from prepare import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb
+=======
+# FIXITUDE_PERIOD = 5
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) else None
+=======
+self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) and step >= FIXATURE_PERIOD else None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+
+        # Value residual (ResFormer): mix in value embedding with input-dependent gate per head
+        if ve is not None:
+            ve = ve.view(B, T, self.n_kv_head, self.head_dim)
+            gate = 2 * torch.sigmoid(self.ve_gate(x[..., :self.ve_gate_channels]))
+            v = v + gate.unsqueeze(-1) * ve
+=======
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+
+        # Value residual (ResFormer): mix in value embedding with input-dependent gate per head
+        if ve is not None and step >= FIXATURE_PERIOD:
+            ve = ve.view(B, T, self.n_kv_head, self.head_dim)
+            gate = 2 * torch.sigmoid(self.ve_gate(x[..., :self.ve_gate_channels]))
+            v = v + gate.unsqueeze(-1) * ve
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, idx, targets=None, reduction='mean'):
+        B, T = idx.size()
+        assert T <= self.cos.size(1)
+        cos_sin = self.cos[:, :T], self.sin[:, :T]
+
+        x = self.transformer.wte(idx)
+        x = norm(x)
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+        B, T = idx.size()
+        assert T <= self.cos.size(1)
+        cos_sin = self.cos[:, :T], self.sin[:, :T]
+
+        x = self.transformer.wte(idx)
+        x = norm(x)
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            if isinstance(block.attn.ve_gate, nn.Module):
+                ve = ve.view(B, T, block.attn.n_kv_head, block.attn.head_dim) if i >= step // FIXATURE_PERIOD and step >= FIXATURE_PERIOD else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for i, block in enumerate(self.transformer.h):
+            if hasattr(block.attn, 've_gate') and block.attn.ve_gate is not None:
+                torch.nn.init.uniform_(block.attn.ve_gate.weight, -s, s)
+=======
+        for i, block in enumerate(self.transformer.h):
+            if hasattr(block.attn, 've_gate') and block.attn.ve_gate is not None:
+                # Initialize value embedding gates only after fixation period
+                torch.nn.init.uniform_(block.attn.ve_gate.weight, -s, s)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def setup_optimizer(self, unembedding_lr=0.004, embedding_lr=0.2, matrix_lr=0.02,
+                        weight_decay=0.0, adam_betas=(0.8, 0.95), scalar_lr=0.5):
+=======
+    def setup_optimizer(self, unembedding_lr=0.004, embedding_lr=0.2, matrix_lr=0.02,
+                        weight_decay=0.0, adam_betas=(0.8, 0.95), scalar_lr=0.5, fixture_period=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        optimizer = MuonAdamW(param_groups)
+=======
+        if fixture_period is not None:
+            param_groups_with_fixture = []
+            for i, group in enumerate(param_groups):
+                if i > 2:
+                    group_with_fixture = param_groups[i].copy()
+                    group_with_fixture['lr'] *= 0.5
+                    param_groups_with_fixture.append(group_with_fixture)
+                    param_groups[i] = group
+            param_groups = param_groups_with_fixture
+
+        optimizer = MuonAdamW(param_groups)
+>>>>>>> REPLACE
+</
+-----
+<<<<<<< SEARCH
+        self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) else None
+=======
+        self.ve_gate = nn.Linear(self.ve_gate_channels, self.n_kv_head, bias=False) if has_ve(layer_idx, config.n_layer) and step % FIXATURE_PERIOD + 1 > FIXATURE_PERIOD else None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            gate = 2 * torch.sigmoid(self.ve_gate(x[..., :self.ve_gate_channels]))
+            v = v + gate.unsqueeze(-1) * ve
+=======
+            gate = 2 * torch.sigmoid(self.ve_gate(x[..., :self.ve_gate_channels]))
+            v = v + gate.unsqueeze(-1) * ve
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _hex_points(s):
+    """Hex-lattice points in [0,1]^2 with spacing s, odd rows offset by s/2."""
+    h = s * np.sqrt(3) / 2
+    pts = []
+    for j in range(int(1 / h) + 2):
+        off = (s / 2) if j % 2 else 0.0
+        for i in range(int(1 / s) + 2):
+            x = i * s + off
+            y = j * h
+            if 0.0 <= x <= 1.0 and 0.0 <= y <= 1.0:
+                pts.append((x, y))
+    return np.array(pts)
+
+
+def _hex_start(rng, trial):
+    """Pick spacing giving 26..30 lattice points, then delete surplus points at random.
+    Even trials favour deleting near the boundary, odd trials near the centre."""
+    best_s, best_cnt = None, None
+    for s in np.linspace(0.12, 0.4, 57):
+        cnt = len(_hex_points(s))
+        if cnt >= 26 and (best_cnt is None or abs(cnt - 29) < abs(best_cnt - 29)):
+            best_s, best_cnt = s, cnt
+    pts = _hex_points(best_s)
+    surplus = len(pts) - 26
+    if trial % 2 == 0:
+        d = np.minimum(np.minimum(pts[:, 0], pts[:, 1]), np.minimum(1 - pts[:, 0], 1 - pts[:, 1]))
+    else:
+        d = np.hypot(pts[:, 0] - 0.5, pts[:, 1] - 0.5)
+    w = 1.0 / (d + 0.05)
+    w = w / w.sum()
+    drop = rng.choice(len(pts), size=surplus, replace=False, p=w)
+    keep = np.setdiff1d(np.arange(len(pts)), drop)
+    return np.clip(pts[keep], 0.0, 1.0)
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for start in range(12):
+=======
+    # Hex-lattice starts with random vacancies (10 seeded trials)
+    for trial in range(10):
+        if time.time() - t0 > 80:
+            break
+        try:
+            c0 = _hex_start(rng, trial)
+            r0 = np.full(n, 0.08)
+            c0, r0 = _relax(c0, r0)
+            c, r = _optimize(c0, r0)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    for start in range(12):
+>>>>>>> REPLACE
+-----

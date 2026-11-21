@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from sklearn.neural_network import MLPClassifier
+=======
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from rdkit.Chem import rdFingerprintGenerator
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def morgan_bits(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=bool)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * rankdata(p_rf) / len(p_rf) + 0.5 * rankdata(p_mlp) / len(p_mlp)
+=======
+    knn = KNeighborsClassifier(n_neighbors=15, weights="distance", metric="jaccard", n_jobs=8)
+    knn.fit(morgan_bits(train_smiles), y)
+    p_knn = knn.predict_proba(morgan_bits(test_smiles))[:, 1]
+    n = len(p_rf)
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn)) / (3 * n)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+def _sym_search(rng):
+=======
+def _power_start(rng):
+    """Weighted power-diagram Lloyd relaxation on a fine grid; mixed-size start.
+    Radii = 0.8 * distance from each center to the nearest other-cell sample (or wall)."""
+    n = 26
+    p = rng.uniform(0.1, 0.9, size=(n, 2))
+    g = np.linspace(0.0, 1.0, 120)
+    gx, gy = np.meshgrid(g, g)
+    S = np.column_stack([gx.ravel(), gy.ravel()])
+    maxd = np.sqrt(0.5)
+
+    def cells(pts):
+        w = 1.0 + 0.6 * (1.0 - np.hypot(pts[:, 0] - 0.5, pts[:, 1] - 0.5) / maxd)
+        kw = (0.1 * w) ** 2
+        D2 = np.sum((S[:, None, :] - pts[None, :, :]) ** 2, axis=2) - kw[None, :]
+        return np.argmin(D2, axis=1)
+
+    for _ in range(30):
+        lab = cells(p)
+        for i in range(n):
+            msk = lab == i
+            if np.any(msk):
+                p[i] = S[msk].mean(axis=0)
+    lab = cells(p)
+    dist = np.sqrt(np.sum((S[:, None, :] - p[None, :, :]) ** 2, axis=2))
+    r0 = np.zeros(n)
+    for i in range(n):
+        other = dist[lab != i, i]
+        bd = float(other.min()) if other.size else 0.5
+        wall = min(p[i, 0], p[i, 1], 1 - p[i, 0], 1 - p[i, 1])
+        r0[i] = 0.8 * min(bd, wall)
+    p = np.clip(p, 0.0, 1.0)
+    return p, np.maximum(r0, 0.01)
+
+
+def _sym_search(rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return _best_packing()
+=======
+    best = _best_packing()
+    try:
+        c, r = _power_start(np.random.default_rng(777))
+        c, r = _optimize(c, r)
+        r = _repair(c, r)
+        if float(np.sum(r)) > float(np.sum(best[1])):
+            best = (c, r)
+    except Exception:
+        pass
+    return best
+>>>>>>> REPLACE
+-----

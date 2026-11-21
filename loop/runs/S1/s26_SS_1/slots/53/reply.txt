@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 110:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    c, r = best
+    cur_c, cur_s = c.copy(), r.sum()
+    bc, bs = cur_c.copy(), cur_s
+    while time.time() - t0 < 180:
+        try:
+            k = int(rng.integers(1, 4))
+            idx = rng.choice(_N, k, replace=False)
+            c2 = cur_c.copy()
+            c2[idx] += rng.normal(0, rng.uniform(0.02, 0.05), (k, 2))
+            c2 = np.clip(c2, 0.01, 0.99)
+            s = _lp_radii(c2).sum()
+        except Exception:
+            continue
+        if s > cur_s or rng.random() < np.exp((s - cur_s) / 0.003):
+            cur_c, cur_s = c2, s
+            if s > bs:
+                bc, bs = c2.copy(), s
+    try:
+        c3 = np.clip(_polish(bc, _lp_radii(bc)), 0, 1)
+        r3 = _lp_radii(c3)
+        if r3.sum() > r.sum():
+            c, r = c3, r3
+    except Exception:
+        pass
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

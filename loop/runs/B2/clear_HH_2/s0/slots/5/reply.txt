@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+_DESC_CACHE = {}
+SEL_DESC = ['MolLogP', 'TPSA', 'MolWt', 'NumHAcceptors', 'NumHDonors', 'NumRotatableBonds', 'FractionCSP3']
+_DESC_NAMES = [n for n, _ in Descriptors.descList]
+SEL_IDX = [_DESC_NAMES.index(n) for n in SEL_DESC]
+
+
+def standardize(D_tr, D_te):
+    mu = D_tr.mean(0)
+    sd = D_tr.std(0)
+    sd[sd == 0] = 1.0
+    return (D_tr - mu) / sd, (D_te - mu) / sd
+
+
+def rbf_kernel(A, B):
+    gamma = 1.0 / A.shape[1]
+    d2 = (A ** 2).sum(1)[:, None] + (B ** 2).sum(1)[None, :] - 2 * A @ B.T
+    return np.exp(-gamma * np.maximum(d2, 0))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+=======
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    Z_tr, Z_te = standardize(desc_features(train_smiles)[:, SEL_IDX], desc_features(test_smiles)[:, SEL_IDX])
+    K_tr = tanimoto(X_tr, X_tr) * rbf_kernel(Z_tr, Z_tr)
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr) * rbf_kernel(Z_te, Z_tr), s2)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from catboost import CatBoostRegressor
+from sklearn.linear_model import QuantileRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    A_tr = np.c_[np.ones(len(y)), base_features(train_smiles)]
+    A_te = np.c_[np.ones(len(test_smiles)), base_features(test_smiles)]
+    coef = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    B_tr = base_features(train_smiles)
+    B_te = base_features(test_smiles)
+    mu = B_tr.mean(axis=0)
+    sd = B_tr.std(axis=0) + 1e-9
+    Z_tr = (B_tr - mu) / sd
+    Z_te = (B_te - mu) / sd
+    prior = QuantileRegressor(quantile=0.5, alpha=0.0, solver='highs')
+    prior.fit(Z_tr, y)
+    prior_tr = prior.predict(Z_tr)
+    prior_te = prior.predict(Z_te)
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - prior_tr)
+    return model.predict(featurize(test_smiles)) + prior_te
+>>>>>>> REPLACE
+-----

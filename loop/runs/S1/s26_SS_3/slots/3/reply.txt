@@ -1,0 +1,100 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    from scipy.optimize import linprog
+    Ap = np.zeros((m, n))
+    Ap[ar, iu] = 1.0
+    Ap[ar, ju] = 1.0
+    Wl = np.zeros((4 * n, N3))
+    Wl[idx, idx] = -1.0
+    Wl[idx, 2 * n + idx] = 1.0
+    Wl[n + idx, idx] = 1.0
+    Wl[n + idx, 2 * n + idx] = 1.0
+    Wl[2 * n + idx, n + idx] = -1.0
+    Wl[2 * n + idx, 2 * n + idx] = 1.0
+    Wl[3 * n + idx, n + idx] = 1.0
+    Wl[3 * n + idx, 2 * n + idx] = 1.0
+
+    def lp_repair(c):
+        d = np.sqrt(((c[iu] - c[ju]) ** 2).sum(1))
+        wall = np.minimum.reduce([c[:, 0], c[:, 1], 1 - c[:, 0], 1 - c[:, 1]])
+        wall = np.maximum(wall, 0.0)
+        res = linprog(-np.ones(n), A_ub=Ap, b_ub=d,
+                      bounds=list(zip(np.zeros(n), wall)), method="highs")
+        if res.status != 0:
+            return None
+        return res.x
+
+    def slp(c0):
+        c = np.clip(c0, 0.0, 1.0)
+        r = lp_repair(c)
+        if r is None:
+            return None
+        delta = 0.05
+        for _ in range(150):
+            if time.time() - t0 > time_budget:
+                break
+            x = c[:, 0]
+            y = c[:, 1]
+            dx = x[iu] - x[ju]
+            dy = y[iu] - y[ju]
+            d = np.sqrt(dx * dx + dy * dy) + 1e-12
+            u = dx / d
+            v = dy / d
+            A = np.zeros((m + 4 * n, N3))
+            A[ar, iu] = -u
+            A[ar, ju] = u
+            A[ar, n + iu] = -v
+            A[ar, n + ju] = v
+            A[ar, 2 * n + iu] = 1.0
+            A[ar, 2 * n + ju] = 1.0
+            A[m:] = Wl
+            b = np.concatenate([
+                d - r[iu] - r[ju],
+                x - r, 1 - x - r, y - r, 1 - y - r])
+            bnds = ([(-delta, delta)] * (2 * n)
+                    + [(max(-delta, -ri), delta) for ri in r])
+            res = linprog(g, A_ub=A, b_ub=b, bounds=bnds, method="highs")
+            if res.status != 0:
+                delta *= 0.5
+                if delta < 1e-7:
+                    break
+                continue
+            s = res.x
+            cn = np.stack([x + s[:n], y + s[n:2 * n]], axis=1)
+            cn = np.clip(cn, 0.0, 1.0)
+            rn = lp_repair(cn)
+            if rn is not None and rn.sum() > r.sum() + 1e-12:
+                c, r = cn, rn
+                delta = min(delta * 1.5, 0.1)
+            else:
+                delta *= 0.5
+                if delta < 1e-7:
+                    break
+        return np.concatenate([c[:, 0], c[:, 1], r])
+
+    best = None
+    best_val = -1.0
+    it = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+        if -res.fun < best_val - 0.02:
+            continue
+=======
+        try:
+            z = slp(c0)
+        except Exception:
+            continue
+        if z is None:
+            continue
+>>>>>>> REPLACE
+-----

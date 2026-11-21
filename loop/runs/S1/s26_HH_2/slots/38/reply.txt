@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def _two_phase():
+=======
+def _poisson_seed(rng, dmin, n=_N, tries=4000):
+    """Rejection-sampled Poisson-disk points in [0.05, 0.95]^2; uniform fill if too few are accepted."""
+    rs = np.random.RandomState(int(rng.randint(1 << 30)))
+    pts = []
+    for _ in range(tries):
+        if len(pts) >= n:
+            break
+        p = rs.uniform(0.05, 0.95, size=2)
+        if all(np.hypot(p[0] - q[0], p[1] - q[1]) >= dmin for q in pts):
+            pts.append(p)
+    pts = np.array(pts, dtype=float).reshape(-1, 2)
+    if pts.shape[0] < n:
+        extra = rng.uniform(0.1, 0.9, size=(n - pts.shape[0], 2))
+        pts = np.vstack([pts, extra])
+    return pts[:n]
+
+
+def _two_phase():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c = rng.uniform(0.1, 0.9, size=(_N, 2))
+        c, _r = _relax(c, np.full(_N, 0.01), 400, 0.3, 0.05)
+=======
+        dmin = rng.uniform(0.12, 0.22)
+        c = _poisson_seed(rng, dmin)
+        c, _r = _relax(c, np.full(_N, 0.01), 400, 0.3, 0.05)
+>>>>>>> REPLACE
+-----

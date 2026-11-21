@@ -1,0 +1,77 @@
+<<<<<<< SEARCH
+    try:
+        zp = z0.copy()
+        for lvl, mu in enumerate((10.0, 1e2, 1e3, 1e4, 1e5)):
+            sig = 0.004 / np.sqrt(lvl + 1)
+            zp[:2 * n] = np.clip(zp[:2 * n] + rng.normal(0.0, sig, size=2 * n), 0.0, 1.0)
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+        z0 = zp
+    except Exception:
+        pass
+=======
+    def viol(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        d = np.sqrt(dx * dx + dy * dy + 1e-18)
+        ov = np.maximum(r[iu] + r[ju] - d, 0.0)
+        wv = np.concatenate([np.maximum(r - x, 0.0), np.maximum(r + x - 1.0, 0.0),
+                             np.maximum(r - y, 0.0), np.maximum(r + y - 1.0, 0.0)])
+        return ov, wv
+
+    def alm(z, lp, lw, mu):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        d = np.sqrt(dx * dx + dy * dy + 1e-18)
+        ov = np.maximum(r[iu] + r[ju] - d, 0.0)
+        wv = np.concatenate([np.maximum(r - x, 0.0), np.maximum(r + x - 1.0, 0.0),
+                             np.maximum(r - y, 0.0), np.maximum(r + y - 1.0, 0.0)])
+        f = -np.sum(r) + np.sum(lp * ov + mu * ov * ov) + np.sum(lw * wv + mu * wv * wv)
+        gw = lw + 2.0 * mu * wv
+        gp = lp + 2.0 * mu * ov
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        np.add.at(g[2 * n:], iu, gp)
+        np.add.at(g[2 * n:], ju, gp)
+        ux = dx / d
+        uy = dy / d
+        np.add.at(g[:n], iu, -gp * ux)
+        np.add.at(g[:n], ju, gp * ux)
+        np.add.at(g[n:2 * n], iu, -gp * uy)
+        np.add.at(g[n:2 * n], ju, gp * uy)
+        gl, gr, gb, gt = gw[:n], gw[n:2 * n], gw[2 * n:3 * n], gw[3 * n:]
+        g[2 * n:] += gl + gr + gb + gt
+        g[:n] += gr - gl
+        g[n:2 * n] += gt - gb
+        return f, g
+
+    try:
+        zp = z0.copy()
+        mu_a = 100.0
+        lp = np.zeros(m)
+        lw = np.zeros(4 * n)
+        for it in range(8):
+            sig = 0.004 / np.sqrt(it + 1)
+            zp[:2 * n] = np.clip(zp[:2 * n] + rng.normal(0.0, sig, size=2 * n), 0.0, 1.0)
+            for _ in range(2):
+                rp = minimize(alm, zp, args=(lp, lw, mu_a), jac=True, method="L-BFGS-B",
+                              bounds=pbounds, options={"maxiter": 600})
+                zp = rp.x
+            ov, wv = viol(zp)
+            lp = np.maximum(0.0, lp + 2.0 * mu_a * ov)
+            lw = np.maximum(0.0, lw + 2.0 * mu_a * wv)
+        z0 = zp
+    except Exception:
+        pass
+>>>>>>> REPLACE
+-----

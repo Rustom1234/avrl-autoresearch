@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+def _optimise(n, x0):
+=======
+def _optimise(n, x0, bounds=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", bounds=bounds, constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+=======
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        fixed = rng.random(n) < 0.3   # freeze a random 30 percent of the radii first
+        bounds = [(None, None)] * (2 * n) + [(v, v) if f else (0, None) for v, f in zip(r2, fixed)]
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]), bounds)
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))   # then all radii free
+>>>>>>> REPLACE
+-----

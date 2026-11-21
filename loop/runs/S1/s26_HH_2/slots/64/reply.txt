@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+def _old_construct_packing():
+    """Inflation relaxation multistart, then basin hopping on the LP-scored packing."""
+=======
+def _mc_candidate(c0, sweeps=300, seed=99, tmax=30.0):
+    """Hard-disk NPT-style Monte Carlo compression with a variable box side L."""
+    rng = np.random.RandomState(seed)
+    n = c0.shape[0]
+    iu, ju = np.triu_indices(n, 1)
+    t0 = _time.time()
+    c = np.clip(np.array(c0, dtype=float), 0.0, 1.0)
+    dmin = max(float(np.sqrt(np.sum((c[iu] - c[ju]) ** 2, axis=1)).min()), 1e-6)
+    sig = dmin
+    L = 1.0
+    P = 1.0
+    for _s in range(sweeps):
+        if _time.time() - t0 > tmax:
+            break
+        P *= 1.01
+        for _ in range(n):
+            i = rng.randint(n)
+            new = c[i] + rng.uniform(-0.02, 0.02, size=2)
+            if np.any(new < 0.0) or np.any(new > L):
+                continue
+            d = np.sqrt(np.sum((c - new) ** 2, axis=1))
+            d[i] = np.inf
+            if d.min() < sig:
+                continue
+            c[i] = new
+        f = rng.uniform(0.999, 1.001)
+        Lp = L * f
+        cs = c * f
+        ds = float(np.sqrt(np.sum((cs[iu] - cs[ju]) ** 2, axis=1)).min())
+        if ds < sig:
+            continue
+        logacc = -P * (Lp * Lp - L * L) + n * np.log((Lp * Lp) / (L * L))
+        if np.log(rng.rand() + 1e-300) < logacc:
+            c = cs
+            L = Lp
+    cu = np.clip(c / L, 0.0, 1.0)
+    rv, s = _score(cu)
+    if rv is None:
+        return cu, np.zeros(n)
+    cc, _rr = _slsqp_refine(cu, rv)
+    rv2, s2 = _score(cc)
+    if rv2 is not None and s2 > s:
+        return cc, rv2
+    return cu, rv
+
+
+def _old_construct_packing():
+    """Inflation relaxation multistart, then basin hopping on the LP-scored packing."""
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    centers, radii = _two_phase()
+    cur_c = centers.copy()
+=======
+    centers, radii = _two_phase()
+    mc_c, mc_r = _mc_candidate(centers)
+    if float(np.sum(mc_r)) > float(np.sum(radii)):
+        centers, radii = mc_c, mc_r
+    cur_c = centers.copy()
+>>>>>>> REPLACE
+-----

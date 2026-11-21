@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    preds = []
+    for m in models:
+        m.fit(X, y)
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+=======
+    preds = []
+    for m in models:
+        m.fit(X, y)
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    qt = QuantileTransformer(output_distribution='normal')
+    Xq = qt.fit_transform(X)
+    Xtq = qt.transform(Xt)
+    mlp_probs = []
+    for k in range(3):
+        mlp = MLPClassifier(hidden_layer_sizes=(256, 64), early_stopping=True, max_iter=400,
+                            random_state=seed + k)
+        mlp.fit(Xq, y)
+        mlp_probs.append(mlp.predict_proba(Xtq)[:, 1])
+    preds.append(rankdata(np.mean(mlp_probs, axis=0)) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

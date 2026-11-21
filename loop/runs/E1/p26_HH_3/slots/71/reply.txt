@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+=======
+    c, r = best
+    for t in range(40):   # noise annealing: perturb all centres at a shrinking scale
+        if time.process_time() - t0 >= budget:
+            break
+        c2 = np.clip(c + rng.normal(0, 0.05 * (1 - t / 40), c.shape), 0, 1)
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+>>>>>>> REPLACE
+-----

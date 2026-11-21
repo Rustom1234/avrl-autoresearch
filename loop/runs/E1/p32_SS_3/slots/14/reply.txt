@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+        y0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), [INIT_RADIUS]])
+=======
+        p = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+        for _ in range(20):
+            dv = p[:, None] - p[None]
+            d = np.sqrt((dv ** 2).sum(-1)) + np.eye(n) + 1e-9
+            f = (dv / d[..., None] ** 3).sum(1)
+            f += 1e-3 * (1 / np.maximum(p, 1e-2) ** 2 - 1 / np.maximum(1 - p, 1e-2) ** 2)
+            m = np.abs(f).max() + 1e-12
+            p = np.clip(p + 0.02 * f / m, INIT_LOW / 2, 1 - INIT_LOW / 2)
+        y0 = np.concatenate([p.ravel(), [INIT_RADIUS]])
+>>>>>>> REPLACE
+-----

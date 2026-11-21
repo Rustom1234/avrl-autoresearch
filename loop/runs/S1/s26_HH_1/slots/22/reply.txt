@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+    attempt = 0
+    while time.perf_counter() < deadline:
+        order = np.argsort(best_r)
+        i = int(order[attempt % n])
+        attempt += 1
+        keep = np.delete(best_c, i, axis=0)
+        keep_r = np.delete(best_r, i)
+        dist = np.sqrt(((grid[:, None, :] - keep[None, :, :]) ** 2).sum(-1))
+        clear = np.minimum(border, np.min(dist - keep_r[None, :], axis=1))
+        p = grid[int(np.argmax(clear))]
+        newc = np.vstack([keep, p[None, :]])
+=======
+    attempt = 0
+    wrng = np.random.default_rng(4242)
+    while time.perf_counter() < deadline:
+        wall_turn = (attempt % 2 == 1)
+        attempt += 1
+        if wall_turn:
+            # Wall-slide move: take a circle touching a wall, slide it along that wall.
+            gap = np.minimum(np.minimum(best_c[:, 0], best_c[:, 1]),
+                             np.minimum(1 - best_c[:, 0], 1 - best_c[:, 1])) - best_r
+            touch = np.where(gap < 1e-6)[0]
+            if touch.size == 0:
+                continue
+            i = int(wrng.choice(touch))
+            x0, y0 = best_c[i]
+            rad = float(best_r[i])
+            side = int(np.argmin([x0, 1 - x0, y0, 1 - y0]))
+            u = float(wrng.uniform(rad, max(rad, 1.0 - rad)))
+            if side == 0:
+                pos = np.array([rad, u])
+            elif side == 1:
+                pos = np.array([1.0 - rad, u])
+            elif side == 2:
+                pos = np.array([u, rad])
+            else:
+                pos = np.array([u, 1.0 - rad])
+            newc = best_c.copy()
+            newc[i] = pos
+        else:
+            # Remove-and-reinsert move on the smallest circles (index cycles over even attempts).
+            order = np.argsort(best_r)
+            i = int(order[(attempt // 2) % n])
+            keep = np.delete(best_c, i, axis=0)
+            keep_r = np.delete(best_r, i)
+            dist = np.sqrt(((grid[:, None, :] - keep[None, :, :]) ** 2).sum(-1))
+            clear = np.minimum(border, np.min(dist - keep_r[None, :], axis=1))
+            p = grid[int(np.argmax(clear))]
+            newc = np.vstack([keep, p[None, :]])
+>>>>>>> REPLACE
+-----

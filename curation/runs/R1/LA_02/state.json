@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/LA_02/cand/s06_0.py",
+ "inc_scores": {
+  "11": 1.8147222249324213,
+  "12": 1.7995048261905444
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random order with a filter-then-shuffle pipeline that keeps only clean, target-like (WikiText-style) documents.\n\n1. Dedupe: drop exact duplicates and near-duplicates, keyed on a hash of the whitespace-normalised, lowercased text (also a hash of its first 300 characters). Keep the first occurrence.\n\n2. Domain score: fit a TfidfVectorizer (word 1-2grams, sublinear_tf, min_df=2, max_features about 200k) plus LogisticRegression, with the 200 target_sample docs as positives (class_weight='balanced') and about 4000 seeded-random pool docs as negatives. Score every pool doc with p_domain.\n\n3. Word-order score, to catch the shuffled-word articles that have the right vocabulary but scrambled order: build the set of word bigrams seen in target_sample. For each doc, compute the fraction of its first ~400 whitespace-token bigrams that are in that set. Also compute the rate of very common function bigrams ('of the', 'in the', ', and', '. The', 'to the'). Set the threshold by 2-means or the largest gap on docs with p_domain > 0.5, or at half the minimum rate seen in target_sample, and mark docs below it as damaged.\n\n4. Cheap junk rules: drop docs under 200 characters, docs with an abnormal non-alphabetic character ratio, and docs with extreme repetition (zlib compression ratio below 0.2).\n\n5. Selection: keep docs that are not duplicates, not damaged, not junk and have p_domain >= 0.5. Count tokens with tiktoken gpt2. If the kept set is under T tokens, do not pad with off-domain text; return the kept set and let it cycle. If it is over T, take the highest p_domain docs up to T.\n\n6. Order: shuffle the final list with CURATE_SEED.",
+   "outcome": "dev 1.9810 against 1.9401 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace the hard p>=0.5 filter with rank-and-fill to exactly T tokens with no cycling, so the model never sees a small set repeated.\n\n1. Dedupe: drop exact duplicates only (hash of whitespace-normalised, lowercased text), keeping the first occurrence.\n\n2. Hard-drop only obvious junk:\n- docs under 200 characters;\n- docs with zlib compression ratio below 0.25 (repetitive spam);\n- docs with under 60% alphabetic-or-space characters (code, HTML);\n- word-shuffled docs: over the first 400 whitespace tokens, compute the fraction of bigrams found in the bigram set of target_sample plus the rate of common function bigrams ('of the', 'in the', 'to the', ', and'). Drop a doc only if its function-bigram rate is below 25% of the median rate in target_sample.\n\n3. Domain score with no classifier trained on contaminated negatives: build smoothed unigram word log-probabilities from target_sample and from the whole pool. Score each doc by the mean per-token log-likelihood ratio (target vs pool) over its first 1000 tokens. Add a bonus of +1.0 if the doc starts with the WikiText header pattern '= Title =' (regex ^\\s*= [^=\\n]+ =\\s*\\n) or contains ' @-@ '.\n\n4. Selection: sort the surviving docs by score, descending. Count tokens with tiktoken gpt2 (encode_ordinary_batch) and take docs from the top until the cumulative count reaches T. This fills with the most target-like clean prose and adds no repeats. Allow cycling only if all survivors together are under T.\n\n5. Order: shuffle the selected list with CURATE_SEED.",
+   "outcome": "dev 1.9070 against 1.9401 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 3,
+   "idea": "Keep the selection (dedupe, junk filters, LLR ranking, fill to T tokens) exactly as it is and change only the final order, from one global shuffle to a general-then-target curriculum.\n\n1. After selecting the docs that fill T, split them into two groups:\n- core: docs with a WikiText marker (matches the '= Title =' header regex or contains ' @-@ ');\n- filler: all other selected docs.\n\n2. Order the output as:\n- first, all filler docs sorted by ascending LLR score (least target-like first). To avoid a strictly deterministic order, cut the sorted filler into 8 consecutive equal buckets and shuffle within each bucket using CURATE_SEED;\n- then, all core docs, shuffled with CURATE_SEED.\n\n3. Make sure the core block is not cut off at T. Compute cumulative gpt2 token counts so that filler tokens plus core tokens come to about T, with at most one document of overshoot. If there is overshoot, trim from the start of the filler block (the lowest-scored docs), never from the core.\n\n4. If the core alone holds at least T tokens, or there is no filler, fall back to the current plain seeded shuffle.",
+   "outcome": "dev 2.0123 against 1.9070 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Keep everything else as it is and replace only the word-shuffle filter with a self-calibrating test, because the current one (function-bigram rate below 25% of the target median) probably lets many shuffled WikiText articles through, and those then get the +1.0 header bonus and rank at the top.\n\n1. Build a reference set R of common bigrams: all lowercased whitespace-token bigrams that occur at least 3 times in target_sample.\n\n2. For each candidate doc (after dedupe and the other junk filters), take its first 600 lowercased whitespace tokens.\n- h_real = fraction of its adjacent bigrams that are in R.\n- h_shuf = the same fraction after fully shuffling those same tokens with random.Random(CURATE_SEED + doc index), averaged over 2 shuffles.\n- ratio = (h_real + 0.005) / (h_shuf + 0.005).\n\n3. Drop the doc as order-damaged if ratio < 2.0. Clean prose should give a ratio of about 4 or more, and shuffled or locally shuffled text about 1. Also drop it if h_real is below 0.3 times the median h_real of the target_sample docs.\n\n4. Sanity guard: compute the same ratio on the target_sample docs. If more than 5% of them would be dropped at 2.0, lower the threshold to half of the 5th-percentile target ratio.\n\n5. Remove the old function-bigram-rate rule. Leave the LLR scoring, the header bonus, fill-to-T with no repeats and the seeded global shuffle unchanged, so the slots freed by dropped shuffled articles are filled by the next-best clean docs.",
+   "outcome": "dev 1.8418 against 1.9070 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Keep the pipeline as it is (exact dedupe, junk filters, order test, LLR ranking with header bonus, fill to T, seeded shuffle) and add two filters before scoring, aimed at character-damaged documents and near-duplicates that the current filters do not catch.\n\n1. Character/word-noise filter, calibrated on the target sample.\n- In pass 1, also build pool word counts over purely alphabetic lowercased tokens (strip surrounding punctuation). Define V as the words with pool count >= 5, plus all words in target_sample.\n- For each doc, over its first 600 whitespace tokens, compute:\n  a. oov = the fraction of alphabetic lowercase-initial tokens (length >= 3, not capitalised in the original text, so proper nouns are skipped) that are not in V;\n  b. rep = the fraction of adjacent token pairs that are identical alphabetic words (such as 'don't don't' or 'the the').\n- Compute the same two rates on the 200 target_sample docs. Drop a pool doc if oov > max(2 * the 95th-percentile target oov, the 95th percentile + 0.02), or if rep > max(3 * the 95th-percentile target rep, 0.01).\n\n2. Near-duplicate removal.\n- After exact dedupe, compute a signature for each surviving doc: take its lowercased alphabetic tokens, form the 5-token shingles of the first 300 tokens, hash each shingle, and keep the 8 smallest hashes as a min-hash sketch.\n- Process docs in descending LLR-score order. Drop a doc if at least 5 of its 8 sketch values match those of an already kept doc; use an inverted index from sketch value to kept docs for speed.\n- This way the best-scored copy of each near-duplicate cluster is the one kept.\n\n3. Everything else stays unchanged. The freed slots are filled by the next-best clean docs through the existing fill-to-T step.",
+   "outcome": "dev 1.9002 against 1.8418 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Keep dedupe, junk filters, order test, LLR scoring and the seeded global shuffle unchanged. Change only how the T-token budget is filled: let clean target-format docs appear twice before any off-domain filler is used.\n\n1. After scoring, split the survivors into:\n- core: docs with a WikiText marker (matches the '= Title =' header regex or contains ' @-@ ');\n- filler: all other survivors.\nSort each group by descending LLR score. Count gpt2 tokens for all core docs with encode_ordinary_batch, and for filler only as needed, keeping the existing time-budget fallback.\n\n2. Build the selection by cumulative token count, stopping as soon as the total reaches T:\n- a. add every core doc once, in score order;\n- b. if still under T, add a second copy of the core docs, in score order (at most 2 copies of any doc);\n- c. if still under T, add filler docs in descending score order, one copy each;\n- d. if still under T, return what there is and let the trainer cycle.\n\n3. Shuffle the final list (with its repeats) once with random.Random(CURATE_SEED), as now.\n\n4. Print or log core_tokens / T, the number of second copies used and the filler tokens used, so the composition can be checked.",
+   "outcome": "dev 1.8147 against 1.8418 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 7,
+   "idea": "Implement a 'quality-weighted' repeat for core docs: instead of repeating all core docs twice, repeat only the top 50% of core docs (by LLR score) twice, and then use the remaining core docs once. If still under T, fill with filler docs. This ensures the highest-quality WikiText content is prioritized for the limited 300-step training window while still allowing for volume.",
+   "outcome": "dev 1.8324 against 1.8147 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Replace the global seeded shuffle with a 'block-stratified' order: group docs into 10 blocks based on their LLR score buckets, shuffle each block independently, then concatenate the blocks (from highest to lowest LLR).",
+   "outcome": "dev 1.9577 against 1.8147 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Refine the LLR scoring by using a 2-gram log-likelihood ratio instead of unigrams, while maintaining the existing junk filters (zlib, alpha-space, order test), the WikiText header bonus, and the 2x-core-repeat selection strategy.",
+   "outcome": "dev 1.8088 against 1.8147 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Implement a 'coherence-based' selection: instead of repeating core documents exactly twice, pair each core document with its most similar neighbor (based on cosine similarity of their 1000-token LLR-weighted unigram vectors) if a second copy is needed, otherwise repeat the document. This maintains the high-quality core content while introducing slight variety in the repeated content.",
+   "outcome": "dev 2.4043 against 1.8147 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Improve the LLR scoring by using a 2-gram based log-likelihood ratio instead of unigrams, while maintaining the existing junk filters, the WikiText header bonus, and the 2x-core-repeat selection strategy. Specifically, build unigram and bigram counts for the pool, and use a log-likelihood ratio for bigrams that appear in the target_sample, falling back to the unigram LLR for bigrams that don't.",
+   "outcome": "dev 1.8063 against 1.8147 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Replace the LLR scoring with a simpler, more robust 'target-presence' score: calculate the overlap of tokens between each doc and the target_sample (using a weighted count of tokens that appear in the target sample more than X times), then add the existing WikiText header bonus and apply the 2x-core-repeat selection strategy. This avoids the potential noise of training a complex LLR model on a small target sample while still prioritizing content most similar to the target domain.",
+   "outcome": "dev 1.9090 against 1.8147 for the best at the time, rejected"
+  }
+ ],
+ "usd": 2.39613365,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5058516,
+   "dev": 1.9810456745583052,
+   "inc": 1.940105272853994,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.4934356000000001,
+   "dev": 1.9070459200307053,
+   "inc": 1.940105272853994,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.549869642621629,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.47074760000000004,
+   "dev": 2.0122808699447052,
+   "inc": 1.9070459200307053,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.549869642621629,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.49109959999999986,
+   "dev": 1.8417906539898787,
+   "inc": 1.9070459200307053,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 13.530776061672901,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.20851565000000005,
+   "dev": 1.9001622315952071,
+   "inc": 1.8417906539898787,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 13.530776061672901,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.20655625000000022,
+   "dev": 1.8147222249324213,
+   "inc": 1.8417906539898787,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 17.25613101040087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0035788499999998002,
+   "dev": 1.832448245084088,
+   "inc": 1.8147222249324213,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 17.25613101040087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003591600000000028,
+   "dev": 1.957721772709048,
+   "inc": 1.8147222249324213,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 17.25613101040087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00317550000000022,
+   "dev": 1.808828631641534,
+   "inc": 1.8147222249324213,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 17.25613101040087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003541949999999794,
+   "dev": 2.4042782030666823,
+   "inc": 1.8147222249324213,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 17.25613101040087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003501449999999906,
+   "dev": 1.8062830724073606,
+   "inc": 1.8147222249324213,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 17.25613101040087,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002537999999999929,
+   "dev": 1.908981468298351,
+   "inc": 1.8147222249324213,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.940105272853994,
+ "inc_slot": 6
+}

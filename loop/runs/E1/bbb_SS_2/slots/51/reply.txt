@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import rdFingerprintGenerator
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def ap_knn(train_smiles, y, test_smiles, k=15):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+    def fp(smiles):
+        return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) > 0 for s in smiles], dtype=np.float32)
+    A, B = fp(test_smiles), fp(train_smiles)
+    inter = A @ B.T
+    sim = inter / np.maximum(A.sum(1)[:, None] + B.sum(1)[None, :] - inter, 1e-9)
+    idx = np.argsort(-sim, axis=1)[:, :k]
+    return y[idx].mean(1) + 1e-3 * np.take_along_axis(sim, idx, 1).mean(1)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * rankdata(p_rf) / len(p_rf) + 0.5 * rankdata(p_mlp) / len(p_mlp)
+=======
+    p_knn = ap_knn(train_smiles, y, test_smiles)
+    n = len(p_rf)
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn)) / (3 * n)
+>>>>>>> REPLACE
+-----

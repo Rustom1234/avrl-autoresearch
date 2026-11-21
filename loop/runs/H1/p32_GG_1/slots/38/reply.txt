@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+    # Use a jittered grid for better coverage than pure random
+    grid_size = int(np.ceil(np.sqrt(n)))
+    x = np.linspace(0, 1, grid_size)
+    xx, yy = np.meshgrid(x, x)
+    pts = np.stack([xx.ravel(), yy.ravel()], axis=-1).reshape(-1, 2)
+    pts = pts[:n] # Take first n points
+    
+    # Jitter the points and keep them within bounds
+    jitter = rng.uniform(-0.05, 0.05, pts.shape)
+    pts = np.clip(pts + jitter, INIT_LOW, 1 - INIT_LOW)
+    
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+    # Use a Halton-like sequence for low-discrepancy initialization
+    # This distributes points more uniformly than a grid or pure random
+    def halton_sequence(count, dim=2):
+        pts = np.zeros((count, dim))
+        for i in range(count):
+            for d in range(dim):
+                r = i + 1
+                f = 1
+                base = 2**d
+                while r % base != 0:
+                    f /= base
+                    r -= base
+                pts[i, d] = f * (r / base)
+        return pts
+
+    pts = halton_sequence(n)
+    # Keep points away from the very edges to give SLSQP room to push them
+    pts = np.clip(pts, INIT_LOW, 1 - INIT_LOW)
+    
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+-----

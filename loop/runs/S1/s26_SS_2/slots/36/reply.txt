@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+        if s > bs:
+            bs = s; best = (c, r)
+    return best
+=======
+        if s > bs:
+            bs = s; best = (c, r)
+    try:
+        from scipy.optimize import NonlinearConstraint
+        v0 = np.concatenate([best[0][:, 0], best[0][:, 1], best[1]])
+        nlc = NonlinearConstraint(cons, 0, np.inf, jac=cjac)
+        res = minimize(lambda z: -z[2 * n:].sum(), v0,
+                       jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                       method="trust-constr", bounds=bounds, constraints=[nlc],
+                       options={"maxiter": 150, "gtol": 1e-12, "xtol": 1e-14})
+        c, r = finalize(res.x)
+        if r.sum() > bs:
+            bs = r.sum(); best = (c, r)
+    except Exception:
+        pass
+    return best
+>>>>>>> REPLACE
+-----

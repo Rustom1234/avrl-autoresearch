@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is clean. The diff reads no files, uses no network, pastes no coordinates and uses no labels. Starts come from a seeded RNG (12345), then go through SLSQP and LP radii, so the script computes its own answer.",
+  "No bug that makes the result meaningless. The screen keeps 600 random starts optimised with radii capped at 0.10 (stopping at 90 s), ranks them by LP radii sum and finishes the top 25 with the remaining capped then uncapped stages (stopping at 190 s). The radii still come from _lp_radii, and checking happens downstream as before.",
+  "Minor timing risk: the finishing loop only checks the clock before each start, so one finish started near 190 s could run past it. Two SLSQP stages of at most 300 iterations at n=26 should still end well under 240 s, so this is low risk.",
+  "The result does not support the change. The candidate scored -2.6296 against an incumbent mean of -2.6360, which is 0.0064 worse in loss (lower is better). Narrowing to the top 25 by LP score after the cheap capped stage probably drops starts that would only have done well after the full schedule.",
+  "z is not recomputable exactly because the individual incumbent values are not given. The difference is about +0.0064 in loss. The reported |z| of about 5235 implies an incumbent spread of about 1.2e-6, which is just the tiny run-to-run variation of a deterministic script. So |z| is inflated and should not be read as a measure of confidence, but the direction (candidate worse) is clear and reject is correct.",
+  "There is only one candidate run. Since the script is deterministic with a fixed seed, a replicate would add little."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

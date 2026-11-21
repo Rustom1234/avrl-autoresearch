@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+    def pen(z, mu):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+=======
+    def pen(z, mu, lam=0.0, rmin=0.05):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        f = -np.sum(r) + mu * (np.sum(ov * ov) + np.sum(bl * bl + br * br + bb * bb + bt * bt))
+        g = np.zeros_like(z)
+=======
+        f = -np.sum(r) + mu * (np.sum(ov * ov) + np.sum(bl * bl + br * br + bb * bb + bt * bt))
+        vr = np.maximum(rmin - r, 0.0)
+        f = f + lam * np.sum(vr * vr)
+        g = np.zeros_like(z)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        g[2 * n:] += 2.0 * mu * (bl + br + bb + bt)
+        g[:n] += 2.0 * mu * (br - bl)
+        g[n:2 * n] += 2.0 * mu * (bt - bb)
+        return f, g
+=======
+        g[2 * n:] += 2.0 * mu * (bl + br + bb + bt)
+        g[2 * n:] += -2.0 * lam * vr
+        g[:n] += 2.0 * mu * (br - bl)
+        g[n:2 * n] += 2.0 * mu * (bt - bb)
+        return f, g
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for lvl, mu in enumerate((10.0, 1e2, 1e3, 1e4, 1e5)):
+            sig = 0.004 / np.sqrt(lvl + 1)
+            zp[:2 * n] = np.clip(zp[:2 * n] + rng.normal(0.0, sig, size=2 * n), 0.0, 1.0)
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+=======
+        for lvl, mu in enumerate((10.0, 1e2, 1e3, 1e4, 1e5)):
+            lam = mu * 0.1 if lvl < 3 else 0.0
+            sig = 0.004 / np.sqrt(lvl + 1)
+            zp[:2 * n] = np.clip(zp[:2 * n] + rng.normal(0.0, sig, size=2 * n), 0.0, 1.0)
+            rp = minimize(pen, zp, args=(mu, lam), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+            rp = minimize(pen, zp, args=(mu, lam), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+>>>>>>> REPLACE
+-----

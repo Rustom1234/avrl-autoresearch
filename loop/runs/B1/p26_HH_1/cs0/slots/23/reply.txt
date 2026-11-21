@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+=======
+    pr = [iu]
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        p0, p1 = pr[0]
+        d = np.sqrt(((c[p0] - c[p1]) ** 2).sum(1)) - r[p0] - r[p1]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def fit(x):
+        return minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                        options={"maxiter": MAX_ITER})
+
+    if start is not None:
+        c0, r0 = x2[:2 * n].reshape(n, 2), x2[2 * n:]
+        gap = np.sqrt(((c0[iu[0]] - c0[iu[1]]) ** 2).sum(1)) - r0[iu[0]] - r0[iu[1]]
+        keep = gap < 0.25
+        pr[0] = (iu[0][keep], iu[1][keep])
+    res = fit(x2)
+    if start is not None:
+        c1, r1 = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+        gap = np.sqrt(((c1[iu[0]] - c1[iu[1]]) ** 2).sum(1)) - r1[iu[0]] - r1[iu[1]]
+        if gap.min() < -1e-9:
+            pr[0] = iu
+            res = fit(res.x)
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "The diff changes one line: TOTAL_BATCH_SIZE goes from 2**19 to 2**17. It's an allowed hyperparameter change. It doesn't touch the val_bpb measurement, the data, the seed lines, the prepare.py import or the evaluation call.",
+  "Validity: 2**17 = 131072 = DEVICE_BATCH_SIZE 64 * 2048. That assumes a sequence length of 2048, which isn't shown in the diff. If it holds, gradient accumulation becomes 1 step, the divisibility assertion passes and the loop still runs. In the fixed 300 s window the optimizer takes about 4x as many smaller steps. That's a real tuning effect, not an artefact. The LRs were not retuned for the smaller batch, but that doesn't invalidate the result.",
+  "Numbers: the candidate mean is 1.0624 (runs 1.0618 and 1.0630) against an incumbent mean of 1.0824, an improvement of about 0.020 bpb. This is consistent with the provisional accept.",
+  "z can't be recomputed exactly because the incumbent's per-run values and the noise estimate are not given. With only the candidate's spread (sample sd \u2248 0.00085), z would be far above 3.66, so the harness must be using a pooled or prior noise estimate. Either way, the reported z = 3.660 is plausible and does not overstate the result.",
+  "Note: n=2 on each side is a small sample, but the effect is large compared with typical run-to-run noise."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

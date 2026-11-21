@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+from rdkit.Chem import AllChem, Descriptors
+=======
+from rdkit.Chem import AllChem, Descriptors, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([fp, desc]))
+=======
+        AllChem.ComputeGasteigerCharges(m)
+        q = np.nan_to_num(np.array([a.GetDoubleProp('_GasteigerCharge') for a in m.GetAtoms()]),
+                          nan=0.0, posinf=0.0, neginf=0.0)
+        tpsa_c = np.asarray(rdMolDescriptors._CalcTPSAContribs(m), dtype=np.float64)
+        polar = np.array([a.GetSymbol() in ('N', 'O') for a in m.GetAtoms()])
+        qs = np.array([np.sum(q[q > 0]), np.sum(q[q < 0]), q.max(), q.min(),
+                       np.sum(np.abs(q[polar]) * tpsa_c[polar]), np.sum(np.abs(q) > 0.2), np.mean(np.abs(q))],
+                      dtype=np.float32)
+        rows.append(np.concatenate([fp, desc, qs]))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+def _optimize(x0, y0, r0):
+    z = np.concatenate([x0, y0, r0])
+=======
+def _pm_obj(p):
+    # power-mean objective: maximize sum(r^p), i.e. minimize -sum(r^p)
+    def f(z):
+        r = np.maximum(z[2 * _N:], 1e-6)
+        return -np.sum(r ** p)
+
+    def g(z):
+        gr = np.zeros(3 * _N)
+        r = np.maximum(z[2 * _N:], 1e-6)
+        gr[2 * _N:] = -p * r ** (p - 1.0)
+        return gr
+    return f, g
+
+
+def _optimize(x0, y0, r0):
+    z = np.concatenate([x0, y0, r0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        z_prev = z
+        try:
+            res = minimize(_obj, z_prev, jac=_obj_grad, constraints=cons,
+=======
+        if cap is None:
+            # power-mean annealing before the final uncapped stage
+            for p in (0.5, 0.8, 1.0):
+                pf, pg = _pm_obj(p)
+                try:
+                    rp = minimize(pf, z, jac=pg, constraints=cons,
+                                  bounds=bnds, method="SLSQP",
+                                  options={"maxiter": 300, "ftol": 1e-12})
+                    if np.all(np.isfinite(rp.x)):
+                        z = rp.x
+                except Exception:
+                    pass
+        z_prev = z
+        try:
+            res = minimize(_obj, z_prev, jac=_obj_grad, constraints=cons,
+>>>>>>> REPLACE
+-----

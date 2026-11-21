@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: nothing in the diff touches how val_bpb is measured, the data, the seed lines, the prepare.py import or the evaluation call. It only edits the training loop. No veto.",
+  "Mutating model._orig_mod.window_sizes after torch.compile: if Dynamo guards on the list, there are recompiles on the first step and again at 50% progress. Recompile time counts against the 300 s budget, which costs steps but does not make the result meaningless. If Dynamo did not guard on it, the edit could silently do nothing, and the measured change would just be noise. It is worth checking for a recompile log or a change in step time near the midpoint.",
+  "The final model is evaluated with short windows of MAX_SEQ_LEN//2. That is a legitimate model change, not an eval-path change. But if the incumbent's short window was already MAX_SEQ_LEN//2, the only real effect is a narrower //4 window during the first half of training.",
+  "Evidence is weak: one candidate run (1.1117) against an incumbent mean of 1.1145 over 16 runs. The 0.0028 gain is within noise (z = 0.501), so the provisional reject is consistent with the numbers.",
+  "z cannot be recomputed independently because the incumbent std is not given. The reported z = 0.501 implies an effective SE of about 0.0056, which is plausible given single-run noise."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

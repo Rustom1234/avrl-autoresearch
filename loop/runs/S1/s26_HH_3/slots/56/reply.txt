@@ -1,0 +1,68 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _se_stage(centers0, radii0, p):
+    """SLSQP over (x, y, r) with pair and square-wall constraints plus a
+    superellipse constraint on centers: |2x-1|^p + |2y-1|^p <= 1."""
+    n = len(radii0)
+    iu, ju = np.triu_indices(n, 1)
+
+    def unpack(z):
+        return z[:n], z[n:2 * n], z[2 * n:]
+
+    def obj(z):
+        return -np.sum(z[2 * n:])
+
+    def obj_grad(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        return g
+
+    def cons(z):
+        x, y, r = unpack(z)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        pair = dx * dx + dy * dy - (r[iu] + r[ju]) ** 2
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        se = 1.0 - np.abs(2 * x - 1) ** p - np.abs(2 * y - 1) ** p
+        return np.concatenate([pair, bnd, se])
+
+    z0 = np.concatenate([centers0[:, 0], centers0[:, 1], radii0])
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons}],
+                   bounds=bounds, options={"maxiter": 150, "ftol": 1e-9})
+    x, y, r = unpack(res.x)
+    return np.column_stack([x, y]), np.maximum(r, 0.0)
+
+
+def _se_homotopy(c0, r0):
+    """Anneal the container exponent from disk (p=2) toward the square (p=40)."""
+    c, r = c0, r0
+    for p in (2.0, 3.0, 5.0, 8.0, 14.0, 24.0, 40.0):
+        c, r = _se_stage(c, r, p)
+    return c, r
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+=======
+    # Superellipse homotopy starts (disk-to-square container path)
+    for _ in range(2):
+        if time.time() - t0 > 120:
+            break
+        try:
+            c0 = rng.uniform(0.15, 0.85, size=(n, 2))
+            c, r = _se_homotopy(c0, np.full(n, 0.06))
+            c, r = _optimize(c, r)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    # Basin hopping from the best packing: perturb 1-3 centers, re-solve, Metropolis accept
+>>>>>>> REPLACE
+-----

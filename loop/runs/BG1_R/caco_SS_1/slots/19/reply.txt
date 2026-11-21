@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles)[:, :nd], y)
+    et = model.predict(featurize(test_smiles)[:, :nd])
+    knn = knn_predict(train_smiles, y, test_smiles)
+    return 0.75 * et + 0.25 * knn
+=======
+    Xtr = featurize(train_smiles)[:, :nd]
+    Xte = featurize(test_smiles)[:, :nd]
+    model.fit(Xtr, y)
+    et = model.predict(Xte)
+    knn = knn_predict(train_smiles, y, test_smiles)
+    base = 0.75 * et + 0.25 * knn
+    from scipy.stats import skew
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.svm import SVR
+    cols = (Xtr.min(0) >= 0) & (skew(Xtr, axis=0) > 3)
+    A, B = Xtr.copy(), Xte.copy()
+    A[:, cols] = np.log1p(A[:, cols])
+    B[:, cols] = np.log1p(np.maximum(B[:, cols], 0))
+    sc = StandardScaler().fit(A)
+    A = np.clip(np.nan_to_num(sc.transform(A)), -5, 5)
+    B = np.clip(np.nan_to_num(sc.transform(B)), -5, 5)
+    svr = SVR(kernel='rbf', C=3).fit(A, y).predict(B)
+    return 0.8 * base + 0.2 * svr
+>>>>>>> REPLACE
+-----

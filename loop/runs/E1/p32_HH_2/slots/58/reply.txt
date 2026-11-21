@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+=======
+def _strip_start(n, rng):
+    """Row-structured start: 4-7 rows with random per-row counts, per-row shear, and jitter; returns flat centres."""
+    rows = rng.integers(4, 8)
+    counts = np.full(rows, n // rows)
+    counts[rng.choice(rows, n - counts.sum(), replace=False)] += 1
+    for _ in range(3):
+        i, j = rng.integers(0, rows, 2)
+        if counts[i] > 1:
+            counts[i] -= 1
+            counts[j] += 1
+    pts = []
+    for y, m in zip(np.linspace(0.1, 0.9, rows), counts):
+        xs = np.linspace(0.1, 0.9, m) if m > 1 else np.array([0.5])
+        shear = rng.uniform(-0.1, 0.1)
+        pts.append(np.stack([xs + shear * (y - 0.5), np.full(m, y)], 1))
+    c = np.concatenate(pts) + rng.uniform(-0.03, 0.03, (n, 2))
+    return np.clip(c, 0.05, 0.95).ravel()
+
+
+def _solve_once(n, centers0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+=======
+        pool = sorted((_relax(_strip_start(n, rng) if rng.random() < 1 / 3 else rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+>>>>>>> REPLACE
+-----

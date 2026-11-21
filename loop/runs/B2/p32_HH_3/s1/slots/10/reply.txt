@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+def _relocate(c, r, rng, trials=30):
+    """Move the smallest circle to the best of several random centres, scored by the local sum of radii."""
+    c, r = c.copy(), r.copy()
+    k = int(np.argmin(r))
+    best = None
+    for _ in range(trials):
+        p = rng.uniform(0, 1, 2)
+        d = np.sqrt(((c - p) ** 2).sum(1))
+        d[k] = np.inf
+        rk = max(min(p.min(), (1 - p).min(), (d - r).min()), 0)
+        nb = d < rk + r + 0.05
+        score = rk + r[nb].sum()
+        if best is None or score > best[0]:
+            best = (score, p, rk)
+    _, p, rk = best
+    c[k], r[k] = p, rk
+    return c, r
+=======
+def _hole_candidate(c, r, k, rng):
+    """Candidate holes: Delaunay circumcentres of the other centres (plus square corners and edge midpoints)."""
+    from scipy.spatial import Delaunay
+    edge = np.array([[0, 0], [0, 1], [1, 0], [1, 1], [0.5, 0], [0.5, 1], [0, 0.5], [1, 0.5]])
+    pts = np.vstack([np.delete(c, k, axis=0), edge])
+    tri = Delaunay(pts).simplices
+    a, b, e = pts[tri[:, 0]], pts[tri[:, 1]], pts[tri[:, 2]]
+    D = 2 * (a[:, 0] * (b[:, 1] - e[:, 1]) + b[:, 0] * (e[:, 1] - a[:, 1]) + e[:, 0] * (a[:, 1] - b[:, 1]))
+    a2, b2, e2 = (a ** 2).sum(1), (b ** 2).sum(1), (e ** 2).sum(1)
+    ux = (a2 * (b[:, 1] - e[:, 1]) + b2 * (e[:, 1] - a[:, 1]) + e2 * (a[:, 1] - b[:, 1])) / D
+    uy = (a2 * (e[:, 0] - b[:, 0]) + b2 * (a[:, 0] - e[:, 0]) + e2 * (b[:, 0] - a[:, 0])) / D
+    hole = np.stack([ux, uy], 1)
+    hole = hole[np.isfinite(hole).all(1)]
+    hole = hole[((hole >= 0) & (hole <= 1)).all(1)]
+    P = np.vstack([hole, rng.uniform(0, 1, (10, 2))])
+    d = np.sqrt(((c[None] - P[:, None]) ** 2).sum(-1))
+    d[:, k] = np.inf
+    rk = np.maximum(np.minimum(np.minimum(P.min(1), (1 - P).min(1)), (d - r).min(1)), 0)
+    top = np.argsort(-rk)[:3]
+    i = top[rng.integers(len(top))]
+    return P[i], rk[i]
+
+
+def _relocate(c, r, rng, trials=30):
+    """Move the smallest circle to a hole of the packing; fall back to the best of several random centres."""
+    c, r = c.copy(), r.copy()
+    k = int(np.argmin(r))
+    try:
+        p, rk = _hole_candidate(c, r, k, rng)
+    except Exception:
+        best = None
+        for _ in range(trials):
+            p = rng.uniform(0, 1, 2)
+            d = np.sqrt(((c - p) ** 2).sum(1))
+            d[k] = np.inf
+            rk = max(min(p.min(), (1 - p).min(), (d - r).min()), 0)
+            nb = d < rk + r + 0.05
+            score = rk + r[nb].sum()
+            if best is None or score > best[0]:
+                best = (score, p, rk)
+        _, p, rk = best
+    c[k], r[k] = p, rk
+    return c, r
+>>>>>>> REPLACE
+-----

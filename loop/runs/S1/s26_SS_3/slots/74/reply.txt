@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if it % 10 in (0, 4, 8):
+            for cap in (0.20, 0.13, 0.10):
+                bc = [(0, 1)] * (2 * n) + [(0, cap)] * n
+                z0[2 * n:] = np.minimum(z0[2 * n:], cap)
+                try:
+                    rs = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bc,
+                                  constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                                  options={"maxiter": 80, "ftol": 1e-11})
+                    z0 = np.clip(rs.x, 0, 1)
+                    z0[2 * n:] = np.minimum(z0[2 * n:], 0.5)
+                except Exception:
+                    break
+>>>>>>> REPLACE
+-----

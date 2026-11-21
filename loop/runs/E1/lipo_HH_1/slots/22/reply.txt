@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+AP_BITS = 1024
+TT_BITS = 512
+FP_DIM = 2 * N_BITS + AP_BITS + TT_BITS
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rows = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        rows.append(np.concatenate([ecfp.GetFingerprintAsNumPy(mol), fcfp.GetFingerprintAsNumPy(mol)]))
+    return np.array(rows, dtype=np.float32)
+=======
+    ap = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=AP_BITS)
+    tt = rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=TT_BITS)
+    rows = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        rows.append(np.concatenate([ecfp.GetFingerprintAsNumPy(mol), fcfp.GetFingerprintAsNumPy(mol),
+                                    ap.GetCountFingerprintAsNumPy(mol), tt.GetCountFingerprintAsNumPy(mol)]))
+    return np.array(rows, dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Za = Xa[:, 2 * N_BITS:].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:].astype(np.float64)
+=======
+    Za = Xa[:, FP_DIM:].astype(np.float64)
+    Zb = Xb[:, FP_DIM:].astype(np.float64)
+>>>>>>> REPLACE
+-----

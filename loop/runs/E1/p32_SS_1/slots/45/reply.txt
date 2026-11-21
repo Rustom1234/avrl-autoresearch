@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _relax(n, rng):
+    i, j = np.triu_indices(n, 1)
+    x = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+
+    def f(v, mu):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        diff = c[i] - c[j]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        o = np.maximum(r[i] + r[j] - d, 0)
+        lo = np.maximum(r[:, None] - c, 0)
+        hi = np.maximum(r[:, None] + c - 1, 0)
+        e = -r.sum() + mu * ((o ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum())
+        gc = np.zeros((n, 2))
+        gr = -np.ones(n)
+        g = (2 * mu * o / d)[:, None] * diff
+        np.add.at(gc, i, -g)
+        np.add.at(gc, j, g)
+        np.add.at(gr, i, 2 * mu * o)
+        np.add.at(gr, j, 2 * mu * o)
+        gc += 2 * mu * (hi - lo)
+        gr += 2 * mu * (lo.sum(1) + hi.sum(1))
+        return e, np.concatenate([gc.ravel(), gr])
+
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    for mu in (10, 100, 1000):
+        x = minimize(f, x, args=(mu,), jac=True, method="L-BFGS-B", bounds=bounds,
+                     options={"maxiter": 200}).x
+    return x
+
+
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = _relax(n, rng)
+>>>>>>> REPLACE
+-----

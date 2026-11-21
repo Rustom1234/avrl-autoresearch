@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+
+    rf = RandomForestRegressor(n_estimators=N_TREES_RF, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    return np.expm1(preds)
+=======
+    y_train_raw = np.asarray(train_y, dtype=np.float64)
+    ranks = np.argsort(np.argsort(y_train_raw))
+    y_train = (ranks - 1) / (len(y_train_raw) - 1)
+
+    rf = RandomForestRegressor(n_estimators=N_TREES_RF, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    
+    # Map back to original scale: 
+    # Since we mapped [0, 1] to [min(y), max(y)], we interpolate
+    y_min, y_max = np.min(y_train_raw), np.max(y_train_raw)
+    return y_min + (preds * (y_max - y_min))
+>>>>>>> REPLACE
+-----

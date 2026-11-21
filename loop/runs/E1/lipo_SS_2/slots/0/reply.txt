@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+=======
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def clean(smi):
+    mol = Chem.MolFromSmiles(smi)
+    try:
+        mol = rdMolStandardize.LargestFragmentChooser().choose(mol)
+        mol = rdMolStandardize.Uncharger().uncharge(mol)
+    except Exception:
+        pass
+    return mol
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(clean(s)) for s in smiles], dtype=np.float32)
+>>>>>>> REPLACE
+-----

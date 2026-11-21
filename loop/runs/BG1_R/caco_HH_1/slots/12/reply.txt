@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+from xgboost import XGBRegressor
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import StandardScaler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(objective='reg:absoluteerror', tree_method='hist', max_depth=6, learning_rate=0.03,
+                         n_estimators=600, subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                         random_state=seed, n_jobs=8)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    # RDKit descriptors only (columns after the Morgan block), clipped to training percentiles
+    Xtr = featurize(train_smiles)[:, N_BITS:].astype(np.float64)
+    Xte = featurize(test_smiles)[:, N_BITS:].astype(np.float64)
+    lo, hi = np.percentile(Xtr, 1, axis=0), np.percentile(Xtr, 99, axis=0)
+    Xtr = np.clip(Xtr, lo, hi)
+    Xte = np.clip(Xte, lo, hi)
+    scaler = StandardScaler().fit(Xtr)
+    Xtr = scaler.transform(Xtr)
+    Xte = scaler.transform(Xte)
+    y = np.asarray(train_y, dtype=np.float64)
+    sd = y.std()
+    model = MLPRegressor(hidden_layer_sizes=(256, 128), alpha=1e-2, learning_rate_init=1e-3,
+                         early_stopping=True, validation_fraction=0.15, max_iter=500, random_state=seed)
+    model.fit(Xtr, y / sd)
+    return model.predict(Xte) * sd
+>>>>>>> REPLACE
+-----

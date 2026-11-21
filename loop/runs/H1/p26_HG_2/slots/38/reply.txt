@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+=======
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+
+    if best is not None:
+        # Basin-hopping style exploration on the best found packing
+        best_c, best_r = best
+        sigma = 0.05
+        for _ in range(10):  # limited iterations to stay within time
+            noise = rng.normal(0, sigma, (n, 2))
+            new_c = np.clip(best_c + noise, 0, 1)
+            new_r = _repair(new_c, best_r)
+            if new_r.sum() > best[1].sum():
+                best = (new_c, new_r)
+                sigma *= 1.1
+            else:
+                sigma *= 0.9
+            sigma = np.clip(sigma, 0.005, 0.1)
+
+    return best
+>>>>>>> REPLACE
+-----

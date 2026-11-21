@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: I found nothing wrong. There is no file or network access, no pasted coordinates and no use of labels. The added randomness-free LP polish only refines the packing that the existing search already found.",
+  "Validity: every LP step ends with the existing _repair on clipped centres. The radius lower bound max(-tr, -r) keeps radii non-negative. So the final packing goes through the same validity path as the incumbent, and I found no bug that would make the result meaningless.",
+  "Timing risk (not a veto): _lp_polish runs after the main loop has already used 80% of the 30 s budget, and nothing checks time_limit inside it. It can run up to 100 HiGHS solves, each on a dense matrix of about 624x96 rebuilt every iteration, which should take a few seconds. That likely stays under 30 s and almost surely under the 45 s void limit, but adding a time check inside the polish loop would be safer.",
+  "Plausibility: the candidate's mean of 2.9372 is slightly above the 'about 2.9370' best published value. The harness checks validity exactly, so this probably reflects the rounding in 'about'. Still, it is worth confirming with a replicate.",
+  "Statistics: the difference is 0.0017, from one run each. With sd 0.0034 per job, z = 0.0017/(0.0034*sqrt(2)) \u2248 0.35. The harness's 0.337 is consistent with that once the 4-decimal rounding of the inputs is taken into account. The evidence is weak and the provisional reject is correct for now. The idea is reasonable, so a replicate may be worth a slot."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.354
+ }
+}

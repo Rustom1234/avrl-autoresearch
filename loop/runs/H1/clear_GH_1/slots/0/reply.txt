@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+=======
+from rdkit.Chem import Descriptors, rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+N_DESC = 100
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fp = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    desc = np.array([[fn(m) for _, fn in Descriptors.descList[:N_DESC]] for m in mols], dtype=np.float64)
+    desc = np.clip(np.nan_to_num(desc, nan=0.0, posinf=0.0, neginf=0.0), -1e6, 1e6)
+    return np.hstack([fp, desc.astype(np.float32)])
+>>>>>>> REPLACE
+-----

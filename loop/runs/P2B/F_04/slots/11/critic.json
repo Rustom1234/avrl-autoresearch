@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "The diff changes only one line: the torch.compile call gets mode=\"max-autotune-no-cudagraphs\". It does not touch the seed lines, the prepare.py import line, the data loading, the evaluation call or the final summary printing. Nothing here changes how val_bpb is measured.",
+  "This mode only changes how the same computation is compiled into GPU kernels (it benchmarks kernel options and picks the fastest), so the model behaves the same. Small numerical differences are expected and do not make the result meaningless.",
+  "The harness says the run was rejected for integrity flags, but this diff gives no reason for such a flag. The flag may be a false positive, or it may come from something outside this diff, such as edits not shown here. I recommend checking the full applied train.py against the incumbent.",
+  "Not an integrity problem, but a practical risk: max-autotune compiles much more slowly. Compile time does not count toward the 300 s training budget, but it does count toward the 450 s startup-plus-training limit, so it could get the run rejected or eat up the time gained. Any speedup is likely small.",
+  "The harness gave no val_bpb or baseline numbers, so z cannot be recomputed."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

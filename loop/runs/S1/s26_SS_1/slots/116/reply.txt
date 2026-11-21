@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+    n = _N
+    i, j = _IU
+    d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+=======
+    n = len(c)
+    i, j = np.triu_indices(n, 1)
+    d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = _N
+    i, j = _IU
+    m = len(i)
+    x0 = np.concatenate([c[:, 0], c[:, 1], r])
+=======
+    n = len(c)
+    i, j = np.triu_indices(n, 1)
+    m = len(i)
+    x0 = np.concatenate([c[:, 0], c[:, 1], r])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    while time.time() - t0 < 150:
+        try:
+            c = _hexinit(rng) if rng.random() < 0.5 else _physics(rng)
+            c = c[rng.permutation(_N)[:_N - 2]]
+            r = _lp_radii(c)
+            c = np.clip(_polish(c, r), 0, 1)
+            r = _lp_radii(c)
+            new = []
+            for _ in range(2):
+                allc = np.vstack([c] + [p[None] for p in new])
+                allr = np.concatenate([r, np.full(len(new), 0.02)])
+                dd = np.sqrt(((_GRID[:, None, :] - allc[None, :, :]) ** 2).sum(2)) - allr[None, :]
+                cl = dd.min(1)
+                wall = np.minimum(np.minimum(_GRID[:, 0], _GRID[:, 1]),
+                                  np.minimum(1 - _GRID[:, 0], 1 - _GRID[:, 1]))
+                cl = np.minimum(cl, wall)
+                new.append(_GRID[cl.argmax()].copy())
+            c3 = np.vstack([c, np.array(new)])
+            r3 = np.concatenate([r, [0.02, 0.02]])
+            c3 = np.clip(_polish(c3, r3), 0, 1)
+            r3 = _lp_radii(c3)
+        except Exception:
+            continue
+        s = r3.sum()
+        if s > best_s:
+            best_s, best = s, (c3, r3)
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

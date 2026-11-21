@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+from xgboost import XGBClassifier
+=======
+from xgboost import XGBClassifier
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import StratifiedKFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+=======
+def make_model(seed, n_estimators=500):
+    return XGBClassifier(n_estimators=n_estimators, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                         min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    # Inner 3-fold OOF AUROC of each member (150 rounds) gives its rank-averaging weight.
+    skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=seed)
+    weights = []
+    for x_tr in train_sets:
+        oof = np.zeros(len(y))
+        for tr_idx, va_idx in skf.split(x_tr, y):
+            m = make_model(seed, 150)
+            m.fit(x_tr[tr_idx], y[tr_idx])
+            oof[va_idx] = m.predict_proba(x_tr[va_idx])[:, 1]
+        weights.append(max(roc_auc_score(y, oof) - 0.5, 0.0) ** 2)
+    weights = np.array(weights)
+    if weights.sum() <= 0:
+        weights = np.ones(len(weights))
+    weights = weights / weights.sum()
+    total = np.zeros(len(test_smiles))
+    for w, x_tr, x_te in zip(weights, train_sets, test_sets):
+        model = make_model(seed)
+        model.fit(x_tr, y)
+        total += w * rankdata(model.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+>>>>>>> REPLACE
+-----

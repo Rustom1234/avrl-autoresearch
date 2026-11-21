@@ -1,0 +1,13 @@
+<<<<<<< SEARCH
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+    pr = r.predict(np.log1p(Xte[:, -N_BITS:]))
+=======
+    from rdkit.Avalon import pyAvalonTools
+    def avalon(smiles):
+        return np.array([list(pyAvalonTools.GetAvalonCountFP(Chem.MolFromSmiles(s), nBits=1024)) for s in smiles], dtype=np.float32)
+    Rtr = np.hstack([np.log1p(Xtr[:, -N_BITS:]), np.log1p(avalon(train_smiles))])
+    Rte = np.hstack([np.log1p(Xte[:, -N_BITS:]), np.log1p(avalon(test_smiles))])
+    r = Ridge(alpha=10.0).fit(Rtr, y)
+    pr = r.predict(Rte)
+>>>>>>> REPLACE
+-----

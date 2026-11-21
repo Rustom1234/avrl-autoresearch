@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from catboost import CatBoostRegressor
+from sklearn.linear_model import ARDRegression
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    A_tr = np.c_[np.ones(len(y)), base_features(train_smiles)]
+    A_te = np.c_[np.ones(len(test_smiles)), base_features(test_smiles)]
+    coef = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    F_tr = featurize(train_smiles)
+    F_te = featurize(test_smiles)
+    D_tr = F_tr[:, N_BITS:].astype(np.float64)
+    D_te = F_te[:, N_BITS:].astype(np.float64)
+    mu = D_tr.mean(axis=0)
+    sd = D_tr.std(axis=0)
+    sd[sd < 1e-8] = 1.0
+    B_tr = np.c_[base_features(train_smiles), (D_tr - mu) / sd]
+    B_te = np.c_[base_features(test_smiles), (D_te - mu) / sd]
+    prior = ARDRegression()
+    prior.fit(B_tr, y)
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(F_tr, y - prior.predict(B_tr))
+    return model.predict(F_te) + prior.predict(B_te)
+>>>>>>> REPLACE
+-----

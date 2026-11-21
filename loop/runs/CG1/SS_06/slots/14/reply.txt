@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+        if momentum_buffers is not None:
+            torch._foreach_mul_(momentum_buffers, group["momentum"])
+            grad_casts = [g.to(mb.dtype) for g, mb in zip([p.grad for p in filter_params_with_grad], momentum_buffers)]
+            torch._foreach_add_(momentum_buffers, grad_casts)
+        else:
+            momentum_buffers = [p.grad for p in filter_params_with_grad]
+
+        if group["nesterov"]:
+            nesterov_grads = torch._foreach_add(
+                [p.grad for p in filter_params_with_grad], momentum_buffers, alpha=group["momentum"])
+        else:
+            nesterov_grads = momentum_buffers
+=======
+        nesterov_grads = _momentum_nesterov(
+            [p.grad for p in filter_params_with_grad], momentum_buffers, group["momentum"])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+class Muon(torch.optim.Optimizer):
+=======
+@torch.compile(fullgraph=True)
+def _momentum_nesterov(grads, bufs, momentum: float):
+    out = []
+    for g, b in zip(grads, bufs):
+        b.mul_(momentum).add_(g.to(b.dtype))
+        out.append(g + momentum * b)
+    return out
+
+
+class Muon(torch.optim.Optimizer):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        widths = dict(block1=64, block2=256, block3=256)
+=======
+        widths = dict(block1=64, block2=256, block3=192)
+>>>>>>> REPLACE
+-----

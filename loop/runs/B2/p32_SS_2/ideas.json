@@ -1,0 +1,642 @@
+[
+ {
+  "id": "b001",
+  "title": "Second tap on near-best restarts",
+  "spec": "Inside the restart loop, right after a restart finishes and is repaired, check whether its sum is within 0.004 of the current best sum (or is the new best). If so, rerun SLSQP once from that restart's raw solution, with normal(0, 0.003) noise added to the centres, radii multiplied by 0.98, and maxiter 100; repair the result and keep it if it is better. Do this at most once per restart, with no pool and no separate phase: the main loop stays pure random restarts until TIME_FRACTION. This differs from the best-only polish of slot 39 and the pool methods of slots 9 and 22, because every near-best basin gets one cheap escape attempt from a saddle or a premature stop, at the moment it is found.",
+  "family": "other",
+  "sim_hist_bge": 0.8606834411621094,
+  "sim_tried_bge": 0.8606834411621094,
+  "sim_hist_mini": 0.7046985030174255,
+  "sources": [
+   [
+    "fable",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Affine stretch of the hex start to fill the square",
+  "spec": "After building the jittered staggered hex start in _solve_once, compute the bounding box of its points. Apply an independent affine stretch in x and in y so that the points span [0.06, 0.94] in each axis, using rng-drawn stretch factors only if the box is degenerate. Then run SLSQP as before. This removes the empty border that the fixed hex spacing leaves, while keeping the same row structure.",
+  "family": "data",
+  "sim_hist_bge": 0.8029019832611084,
+  "sim_tried_bge": 0.8029019832611084,
+  "sim_hist_mini": 0.6888747215270996,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Two-phase radius target SLSQP",
+  "spec": "In each restart, run SLSQP first with the radii fixed to a common value equal to 0.9 times the largest feasible equal radius, done by optimising only the centres to maximise the minimum pair gap for 40 iterations. Then run the full SLSQP on centres and radii from that point. This gives a feasible, spread-out start.",
+  "family": "schedule",
+  "sim_hist_bge": 0.9413773417472839,
+  "sim_tried_bge": 0.8894736766815186,
+  "sim_hist_mini": 0.8435447216033936,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Final tight polish of the best packing",
+  "spec": "Reserve the last 10% of the time. Restarts use 0.7 of the time and the best raw SLSQP result is then re-optimised for the remaining time with ftol=1e-13 and maxiter 1000, starting from its centres and radii shrunk by 0.2%. Repair the result and keep it only if it beats the best.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9261423349380493,
+  "sim_tried_bge": 0.8965380191802979,
+  "sim_hist_mini": 0.8621578216552734,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Incremental growth from a smaller packing",
+  "spec": "Each restart first solves a packing for n-k circles (k = 2 or 3, chosen at random) with the same SLSQP call. Then it inserts the k new circles at the centres of the largest empty holes found by a 60x60 grid search of max(min distance to centres, distance to walls). Their initial radii are the hole clearance times 0.9. It then runs SLSQP on all n circles and repairs as before. Keep the time-limit loop unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8399114012718201,
+  "sim_tried_bge": 0.8399114012718201,
+  "sim_hist_mini": 0.8039869070053101,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Combine analytic Jacobian with L-BFGS-B pre-relaxation",
+  "spec": "Combine the two best within-noise results (slots 6 and 19, both -2.9396). In _solve_once, give SLSQP an analytic objective gradient (zeros for the centres, -1 for the radii) and a dense analytic constraint Jacobian. For pair rows d_ij - r_i - r_j, the centre-i entries are (c_i - c_j)/d_ij, the centre-j entries are the negative of that, and the r_i and r_j entries are -1. Wall rows and r >= 0 rows get the obvious +-1 entries. Before calling SLSQP, relax the jittered hex centres with 30 L-BFGS-B iterations (bounds [0.03, 0.97]) on the energy sum over pairs of max(0, 2*INIT_RADIUS*1.6 - d_ij)^2, using an analytic gradient. Leave everything else unchanged.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.892570972442627,
+  "sim_tried_bge": 0.8773850202560425,
+  "sim_hist_mini": 0.791313648223877,
+  "sources": [
+   [
+    "opus",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Alternating LP radii and centre polish",
+  "spec": "After the restarts, take the best packing. Do 10 rounds of: (1) solve a scipy linprog for the radii at the fixed centres, maximising the sum of radii under the pair and wall constraints; (2) run SLSQP for 30 iterations from the result. Keep the result if the repaired sum improves.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8916293978691101,
+  "sim_tried_bge": 0.8916293978691101,
+  "sim_hist_mini": 0.8938897848129272,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Bandit over hex-grid row counts",
+  "spec": "Instead of drawing the row count R uniformly from {5,6,7} on every restart, keep per-R statistics: the best and the mean repaired radius sum seen so far. Give each R three restarts first, then pick R by a simple UCB rule (mean sum + 0.01*sqrt(log(total)/count_R)), or equivalently sample R with probability proportional to exp((best_R - best_overall)/0.003). Pass R into _solve_once as an argument; everything else (jitter, random subset, SLSQP, repair) is unchanged. All randomness must still come from the seeded rng. The aim is to spend the restarts on the row count that yields the top basin.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8543981313705444,
+  "sim_tried_bge": 0.8194700479507446,
+  "sim_hist_mini": 0.7202074527740479,
+  "sources": [
+   [
+    "fable",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Augmented Lagrangian with L-BFGS-B instead of SLSQP",
+  "spec": "Replace the SLSQP call in _solve_once with an augmented Lagrangian loop. Variables are the centres and radii with box bounds (centres in [0, 1], radii in [0, 0.3]), handled by L-BFGS-B. The constraints are g = pair gaps d_ij - r_i - r_j and wall gaps. Minimise -sum(r) + sum over constraints of (mu/2)*max(0, lam/mu - g)^2, with a vectorised analytic gradient. Do 8 outer rounds of 200 L-BFGS-B iterations each. After each round update lam = max(0, lam - mu*g) and multiply mu by 3, starting from mu = 10. Keep the existing repair step. The aim is much cheaper restarts than O(n^2)-constraint SLSQP, so many more of them.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8492352962493896,
+  "sim_tried_bge": 0.83573317527771,
+  "sim_hist_mini": 0.7061622738838196,
+  "sources": [
+   [
+    "opus",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Tighter SLSQP tolerance in restarts",
+  "spec": "Pass options={'maxiter': MAX_ITER, 'ftol': 1e-9} to the SLSQP call in _solve_once instead of the default ftol of 1e-6. The default tolerance can stop runs before they converge to their local optimum, which loses about 1e-4 to 1e-3 of radius sum per run and can also misrank candidates. Change nothing else.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.831539511680603,
+  "sim_tried_bge": 0.831539511680603,
+  "sim_hist_mini": 0.740554690361023,
+  "sources": [
+   [
+    "opus",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Squared-distance constraints with Jacobian",
+  "spec": "Change the pair constraints to (dx^2+dy^2) - (ri+rj)^2 >= 0, which is smooth at zero distance. Add the analytic Jacobian for these. Keep the wall constraints linear. Also add the constraint ri+rj >= 0 implicitly through r >= 0, which is already present. The repair step stays as is.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9425351619720459,
+  "sim_tried_bge": 0.7982321977615356,
+  "sim_hist_mini": 0.673328161239624,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Vacancies of the hex grid placed on purpose",
+  "spec": "The hex grid has R*m >= n positions, and the surplus is now dropped by a random permutation. Change only which positions are dropped. Per restart choose one of three modes with equal probability: (a) drop only boundary positions (first or last row, first or last column), chosen at random; (b) drop only interior positions, chosen at random; (c) the current uniform random choice. If a mode has fewer eligible positions than the surplus, fill the rest uniformly at random. Keep the jitter, the clip, the row-count draw, SLSQP and the repair unchanged. The aim is to learn whether vacancy placement decides which basin SLSQP falls into; record the mode of the best run in a comment-free variable so that the next edit can fix the winning mode.",
+  "family": "data",
+  "sim_hist_bge": 0.7923332452774048,
+  "sim_tried_bge": 0.7923332452774048,
+  "sim_hist_mini": 0.5856389999389648,
+  "sources": [
+   [
+    "fable",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Iterated-deepening SLSQP budget",
+  "spec": "Make the SLSQP iteration cap grow across restarts. Restart k uses maxiter = min(200, 40 * 2**(k // 4)), so early restarts are cheap and later ones run to convergence. Keep the same hex init, repair and best-tracking. Pass the cap into _solve_once as an argument instead of reading the MAX_ITER constant.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8403447270393372,
+  "sim_tried_bge": 0.8115745782852173,
+  "sim_hist_mini": 0.711933970451355,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Adaptive row-count bandit",
+  "spec": "In solve, keep a per-R record (R in 5, 6, 7) of the best repaired radius sum found from starts with that row count. Pass R into _solve_once instead of drawing it there. For the first 9 restarts, cycle R through 5, 6, 7. After that, pick R with probability proportional to exp((best_R - global_best)/0.003), and always give each R at least 10 percent probability. Use the seeded rng for all draws. This spends more restarts on the lattice type that is producing the best basins.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8463512659072876,
+  "sim_tried_bge": 0.8178281784057617,
+  "sim_hist_mini": 0.6557131409645081,
+  "sources": [
+   [
+    "opus",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "Combine analytic Jacobian with L-BFGS-B centre pre-relaxation",
+  "spec": "Apply both changes that individually scored -2.9396 (slots 6 and 19; each a single run within noise of the incumbent) in one edit. (a) Give SLSQP an analytic objective gradient (zeros for centres, -1 for radii) and a dense analytic constraint Jacobian for the pair-distance and wall constraints, guarding the distance division with max(d, 1e-12). (b) Before SLSQP, relax the jittered hex-grid centres with 30 L-BFGS-B iterations on the squared-overlap penalty sum(max(0, 2*INIT_RADIUS - d_ij)^2) plus the matching wall penalty, with analytic gradient and bounds [INIT_RADIUS, 1-INIT_RADIUS]. Keep MAX_ITER, TIME_FRACTION and the repair unchanged. The aim is to test whether the two unconfirmed gains add up to something above the 0.0034 noise sd.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9049469232559204,
+  "sim_tried_bge": 0.8747895956039429,
+  "sim_hist_mini": 0.7385396957397461,
+  "sources": [
+   [
+    "fable",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Spare grid columns for subset selection",
+  "spec": "In _solve_once, draw an extra e = rng.integers(0, 2), and use m = ceil(n/R) + e columns, so there are R*m positions. The spacing stays (m + 0.5) in x, as in the current formula. Then take a random subset of n positions as now. With e = 1 there are more empty sites and a slightly denser lattice, which gives different hole patterns. Everything else, including the jitter and clipping, is unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8113270401954651,
+  "sim_tried_bge": 0.8113270401954651,
+  "sim_hist_mini": 0.6604099869728088,
+  "sources": [
+   [
+    "opus",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Larger row-offset hex init with random column phase",
+  "spec": "For each row of the hex init, add an independent random horizontal phase in [0,1/(m+0.5)) with wrap-around, and choose the stagger amplitude randomly in {0.3,0.5,0.7}. Keep jitter 0.02, 5 to 7 rows and the random subset. This diversifies the lattice defects.",
+  "family": "data",
+  "sim_hist_bge": 0.8958635926246643,
+  "sim_tried_bge": 0.8778566122055054,
+  "sim_hist_mini": 0.8438199162483215,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Interstitial small circles in the init",
+  "spec": "In _solve_once, with k = rng.integers(0, 4), take n - k jittered hex-grid positions as now. Place the remaining k circles at random interstitial points: the midpoints of random triples of neighbouring grid points, or random points near the walls, chosen with the seeded rng. Give the main circles an initial radius of INIT_RADIUS and the interstitial ones 0.02. Then run SLSQP as before. Optimal packings for n=32 usually contain a few small rattler-like circles in gaps, and this init starts them there directly.",
+  "family": "data",
+  "sim_hist_bge": 0.8301358222961426,
+  "sim_tried_bge": 0.8297674655914307,
+  "sim_hist_mini": 0.7647033333778381,
+  "sources": [
+   [
+    "opus",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Pick the best of a batch of inits by a cheap score",
+  "spec": "Before each SLSQP run, generate a batch of 6 candidate inits with the current hex-grid recipe (independent row count, subset and jitter) and score each without optimisation: set r_i = min(wall distance, half the distance to the nearest neighbour), which is always feasible, and use sum(r_i) as the score. Run SLSQP only from one candidate, sampled with probability proportional to exp((score - max score)/0.02), so that the choice is biased towards well-spread inits but is not greedy. Start SLSQP with the constant INIT_RADIUS as now, not the scored radii. Keep the repair and the restart loop unchanged. The scoring is a few vectorised numpy lines and costs far less than one SLSQP iteration.",
+  "family": "batch",
+  "sim_hist_bge": 0.8142642378807068,
+  "sim_tried_bge": 0.8142642378807068,
+  "sim_hist_mini": 0.6626743078231812,
+  "sources": [
+   [
+    "fable",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Elite crossover of halves",
+  "spec": "After 60% of the time, build children from two of the top 5 distinct packings: take the circles with centre x<t from parent A and those with x>=t from parent B, with t random in [0.3,0.7]. Fix the count to n by dropping the smallest or adding random points. Run SLSQP on the child and keep it in the pool if it is good.",
+  "family": "other",
+  "sim_hist_bge": 0.9574286937713623,
+  "sim_tried_bge": 0.9048224687576294,
+  "sim_hist_mini": 0.9023168683052063,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b021",
+  "title": "Smooth warp of the hex grid instead of iid jitter",
+  "spec": "Replace the independent normal jitter (sd 0.02) on the hex-grid points with a smooth random deformation that keeps the local hexagonal order. Draw 4 random low-frequency modes per restart: displacement(x, y) = sum_k a_k * sin(pi*(p_k*x + q_k*y) + phi_k), with p_k, q_k integers in {0,1,2} (not both zero), phase phi_k uniform in [0, 2*pi), and vector amplitudes a_k drawn from normal(0, 0.015) per coordinate. Add this displacement to the grid points, plus a small iid jitter of sd 0.005 to break ties, then clip to [0.03, 0.97] as now. Leave the row-count draw, the random subset, SLSQP and the repair unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8359309434890747,
+  "sim_tried_bge": 0.8359309434890747,
+  "sim_hist_mini": 0.6831721067428589,
+  "sources": [
+   [
+    "fable",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b022",
+  "title": "Successive linear programming as the local solver",
+  "spec": "Replace SLSQP in _solve_once with a trust-region successive LP that uses scipy.optimize.linprog (method='highs'). Start from the same hex-grid init. At each iteration linearise the pair constraints d_ij - r_i - r_j >= 0 around the current centres, only for pairs with d_ij < 0.45, keep the wall constraints (already linear), and solve an LP in the steps (dc, r) that maximises sum(r) subject to |dc| <= delta per coordinate. Start with delta = 0.05. Accept the step if the exactly repaired radius sum of the new centres improves, otherwise halve delta. Stop when delta < 1e-7 or after 80 iterations. Build the constraint matrix as a scipy.sparse matrix. Keep the restart loop and the final repair, and check process_time inside the SLP loop so that solve() never passes TIME_FRACTION * time_limit.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8570291996002197,
+  "sim_tried_bge": 0.8550881743431091,
+  "sim_hist_mini": 0.7232665419578552,
+  "sources": [
+   [
+    "fable",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b023",
+  "title": "Global-scale feasibility repair",
+  "spec": "Replace the iterative pairwise shrink in _repair with one global scale. Compute the factor s = min over all pairs of d_ij / (r_i + r_j) and over all walls of the wall clearance divided by r_i, with s capped at 1. Multiply all radii by s, then subtract SHRINK and clamp at zero. This is cheap, one vectorised pass, and always gives a valid packing. Keep the rest of solve unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.8230211734771729,
+  "sim_tried_bge": 0.7969086170196533,
+  "sim_hist_mini": 0.7058982849121094,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b024",
+  "title": "Sequential greedy maximal-hole init",
+  "spec": "Build the start configuration greedily. Place circles one at a time: at each step, evaluate a 50x50 grid of candidate points, and choose the point that maximises min(distance to placed centres minus their radii, distance to the walls). Set that clearance as the new circle's radius, with the first circle's radius at 0.1, and continue to n circles. Randomise the candidate grid with rng (small random offset per restart). Feed the resulting centres and radii to SLSQP as the start, and keep the repair step.",
+  "family": "data",
+  "sim_hist_bge": 0.841679573059082,
+  "sim_tried_bge": 0.841679573059082,
+  "sim_hist_mini": 0.8138629198074341,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b025",
+  "title": "Two-sided boundary-first init",
+  "spec": "In _solve_once, place about 4*sqrt(n) of the circles first on the four edges of the square at random positions with radius 0.05. Place the remaining circles uniformly at random in the interior [0.1, 0.9]^2. Add N(0, 0.01) jitter and clip to [0.03, 0.97]. Keep the initial radius as INIT_RADIUS and run the usual SLSQP and repair. The edge seeding gives boundary-hugging circles, which optimal packings often have.",
+  "family": "data",
+  "sim_hist_bge": 0.805928647518158,
+  "sim_tried_bge": 0.7864781618118286,
+  "sim_hist_mini": 0.7818088531494141,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b026",
+  "title": "Decaying small-radius weight objective",
+  "spec": "Use an objective -sum(r) in a first SLSQP stage of 60 iterations. In that stage add 0.5*sum(r^2) so that the radii are more equal and the packing stays spread out. Then rerun SLSQP with the pure -sum(r) objective from that point for the remaining iterations.",
+  "family": "regularization",
+  "sim_hist_bge": 0.9525092840194702,
+  "sim_tried_bge": 0.8319252729415894,
+  "sim_hist_mini": 0.8006638288497925,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b027",
+  "title": "Anisotropic stretch of the hex grid",
+  "spec": "In _solve_once, after building the staggered hex points, apply an independent random affine stretch about the centre (0.5, 0.5): scale x by sx ~ U(0.85, 1.0) and y by sy ~ U(0.85, 1.0), then add the usual jitter and clip to [0.03, 0.97]. This varies the aspect ratio of the lattice, so that the row and column spacings fit the square in different ways. Everything else stays the same.",
+  "family": "data",
+  "sim_hist_bge": 0.8505558967590332,
+  "sim_tried_bge": 0.8505558967590332,
+  "sim_hist_mini": 0.7148411273956299,
+  "sources": [
+   [
+    "opus",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b028",
+  "title": "Overfill and prune init",
+  "spec": "In _solve_once, draw n + k hex-grid points with k = rng.integers(1, 4), using the same jittered staggered grid but taking a random subset of n + k positions (raise m if needed). Run SLSQP with maxiter 60 on all n + k circles. Drop the k circles with the smallest radii, then run SLSQP with MAX_ITER on the remaining n circles, starting from their centres and current radii. This lets the optimizer choose which grid holes stay empty, instead of picking them at random.",
+  "family": "data",
+  "sim_hist_bge": 0.8312035202980042,
+  "sim_tried_bge": 0.8029388189315796,
+  "sim_hist_mini": 0.7480562925338745,
+  "sources": [
+   [
+    "opus",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b029",
+  "title": "Mixed-size hex init with a few big circles",
+  "spec": "In the init, pick 3 to 6 random points of the hex grid and give them initial radius 0.10 to 0.12. Give the others radius 0.05 and drop the nearest neighbours of the large points. Jitter and run SLSQP as before. Known good packings for this problem have a mix of radii.",
+  "family": "data",
+  "sim_hist_bge": 0.912356972694397,
+  "sim_tried_bge": 0.8688287734985352,
+  "sim_hist_mini": 0.7919559478759766,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b030",
+  "title": "Replicate slot 0 baseline",
+  "spec": "Make no functional change beyond the current train.py (hex-grid init). Only change a harmless constant such as the rng seed offset: use np.random.default_rng(seed + 1000). This gives a replicate measurement of the incumbent's true loss, so later gains can be judged against noise.",
+  "family": "other",
+  "sim_hist_bge": 0.946837842464447,
+  "sim_tried_bge": 0.737256646156311,
+  "sim_hist_mini": 0.8251453042030334,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b031",
+  "title": "Equal-radius warm start then release",
+  "spec": "Split each restart in two SLSQP stages. Stage 1 solves the congruent-circle problem from the jittered hex-grid centres: variables are the 2n centre coordinates and one shared radius t, the objective is -t, and the constraints are d_ij - 2t >= 0 and the four wall constraints with t; cap it at 60 iterations. Stage 2 is the existing SLSQP on centres and individual radii, started from the stage-1 centres with all radii equal to t, with maxiter MAX_ITER. Keep the repair and the restart loop unchanged. The aim is to start the full problem from a jammed, well-spread configuration instead of small non-touching circles.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8851115107536316,
+  "sim_tried_bge": 0.8492704033851624,
+  "sim_hist_mini": 0.7851083278656006,
+  "sources": [
+   [
+    "fable",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b032",
+  "title": "Randomly weighted first pass then unweighted pass",
+  "spec": "In _solve_once, first run SLSQP for 100 iterations with the objective -sum(w * r), where w_i = 1 + 0.03 * rng.normal() is drawn per circle. Then run SLSQP again from that result with the true objective -sum(r) for MAX_ITER iterations. The random weights break the symmetry between circles of equal size, push some circles to grow and others to shrink, and so help escape near-symmetric saddle configurations that a uniform-radius start tends to fall into.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8739787936210632,
+  "sim_tried_bge": 0.8324769735336304,
+  "sim_hist_mini": 0.7509805560112,
+  "sources": [
+   [
+    "opus",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b033",
+  "title": "Area-objective homotopy before the radius-sum objective",
+  "spec": "Run each restart in two SLSQP stages with the same constraints. Stage 1 (40 iterations) maximises sum(r**p) with p drawn per restart from {0.5, 2.0}: p = 0.5 favours equal circles, p = 2.0 favours a few large circles with small ones filling the gaps. For p = 0.5 use sum(sqrt(r + 1e-6)) to keep the gradient finite at zero. Stage 2 starts from the stage-1 result and maximises sum(r) with maxiter MAX_ITER, as now. One restart in three skips stage 1, so the current behaviour stays in the mix. Keep the init, the repair and the restart loop unchanged. The aim is to reach size distributions that the plain objective does not reach from equal initial radii.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8609844446182251,
+  "sim_tried_bge": 0.8338072299957275,
+  "sim_hist_mini": 0.7574267387390137,
+  "sources": [
+   [
+    "fable",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b034",
+  "title": "Snap-to-boundary post-processing before repair",
+  "spec": "After SLSQP and clipping, for each circle whose gap to a wall is below 0.02, move its centre so that it touches that wall (set the coordinate to r, or 1-r). Then run the existing repair. This closes small wall gaps that SLSQP leaves through its tolerance and gives radii a little more room. Keep the SLSQP call and the time-limit loop unchanged.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8357589840888977,
+  "sim_tried_bge": 0.83296138048172,
+  "sim_hist_mini": 0.684951901435852,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b035",
+  "title": "Family bandit over init types",
+  "spec": "Define three start families: the existing jittered hex grid, the square lattice with deletions, and the greedy maximal-hole init. Track each family's best repaired radius sum and its number of runs. For each restart after the first 6, pick the family with the highest upper confidence bound, mean best plus 0.02*sqrt(log(total)/count), with ties broken by rng. Use the same SLSQP and repair for every family, and keep the time-limit loop as is.",
+  "family": "other",
+  "sim_hist_bge": 0.7798671722412109,
+  "sim_tried_bge": 0.7662241458892822,
+  "sim_hist_mini": 0.6477265954017639,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b036",
+  "title": "Batch prescreen inits by a cheap energy",
+  "spec": "In each restart, generate a batch of 8 candidate initial centre sets using the current hex-init procedure with the seeded rng. For each one, compute a cheap score: the sum over all circles of min(distance to the nearest wall, half the distance to the nearest neighbour), which is a feasible radius estimate, vectorised with numpy. Run SLSQP only on the candidate with the highest score. The scoring costs about a millisecond, so the restart rate barely changes, while starts with clumped or overlapping jitter are filtered out.",
+  "family": "batch",
+  "sim_hist_bge": 0.8113393187522888,
+  "sim_tried_bge": 0.7904947996139526,
+  "sim_hist_mini": 0.6856796145439148,
+  "sources": [
+   [
+    "opus",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b037",
+  "title": "Analytic gradient and Jacobian with MAX_ITER 300",
+  "spec": "Add an analytic objective gradient (-1 for radius entries, 0 for centres) and a dense analytic constraint Jacobian for the pair, wall and radius constraints. Pass them to SLSQP via jac=. Raise MAX_ITER to 300 so that each run converges more fully. Keep the hex init and the repair unchanged.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9499824047088623,
+  "sim_tried_bge": 0.8903258442878723,
+  "sim_hist_mini": 0.8251968622207642,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b038",
+  "title": "Square-lattice init with random deletions",
+  "spec": "In _solve_once, replace the hex-grid start with a square lattice of about n+4 points (ceil(sqrt(n+4)) columns and rows, spaced evenly over [0.05, 0.95]). Pick n of them uniformly at random with rng, then add N(0, 0.01) jitter and clip to [0.03, 0.97]. Keep the initial radius at INIT_RADIUS and leave the SLSQP call and repair unchanged. Use the seed only through rng.",
+  "family": "data",
+  "sim_hist_bge": 0.824837863445282,
+  "sim_tried_bge": 0.824837863445282,
+  "sim_hist_mini": 0.7589575052261353,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b039",
+  "title": "Equal-radius start before free SLSQP",
+  "spec": "In _solve_once, first solve a reduced problem with all radii tied to one variable t, maximising t subject to the same pair and wall constraints, using SLSQP from the jittered hex start. Use the resulting centres and t as the start for the usual free-radius SLSQP, with each radius initialised to t. This gives the free problem a feasible, evenly spread start. Keep MAX_ITER and the repair step unchanged.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8824025392532349,
+  "sim_tried_bge": 0.8479440212249756,
+  "sim_hist_mini": 0.7890360951423645,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b040",
+  "title": "Greedy largest-hole constructive init",
+  "spec": "With probability 0.5 per restart, replace the hex-grid init with a greedy construction; otherwise use the current init. Build a fixed 40x40 grid of candidate points in the square. Place circles one at a time: for every candidate compute the largest radius allowed by the walls and the already-placed circles (min of wall distance and centre distance minus placed radius), cap it at a value drawn uniformly from [0.07, 0.12], then pick a candidate at random among the 5 with the largest allowed radius and place the circle there. After n circles, start SLSQP from these centres with initial radii of 0.8 times the greedy radii (floored at 0.01). Vectorise the candidate evaluation with numpy so that the construction costs a few milliseconds.",
+  "family": "data",
+  "sim_hist_bge": 0.8467151522636414,
+  "sim_tried_bge": 0.8467151522636414,
+  "sim_hist_mini": 0.8046503067016602,
+  "sources": [
+   [
+    "fable",
+    "c",
+    3
+   ]
+  ]
+ }
+]

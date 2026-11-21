@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None:   # first start: a random restart
+            c, r = _solve_once(n, rng)
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+=======
+    rng, t0, best, cur, stale = np.random.default_rng(seed), time.process_time(), None, None, 0
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:
+        restart = cur is not None and stale >= 60 and time.process_time() - t0 <= 0.75 * budget
+        if cur is None or restart:   # random restart (first start, or stagnated chain)
+            c, r = _solve_once(n, rng)
+            stale = 0
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = cur[0].copy(), cur[1].copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        r = _repair(c, r)
+        if cur is None or restart:
+            cur = (c, r)
+        elif r.sum() > cur[1].sum():
+            cur, stale = (c, r), 0
+        else:
+            stale += 1
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

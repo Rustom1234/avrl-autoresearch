@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+import lightgbm as lgb
+from sklearn.model_selection import train_test_split
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    X_tr, X_val, y_tr, y_val = train_test_split(X, y, test_size=0.15, random_state=seed)
+    params = dict(objective="regression", learning_rate=0.01, num_leaves=31, min_child_samples=5,
+                  feature_fraction=0.3, bagging_fraction=0.8, bagging_freq=1, seed=seed, verbose=-1, num_threads=8)
+    booster = lgb.train(params, lgb.Dataset(X_tr, y_tr), num_boost_round=2000,
+                        valid_sets=[lgb.Dataset(X_val, y_val)],
+                        callbacks=[lgb.early_stopping(100, verbose=False)])
+    n_rounds = max(booster.best_iteration, 1)
+    model = lgb.train(params, lgb.Dataset(X, y), num_boost_round=n_rounds)
+    return model.predict(featurize(test_smiles))
+>>>>>>> REPLACE
+-----

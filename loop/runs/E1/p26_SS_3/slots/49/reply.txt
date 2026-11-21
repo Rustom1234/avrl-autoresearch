@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        explore = time.process_time() - t0 < 0.3 * TIME_FRACTION * time_limit or best is None
+        c, r = _solve_once(n, rng, None if explore else best)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    cur = None
+    total = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < total:
+        el = time.process_time() - t0
+        explore = el < 0.3 * total or best is None
+        c, r = _solve_once(n, rng, None if explore else cur)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        if explore:
+            cur = best
+        else:
+            frac = min(1.0, (el - 0.3 * total) / (0.7 * total))
+            T = 0.002 + (0.0002 - 0.002) * frac
+            d = r.sum() - cur[1].sum()
+            if d >= 0 or rng.random() < np.exp(d / T):
+                cur = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

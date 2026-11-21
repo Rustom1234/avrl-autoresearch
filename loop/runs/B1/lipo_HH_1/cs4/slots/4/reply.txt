@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    return meta.predict(base_te)
+=======
+    p1 = meta.predict(base_te)
+    try:
+        Xa = np.vstack([Xtr, Xte])
+        ya = np.concatenate([y, p1])
+        w = np.concatenate([np.ones(len(y)), np.full(len(p1), 0.3)])
+        rf = RandomForestRegressor(n_estimators=200, max_features=0.3, n_jobs=8, random_state=seed)
+        p_rf = rf.fit(Xa, ya, sample_weight=w).predict(Xte)
+        m = lgb.train(lgb_params((31, 10, 0.2), seed), lgb.Dataset(Xa, ya, weight=w), num_boost_round=N_ROUNDS)
+        p_lgb = m.predict(Xte)
+        return meta.predict(np.column_stack([p_rf, p_lgb, base_te[:, 2]]))
+    except Exception:
+        return p1
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,41 @@
+[PYTHON]
+-----
+# FLOW: Replace cross-entropy calculation to implement perplexity-aware loss masking
+<<<<<<< SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+=======
+        if targets is not None:
+            logits_flat = logits.view(-1, logits.size(-1))
+            targets_flat = targets.view(-1)
+            
+            # Soft cap logits to avoid log(0) NaNs
+            softcap = 20
+            logits_clipped = torch.tanh(logits_flat / softcap) * softcap
+            
+            # Perplexity-aware masking: mask out tokens with extremely low probability (high negative log prob)
+            # Compute unnormalized log probs for masking
+            log_probs = logits_clipped - logits_clipped.max(dim=1, keepdim=True).values
+            
+            # Identify tokens that would be very rare: create a mask for low prob tokens
+            # Mask those with log prob < -12 (prob < 1e-5) - they contribute too little to reduce overfitting
+            low_prob_mask = log_probs < -12.0
+            
+            # Create loss tensor, masked to ignore low-prob tokens
+            # Use softhandle (simplified to direct max) for CUDA compatibility without external flash_attn at this point
+            sparse_masked_loss = log_probs.view(-1)
+            zero_inds = torch.where(low_prob_mask.view(-1))
+            # Suppress low-prob masks: set to 0, so they contribute nothing to the loss (masking effect)
+            # This prevents overfitting to rare sequences
+            loss_mask = sparse_masked_loss
+            if len(zero_inds[0]) > 0:
+                loss_mask.zero_()
+                loss_mask.scatter_(0, zero_inds, log_probs[zero_inds, :1])
+            
+            loss = F.nll_loss(torch.softmax(logits_clipped, dim=-1) * loss_mask, targets_flat)
+            return loss
+>>>>>>> REPLACE{
+-----

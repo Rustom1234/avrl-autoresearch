@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+HOP_SD = 0.04
+=======
+HOP_SD = 0.04
+WINDOW_R = 0.25
+WINDOW_JITTER = 0.01
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _window(c, r, rng):
+    """Re-optimise only the circles whose centres lie in a random disc; the rest stay fixed as obstacles."""
+    n = len(r)
+    centre = rng.uniform(0, 1, 2)
+    free = np.where(((c - centre) ** 2).sum(1) < WINDOW_R ** 2)[0]
+    m = len(free)
+    if m == 0:
+        return c, r
+    iu = np.triu_indices(n, 1)
+
+    def full(v):
+        cc, rad = c.copy(), r.copy()
+        cc[free] = v[:2 * m].reshape(m, 2)
+        rad[free] = v[2 * m:]
+        return cc, rad
+
+    def cons(v):
+        cc, rad = full(v)
+        d = np.sqrt(((cc[iu[0]] - cc[iu[1]]) ** 2).sum(1)) - rad[iu[0]] - rad[iu[1]]
+        return np.concatenate([d, cc[:, 0] - rad, cc[:, 1] - rad, 1 - cc[:, 0] - rad, 1 - cc[:, 1] - rad, rad])
+
+    x0 = np.concatenate([c[free].ravel(), r[free]])
+    res = minimize(lambda v: -v[2 * m:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return full(res.x)
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+=======
+        c, r = _window(*best, rng)
+        p = (c + rng.normal(0, WINDOW_JITTER, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+>>>>>>> REPLACE
+-----

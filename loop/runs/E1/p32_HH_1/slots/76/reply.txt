@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+ISLANDS = 4
+ELITE = 3
+PER_ROUND = 5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rngs = [np.random.default_rng(seed + k) for k in range(ISLANDS)]
+    t0, best, rnd = time.process_time(), None, 0
+    elites = [[] for _ in range(ISLANDS)]
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        for k in range(ISLANDS):
+            rng = rngs[k]
+            for _ in range(PER_ROUND):
+                if time.process_time() - t0 >= TIME_FRACTION * time_limit:
+                    break
+                pool = elites[k] + elites[(k + 1) % ISLANDS]
+                start = None
+                if rnd >= 2 and pool and rng.random() < 0.5:
+                    start = pool[rng.integers(len(pool))][0]
+                c, r = _solve_once(n, rng, start)
+                c = np.clip(c, 0, 1)
+                r = _repair(c, r)
+                if best is None or r.sum() > best[1].sum():
+                    best = (c, r)
+                elites[k] = sorted(elites[k] + [(c, r)], key=lambda e: -e[1].sum())[:ELITE]
+        migrants = [e[0] if e else None for e in elites]
+        for k in range(ISLANDS):
+            dst = (k + 1) % ISLANDS
+            if migrants[k] is None:
+                continue
+            if len(elites[dst]) < ELITE:
+                elites[dst].append(migrants[k])
+            elif migrants[k][1].sum() > elites[dst][-1][1].sum():
+                elites[dst][-1] = migrants[k]
+            elites[dst].sort(key=lambda e: -e[1].sum())
+        rnd += 1
+    return best
+>>>>>>> REPLACE
+-----

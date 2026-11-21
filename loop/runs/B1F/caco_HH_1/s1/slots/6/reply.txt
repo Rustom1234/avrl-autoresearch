@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def phys_one(smi):
+    m = Chem.MolFromSmiles(smi)
+    n = max(m.GetNumHeavyAtoms(), 1)
+    arom = sum(a.GetIsAromatic() for a in m.GetAtoms()) / n
+    vals = [f(m) for f in (Descriptors.TPSA, Descriptors.MolLogP, Descriptors.NumHDonors,
+                           Descriptors.NumHAcceptors, Descriptors.MolWt, Descriptors.NumRotatableBonds)]
+    return vals + [arom]
+=======
+_ION_PATTERNS = [Chem.MolFromSmarts(s) for s in (
+    '[CX3](=O)[OX2H1,OX1-]',
+    '[NX3;H2;!$(NC=[O,S,N]);!$(Na)][CX4]',
+    '[NX3;H1;!$(NC=[O,S,N]);!$(Na);!$(NS=O)]([CX4])[CX4]',
+    '[NX3;H0;!$(NC=[O,S,N]);!$(Na);!$(NS=O)]([CX4])([CX4])[CX4]',
+    'S(=O)(=O)[NX3]',
+    'c[OX2H1]',
+)]
+
+
+def phys_one(smi):
+    m = Chem.MolFromSmiles(smi)
+    n = max(m.GetNumHeavyAtoms(), 1)
+    arom = sum(a.GetIsAromatic() for a in m.GetAtoms()) / n
+    vals = [f(m) for f in (Descriptors.TPSA, Descriptors.MolLogP, Descriptors.NumHDonors,
+                           Descriptors.NumHAcceptors, Descriptors.MolWt, Descriptors.NumRotatableBonds)]
+    ion = [len(m.GetSubstructMatches(p)) for p in _ION_PATTERNS]
+    charges = [a.GetFormalCharge() for a in m.GetAtoms()]
+    extra = [sum(c > 0 for c in charges), sum(c < 0 for c in charges),
+             Descriptors.NumHeteroatoms(m), Descriptors.FractionCSP3(m),
+             Descriptors.LabuteASA(m), Descriptors.MolMR(m)]
+    return vals + [arom] + ion + extra
+>>>>>>> REPLACE
+-----

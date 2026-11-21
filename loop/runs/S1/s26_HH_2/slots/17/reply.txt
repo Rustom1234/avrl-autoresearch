@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+def _old_construct_packing():
+=======
+def _softplus_refine(c, r, betas=(5.0, 15.0, 50.0, 150.0, 500.0), mu=200.0, maxiter=200):
+    """Soft-to-hard continuation: softplus overlap penalty, beta growing, L-BFGS-B at each beta."""
+    n = c.shape[0]
+    iu, ju = np.triu_indices(n, 1)
+
+    def fg(z, beta):
+        cc = z[:2 * n].reshape(n, 2)
+        rr = z[2 * n:]
+        diff = cc[iu] - cc[ju]
+        d = np.sqrt(np.sum(diff ** 2, axis=1) + 1e-18)
+        unit = diff / d[:, None]
+        bp = beta * (rr[iu] + rr[ju] - d)
+        fp = np.sum(np.logaddexp(0.0, bp)) / beta
+        sp = 0.5 * (1.0 + np.tanh(0.5 * bp))
+        gr = -np.ones(n)
+        gc = np.zeros((n, 2))
+        np.add.at(gr, iu, mu * sp)
+        np.add.at(gr, ju, mu * sp)
+        np.add.at(gc, iu, -mu * sp[:, None] * unit)
+        np.add.at(gc, ju, mu * sp[:, None] * unit)
+        x, y = cc[:, 0], cc[:, 1]
+        fw = 0.0
+        for v, ax, sg in [(rr - x, 0, -1.0), (rr - y, 1, -1.0),
+                          (rr - (1.0 - x), 0, 1.0), (rr - (1.0 - y), 1, 1.0)]:
+            bv = beta * v
+            fw += np.sum(np.logaddexp(0.0, bv)) / beta
+            s = 0.5 * (1.0 + np.tanh(0.5 * bv))
+            gr += mu * s
+            gc[:, ax] += mu * sg * s
+        F = -np.sum(rr) + mu * (fp + fw)
+        return F, np.concatenate([gc.ravel(), gr])
+
+    z = np.concatenate([c.ravel(), np.maximum(r, 0.0)])
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    for beta in betas:
+        try:
+            res = _minimize(fg, z, args=(beta,), jac=True, method="L-BFGS-B",
+                            bounds=bounds, options={"maxiter": maxiter})
+            z = res.x
+        except Exception:
+            break
+    cc = np.clip(z[:2 * n].reshape(n, 2), 0.0, 1.0)
+    rr = np.maximum(z[2 * n:], 0.0)
+    return cc, rr
+
+
+def _old_construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best_c, _make_valid(best_c, best_r)
+=======
+    best_s_now = float(_make_valid(best_c, best_r).sum())
+    try:
+        cand = _softplus_refine(best_c, best_r)
+        rv, s = _score(cand)
+        if rv is not None and s > best_s_now:
+            return cand, rv
+    except Exception:
+        pass
+    return best_c, _make_valid(best_c, best_r)
+>>>>>>> REPLACE
+-----

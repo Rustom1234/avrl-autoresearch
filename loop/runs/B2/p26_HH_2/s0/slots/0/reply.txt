@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+=======
+    x, prev = x0, -1.0
+    for cap in np.arange(0.05, 0.4 + 1e-9, 0.02):
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": 120})
+        x = res.x
+        s = x[2 * n:].sum()
+        if s - prev < 1e-5 * s:
+            break
+        prev = s
+    res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                   constraints={"type": "ineq", "fun": lambda v: cons(v, 1.0)},
+                   options={"maxiter": 300})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

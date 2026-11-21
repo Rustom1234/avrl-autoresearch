@@ -1,0 +1,56 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (binary classification; return the probability of class 1).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            
+            # Scaffold-invariant descriptors
+            atoms = mol.GetAtoms()
+            heavy_counts = np.array([sum(1 for a in atoms if a.GetSymbol() == sym) for sym in ['C', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'P']], dtype=np.float32)
+            
+            aromatic_count = sum(1 for a in atoms if a.GetIsAromatic())
+            aliphatic_count = sum(1 for a in atoms if not a.GetIsAromatic())
+            
+            hbd = sum(1 for a in atoms if a.GetTotalNumHs() > 0 and (a.GetSymbol() == 'N' or a.GetSymbol() == 'O'))
+            hba = sum(1 for a in atoms if (a.GetSymbol() == 'N' or a.GetSymbol() == 'O') and (a.GetTotalNumHs() == 0 or (a.GetSymbol() == 'N' and a.GetTotalNumHs() > 0 and a.GetNeighborsCount() == 3)))
+            
+            # Specific functional groups
+            def get_matches(smarts):
+                q = Chem.MolFromSmarts(smarts)
+                return sum(1 for _ in mol.GetSubstructMatches(q) for _ in [1])
+
+            amines = get_matches('[NX3;H2,H1,H0;!$(NC=O);!$(N-a);!$(N-S(=O)=O)]')
+            acids = get_matches('[C;H1,H2,H3;(=O)[O,OH]')
+            quat_n = get_matches('[NX3;H0;!$(NC=O);!$(N-a);!$(N-S(=O)=O)]')
+            
+            sp3_c = sum(1 for a in atoms if a.GetSymbol() == 'C' and a.GetHybridization() == rdkit.Chem.rdMolDescriptors.RDmolDescriptors.SP3) or 0
+            
+            desc = np.array([*heavy_counts, aromatic_count, aliphatic_count, hbd, hba, amines, acids, quat_n, sp3_c], dtype=np.float32)
+            
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32), desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]

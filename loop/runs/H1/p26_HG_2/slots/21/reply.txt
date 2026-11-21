@@ -1,0 +1,221 @@
+<<<<<<< SEARCH
+        while time.process_time() - t0 < TIME_FRACTION * time_limit:
+            idx = rng.randint(0, n)
+            dists = np.linalg.norm(c - c[idx], axis=1)
+            near_idx = np.argsort(dists)[:4]
+            
+            new_c = c.copy()
+            new_r = r.copy()
+            
+            # Destroy and reinsert
+            new_c[near_idx] = rng.uniform(0, 1, (4, 2))
+            new_r[near_idx] = 0.02
+            
+            x0_local = np.concatenate([new_c.flatten(), new_r])
+            iu = np.triu_indices(n, 1)
+            
+            def cons_local(v):
+                cv, rv = v[:2 * n].reshape(n, 2), v[2 * n:]
+                d = np.sqrt(((cv[iu[0]] - cv[iu[1]]) ** 2).sum(1)) - rv[iu[0]] - rv[iu[1]]
+                return np.concatenate([d, cv[:, 0] - rv, cv[:, 1] - rv, 1 - cv[:, 0] - rv, 1 - cv[:, 1] - rv, rv])
+            
+            res_local = minimize(lambda v: -v[2 * n:].sum(), x0_local, method=
+-----
+<<<<<<< SEARCH
+        while time.process_time() - t0 < TIME_FRACTION * time_limit:
+            idx = rng.randint(0, n)
+            dists = np.linalg.norm(c - c[idx], axis=1)
+            near_idx = np.argsort(dists)[:4]
+            
+            new_c = c.copy()
+            new_r = r.copy()
+            
+            # Destroy and reinsert
+            new_c[near_idx] = rng.uniform(0, 1, (4, 2))
+            new_r[near_idx] = 0.02
+            
+            x0_local = np.concatenate([new_c.flatten(), new_r])
+            iu = np.triu_indices(n, 1)
+            
+            def cons_local(v):
+                cv, rv = v[:2 * n].reshape(n, 2), v[2 * n:]
+                d = np.sqrt(((cv[iu[0]] - cv[iu[1]]) ** 2).sum(1)) - rv[iu[0]] - rv[iu[1]]
+                return np.concatenate([d, cv[:, 0] - rv, cv[:, 1] - rv, 1 - cv[:, 0] - rv, 1 - cv[:, 1] - rv, rv])
+            
+            res_local = minimize(lambda v: -v[2 * n:].sum(), x0_local, method="SLSQP", 
+                                  constraints={"type": "ineq", "fun": cons_local}, 
+                                  options={"maxiter": 100})
+            
+            curr_c = res_local.x[:2 * n].reshape(n, 2)
+            curr_r = res_local.x[2 * n:]
+            curr_c = np.clip(curr_c, 0, 1)
+            curr_r = _repair(curr_c, curr_r)
+            
+            if best is None or curr_r.sum() > best[1].sum():
+                best = (curr_c, curr_r)
+            
+            
+        return best
+=======
+        while time.process_time() - t0 < TIME_FRACTION * time_limit:
+            idx = rng.integers(0, n)
+            dists = np.linalg.norm(c - c[idx], axis=1)
+            near_idx = np.argsort(dists)[:4]
+            
+            new_c = c.copy()
+            new_r = r.copy()
+            
+            # Destroy and reinsert
+            new_c[near_idx] = rng.uniform(0, 1, (4, 2))
+            new_r[near_idx] = 0.02
+            
+            x0_local = np.concatenate([new_c.flatten(), new_r])
+            iu = np.triu_indices(n, 1)
+            
+            def cons_local(v):
+                cv, rv = v[:2 * n].reshape(n, 2), v[2 * n:]
+                d = np.sqrt(((cv[iu[0]] - cv[iu[1]]) ** 2).sum(1)) - rv[iu[0]] - rv[iu[1]]
+                return np.concatenate([d, cv[:, 0] - rv, cv[:, 1] - rv, 1 - cv[:, 0] - rv, 1 - cv[:, 1] - rv, rv])
+            
+            res_local = minimize(lambda v: -v[2 * n:].sum(), x0_local, method="SLSQP", 
+                                  constraints={"type": "ineq", "fun": cons_local}, 
+                                  options={"maxiter": 100})
+            
+            curr_c = res_local.x[:2 * n].reshape(n, 2)
+            curr_r = res_local.x[2 * n:]
+            curr_c = np.clip(curr_c, 0, 1)
+            curr_r = _repair(curr_c, curr_r)
+            
+            if best is None or curr_r.sum() > best[1].sum():
+                best = (curr_c, curr_r)
+            
+            
+        return best
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+        while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+
+            while time.process_time() - t0 < TIME_FRACTION * time_limit:
+                idx = rng.randint(0, n)
+                dists = np.linalg.norm(c - c[idx], axis=1)
+                near_idx = np.argsort(dists)[:4]
+                
+                new_c = c.copy()
+                new_r = r.copy()
+                
+                # Destroy and reinsert
+                new_c[near_idx] = rng.uniform(0, 1, (4, 2))
+                new_r[near_idx] = 0.02
+                
+                x0_local = np.concatenate([new_c.flatten(), new_r])
+                iu = np.triu_indices(n, 1)
+                
+                def cons_local(v):
+                    cv, rv = v[:2 * n].reshape(n, 2), v[2 * n:]
+                    d = np.sqrt(((cv[iu[0]] - cv[iu[1]]) ** 2).sum(1)) - rv[iu[0]] - rv[iu[1]]
+                    return np.concatenate([d, cv[:, 0] - rv, cv[:, 1] - rv, 1 - cv[:, 0] - rv, 1 - cv[:, 1] - rv, rv])
+                
+                res_local = minimize(lambda v: -v[2 * n:].sum(), x0_local, method="SLSQP", 
+                                      constraintselry{"type": "ineq", "fun": cons_local}, 
+                                      optionselry{"maxiter": 100})
+                
+                curr_c = res_local.x[:2 * n].reshape(n, 2)
+                curr_r = res_local.x[2 * n:]
+                curr_c = np.clip(curr_c, 0, 1)
+                curr_r = _repair(curr_c, curr_r)
+                
+                if best is None or curr_r.sum() > best[1].sum():
+                    best = (curr_c, curr_r)
+            
+        return best
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+
+            while time.process_time() - t0 < TIME_FRACTION * time_limit:
+                idx = rng.randint(0, n)
+                dists = np.linalg.norm(c - c[idx], axis=1)
+                near_idx = np.argsort(dists)[:4]
+                
+                new_c = c.copy()
+                new_r = r.copy()
+                
+                # Destroy and reinsert
+                new_c[near_idx] = rng.uniform(0, 1, (4, 2))
+                new_r[near_idx] = 0.02
+                
+                x0_local = np.concatenate([new_c.flatten(), new_r])
+                iu = np.triu_indices(n, 1)
+                
+                def cons_local(v):
+                    cv, rv = v[:2 * n].reshape(n, 2), v[2 * n:]
+                    d = np.sqrt(((cv[iu[0]] - cv[iu[1]]) ** 2).sum(1)) - rv[iu[0]] - rv[iu[1]]
+                    return np.concatenate([d, cv[:, 0] - rv, cv[:, 1] - rv, 1 - cv[:, 0] - rv, 1 - cv[:, 1] - rv, rv])
+                
+                res_local = minimize(lambda v: -v[2 * n:].sum(), x0_local, method="SLSQP", 
+                                      constraintselry{"type": "ineq", "fun": cons_local}, 
+                                      optionselry{"maxiter": 100})
+                
+                curr_c = res_local.x[:2 * n].reshape(n, 2)
+                curr_r = res_local.x[2 * n:]
+                curr_c = np.clip(curr_c, 0, 1)
+                curr_r = _repair(curr_c, curr_r)
+                
+                if best is None or curr_r.sum() > best[1].sum():
+                    best = (curr_c, curr_r)
+            
+        return best
+=======
+        while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+
+            while time.process_time() - t0 < TIME_FRACTION * time_limit:
+                idx = rng.integers(0, n)
+                dists = np.linalg.norm(c - c[idx], axis=1)
+                near_idx = np.argsort(dists)[:4]
+                
+                new_c = c.copy()
+                new_r = r.copy()
+                
+                # Destroy and reinsert
+                new_c[near_idx] = rng.uniform(0, 1, (4, 2))
+                new_r[near_idx] = 0.02
+                
+                x0_local = np.concatenate([new_c.flatten(), new_r])
+                iu = np.triu_indices(n, 1)
+                
+                def cons_local(v):
+                    cv, rv = v[:2 * n].reshape(n, 2), v[2 * n:]
+                    d = np.sqrt(((cv[iu[0]] - cv[iu[1]]) ** 2).sum(1)) - rv[iu[0]] - rv[iu[1]]
+                    return np.concatenate([d, cv[:, 0] - rv, cv[:, 1] - rv, 1 - cv[:, 0] - rv, 1 - cv[:, 1] - rv, rv])
+                
+                res_local = minimize(lambda v: -v[2 * n:].sum(), x0_local, method="SLSQP", 
+                                      constraintselry{"type": "ineq", "fun": cons_local}, 
+                                      optionselry{"maxiter": 100})
+                
+                curr_c = res_local.x[:2 * n].reshape(n, 2)
+                curr_r = res_local.x[2 * n:]
+                curr_c = np.clip(curr_c, 0, 1)
+                curr_r = _repair(curr_c, curr_r)
+                
+                if best is None or curr_r.sum() > best[1].sum():
+                    best = (curr_c, curr_r)
+            
+        return best
+>>>>>>> REPLACE
+-----

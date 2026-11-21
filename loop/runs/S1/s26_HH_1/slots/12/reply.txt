@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+def jitter_anneal_search(seed=12345, budget=150.0):
+=======
+def _penalty_relax(c0):
+    # Energy: -sum(r) + mu * (squared pair overlaps + squared border violations).
+    # Solve with L-BFGS-B for geometrically increasing mu, warm-starting each solve.
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    z = np.concatenate([c0[:, 0], c0[:, 1], np.full(n, 0.02)])
+
+    def fg(z, mu):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        d = np.sqrt(dx * dx + dy * dy) + 1e-12
+        ov = np.maximum(r[I] + r[J] - d, 0.0)
+        b1 = np.maximum(r - x, 0.0)
+        b2 = np.maximum(x + r - 1.0, 0.0)
+        b3 = np.maximum(r - y, 0.0)
+        b4 = np.maximum(y + r - 1.0, 0.0)
+        pen = np.sum(ov * ov) + np.sum(b1 * b1 + b2 * b2 + b3 * b3 + b4 * b4)
+        f = -np.sum(r) + mu * pen
+        cx = 2.0 * ov * dx / d
+        cy = 2.0 * ov * dy / d
+        gx = np.zeros(n)
+        gy = np.zeros(n)
+        gr = np.zeros(n)
+        np.add.at(gx, I, -cx)
+        np.add.at(gx, J, cx)
+        np.add.at(gy, I, -cy)
+        np.add.at(gy, J, cy)
+        np.add.at(gr, I, 2.0 * ov)
+        np.add.at(gr, J, 2.0 * ov)
+        gx += -2.0 * b1 + 2.0 * b2
+        gy += -2.0 * b3 + 2.0 * b4
+        gr += 2.0 * (b1 + b2 + b3 + b4)
+        g = np.concatenate([mu * gx, mu * gy, -np.ones(n) + mu * gr])
+        return f, g
+
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    try:
+        for mu in np.geomspace(10.0, 1e6, 6):
+            res = minimize(fg, z, args=(mu,), jac=True, method="L-BFGS-B",
+                           bounds=bounds, options={"maxiter": 500})
+            z = res.x
+        return np.clip(np.stack([z[:n], z[n:2 * n]], axis=1), 0.0, 1.0)
+    except Exception:
+        return c0
+
+
+def jitter_anneal_search(seed=12345, budget=150.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c = _ls_growth(rng)
+    best_c, best_r = _local_opt(c)
+=======
+    c = _penalty_relax(_ls_growth(rng))
+    best_c, best_r = _local_opt(c)
+>>>>>>> REPLACE
+-----

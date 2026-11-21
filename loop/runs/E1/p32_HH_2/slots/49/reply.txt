@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    budget = TIME_FRACTION * time_limit
+    elite = [best]   # top 2 distinct packings found so far
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        if len(elite) == 2 and rng.random() < 0.2:   # cluster crossover of two elite packings
+            (ca, ra), (cb, rb) = elite
+            ang = rng.uniform(0, 2 * np.pi)
+            u = np.array([np.cos(ang), np.sin(ang)])
+            ma = (ca - 0.5) @ u < 0
+            mb = (cb - 0.5) @ u >= 0
+            cc = np.vstack([ca[ma], cb[mb]])
+            rr = np.concatenate([ra[ma], rb[mb]])
+            while len(cc) > n:   # drop the smallest circles
+                k = np.argmin(rr)
+                cc, rr = np.delete(cc, k, 0), np.delete(rr, k)
+            while len(cc) < n:   # add a point in the largest gap (best of 50 random candidates)
+                cand = rng.uniform(0, 1, (50, 2))
+                gap = np.sqrt(((cand[:, None] - cc[None]) ** 2).sum(-1)).min(1) if len(cc) else np.ones(50)
+                cc = np.vstack([cc, cand[np.argmax(gap)]])
+                rr = np.append(rr, 0.0)
+            c, r = _solve_once(n, cc.ravel())
+        else:
+            p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+            c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+        if all(abs(r.sum() - e[1].sum()) > 1e-9 for e in elite):
+            elite = sorted(elite + [(c, r)], key=lambda e: -e[1].sum())[:2]
+    return best
+>>>>>>> REPLACE
+-----

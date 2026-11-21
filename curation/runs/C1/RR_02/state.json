@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/RR_02/cand/s04_0.py",
+ "inc_scores": {
+  "11": 1.8320369124499623
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace random selection with a target-similarity filter plus dedup. Steps: (1) Fit a TfidfVectorizer on char n-grams (analyzer='char_wb', ngram_range=(1,3), sublinear_tf=True, max_features=50000) using the first 2000 chars of each pool doc and target_sample doc. (2) Train a LogisticRegression (C=1.0, max_iter=200) with positives = the 200 target_sample docs (class_weight='balanced') and negatives = a seeded random sample of 3000 pool docs; score every pool doc with decision_function. (3) Add cheap WikiText-format heuristics to the score: +bonus if the doc starts with '= ' and its first line ends with ' =', and if it contains ' @-@ ' or ' , ' / ' . ' spaced punctuation; hard-drop docs that are shorter than 200 chars, contain spam markers ('Click here to order', 'best price guaranteed', 'coupon'), or have a non-ASCII-letter/alpha ratio below 0.6. (4) Dedup exactly: keep only the first occurrence of each doc by hash of whitespace-normalised text (also dedup by hash of first 300 chars to catch near-duplicates). (5) Rank remaining docs by score, count tokens with tiktoken gpt2 (encode_ordinary_batch), and take top-scoring docs until the cumulative total reaches T tokens (if the clearly-in-domain set \u2014 score above the midpoint threshold between target mean and pool median \u2014 is smaller than T, keep only that set and let it cycle, as long as it holds at least 0.4 T tokens; otherwise fill up to T by score). (6) Shuffle the selected indices with random.Random(CURATE_SEED) so the order is mixed, and return them.",
+   "outcome": "dev 1.9405 against 1.9630 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Increase the ngram_range to (1, 5) and increase the max_features to 100,000 for the TfidfVectorizer, and increase the training sample of negatives to 5,000.",
+   "outcome": "dev 1.9412 against 1.9405 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Replace LogisticRegression with a simple TF-IDF cosine similarity ranking: calculate the centroid vector of the target_sample (positive set) and select pool documents with the highest cosine similarity to this centroid, while keeping the existing hard-drops, deduping, and token-count logic.",
+   "outcome": "dev 1.9456 against 1.9405 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Add a hard-drop for word-shuffled documents, which the char_wb n-gram classifier cannot see because they keep the wiki title, vocabulary and spaced punctuation (pool examples: '= Legitimate expectation in Singapore law =\\nin substantive protects and procedural rights expectation Singapore of ...', '= The Boat Race 1839 =\\nRiver 1839 3 April the The Race place ...'). Keep everything else unchanged.\n\nCompute two word-order statistics on the whitespace tokens of the first ~3000 chars of each doc body (skip the first title line):\n\n(a) Sentence-boundary rate: among '.' tokens that are followed by another token on the same line, the fraction whose next token starts with an uppercase letter, a digit, or a quote/bracket. Also count, as failures, non-heading lines longer than 5 tokens that do not end in '.', '\"', ')' or similar closing punctuation.\n\n(b) Function-bigram rate: occurrences per 100 tokens of a fixed list of adjacent pairs: 'of the', 'in the', 'to the', ', and', 'on the', 'at the', 'for the', 'by the', 'with the', 'from the', 'and the', ', the', 'as a', 'was a', 'to be', ', which', ', but'.\n\nCompute both statistics on the 200 target_sample docs too. Drop a pool doc if (a) < 0.5 \u00d7 the target 5th percentile of (a) (when it has at least 5 qualifying '.' tokens), OR (b) < 0.4 \u00d7 the target 5th percentile of (b) (when it has at least 150 tokens).\n\nApply the drop inside _hard_drop/keep, before dedup, so shuffled copies cannot claim a dedup slot. Draw the 3000 logistic-regression negatives from the full pool as before. Leave the existing top-score fill to T and the cycle rule for a small in-domain set unchanged.",
+   "outcome": "dev 1.8320 against 1.9405 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the LogisticRegression classifier with a Cross-Entropy classifier (using sklearn.linear_model.SGDClassifier or a similar linear model) to provide better calibrated scores for the pool docs, and increase the ngram_range to (1, 4) for the char_wb TfidfVectorizer.",
+   "outcome": "dev 1.8332 against 1.8320 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the LogisticRegression classifier with a MultiNounLayer-style approach by using a Cross-Entropy classifier (SGDClassifier) with 'hinge' or 'log' loss, but specifically switch the TfidfVectorizer to use 'min_df=2' and 'max_df=0.8' to prune extremely rare/noisy character n-grams and very common ones that don't provide discriminative power.",
+   "outcome": "dev 1.8282 against 1.8320 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Stop filling the budget with out-of-domain text: train only on the clean in-domain set and repeat it. Keep the existing hard-drops (including the shuffle filter), dedup and LR scoring unchanged. After them, define the in-domain set as kept docs whose first line is a wiki title ('= ... =', starts with '= ' and ends with ' =') and which contain spaced punctuation (' , ' or ' . '). Apply this title rule only if at least 90% of target_sample docs have such a title line; otherwise define in-domain as LR score > the existing thr. Count the set's tokens with tiktoken. If it holds at least 0.25*T tokens and less than 1.01*T, return ONLY these docs with no lower-scored web/code/forum filler: concatenate independently reshuffled passes over the set (each pass shuffled with the seeded rng) until the cumulative tokens reach 1.01*T. If the set holds 1.01*T or more, take its top-LR-scored docs up to 1.01*T and shuffle as now. If it holds less than 0.25*T, fall back to the current behaviour.",
+   "outcome": "dev 1.8281 against 1.8320 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Replace LogisticRegression with a Cross-Entropy classifier (SGDClassifier) using 'hinge' loss and 'l2' penalty, while keeping the 'char_wb' TfidfVectorizer (ngram_range=(1,3)) and the existing hard-drop/dedup/heuristic logic.",
+   "outcome": "dev 1.8297 against 1.8320 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Replace LogisticRegression with a Weighted LogisticRegression (or increase the positive class weight) where the weight of each positive sample is proportional to its 'bonus' score (Wiki-style markers), and change the feature extraction to use a larger window for char_wb (ngram_range=(1,4)) while keeping the existing hard-drops and shuffle filter.",
+   "outcome": "dev 1.8338 against 1.8320 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Extend the damage filter from the first 3000 characters to the whole document, tighten it, and add two new damage checks. Keep the LR scoring, bonus, fill-to-T and cycle logic unchanged.\n\n(1) Windowed word-order check. Split each doc body (after the title line) into consecutive windows of 250 whitespace tokens, dropping a final window shorter than 120 tokens. For each window compute the existing function-bigram rate per 100 tokens (use a set for the bigram lookup) and the sentence-boundary rate (fraction of '.' tokens followed on the same line by a token starting with an uppercase letter, digit, quote or bracket; only if the window has at least 4 such '.' tokens). Compute the same per-window values over all windows of the 200 target_sample docs and take their 2nd percentiles, b2 and s2. A window is 'bad' if its bigram rate is below 0.6*b2 or its boundary rate is below 0.7*s2. Hard-drop a doc if more than 25% of its windows are bad, or if it has at least 2 bad windows in a row. This catches docs shuffled only in part or after the first 3000 characters. Keep the existing first-3000-character rule as well.\n\n(2) Character-corruption check. Build a vocabulary of lowercased purely alphabetic tokens of length 4 or more that occur in the target_sample or in at least 3 different pool docs. For each doc compute the out-of-vocabulary fraction of such tokens (docs with at least 100 of them). Hard-drop docs whose fraction exceeds max(2 * the target 99th percentile, the target max + 0.03).\n\n(3) Repetition and near-duplicate check. Hard-drop docs where fewer than 60% of non-empty lines longer than 40 characters are distinct. Extend dedup: in addition to the full hash and the first-300-character hash, hash the normalised text slice [1000:1400] (for docs of at least 1400 characters) and the last 300 characters, and drop a doc if either hash was already seen.\n\nApply all drops before dedup. Process docs in descending length order for dedup so the longest copy is kept. Use plain str.split loops and sets to stay under 180 seconds.",
+   "outcome": "FAILED to run (ation/runs/C1/RR_02/cand/s10_1.py\", line 236, in select sorted_indices = np.argsort(-[len(docs[i]) for i in range(n)]) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TypeError: bad operand type for unary -: 'list')"
+  },
+  {
+   "slot": 11,
+   "idea": "Replace the LogisticRegression classifier with a Cross-Entropy classifier (using SGDClassifier with 'hinge' loss and 'l2' penalty) while expanding the TfidfVectorizer to ngram_range=(1, 4) and adding a 'min_df=3' and 'max_df=0.8' constraint to prune noise. Keep the current hard-drops (including the windowed word-order and character-corruption checks) and the current token-count cycle logic.",
+   "outcome": "dev 1.9068 against 1.8320 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Replace the LogisticRegression classifier with a simple TF-IDF Cosine Similarity ranking against the centroid of the target_sample, but significantly improve the feature extraction by using 'char_wb' with ngram_range=(1, 4) and a larger alphabet (including digits and punctuation). Additionally, implement a 'quality' score for the pool: before ranking, calculate the ratio of standard English function-bigrams to total tokens in the body (excluding the title). Only include pool documents in the selection if their function-bigram rate is within 1.5x of the target_sample mean. If this excludes too many tokens, fall back to the LR scores but keep the hard-drops.",
+   "outcome": "dev 1.9268 against 1.8320 for the best at the time, rejected"
+  }
+ ],
+ "usd": 1.49440575,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.2949476,
+   "dev": 1.940516364598567,
+   "inc": 1.962979895403164,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.091595211202459,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0022455000000000114,
+   "dev": 1.941245890488758,
+   "inc": 1.940516364598567,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.091595211202459,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00226529999999997,
+   "dev": 1.9455758005098192,
+   "inc": 1.940516364598567,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.091595211202459,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.16056525,
+   "dev": 1.8320369124499623,
+   "inc": 1.940516364598567,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.021329886209998,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.2646802999999999,
+   "dev": 1.8331971359288752,
+   "inc": 1.8320369124499623,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.021329886209998,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0030778500000000486,
+   "dev": 1.8282143418384058,
+   "inc": 1.8320369124499623,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.021329886209998,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5234515999999999,
+   "dev": 1.8280522778358155,
+   "inc": 1.8320369124499623,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.021329886209998,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0031657500000001892,
+   "dev": 1.8297238873024182,
+   "inc": 1.8320369124499623,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.021329886209998,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0032282999999999618,
+   "dev": 1.8338220216947505,
+   "inc": 1.8320369124499623,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.021329886209998,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.23005739999999997,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 6,
+   "fails": 1,
+   "n_accept": 2,
+   "gain_sd": 18.021329886209998,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0032727000000001283,
+   "dev": 1.9068248718051317,
+   "inc": 1.8320369124499623,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 18.021329886209998,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0034482000000000124,
+   "dev": 1.9267834782051545,
+   "inc": 1.8320369124499623,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.962979895403164,
+ "inc_slot": 4
+}

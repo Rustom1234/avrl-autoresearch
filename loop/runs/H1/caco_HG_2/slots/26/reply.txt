@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors
+from xgboost import XGBRegressor
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors
+from rdkit import AllChem
+from xgboost import XGBRegressor
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    return np.hstack([fps, desc])
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, 
+        fpSize=N_BITS, 
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()
+    )
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    
+    # Morgan fingerprints
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    
+    # RDKit descriptors
+    desc = np.array([[Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.NumHDonors(m), 
+                               Descriptors.NumHAcceptors(m), Descriptors.TPSA(m)] 
+                      for m in mols], dtype=np.float32)
+    
+    # 3D shape descriptors
+    shape_desc = []
+    for m in mols:
+        try:
+            # Generate 3D conformer
+            conf = AllChem.ETKDG()
+            conf.randomSeed = int(seed % 1000000)
+            res = conf.EmbedMolecule(m, maxAttempts=50, useCachedConfs=True)
+            if res == 0:
+                AllChem.MMFFOptimizeMolecule(m, conf_id=0)
+                # Compute descriptors
+                shape_desc.append([
+                    Descriptors.CalcPBF(m), Descriptors.CalcPMI1(m), Descriptors.CalcPMI2(m), 
+                    Descriptors.CalcPMI3(m), Descriptors.CalcRadiusOfGyration(m), 
+                    Descriptors.CalcNPR1(m), Descriptors.CalcNPR2(m), Descriptors.CalcAsphericity(m)
+                ])
+            else:
+                shape_desc.append([0.0] * 8)
+        except:
+            shape_desc.append([0.0] * 8)
+    
+    shape_desc = np.array(shape_desc, dtype=np.float32)
+    return np.hstack([fps, desc, shape_desc])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import ARDRegression
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    scaler = StandardScaler().fit(ptr)
+    lin = Ridge(alpha=1.0).fit(scaler.transform(ptr), y)
+    base_tr = lin.predict(scaler.transform(ptr))
+    base_te = lin.predict(scaler.transform(pte))
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    scaler = StandardScaler().fit(ptr)
+    keep = np.where((Xtr[:, :N_BITS] > 0).sum(axis=0) >= 5)[0]
+    ftr = np.hstack([scaler.transform(ptr), np.log1p(Xtr[:, keep].astype(np.float64))])
+    fte = np.hstack([scaler.transform(pte), np.log1p(Xte[:, keep].astype(np.float64))])
+    ard = ARDRegression(max_iter=300).fit(ftr, y)
+    base_tr = ard.predict(ftr)
+    base_te = ard.predict(fte)
+>>>>>>> REPLACE
+-----

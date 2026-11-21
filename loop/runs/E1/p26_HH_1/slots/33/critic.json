@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problems: the code reads no files and contains no pasted coordinates, and all randomness comes from rng = default_rng(seed). The final packing still goes through _repair, so validity is enforced the same way as in the incumbent.",
+  "Recomputed z: the difference is 2.6324 - 2.6311 = 0.0013. SE = 0.0023*sqrt(1/1 + 1/2) = 0.00282, so z = 0.46. The harness's 0.456 agrees (the gap is from rounding). That is one candidate run against two incumbent runs, a gain of about half a noise sd, and is not significant. Rejecting, or asking for a replicate, is consistent with the numbers.",
+  "Minor: _free rebuilds a free-radius SLSQP that probably duplicates the logic in _solve_once. Reusing that function would be simpler.",
+  "Minor: the deque window is never cleared after an amplitude adaptation. Once 20 entries are full, amp is rescaled on every iteration based on mostly the same acceptance history, so it can drift to AMP_MIN or AMP_MAX faster than the intended 1/5-rule behaviour. This is not a validity bug.",
+  "Minor: the time check runs only before each SLSQP call. The last call can run past the 24 s budget, but with n=26 a single call is unlikely to reach the 45 s void limit.",
+  "The acceptance threshold T (1e-3 down to 1e-6) is tiny next to the gains possible per step, so the 'annealing' is nearly greedy. That is a design observation, not a bug."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.46
+ }
+}

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, best_sum=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def run(x, opts):
+        return minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                        options=opts)
+
+    if start is not None:
+        res = run(x0, {"maxiter": MAX_ITER})
+    else:
+        res = run(x0, {"maxiter": 40, "ftol": 1e-5})
+        cs = np.clip(res.x[:2 * n].reshape(n, 2), 0, 1)
+        if best_sum is None or _repair(cs, res.x[2 * n:].copy()).sum() > best_sum - 0.01:
+            res = run(res.x, {"maxiter": MAX_ITER, "ftol": 1e-9})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best if late else None)
+=======
+        c, r = _solve_once(n, rng, best if late else None, None if best is None else best[1].sum())
+>>>>>>> REPLACE
+-----

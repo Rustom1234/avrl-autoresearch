@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from lightgbm import LGBMRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    Ftr, Fte = xgb_features(train_smiles), xgb_features(test_smiles)
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(Ftr, y)
+    p_rf = model.predict(Fte)
+    p_lgb = np.mean([LGBMRegressor(boosting_type="dart", n_estimators=600, learning_rate=0.05, num_leaves=15,
+                                   colsample_bytree=0.3, subsample=0.7, subsample_freq=1, min_child_samples=10,
+                                   drop_rate=0.1, n_jobs=8, verbose=-1, random_state=seed + i).fit(Ftr, y).predict(Fte)
+                     for i in range(3)], axis=0)
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr) + rankdata(p_lgb) / len(p_lgb)
+>>>>>>> REPLACE
+-----

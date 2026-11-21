@@ -1,0 +1,91 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 115:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    try:
+        c2, r2 = _trust_polish(c, r, t0 + 160)
+        if (r2.sum() > r.sum() and _exact_ok(c2, r2)):
+            c, r = c2, r2
+    except Exception:
+        pass
+    return c, r
+
+
+def _exact_ok(c, r):
+    if np.any(r < 0):
+        return False
+    if np.any(c[:, 0] - r < 0) or np.any(c[:, 1] - r < 0):
+        return False
+    if np.any(c[:, 0] + r > 1) or np.any(c[:, 1] + r > 1):
+        return False
+    for a in range(_N):
+        for b in range(a + 1, _N):
+            dx = c[a, 0] - c[b, 0]
+            dy = c[a, 1] - c[b, 1]
+            if np.sqrt(dx * dx + dy * dy) < r[a] + r[b]:
+                return False
+    return True
+
+
+def _trust_polish(c, r, deadline):
+    from scipy.optimize import NonlinearConstraint
+    n = _N
+    i, j = _IU
+    m = len(i)
+    k = np.arange(m)
+    x0 = np.concatenate([c[:, 0], c[:, 1], r])
+
+    def cons(x):
+        X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+        dx = X[i] - X[j]
+        dy = Y[i] - Y[j]
+        return np.concatenate([dx * dx + dy * dy - (R[i] + R[j]) ** 2,
+                               X - R, 1 - X - R, Y - R, 1 - Y - R])
+
+    I = np.eye(n)
+    Z = np.zeros((n, n))
+    wj = np.vstack([np.hstack([I, Z, -I]), np.hstack([-I, Z, -I]),
+                    np.hstack([Z, I, -I]), np.hstack([Z, -I, -I])])
+
+    def jac(x):
+        X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+        dx = X[i] - X[j]
+        dy = Y[i] - Y[j]
+        s = R[i] + R[j]
+        J = np.zeros((m, 3 * n))
+        J[k, i] = 2 * dx
+        J[k, j] = -2 * dx
+        J[k, n + i] = 2 * dy
+        J[k, n + j] = -2 * dy
+        J[k, 2 * n + i] = -2 * s
+        J[k, 2 * n + j] = -2 * s
+        return np.vstack([J, wj])
+
+    g = np.zeros(3 * n)
+    g[2 * n:] = -1
+
+    def cb(xk, state):
+        return time.time() > deadline
+
+    from scipy.optimize import BFGS
+    res = minimize(lambda x: -x[2 * n:].sum(), x0, jac=lambda x: g,
+                   hess=BFGS(), method="trust-constr",
+                   constraints=[NonlinearConstraint(cons, 0, np.inf, jac=jac)],
+                   bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n,
+                   callback=cb,
+                   options={"maxiter": 300, "gtol": 1e-12, "xtol": 1e-14})
+    x = res.x
+    c2 = np.clip(np.stack([x[:n], x[n:2 * n]], 1), 0, 1)
+    r2 = _lp_radii(c2)
+    r2 = np.maximum(r2 - 1e-10, 0)
+    return c2, r2
+>>>>>>> REPLACE
+-----

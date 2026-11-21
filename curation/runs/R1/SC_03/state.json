@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/SC_03/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.807732929692136
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random order with a three-stage filter that keeps only clean, in-order, unique wikitext-style articles, then shuffles them with CURATE_SEED.\n\n1. Format filter. Keep a document only if it looks like the target's tokenised wiki style: the fraction of whitespace-separated tokens that are standalone ',' or '.' is at least 0.04, and fewer than 2% of its lines look like code or spam (containing '{', '};', 'import ', 'http', 'cheap', 'coupon'). A header starting with '= ' is a bonus signal, not a requirement.\n\n2. Word-order filter, to drop the shuffled-word articles. Build a set of all lowercased word bigrams from target_sample. For each document, compute the fraction of its bigrams (first 2,000 words) found in that set. Calibrate the threshold from target_sample itself by leave-one-out: compute each target document's hit rate against the bigrams of the other 199, and the same for a word-shuffled copy of it. Set the threshold at the midpoint between the 5th percentile of the real rates and the 95th percentile of the shuffled rates. Keep documents above it.\n\n3. Dedupe. Drop exact and near duplicates by hashing the whitespace-normalised, lowercased first 400 characters, and also by the title line. Keep one copy of each.\n\nReturn the survivors in a seeded shuffled order. If they total fewer than T tokens (estimate as characters / 4), return just that list and let the trainer cycle it; do not pad with off-domain documents.",
+   "outcome": "dev 1.8077 against 1.9410 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Add a typo/character-damage filter and make the dedupe keep the cleanest copy instead of the first one. Keep stages 1 and 2 unchanged.\n\n(a) Build a document-frequency table of lowercased whitespace tokens over the stage-1/2 survivors plus target_sample. Call a token \"rare\" if it is alphabetic, at least 4 characters long, and appears in at most 2 documents. For each document compute rare_rate = rare tokens / alphabetic tokens (len >= 4) over its first 3,000 words.\n\n(b) Calibrate from the target: compute the same rare_rate for each target_sample document, using the same table. Drop pool documents whose rare_rate exceeds max(target 95th percentile * 1.5, target median + 0.02).\n\n(c) Dedupe by group rather than first-seen. Group survivors by the stripped title line, and separately by the hash of the normalised first 400 characters. Within each title group keep only the single document with the lowest rare_rate, breaking ties by higher bigram hit rate, then by longer length. This way a damaged copy with typos such as \"sog\" never wins over its clean twin.\n\n(d) Return the survivors in a seeded shuffle and let the trainer cycle if they total fewer than T tokens.",
+   "outcome": "dev 1.8093 against 1.8077 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Keep the three stages unchanged for the wiki survivors (call the list W, seeded shuffle). Add a capped warm-up prefix of clean general English prose, used only if W is short of the budget, and build the full T-token list explicitly so the run ends on in-domain text.\n\n1. Count gpt2 tokens of W with tiktoken (or estimate as characters / 4 if that is too slow). Call it nW. If nW >= 0.75*T, return W exactly as now.\n\n2. Otherwise build a prose set P from documents not in W and not rejected by stage 2 as shuffled wiki articles (exclude anything starting with '= ' or with standalone ','/'.' token fraction >= 0.04). A document enters P only if it passes all of these:\n- fewer than 2% of lines contain code or spam markers ('{', '};', 'import ', 'http', 'cheap', 'coupon', 'discount', 'best price');\n- at least 85% of characters are alphabetic or spaces;\n- at least 200 words long;\n- not character-scrambled: build the vocabulary of lowercased, punctuation-stripped words from target_sample, and require at least 75% of the document's alphabetic words (first 1,000 words) to be in that vocabulary;\n- not a duplicate by the hash of the normalised first 400 characters.\n\n3. Rank P by that in-vocabulary fraction, descending. Take documents from the top until the prefix reaches min(0.25*T, T - nW) tokens.\n\n4. Return prefix (seeded shuffle) + W + W reshuffled with the same rng, repeated until the total is at least T tokens. The trainer then sees the prose first and spends all remaining steps, including the last ones, on wiki text.",
+   "outcome": "dev 2.0001 against 1.8077 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Change only the code/spam part of stage 1; keep the punctuation test (standalone ','/'.' token fraction >= 0.04), the bigram word-order filter, the dedupe and the seeded shuffle exactly as they are. The current test drops a document if 2% or more of its lines contain any of '{', '};', 'import ', 'http', 'cheap', 'coupon'. Wikitext articles have one line per paragraph, often only 10-50 lines, so a single ordinary sentence with 'cheap', 'import ' or 'http' rejects a whole clean article. Replace it with density tests over the whole document: (a) spam: count occurrences in the lowercased text of 'coupon', 'discount code', 'buy now', 'for sale', 'free shipping', 'best price', 'click here', 'limited offer'; reject if the count is more than 2 per 1,000 whitespace words. (b) code: reject if the characters '{', '}', ';', '<', '>', '$', '\\\\' and '=' (not counting '=' on lines that start with '=') together make up more than 1.5% of all characters. Nothing else is a reason to reject: no single-line trigger, no test on 'http', 'import' or 'cheap' alone. Return the list as now and let the trainer cycle it if it is short.",
+   "outcome": "dev 1.8100 against 1.8077 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Keep all three stages (format filter, bigram word-order filter, dedupe) exactly as they are, but stop relying on the trainer's blind truncation or cycling: build the T-token list explicitly, using the quality score the filter already computes.\n\n1. For every survivor, store its bigram hit rate from stage 2 and count its gpt2 tokens with tiktoken (encode_ordinary_batch; fall back to characters / 4 if that takes more than about 60 seconds). Let nW be the survivors' total tokens. `from common import T`.\n\n2. If nW >= T (more clean text than budget): sort survivors by hit rate descending and keep the top documents until the total reaches about 1.02*T. This drops the lowest-scoring ones, which are the most likely to be partly shuffled or damaged. Shuffle the kept set with the seeded rng and return it.\n\n3. If nW < T (the list would be cycled): return epoch 1 as a seeded shuffle of all survivors, then further epochs each as a fresh seeded reshuffle of all survivors, so the order is not repeated identically. For the last, partial epoch, which fills the remaining T - k*nW tokens, do not use a random subset: take the survivors with the highest hit rate until the budget is filled, then shuffle those. Total returned length should be just over T tokens.\n\nNever add a document that failed stages 1-3.",
+   "outcome": "dev 1.8233 against 1.8077 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Keep stages 1-3 and the final seeded shuffle as they are, and add two whole-document purity checks on the survivors. Experiment 3 suggests every step spent off clean wiki text is costly, and the current checks only look at the first 2,000 words (lowercased) and the first 400 characters.\n\n(A) Case-sensitive character-trigram score, calibrated on the target.\n- Build character-trigram counts (case preserved, add-0.1 smoothing over the observed alphabet plus an unknown symbol) from target_sample.\n- For the 200 target documents, score each one leave-one-out, or with a 5-fold split, to get a clean distribution of mean bits per character. Call its 95th percentile p95 and its median med.\n- For each survivor, split the whole document into consecutive 3,000-character windows. Score every window, sampling every 2nd character position if time is tight.\n- Reject the document if its mean bits per character exceeds p95 + 0.5*(p95 - med).\n- Also reject it if more than 20% of its windows exceed p95 + 1.0*(p95 - med).\n- This is meant to catch damage the lowercased bigram test cannot see: case damage (all-lower or all-upper), character typos or scrambling, junk or spam spliced into the middle or tail, and non-wiki text that happens to be tokenised.\n\n(B) Paragraph-level dedupe, after the existing title/prefix dedupe.\n- Process survivors in order of lowest trigram bits per character first, so the cleanest copy is kept.\n- For each document, hash every whitespace-normalised, lowercased line longer than 200 characters.\n- Drop the document if more than 50% of those hashes were already seen in kept documents.\n- Within a document, drop it if fewer than 80% of its long lines are unique (internal repetition).\n- Otherwise keep it and add its hashes to the seen set.\n\nReturn the remaining survivors in a seeded shuffle and let the trainer cycle. Do not pad, and do not re-order by score.",
+   "outcome": "dev 1.9529 against 1.8077 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Keep stages 1-3 and the final seeded shuffle exactly as they are. Add two conservative whole-document purity checks on the stage-2 survivors, before the dedupe, each with a safety guard so it cannot over-reject (the likely failure of experiment 6).\n\n(A) Windowed word-order check over the whole document. The current bigram test only reads the first 2,000 words, so an article with a shuffled or junk middle or tail passes.\n- Split each survivor's full whitespace-token list into consecutive 400-word windows. Merge a final window shorter than 200 words into the previous one.\n- For each window, compute the lowercased bigram hit rate against the same target bigram set.\n- Use the same calibrated threshold as stage 2.\n- Reject the document if more than 25% of its windows fall below that threshold.\n\n(B) Case check. The bigram test lowercases, so all-lowercase or all-uppercase copies pass.\n- For each document compute u = uppercase letters / all letters.\n- Compute u for each of the 200 target_sample documents.\n- Reject a pool document if u < 0.5 * min(target u) or u > 1.5 * max(target u).\n\nGuard: apply each check independently. If a check would remove more than 20% of the stage-2 survivors, skip that check entirely.\n\nThen run the existing dedupe (first-400-character hash plus title) and return the seeded shuffle. No padding and no re-ordering by score; let the trainer cycle the list.",
+   "outcome": "dev 1.8074 against 1.8077 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Add one self-training round to the word-order filter, to recover clean wiki articles that the 200-document bigram set wrongly rejects (unusual topics, short fragments) and to separate shuffled or partly shuffled ones more sharply. Keep stage 1, the dedupe and the final seeded shuffle exactly as they are.\n\n1. Run stage 1 and the current stage 2 as now. Call the stage-1 candidates C and the stage-2 survivors S0.\n\n2. With the seeded rng, hold out 300 documents of S0 as a calibration set H. Build a new lowercased word-bigram set B from the first 2,000 words of every document in S0 minus H, plus all of target_sample.\n\n3. Calibrate a new threshold on H. For each document in H compute its bigram hit rate against B (first 2,000 words), and the same for a word-shuffled copy of it. Set threshold2 to the midpoint between the 5th percentile of the real rates and the 95th percentile of the shuffled rates.\n\n4. Re-score every document in C (not only S0) against B and keep those with hit rate >= threshold2. For documents that are in S0 minus H, whose own bigrams are in B and so score too high, keep them only if they also pass a stricter bar: hit rate >= the 5th percentile of the hit rates of S0 minus H scored the same way. If that is awkward, simply keep S0 minus H as is and apply threshold2 only to H and to C minus S0.\n\n5. Guard: if the new survivor set is smaller than 0.9 times |S0| or larger than 1.5 times |S0|, fall back to S0.\n\n6. Apply the existing dedupe (first-400-character hash plus title) and the seeded shuffle. No padding; let the trainer cycle the list.",
+   "outcome": "dev 1.8036 against 1.8077 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Raise recall of clean wiki articles by stacking the two changes that each scored slightly below the current best (experiment 8 at 1.8036, experiment 7 at 1.8074) and adding a header rescue. Keep the dedupe and the final seeded shuffle unchanged; no padding, no re-ordering by score, let the trainer cycle.\n\n1. Run stage 1 and stage 2 as now. Call the survivors S0.\n\n2. Build a wider candidate set C2 = stage-1 candidates plus every document that fails stage 1 but whose first line matches '^= .+ =$' and whose spam-phrase density is low. Count 'coupon', 'discount code', 'buy now', 'free shipping', 'best price', 'click here' and 'limited offer' in the lowercased text; low means at most 2 per 1,000 words. This rescues wiki articles lost to the single-line 'cheap' / 'import ' / 'http' trigger or to the punctuation threshold.\n\n3. Self-training as in experiment 8. With the seeded rng, hold out 300 documents of S0 as H. Build bigram set B from the first 2,000 words of S0 minus H, plus target_sample. Set threshold2 to the midpoint between the 5th percentile of H's real hit rates and the 95th percentile of H's word-shuffled hit rates against B. Keep S0 minus H as is. Apply threshold2 to H and to C2 minus S0.\n\n4. On the resulting set, apply experiment 7's two checks. (a) Windowed word order: split the full document into 400-word windows and reject it if more than 25% of windows fall below the threshold in use. Score against B with threshold2, except documents in S0 minus H, which are scored against the original target bigram set with the original threshold. (b) Case: reject if the uppercase-letter fraction is below 0.5 * the target minimum or above 1.5 * the target maximum. Skip a check if it would remove more than 20% of the set.\n\n5. Guard: if the final set is smaller than 0.9 * |S0| or larger than 1.6 * |S0|, fall back to S0.\n\n6. Apply the existing dedupe (first-400-character hash plus title) and return the seeded shuffle.",
+   "outcome": "dev 1.9395 against 1.8077 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Re-run the self-training recall step of experiment 8 (the lowest raw score so far, 1.8036) in its simplest, safest form, over a slightly wider candidate set, with no header rescue and no extra purity checks (the parts that probably broke experiment 9). Keep the dedupe and the final seeded shuffle unchanged; no padding, no re-ordering by score, let the trainer cycle.\n\n1. Run stage 1 and stage 2 exactly as now. Call the survivors S0. Every document in S0 is kept unconditionally.\n\n2. Build a wider candidate set C2 from documents not in S0. A document enters C2 if it passes the punctuation test (standalone ','/'.' token fraction >= 0.04) and experiment 4's density tests instead of the single-line trigger:\n- spam: at most 2 occurrences per 1,000 words of 'coupon', 'discount code', 'buy now', 'for sale', 'free shipping', 'best price', 'click here', 'limited offer' in the lowercased text;\n- code: the characters '{', '}', ';', '<', '>', '$', '\\\\' and '=' (ignoring '=' on lines that start with '=') make up at most 1.5% of all characters.\nC2 therefore holds the stage-1 candidates that failed stage 2, plus documents lost only to a single 'cheap' / 'import ' / 'http' line.\n\n3. With the seeded rng, hold out 300 documents of S0 as H. Build the lowercased word-bigram set B from the first 2,000 words of every document in S0 minus H, plus all of target_sample.\n\n4. Calibrate on H. For each document in H compute its bigram hit rate against B (first 2,000 words), and the same for a word-shuffled copy of it. Set threshold2 to the midpoint between the 5th percentile of the real rates and the 95th percentile of the shuffled rates.\n\n5. Add to S0 every document of C2 whose hit rate against B (first 2,000 words) is >= threshold2 AND whose hit rate over its last 2,000 words is also >= threshold2. The second test guards against documents with a shuffled or junk tail.\n\n6. Guard: if the additions exceed 30% of |S0|, add nothing and return S0 as now.\n\n7. Apply the existing dedupe (first-400-character hash plus title), processing the S0 documents before the additions so an original survivor wins any tie, then return the seeded shuffle.",
+   "outcome": "dev 1.8141 against 1.8077 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Replace the hand-made purity rules with one learned clean-vs-damaged classifier trained on synthetic damage, and use it as the final keep rule. Keep the existing dedupe and the final seeded shuffle; no padding, no re-ordering by score, let the trainer cycle.\n\n1. Run stage 1 and stage 2 as now. Call the survivors S0.\n\n2. Candidate set C = every document whose standalone ','/'.' token fraction is >= 0.04 and whose spam-phrase density is at most 2 per 1,000 words. Count 'coupon', 'discount code', 'buy now', 'free shipping', 'click here' and 'limited offer' in the lowercased text. Drop the single-line 'cheap' / 'import ' / 'http' trigger.\n\n3. Training chunks are 300 whitespace words each.\n- Positives: all chunks of target_sample, plus one random chunk from each of 1,500 seeded-random S0 documents.\n- Negatives, type 1: for each positive chunk, one damaged copy, with the damage type chosen by the seeded rng from: (a) words shuffled within each sentence (split on ' . '); (b) all words shuffled; (c) 8% of alphabetic words given a random character swap, deletion or substitution; (d) all lowercase; (e) all uppercase; (f) the second half replaced by a chunk from a document that failed the punctuation test.\n- Negatives, type 2: 1,500 random chunks from documents that fail the punctuation test.\n\n4. Features and model. Use a case-sensitive HashingVectorizer with token_pattern r'\\S+', ngram_range (1,2), 2**18 features, binary, l2 norm. Stack it with a second HashingVectorizer with analyzer 'char', ngram_range (1,3), 2**16 features. Fit LogisticRegression(C=1.0, max_iter=200, solver 'liblinear' or 'saga').\n\n5. Score each document in C. Take up to 6 evenly spaced 300-word chunks across the whole document; a shorter document is one chunk. Compute the mean and the minimum of the chunk probabilities.\n\n6. Calibrate with 5-fold cross-fitting on target_sample: train without the fold, score the fold's documents the same way. Set t_mean to the 3rd percentile of the target mean scores and t_min to the 3rd percentile of the target minimum scores. Clip both to at most 0.5. Keep a document of C if mean >= t_mean and min >= t_min. If cross-fitting is too slow, use t_mean = 0.5 and t_min = 0.2.\n\n7. Guard: if the kept set has fewer than 0.85 * |S0| or more than 1.4 * |S0| documents, return S0 as now.\n\n8. Dedupe with the first-400-character hash plus the title, processing documents in descending mean score so the cleanest copy wins. Return the seeded shuffle.\n\nKeep the total under about 150 seconds by capping chunk counts if needed.",
+   "outcome": "FAILED to run (res=2**16, binary=True) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TypeError: HashingVectorizer.__init__() got an unexpected keyword argument 'nfeatures')"
+  },
+  {
+   "slot": 12,
+   "idea": "Stack the only two changes that scored below the current best (experiment 8 at 1.8036, experiment 7 at 1.8074), without the header rescue or the widened candidate set that were added in experiments 9 and 10. Keep stage 1, the dedupe and the final seeded shuffle exactly as they are; no padding, no re-ordering by score, let the trainer cycle.\n\n1. Run stage 1 and stage 2 as now. Call the stage-1 candidates C, the stage-2 survivors S0, and the original target bigram set and threshold B0 and thr0.\n\n2. Self-training recall, as in experiment 8, simple variant.\n- With the seeded rng, hold out 300 documents of S0 as H.\n- Build the lowercased word-bigram set B from the first 2,000 words of every document in S0 minus H, plus all of target_sample.\n- For each document in H compute its hit rate against B (first 2,000 words), and the same for a word-shuffled copy. Set thr2 to the midpoint between the 5th percentile of the real rates and the 95th percentile of the shuffled rates.\n- Keep S0 minus H as is. Keep a document of H or of C minus S0 only if its hit rate against B is >= thr2. Call the result S1.\n- Guard: if |S1| < 0.9*|S0| or |S1| > 1.5*|S0|, set S1 = S0.\n\n3. Experiment 7's two whole-document checks on S1, each applied independently and skipped entirely if it would remove more than 20% of S1.\n- (A) Windowed word order. Split the full whitespace-token list into consecutive 400-word windows, merging a final window shorter than 200 words into the previous one. Compute each window's lowercased bigram hit rate. Use B0 with thr0 for documents in S0 minus H, and B with thr2 for all others. Reject the document if more than 25% of its windows fall below the threshold.\n- (B) Case. Compute u = uppercase letters / all letters. Reject if u < 0.5 * min(target u) or u > 1.5 * max(target u).\n\n4. Final guard: if the result has fewer than 0.9*|S0| documents, return to S0.\n\n5. Apply the existing dedupe (first-400-character hash plus title line), processing S0 documents before the additions, then return the seeded shuffle.",
+   "outcome": "dev 1.8068 against 1.8077 for the best at the time, rejected"
+  }
+ ],
+ "usd": 2.8940885499999998,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0882439,
+   "dev": 1.807732929692136,
+   "inc": 1.9410174691339421,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 18.34359199584449,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.11497104999999998,
+   "dev": 1.8093220790711535,
+   "inc": 1.807732929692136,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 18.34359199584449,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.17828779999999997,
+   "dev": 2.000145045580781,
+   "inc": 1.807732929692136,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 18.34359199584449,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.14400839999999998,
+   "dev": 1.8099558243989888,
+   "inc": 1.807732929692136,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 18.34359199584449,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.2125011,
+   "dev": 1.8232844460642477,
+   "inc": 1.807732929692136,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 18.34359199584449,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.3110069999999998,
+   "dev": 1.952858645183056,
+   "inc": 1.807732929692136,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 18.34359199584449,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.214966,
+   "dev": 1.807429260491295,
+   "inc": 1.807732929692136,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 18.34359199584449,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.2946777999999999,
+   "dev": 1.8036287295953293,
+   "inc": 1.807732929692136,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 18.34359199584449,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.2827940499999999,
+   "dev": 1.9394504840170417,
+   "inc": 1.807732929692136,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 18.34359199584449,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.40758800000000006,
+   "dev": 1.814114230798797,
+   "inc": 1.807732929692136,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 18.34359199584449,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.33024375000000017,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 1,
+   "n_accept": 1,
+   "gain_sd": 18.34359199584449,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.3147997,
+   "dev": 1.806800656519877,
+   "inc": 1.807732929692136,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9410174691339421,
+ "inc_slot": 1
+}

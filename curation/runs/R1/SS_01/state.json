@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/SS_01/cand/s12_0.py",
+ "inc_scores": {
+  "11": 1.7918063006872988
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random-order baseline with a target-likeness filter that is sensitive to word order, plus deduplication.\n\n1. Dedupe: drop exact duplicates after whitespace normalisation and lowercasing, and near-duplicates sharing the same first 200 characters. Keep the first occurrence.\n2. Build a reference set B of all lowercase whitespace-token word bigrams in target_sample.\n3. Score each pool doc by the fraction of its word bigrams (first ~2000 tokens) that are in B. Real WikiText-style articles should score high. Spam, code, Q&A/web text and the word-shuffled wiki docs (same unigrams, broken bigrams) should score low.\n4. Calibrate the threshold on the target itself: compute leave-one-out hit rates for the 200 target docs (each doc against bigrams from the other 199) and set the threshold to their 5th percentile minus a small margin (0.02).\n5. Keep docs at or above the threshold. Also require at least 50 tokens and at least 85% ASCII letters/spaces/punctuation, to drop junk.\n6. If the kept docs exceed T gpt2 tokens (estimate as len(text)/4 or use tiktoken on the kept docs), keep the highest-scoring docs up to about T.\n7. Return the kept indices in an order shuffled with CURATE_SEED. If the total is under T, the trainer cycles the clean set.",
+   "outcome": "dev 1.8126 against 1.9399 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Make damage detection and dedupe work on the whole document, and keep the best copy of each article instead of the first one. Keep everything else (LOO-calibrated threshold, cap at 1.02*T by score, seeded shuffle) unchanged.\n\n1. Windowed scoring over the full doc. Split each doc's lowercase whitespace tokens into consecutive 250-token windows (no 2000-token head limit) and compute the bigram-in-B hit rate per window. Doc score = mean window hit rate. Also record the minimum window hit rate, ignoring a final window shorter than 100 tokens.\n\n2. Calibrate both statistics on the target sample by leave-one-out (bigrams with df >= 2), using the same windowing. Keep a doc only if mean >= 5th percentile of target LOO means - 0.02 AND min window >= 1st percentile of target LOO min-windows - 0.05. This drops docs that start clean but are shuffled or scrambled later.\n\n3. Typo/char-noise check. Build the target unigram vocabulary V. Compute each doc's fraction of alphabetic tokens that are in V. Drop docs below the 2nd percentile of the target LOO value (word df >= 2) minus 0.03.\n\n4. Best-copy dedupe by article. Group docs by a key: if the first line matches '= title =', use the title lowercased with non-letters removed; otherwise use the existing 200-char normalised prefix. Additionally merge groups that share a hash of any of the first three 12-token shingles taken from tokens 20-80 of the body, so copies with a corrupted title still merge. Inside each group, keep only the doc with the highest mean score, breaking ties by greater length and then lower index. Do this instead of first-occurrence dedupe.\n\n5. Then apply the cap at 1.02*T by score with tiktoken counts and the seeded shuffle, as now.",
+   "outcome": "dev 1.8070 against 1.8126 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Keep the current filter (dedupe, bigram hit-rate score, LOO threshold, junk filter) unchanged, and change only how the final sequence is ordered, so that the most target-like text is read last.\n\n1. Compute gpt2 token counts for all kept docs, as now.\n2. Build the full training sequence explicitly to about 1.02*T tokens instead of relying on the trainer's cycling.\n3. If the kept docs exceed 1.02*T tokens, first cap by score as now.\n4. Split the capped set by score: set H is the highest-scoring docs holding about 40% of the set's tokens, and set L is the rest.\n5. The sequence is [early part] + [final part].\n   - Final part: all of H, shuffled with CURATE_SEED. It should take up roughly the last 35-40% of T, and never more than 50% of T.\n   - Early part: L shuffled. If L has fewer tokens than T minus the tokens in H, append further seeded-shuffled passes over L+H until the early part reaches that size.\n6. Make the total land at T to 1.02*T tokens, so that the H block sits exactly at the end of training and the trainer never wraps around.\n7. Return this order. Do not apply a global shuffle afterwards.",
+   "outcome": "dev 1.8096 against 1.8126 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Add a self-training second stage so the reference is built from thousands of clean pool articles instead of only the 200 target docs, then rescore every doc over its full length with that sharper reference.\n\n1. Stage 1 (seed set): run the current pipeline unchanged (dedupe, 200-doc bigram hit rate, LOO threshold, junk filter). Take the seed set S as the docs that pass the threshold and score at or above the median of the passing docs.\n2. Stage 2 reference: over all tokens of each doc in S plus the 200 target docs, compute the document frequency df2 of each lowercase whitespace-token bigram. To bound memory and time, hash bigrams to ints and cap each doc at 6000 tokens.\n3. Rescore every deduped, non-junk pool doc over its full length in consecutive 250-token windows. A bigram is a hit if df2 minus (1 if this doc is in S, else 0) is at least 2. This keeps the score leave-one-out for seed docs. Record the mean window hit rate and the minimum window hit rate, ignoring a final window shorter than 100 tokens.\n4. Calibrate on the 200 target docs with the same rule (df2 minus 1 is at least 2, since they are in the reference). Keep a pool doc if its mean is at least the 3rd percentile of target means minus 0.03 AND its minimum window is at least the 1st percentile of target minimum windows minus 0.05.\n5. Rank kept docs by the stage-2 mean, cap at 1.02*T tokens using tiktoken counts, and apply the seeded shuffle as now.\n6. If the stage-2 kept set holds fewer than 0.3*T tokens, fall back to the stage-1 result. Keep total runtime under about 150 seconds.",
+   "outcome": "dev 1.8061 against 1.8126 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the single bigram-hit-rate threshold with a small window-level classifier trained on synthetic damage, and require every window of a doc to pass. Keep the existing first-occurrence dedupe, the 1.02*T cap and the seeded shuffle.\n\n1. Reference: build df for lowercase whitespace-token unigrams, bigrams and trigrams over the 200 target docs, as now. A leave-one-out hit means df >= 2.\n\n2. Windows: split a doc's tokens into consecutive 200-token windows over the whole doc. Merge a final window shorter than 80 tokens into the previous one.\n\n3. Features per window:\n   - bigram hit rate\n   - trigram hit rate\n   - fraction of tokens in the target vocabulary\n   - fraction of alphabetic tokens that contain a non-letter or have odd internal capitalisation\n   - fraction of non-ASCII or control characters\n   - fraction of tokens that are digits or punctuation\n   - mean token length\n   - fraction of tokens that repeat inside the window\n   - rate of sentence-final ' . ' followed by a capitalised token\n\n4. Positives: all windows of the target docs, with leave-one-out features (df >= 2).\n\n5. Negatives:\n   a. Synthetic corruptions of each target window, seeded with CURATE_SEED and scored with the same leave-one-out rule:\n      - full word shuffle\n      - local word shuffle inside spans of 5 to 10 tokens\n      - random character substitution, deletion or swap in 5% and in 15% of characters\n      - random token drop or duplication at 20%\n      - a splice where half the window is replaced by shuffled text\n   b. Windows from the 1500 pool docs with the lowest current bigram score (spam, code, web text).\n\n6. Model: sklearn HistGradientBoostingClassifier (max_iter 150, seeded), or LogisticRegression on standardised features if time is short. For target windows use out-of-fold probabilities from 5-fold cross-validation grouped by document.\n\n7. Doc decision: doc score = mean window probability. Keep a doc if its mean is at least the 3rd percentile of target-doc out-of-fold means AND its minimum window probability is at least the 1st percentile of target-doc out-of-fold minimums. Also require at least 50 tokens.\n\n8. If the kept set exceeds 1.02*T tokens, cap by doc score. Then apply the seeded shuffle. If fewer than 0.2*T tokens are kept, fall back to the current pipeline. Keep runtime under about 150 seconds; if needed, use only every second window for docs longer than 6000 tokens.",
+   "outcome": "dev 1.8082 against 1.8126 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Combine the three filter refinements that each lowered dev bpb slightly on their own (experiments 2, 4 and 5) into one pipeline, and print diagnostics. Keep the 1.02*T cap, tiktoken counts and seeded shuffle.\n\n1. Stage 1: run the current pipeline's scoring (200-doc bigram hit rate on the 2000-token head, LOO threshold, junk filter), but without dedupe. The seed set S is the passing docs at or above the median passing score.\n\n2. Stage 2 reference: over S plus the 200 target docs, compute document frequency of hashed lowercase whitespace-token bigrams and of unigrams. Cap each doc at 6000 tokens.\n\n3. Rescore every non-junk pool doc over its full length in consecutive 250-token windows. Merge a final window shorter than 100 tokens into the previous one. A bigram is a hit if df minus (1 if the doc is in S, else 0) is at least 2. Record per doc:\n   - mean window hit rate\n   - minimum window hit rate\n   - fraction of alphabetic tokens whose unigram df, with the same leave-one-out adjustment, is at least 2 (typo and character-noise check)\n\n4. Calibrate all three statistics on the 200 target docs with the same leave-one-out rule. Keep a doc if:\n   - mean >= 3rd percentile of target means - 0.03, AND\n   - min window >= 1st percentile of target minimums - 0.05, AND\n   - vocabulary fraction >= 2nd percentile of target values - 0.03, AND\n   - it has at least 50 tokens.\n\n5. Best-copy dedupe, applied after scoring to all docs (not only kept ones). Group by article key: the '= title =' first line, lowercased with non-letters removed, or else the 200-char normalised prefix. Also merge groups that share a hash of any of three 12-token shingles taken from body tokens 20-80. From each group keep only the passing doc with the highest mean score, breaking ties by greater length and then lower index. This stops a damaged first copy from blocking a clean later copy.\n\n6. Rank by stage-2 mean, cap at 1.02*T tokens, and apply the seeded shuffle. If the kept set is under 0.3*T tokens, fall back to the current pipeline. Keep runtime under 150 seconds.\n\n7. Print the kept token total as a fraction of T, and the number of docs dropped by each rule, so the next experiment can tell whether the clean set is larger or smaller than T.",
+   "outcome": "dev 1.8100 against 1.8126 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Keep the current strict filter as tier A, and add a \"rescue\" tier B of new in-domain articles to replace repeated passes, only when tier A is smaller than T. Build the training sequence explicitly so the end of training is pure tier A.\n\n1. Tier A: exactly the current pipeline's kept set (first-occurrence dedupe, 2000-token-head bigram hit rate, LOO threshold, junk filter). Count gpt2 tokens with tiktoken. If tier A holds at least 1.02*T tokens, behave exactly as now (cap by score, seeded shuffle) and stop.\n\n2. Tier B, only if tier A is under T. Candidates are docs not in tier A that:\n   - have a first line of the form '= title =', and whose title key (lowercased, non-letters removed) does not match any tier A doc's title key;\n   - do not share the 200-char normalised prefix of any tier A doc;\n   - have a bigram hit rate of at least (tier A threshold - 0.08);\n   - have at least 50 tokens and a clean-character fraction of at least 0.85;\n   - have a fraction of alphabetic tokens found in the target unigram vocabulary of at least the 2nd percentile of the target leave-one-out value minus 0.05. This excludes heavy character noise, and the bigram floor excludes fully word-shuffled copies.\n   Keep one doc per title key, the one with the highest score. Sort tier B by score descending. Take at most min(T - tokens(A), 0.35*T) tokens.\n\n3. Sequence, with total tokens between T and 1.02*T so the trainer never wraps:\n   - Final block: one full seeded-shuffled pass of tier A, truncated to the highest-scoring docs if A exceeds 0.6*T, so that this block is the last part of training.\n   - Early block, filling the rest: tier B docs and further tier A docs mixed together and seeded-shuffled. Use each tier B doc once. Use additional shuffled passes of tier A only as needed to reach the size.\n\n4. Print tokens(A)/T, tokens(B)/T, the number of tier B docs and the number of tier A passes.\n\n5. Do not apply a global shuffle afterwards. Seed everything from CURATE_SEED and keep runtime under 150 seconds.",
+   "outcome": "dev 1.8047 against 1.8126 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Extend experiment 7 (the lowest dev so far, 1.8047) into a three-tier curriculum: fill the budget with new text instead of repeated passes, and read it from least to most target-like, ending on pure tier A.\n\n1. Tier A: the current pipeline's kept set (2000-token-head bigram hit rate, LOO threshold thr, junk filter), with one change. Dedupe by best copy instead of first occurrence: group by the '= title =' key (lowercased, non-letters removed), or else by the 200-char normalised prefix, and keep the highest-scoring copy. Count gpt2 tokens with tiktoken. If A holds at least 1.02*T tokens, cap by score, apply the seeded shuffle and return, as now.\n\n2. Tier B (near-miss wiki articles), as in experiment 7:\n   - first line is '= title =' and the title key is not in A;\n   - bigram hit rate >= thr - 0.08;\n   - fraction of alphabetic tokens in the target vocabulary >= 2nd percentile of the target LOO value - 0.05;\n   - at least 50 tokens and clean-character fraction >= 0.85;\n   - one doc per title key, the highest-scoring one.\n   Take at most 0.35*T tokens, highest score first.\n\n3. Tier C (clean general English prose from other domains, new in this experiment). Candidates are docs not in A or B, after exact and prefix dedupe, that meet all of:\n   - bigram hit rate >= 0.6*thr;\n   - target-vocabulary fraction >= 2nd percentile of the target LOO value - 0.10;\n   - clean-character fraction >= 0.92;\n   - at least 100 tokens;\n   - fraction of characters in '{}[]<>|=;#_/\\\\' below 1.5%, which removes code and '|' spam;\n   - at least one sentence end ('. ' or ' . ') per 60 tokens;\n   - no '= title =' first line, so shuffled wiki copies stay out.\n   Sort by bigram hit rate descending. Take at most min(0.25*T, T - tokens(A) - tokens(B)) tokens, and nothing if that is <= 0.\n\n4. Sequence, built explicitly with a total of T to 1.02*T tokens so the trainer never wraps:\n   - First: all of C, seeded-shuffled.\n   - Middle: B mixed with extra seeded-shuffled passes of A as needed to fill, shuffled together.\n   - Last: one full seeded-shuffled pass of A, capped to the highest-scoring 0.6*T tokens.\n   No global shuffle afterwards.\n\n5. Print tokens(A)/T, tokens(B)/T, tokens(C)/T, the doc count of each tier and the number of extra A passes. Seed everything from CURATE_SEED and keep runtime under 150 seconds, using len/4 token estimates if tiktoken runs late.",
+   "outcome": "dev 1.8422 against 1.8126 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Combine the two lowest-dev variants so far (experiment 7's rescue tier with a pure tier A ending, 1.8047, and experiment 4's self-trained reference, 1.8061), so the tiers are defined by the sharper full-length score. Add no off-domain text.\n\n1. Stage 1: run the current pipeline's scoring (2000-token-head bigram hit rate against the 200 target docs, LOO threshold thr1, junk filter, first-occurrence dedupe). The seed set S is the passing docs at or above the median passing score.\n\n2. Stage 2 reference: document frequency df2 of hashed lowercase whitespace-token bigrams over S plus the 200 target docs, capped at 6000 tokens per doc. Rescore every non-junk pool doc over its full length in consecutive 250-token windows, merging a final window shorter than 100 tokens into the previous one. A bigram is a hit if df2 minus (1 if the doc is in S, else 0) is at least 2. Record the mean window hit rate and the minimum window hit rate. Calibrate both on the 200 target docs with the same leave-one-out rule, giving m3 = 3rd percentile of target means and w1 = 1st percentile of target minimum windows.\n\n3. Best-copy dedupe over all docs. Group by the '= title =' key (lowercased, non-letters removed), or else by the 200-char normalised prefix. Keep the copy with the highest stage-2 mean, breaking ties by greater length and then lower index.\n\n4. Tier A: deduped docs with mean >= m3 - 0.03 AND min window >= w1 - 0.05 AND at least 50 tokens. Count gpt2 tokens with tiktoken. If A holds at least 1.02*T tokens, cap by stage-2 mean, apply the seeded shuffle and return.\n\n5. Tier B, only if A is under T: deduped docs not in A that meet all of:\n   - first line is '= title =';\n   - mean >= m3 - 0.10;\n   - min window >= w1 - 0.15, which excludes shuffled or scrambled sections;\n   - fraction of alphabetic tokens in the target unigram vocabulary >= 2nd percentile of the target LOO value - 0.05;\n   - clean-character fraction >= 0.85.\n   Sort by mean descending and take at most min(T - tokens(A), 0.35*T) tokens.\n\n6. Sequence, built explicitly with a total of T to 1.02*T tokens so the trainer never wraps:\n   - Early block: all of B plus extra seeded-shuffled passes of A as needed to fill, shuffled together.\n   - Final block: one full seeded-shuffled pass of A, capped to the highest-scoring 0.6*T tokens.\n   No global shuffle afterwards.\n\n7. If A holds fewer than 0.3*T tokens, fall back to the current pipeline. Print tokens(A)/T, tokens(B)/T, the doc count of each tier and the number of extra A passes. Seed everything from CURATE_SEED and keep runtime under 150 seconds, using len/4 token estimates if tiktoken runs late.",
+   "outcome": "dev 1.8150 against 1.8126 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Use experiment 7's two-tier layout (lowest dev so far, 1.8047), but define tier A with experiment 2's full-document checks against the plain 200-doc reference. No self-trained reference and no off-domain text.\n\n1. Scoring. Build the bigram df and unigram df over the 200 target docs, on lowercase whitespace tokens. For every pool doc with at least 50 tokens and a clean-character fraction of at least 0.85, split the full token list into consecutive 250-token windows, merging a final window shorter than 100 tokens into the previous one. Record:\n   - mean = mean window bigram hit rate (bigram in the target set);\n   - minw = minimum window hit rate;\n   - vocab = fraction of alphabetic tokens in the target vocabulary.\n   If time runs short, score at most 8000 tokens per doc using evenly spaced windows.\n\n2. Calibration. Compute the same three statistics for the target docs by leave-one-out (df >= 2). Set m5 = 5th percentile of mean, w1 = 1st percentile of minw, v2 = 2nd percentile of vocab.\n\n3. Best-copy dedupe over all scored docs. Group by the '= title =' first line (lowercased, non-letters removed), or else by the 200-char normalised prefix. Keep the copy with the highest mean, breaking ties by greater length and then lower index.\n\n4. Tier A: deduped docs with mean >= m5 - 0.02 AND minw >= w1 - 0.05 AND vocab >= v2 - 0.03. Count gpt2 tokens with tiktoken. If A holds at least 1.02*T tokens, cap by mean, apply the seeded shuffle and return.\n\n5. Tier B, only if A is under T: deduped docs not in A that meet all of:\n   - first line is '= title =';\n   - mean >= m5 - 0.10;\n   - minw >= w1 - 0.20;\n   - vocab >= v2 - 0.05.\n   Sort by mean descending and take at most min(T - tokens(A), 0.35*T) tokens.\n\n6. Sequence, built explicitly with a total of T to 1.02*T tokens so the trainer never wraps:\n   - Early block: all of B plus extra seeded-shuffled passes of A as needed to fill, shuffled together.\n   - Final block: one seeded-shuffled pass of A, capped to the highest-mean 0.6*T tokens.\n   No global shuffle afterwards.\n\n7. Fallback and diagnostics. If A holds fewer than 0.3*T tokens, fall back to the current pipeline. Print tokens(A)/T, tokens(B)/T, the doc count of each tier and the number of extra A passes. Seed everything from CURATE_SEED, keep runtime under 150 seconds, and use len/4 token estimates if tiktoken runs late.",
+   "outcome": "dev 1.8018 against 1.8126 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Start from experiment 10 (lowest dev so far, 1.8018) and keep its scoring, calibration, best-copy dedupe and tier A exactly: full-document 250-token windows against the 200-doc reference, m5 / w1 / v2 by leave-one-out, tier A = mean >= m5-0.02 AND minw >= w1-0.05 AND vocab >= v2-0.03. Change only how the non-A budget is filled and ordered, so new in-domain text replaces repeated passes of A and the cleanest text is read last.\n\n1. Tier B (wider than in experiment 10). Deduped docs not in A, whose title key is not in A, that meet all of:\n   - first line is '= title =';\n   - at least 50 tokens and clean-character fraction >= 0.85;\n   - vocab >= v2 - 0.08;\n   - mean >= m5 - 0.15;\n   - at least 60% of the doc's windows have a hit rate >= w1 - 0.05. This replaces the minimum-window rule, so articles that are mostly clean with one damaged section get in, and fully word-shuffled copies stay out.\n   Add no off-domain text (no docs without a title line).\n\n2. Size of B. Sort B by mean descending and take at most min(T - tokens(A), 0.5*T) tokens, instead of the 0.35*T cap. If A holds at least 1.02*T tokens, cap A by mean, apply the seeded shuffle and return, as before.\n\n3. Sequence, built explicitly with a total of T to 1.02*T tokens so the trainer never wraps:\n   - Block 1 (start of training): all of B, seeded-shuffled, with no A mixed in.\n   - Block 2: extra seeded-shuffled passes of A, only as many as needed to fill the gap. Use a partial pass of the highest-mean docs if less than a full pass is needed.\n   - Block 3 (end): one seeded-shuffled pass of A, capped to the highest-mean 0.6*T tokens.\n   No global shuffle afterwards.\n\n4. Fallback and diagnostics. If A holds fewer than 0.3*T tokens, fall back to the current pipeline. Print tokens(A)/T, tokens(B)/T, the doc count of each tier, the number of extra A passes, and how many B docs fail experiment 10's old minimum-window rule. Seed everything from CURATE_SEED, keep runtime under 150 seconds, and use len/4 token estimates if tiktoken runs late.",
+   "outcome": "dev 1.8196 against 1.8126 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Start from experiment 10 (lowest dev so far, 1.8018) and keep its scoring, calibration, best-copy dedupe, tier A and tier B rules exactly: full-document 250-token windows against the 200-doc reference; m5 / w1 / v2 by leave-one-out; A = mean >= m5-0.02 AND minw >= w1-0.05 AND vocab >= v2-0.03; B = '= title =' docs not in A with mean >= m5-0.10, minw >= w1-0.20, vocab >= v2-0.05. Change only two things, both of which move away from experiment 11's wider and earlier B, which hurt.\n\n1. Smaller B. Take at most min(T - tokens(A), 0.20*T) tokens of B, highest mean first, instead of 0.35*T. Also drop any B doc whose title key matches a tier A doc.\n\n2. Sequence, built explicitly with a total of T to 1.02*T tokens so the trainer never wraps:\n   - Early block: all of B mixed and seeded-shuffled with the extra A material needed to fill the gap. Build the extra A material from whole seeded-shuffled passes of A. If a fractional pass is needed, use the highest-mean A docs for it, not a random subset.\n   - Final block: one seeded-shuffled pass of A, capped to the highest-mean 0.5*T tokens instead of 0.6*T. A docs that fall outside this cap must still appear in the early block at least once.\n   No global shuffle afterwards.\n\n3. If A holds at least 1.02*T tokens, cap A by mean, apply the seeded shuffle and return. If A holds fewer than 0.3*T tokens, fall back to the current pipeline.\n\n4. Print tokens(A)/T, tokens(B)/T, the doc count of each tier and the number of extra A passes. Seed everything from CURATE_SEED, keep runtime under 150 seconds, and use len/4 token estimates if tiktoken runs late.",
+   "outcome": "dev 1.7918 against 1.8126 for the best at the time, KEPT as the new best"
+  }
+ ],
+ "usd": 9.370819199999998,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.2740436,
+   "dev": 1.8126341523702014,
+   "inc": 1.9399147317816825,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.517283155997948,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.43061159999999993,
+   "dev": 1.8070159664947263,
+   "inc": 1.8126341523702014,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.517283155997948,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.48631559999999996,
+   "dev": 1.8095850249672003,
+   "inc": 1.8126341523702014,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.517283155997948,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.6645555999999999,
+   "dev": 1.8060830219156587,
+   "inc": 1.8126341523702014,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.517283155997948,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.2514676,
+   "dev": 1.8082057307092723,
+   "inc": 1.8126341523702014,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.517283155997948,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.0712916,
+   "dev": 1.8099693779340975,
+   "inc": 1.8126341523702014,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.517283155997948,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7858675999999996,
+   "dev": 1.8047268454742644,
+   "inc": 1.8126341523702014,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.517283155997948,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.7172596000000002,
+   "dev": 1.8421521712878504,
+   "inc": 1.8126341523702014,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.517283155997948,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.0045795999999996,
+   "dev": 1.8149701360184158,
+   "inc": 1.8126341523702014,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.517283155997948,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 1.0239396000000003,
+   "dev": 1.801840339592745,
+   "inc": 1.8126341523702014,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.517283155997948,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.8499635999999997,
+   "dev": 1.8195699283891609,
+   "inc": 1.8126341523702014,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 17.517283155997948,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.8109235999999989,
+   "dev": 1.7918063006872988,
+   "inc": 1.8126341523702014,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9399147317816825,
+ "inc_slot": 12
+}

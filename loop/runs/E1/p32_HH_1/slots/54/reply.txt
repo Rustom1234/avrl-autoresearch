@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+=======
+    w = rng.uniform(0.6, 1.4, n)   # fixed relative radii
+    def cons_s(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n] * w
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+    s_res = minimize(lambda v: -v[-1], np.concatenate([base.ravel(), [INIT_RADIUS]]), method="SLSQP",
+                     constraints={"type": "ineq", "fun": cons_s}, options={"maxiter": MAX_ITER})
+    x0 = np.concatenate([s_res.x[:2 * n], s_res.x[2 * n] * w])
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+>>>>>>> REPLACE
+-----

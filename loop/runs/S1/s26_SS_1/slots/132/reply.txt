@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+    n = _N
+=======
+def _polish(c, r, w=None):
+    n = _N
+    wv = np.zeros(n) if w is None else w
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        return -x[2 * n:].sum()
+=======
+        return -x[2 * n:].sum() + wv @ x[2 * n:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        g[2 * n:] = -1
+=======
+        g[2 * n:] = -1 + wv
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+=======
+    best_s, best = -1, None
+    pool = []
+    while time.time() - t0 < 110:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+=======
+        s = r2.sum()
+        pool.append((s, c2, r2))
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    pool.sort(key=lambda t: -t[0])
+    for s0, c0, r0 in pool[:10]:
+        if time.time() - t0 > 175:
+            break
+        try:
+            w = rng.normal(0, 0.05, _N)
+            c3 = np.clip(_polish(c0, r0, w), 0, 1)
+            r3 = _lp_radii(c3)
+            c4 = np.clip(_polish(c3, r3), 0, 1)
+            r4 = _lp_radii(c4)
+        except Exception:
+            continue
+        if r4.sum() > best_s:
+            best_s, best = r4.sum(), (c4, r4)
+    c, r = best
+>>>>>>> REPLACE
+-----

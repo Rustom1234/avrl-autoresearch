@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _reinsert(rng, best):
+    c, r = best[0].copy(), best[1].copy()
+    idx = np.argsort(r)[:2]
+    keep = np.setdiff1d(np.arange(len(r)), idx)
+    p = rng.uniform(0, 1, (20000, 2))
+    d = np.sqrt(((p[:, None] - c[keep][None]) ** 2).sum(-1)) - r[keep]
+    d = np.minimum.reduce([d.min(1), p.min(1), (1 - p).min(1)])
+    for k in idx:
+        j = np.argmax(d)
+        c[k], r[k] = p[j], 0.02
+        d = np.minimum(d, np.sqrt(((p - p[j]) ** 2).sum(1)) - 0.02)
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best if late else None)
+=======
+        start = best
+        if late and rng.random() < 0.5:
+            start = _reinsert(rng, best)
+        c, r = _solve_once(n, rng, start if late else None)
+>>>>>>> REPLACE
+-----

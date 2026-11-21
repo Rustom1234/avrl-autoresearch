@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+class MLP(nn.Module):
+    def __init__(self, config):
+=======
+class CrossAttention(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.n_head = config.n_head
+        self.head_dim = config.n_embd // config.n_head
+        self.c_q = nn.Linear(config.n_embd, config.n_embd, bias=False)
+        self.c_k = nn.Linear(config.n_embd, config.n_embd, bias=False)
+        self.c_v = nn.Linear(config.n_embd, config.n_embd, bias=False)
+        self.c_proj = nn.Linear(config.n_embd, config.n_embd, bias=False)
+
+    def forward(self, x, x0, cos_sin, window_size):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x0).view(B, T, self.n_head, self.head_dim)
+        v = self.c_v(x0).view(B, T, self.n_head, self.head_dim)
+        cos, sin = cos_sin
+        q, k = norm(apply_rotary_emb(q, cos, sin)), norm(apply_rotary_emb(k, cos, sin))
+        y = fa3.flash_attn_func(q, k, v, causal=True, window_size=window_size)
+        return self.c_proj(y.contiguous().view(B, T, -1))
+
+
+class MLP(nn.Module):
+    def __init__(self, config):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.attn = CausalSelfAttention(config, layer_idx)
+        self.mlp = MLP(config)
+
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+=======
+        self.attn = CausalSelfAttention(config, layer_idx)
+        self.xattn = CrossAttention(config)
+        self.mlp = MLP(config)
+
+    def forward(self, x, x0, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + self.xattn(norm(x), x0, cos_sin, window_size)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            torch.nn.init.zeros_(block.attn.c_proj.weight)
+=======
+            torch.nn.init.zeros_(block.attn.c_proj.weight)
+            torch.nn.init.uniform_(block.xattn.c_q.weight, -s, s)
+            torch.nn.init.uniform_(block.xattn.c_k.weight, -s, s)
+            torch.nn.init.uniform_(block.xattn.c_v.weight, -s, s)
+            torch.nn.init.zeros_(block.xattn.c_proj.weight)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+            x = block(x, x0, ve, cos_sin, self.window_sizes[i])
+>>>>>>> REPLACE
+-----

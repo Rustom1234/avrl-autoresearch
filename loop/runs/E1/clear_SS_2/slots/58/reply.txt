@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+    pr = r.predict(np.log1p(Xte[:, -N_BITS:]))
+=======
+    D_tr, D_te = Xtr[:, :-N_BITS].astype(np.float64), Xte[:, :-N_BITS].astype(np.float64)
+    mu, sd = D_tr.mean(0), D_tr.std(0) + 1e-9
+    D_tr = 0.1 * np.clip((D_tr - mu) / sd, -5, 5)
+    D_te = 0.1 * np.clip((D_te - mu) / sd, -5, 5)
+    Rtr = np.hstack([np.log1p(Xtr[:, -N_BITS:]), D_tr])
+    Rte = np.hstack([np.log1p(Xte[:, -N_BITS:]), D_te])
+    r = Ridge(alpha=10.0).fit(Rtr, y)
+    pr = r.predict(Rte)
+>>>>>>> REPLACE
+-----

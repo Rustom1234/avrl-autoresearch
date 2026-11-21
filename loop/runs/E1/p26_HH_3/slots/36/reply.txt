@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _solve_sym(n, rng):
+    """Random restart under 180-degree rotational symmetry about (0.5, 0.5); n must be even."""
+    m = n // 2
+    iu = np.triu_indices(n, 1)
+
+    def expand(v):
+        h, rh = v[:2 * m].reshape(m, 2), v[2 * m:]
+        return np.vstack([h, 1 - h]), np.concatenate([rh, rh])
+
+    def cons(v):
+        c, r = expand(v)
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * m), np.full(m, INIT_RADIUS)])
+    res = minimize(lambda v: -2 * v[2 * m:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c, r = expand(res.x)
+    return _optimise(n, np.concatenate([c.ravel(), r]))
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng)
+=======
+        c, r = _solve_sym(n, rng) if n % 2 == 0 else _solve_once(n, rng)
+>>>>>>> REPLACE
+-----

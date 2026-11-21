@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+=======
+_ROW_PATTERNS = [(5, 5, 5, 5, 6), (5, 6, 5, 6, 4), (4, 5, 6, 5, 6)]
+
+
+def _hex_seed(rng, rows):
+    # perturbed hexagonal-like rows; odd rows shifted by half a spacing
+    pts = []
+    m = len(rows)
+    for i, k in enumerate(rows):
+        yy = 0.1 + 0.8 * i / (m - 1)
+        shift = 0.5 * (0.8 / max(k - 1, 1)) * (i % 2)
+        xs = np.linspace(0.1, 0.9, k) + shift
+        for xx in xs:
+            pts.append((xx, yy))
+    P = np.array(pts)
+    P = P + rng.normal(0.0, 0.02, size=P.shape)
+    return np.clip(P, 0.05, 0.95)
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+=======
+        if _k % 2 == 0:
+            P = _hex_seed(rng, _ROW_PATTERNS[(_k // 2) % len(_ROW_PATTERNS)])
+        else:
+            P = rng.uniform(0.05, 0.95, size=(_N, 2))
+>>>>>>> REPLACE
+-----

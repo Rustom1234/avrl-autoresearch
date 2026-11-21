@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def extra_desc(m):
+    out = [rdMolDescriptors.CalcNumAmideBonds(m), rdMolDescriptors.CalcNumHeterocycles(m),
+           rdMolDescriptors.CalcNumSpiroAtoms(m), rdMolDescriptors.CalcNumBridgeheadAtoms(m),
+           rdMolDescriptors.CalcNumAtomStereoCenters(m), rdMolDescriptors.CalcTPSA(m, includeSandP=True)]
+    try:
+        out += list(rdMolDescriptors.BCUT2D(m))
+    except Exception:
+        out += [0.0] * 8
+    return out
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    desc = np.array([[f(m) for _, f in Descriptors.descList] for m in mols], dtype=np.float64)
+=======
+    desc = np.array([[f(m) for _, f in Descriptors.descList] + extra_desc(m) for m in mols], dtype=np.float64)
+>>>>>>> REPLACE
+-----

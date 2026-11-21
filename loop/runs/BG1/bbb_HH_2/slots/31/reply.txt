@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def nb_scores(x_tr, y, x_te):
+    """Laplacian-corrected Bernoulli naive Bayes log-odds of class 1."""
+    xb = (x_tr > 0).astype(np.float64)
+    xt = (x_te > 0).astype(np.float64)
+    n1 = y.sum()
+    n0 = len(y) - n1
+    p1 = (xb[y == 1].sum(axis=0) + 1) / (n1 + 2)
+    p0 = (xb[y == 0].sum(axis=0) + 1) / (n0 + 2)
+    on = np.log(p1 / p0)
+    off = np.log((1 - p1) / (1 - p0))
+    return np.log((n1 + 1) / (n0 + 1)) + xt @ on + (1 - xt) @ off
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+=======
+    total += rankdata(nb_scores(train_sets[0], y, test_sets[0]))
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from sklearn.neural_network import MLPRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Dtr = describe(train_smiles)
+    Dte = describe(test_smiles)
+    lo, hi = np.percentile(Dtr, [0.5, 99.5], axis=0)
+    Xtr = np.hstack([featurize(train_smiles), np.clip(Dtr, lo, hi)])
+    Xte = np.hstack([featurize(test_smiles), np.clip(Dte, lo, hi)])
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(Xtr, np.asarray(train_y, dtype=np.float64))
+    return model.predict(Xte)
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Dtr = describe(train_smiles)
+    Dte = describe(test_smiles)
+    mu = Dtr.mean(axis=0)
+    sd = Dtr.std(axis=0)
+    sd[sd == 0] = 1.0
+    Ztr = np.clip((Dtr - mu) / sd, -5, 5)
+    Zte = np.clip((Dte - mu) / sd, -5, 5)
+    y = np.asarray(train_y, dtype=np.float64)
+    preds = []
+    for k in range(3):
+        model = MLPRegressor(hidden_layer_sizes=(128, 64), activation='relu', alpha=1e-2, solver='adam',
+                             learning_rate_init=1e-3, early_stopping=True, validation_fraction=0.15,
+                             max_iter=500, random_state=seed + k)
+        model.fit(Ztr, y)
+        preds.append(model.predict(Zte))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

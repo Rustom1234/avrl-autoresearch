@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+=======
+_CACHE = {}
+
+
+def featurize(smiles):
+    missing = [s for s in dict.fromkeys(smiles) if s not in _CACHE]
+    if missing:
+        for s, r in zip(missing, _featurize(missing)):
+            _CACHE[s] = r
+    return np.array([_CACHE[s] for s in smiles], dtype=np.float32)
+
+
+def _featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        oof[va] = base_preds(Xtr[tr], y[tr], Xtr[va], seed, 200)
+=======
+    for tr, va in KFold(3, shuffle=True, random_state=seed).split(Xtr):
+        oof[va] = base_preds(Xtr[tr], y[tr], Xtr[va], seed, 100)
+>>>>>>> REPLACE
+-----

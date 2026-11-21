@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import StandardScaler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    scaler = StandardScaler().fit(Xtr[:, N_BITS:])
+    ztr = np.clip(scaler.transform(Xtr[:, N_BITS:]), -5, 5)
+    zte = np.clip(scaler.transform(Xte[:, N_BITS:]), -5, 5)
+    Xtr = np.hstack([Xtr[:, :N_BITS], ztr])
+    Xte = np.hstack([Xte[:, :N_BITS], zte])
+    model = MLPRegressor(hidden_layer_sizes=(256, 128), alpha=1e-2, learning_rate_init=1e-3,
+                         early_stopping=True, validation_fraction=0.1, max_iter=500, random_state=seed)
+    model.fit(Xtr, np.asarray(train_y, dtype=np.float64))
+    return model.predict(Xte)
+>>>>>>> REPLACE
+-----

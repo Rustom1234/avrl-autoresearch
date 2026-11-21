@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+    def forward(self, idx, targets=None, reduction='mean'):
+=======
+    def forward(self, idx, targets=None, reduction='mean', smoothing=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(
+=======
+        if targets is not None and smoothing is not None:
+            lf = logits.view(-1, logits.size(-1))
+            lse = torch.logsumexp(lf, dim=-1)
+            tgt = lf.gather(1, targets.view(-1, 1)).squeeze(1)
+            return (lse - (1 - smoothing) * tgt - smoothing * lf.mean(-1)).mean()
+        if targets is not None:
+            loss = F.cross_entropy(
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+=======
+    ls = torch.tensor(0.05 * max(0.0, 1 - min(total_training_time / TIME_BUDGET, 1.0) / 0.5), device=device)
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y, smoothing=ls)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    def forward(self, idx, targets=None, reduction='mean'):
+=======
+    def forward(self, idx, targets=None, reduction='mean', smoothing=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+=======
+        if targets is not None and smoothing is not None:
+            lf = logits.view(-1, logits.size(-1))
+            lse = torch.logsumexp(lf, dim=-1)
+            tgt = lf.gather(1, targets.view(-1, 1)).squeeze(1)
+            return (lse - (1 - smoothing) * tgt - smoothing * lf.mean(-1)).mean()
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+=======
+    ls = torch.tensor(0.05 * max(0.0, 1 - min(total_training_time / TIME_BUDGET, 1.0) / 0.5), device=device)
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y, smoothing=ls)
+>>>>>>> REPLACE
+-----

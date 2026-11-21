@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+        if best is None:   # first start: a random restart
+            c, r = _solve_once(n, rng)
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+=======
+        if best is None or time.process_time() - t0 < 0.3 * TIME_FRACTION * time_limit:   # random restarts
+            c, r = _solve_once(n, rng)
+        else:              # slice-and-rotate: rotate one side of a random line about its nearest point to the centre
+            c, r = best[0].copy(), best[1].copy()
+            a, s = rng.uniform(0, np.pi), rng.uniform(-0.3, 0.3)
+            nrm = np.array([np.cos(a), np.sin(a)])
+            pivot = 0.5 + s * nrm
+            m = (c - pivot) @ nrm > 0
+            th = rng.uniform(-0.3, 0.3)
+            Rot = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
+            c[m] = np.clip(pivot + (c[m] - pivot) @ Rot.T, 0, 1)
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+>>>>>>> REPLACE
+-----

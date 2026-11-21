@@ -1,0 +1,962 @@
+[
+ {
+  "id": "b001",
+  "title": "Structured row-based initial layouts",
+  "spec": "Change the very first start (and any start=None call) so it does not use uniform random centres. Pick a row pattern at random from [[5,5,6,5,5],[6,5,6,5,4]... restricted to patterns summing to 26, e.g. [5,5,6,5,5],[5,6,5,5,5],[6,5,5,5,5],[4,5,4,5,4,4]]. Place the rows at equally spaced y values in (0,1). Within each row, space the circles evenly in x with an alternating half-spacing offset. Add Gaussian jitter with sd 0.02 drawn from rng, clip to [0.05, 0.95], and set the initial radii to 0.05. Then run phase 1 and phase 2 as before. Near-hexagonal starts land closer to the known optimum's basin than uniform noise does.",
+  "family": "data",
+  "sim_hist_bge": 0.7997385859489441,
+  "sim_tried_bge": 0.7929158210754395,
+  "sim_hist_mini": 0.6673260927200317,
+  "sources": [
+   [
+    "opus",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Structured initial layouts",
+  "spec": "For the first starts, use a perturbed grid-like initial layout instead of a uniform random one: rows of 5,5,6,5,5 (or 6,5,5,5,5) circles with jitter of sd 0.02, plus radii initialised to 0.05. Also try hexagonal-like row patterns chosen at random by seed. The best known packings for n=26 are near these ring or row structures.",
+  "family": "data",
+  "sim_hist_bge": 0.815009355545044,
+  "sim_tried_bge": 0.815009355545044,
+  "sim_hist_mini": 0.7231594920158386,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Small-circle-biased kick selection",
+  "spec": "Choose the kick disc centre p near a circle selected with probability proportional to 1/r_i, where r_i is its radius in the incumbent, so that small (loosely held) circles are more likely to be perturbed. Set p to that circle's centre plus a small uniform offset of at most 0.05, then apply the existing disc re-randomisation with R drawn as before. This focuses the kick on circles that have the most room to move, instead of on a uniformly random point of the square.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8738915920257568,
+  "sim_tried_bge": 0.8738915920257568,
+  "sim_hist_mini": 0.6072617173194885,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Single-circle relocation of smallest circles",
+  "spec": "Add a kick type, chosen with probability 0.3. Remove the 2 or 3 circles with the smallest radii. Place them at random points that are at least 0.05 from the walls, and set their radii to 0. Then run the usual two-phase solve with the other circles' radii kept. Accept by the existing rule.",
+  "family": "data",
+  "sim_hist_bge": 0.81184321641922,
+  "sim_tried_bge": 0.81184321641922,
+  "sim_hist_mini": 0.68950355052948,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Final high-precision polish of best",
+  "spec": "In solve, lower the main loop limit to 0.75*time_limit. After the loop, take the best (c, r) and run phase 2 of _solve_once once more from np.concatenate([c.ravel(), r]), using SLSQP options maxiter=1000 and ftol=1e-13. Clip the centres to [0,1] and run _repair. Keep the polished result only if its radius sum is larger than best's. Return best. The goal is to recover the slack that SLSQP's default ftol of 1e-6 leaves in the result. Add a parameter `ftol` to _solve_once (default None, meaning SLSQP's default) so this is a small change.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8051131367683411,
+  "sim_tried_bge": 0.8051131367683411,
+  "sim_hist_mini": 0.6920873522758484,
+  "sources": [
+   [
+    "opus",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Sparse neighbour-pair constraints",
+  "spec": "In _solve_once, restrict the pairwise non-overlap constraints to pairs whose centres are within a cutoff of the start configuration, for example distance < 2 * (max radius in start) + 0.25. Build the pair index list once per call from the start centres and use it in cons and cons_eq. Keep a full-pair final check in _repair so validity is still guaranteed. Fewer constraints means a much smaller SLSQP problem per iteration, so more iterations fit into the time budget.",
+  "family": "batch",
+  "sim_hist_bge": 0.9337915182113647,
+  "sim_tried_bge": 0.8118837475776672,
+  "sim_hist_mini": 0.8582822680473328,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Final high-precision SLSQP polish of best",
+  "spec": "After the main loop in solve, take best (c, r) and run _solve_once(n, rng, start=np.concatenate([c.ravel(), r])) one more time, but with SLSQP options {'maxiter': 1000, 'ftol': 1e-14} for this call only: add an optional argument polish=False to _solve_once that switches the phase-2 options. Then clip, _repair, and replace best only if the repaired sum is larger. The 20% time slack left by TIME_FRACTION covers this one solve. This closes the gap between the loose 200-iteration optimum and the true local optimum.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8223669528961182,
+  "sim_tried_bge": 0.8223669528961182,
+  "sim_hist_mini": 0.687386155128479,
+  "sources": [
+   [
+    "opus",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Plateau random-walk acceptance",
+  "spec": "Keep a separate current state (c_cur, r_cur) in addition to the global best. Each kick starts from the current state. After repair, the new state replaces the current state if its radius sum is at least the current sum minus a tolerance eps = 2e-4. The global best is updated whenever a new sum beats it, as before. This lets the walk drift across near-equal packings instead of always returning to the single best. Use eps as a module-level constant.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7885662317276001,
+  "sim_tried_bge": 0.7885662317276001,
+  "sim_hist_mini": 0.5923213958740234,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Strip kick instead of disc kick",
+  "spec": "Replace the disc re-randomisation with a band kick. With probability 0.5 choose a horizontal band, otherwise a vertical band, at a random offset. The band width is uniform in [0.1, 0.3] and it spans the full square. Select the circles whose centres fall inside the band, re-randomise their centres uniformly inside the band, set their radii to 0, and re-optimise with _solve_once as before. This changes the shape of the perturbed region while keeping the rest of the kick loop identical.",
+  "family": "data",
+  "sim_hist_bge": 0.8718861937522888,
+  "sim_tried_bge": 0.8718861937522888,
+  "sim_hist_mini": 0.6441867351531982,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Slack-proportional per-circle kicks",
+  "spec": "In the slot-35 disc kick, replace the uniform re-randomisation inside the disc with a per-circle perturbation. Compute each circle's slack as its radius minus the smallest radius in the best packing, or use the count of near-contacts. Add Gaussian noise to every centre with sd = 0.05 * (1 + rank-based small-circle weight), and zero the radii only for circles in the disc. Keep the rest of the loop unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8738352060317993,
+  "sim_tried_bge": 0.8280704021453857,
+  "sim_hist_mini": 0.6355525255203247,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Stagnation restart of the kick chain",
+  "spec": "Count consecutive kicks without improvement. If the count reaches 60, start a new chain: run a fresh random _solve_once(n, rng) (phase 1 + phase 2), clip and repair it, and make it the chain's current state, so later kicks perturb this new state. Keep a separate global best over all chains and return it. Reset the counter on any chain improvement or restart. Only run a restart while at least 25% of the time budget remains, so new chains have time to mature.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7631721496582031,
+  "sim_tried_bge": 0.7631721496582031,
+  "sim_hist_mini": 0.46706342697143555,
+  "sources": [
+   [
+    "opus",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Radius-shrink then regrow kick",
+  "spec": "Before the kick's free-radius SLSQP, scale all radii of the best packing by 0.9. Keep the disc re-randomisation as is. This gives all the circles slack, so the optimiser can rearrange more easily. The phase-1 equal-radius solve is skipped for kicks, and SLSQP starts directly from the shrunk state.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8556638956069946,
+  "sim_tried_bge": 0.8556638956069946,
+  "sim_hist_mini": 0.8056167364120483,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "k-nearest-neighbour kick",
+  "spec": "Replace the disc kick with a count-based kick. Draw a random point p in [0,1]^2 and let k be a random integer in [3, 10]. Re-randomise the centres of the k circles nearest to p, placing each new centre uniformly in a disc of radius 0.2 around p and clipping to the square. Set their radii to 0 and re-optimise with _solve_once as before. Each kick then touches a fixed number of circles regardless of local density.",
+  "family": "data",
+  "sim_hist_bge": 0.8741911053657532,
+  "sim_tried_bge": 0.8741911053657532,
+  "sim_hist_mini": 0.6250947713851929,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Random varied initial radii, skip equal-radius phase",
+  "spec": "In _solve_once, when start is None, skip phase 1 (the tied-radius optimisation). Instead build the start from random centres in [INIT_LOW, 1-INIT_LOW] and radii drawn from rng.uniform(0.03, 0.13, n), then go straight to phase 2. Phase 1 pushes every start toward equal-size packings, which are far from optimal mixed-size ones. Starting with mixed radii gives more diverse and often better basins. Leave the kick path unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8155444860458374,
+  "sim_tried_bge": 0.8155444860458374,
+  "sim_hist_mini": 0.7078423500061035,
+  "sources": [
+   [
+    "opus",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "Mirror-symmetric kick halves",
+  "spec": "With probability 0.2, a kick takes the best packing and reflects the centres and radii of all circles with x > 0.5 across the line x = 0.5 (or y = 0.5, chosen at random). It then sets the radii of circles within 0.1 of the mirror line to 0 and re-optimises. This gives mirrored copies of good halves as starts. Accept by the existing rule.",
+  "family": "data",
+  "sim_hist_bge": 0.7891782522201538,
+  "sim_tried_bge": 0.7891782522201538,
+  "sim_hist_mini": 0.5521708130836487,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Threshold acceptance of slightly worse packings",
+  "spec": "Change the acceptance rule in solve so that a new candidate replaces the current working solution whenever its radius sum is at least (best sum - tau), where tau starts at 0.01 and decays linearly to 0 over the time budget. Track the global best separately and return it at the end. The current working solution is what gets kicked; the global best is what gets returned. This lets the search drift across neighbouring basins early and focus later.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7770463228225708,
+  "sim_tried_bge": 0.7770463228225708,
+  "sim_hist_mini": 0.5932084321975708,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Partial-radius jitter kick instead of full re-randomisation",
+  "spec": "In the local-kick branch, keep the disc selection m (p uniform, R in [0.15, 0.35]) but do not re-randomise the selected centres uniformly. Instead add Gaussian noise c[m] += rng.normal(0, 0.5*R, (k, 2)), clip to [0, 1], and set r[m] *= 0.3 instead of 0. The kicked state stays closer to the incumbent's structure while still breaking local contacts. Everything else stays unchanged.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8528686761856079,
+  "sim_tried_bge": 0.8528686761856079,
+  "sim_hist_mini": 0.6214578151702881,
+  "sources": [
+   [
+    "opus",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Global small-jitter kick mixed with disc kicks",
+  "spec": "With probability 0.25 in the kick branch, use a global move instead of the disc kick: c = best centres + rng.normal(0, 0.015, (n, 2)), clipped to [0, 1], and r = 0.85 * best radii. Then re-optimise with _solve_once from this start, repair, and accept if better. The disc kick changes local structure, while this move nudges the whole contact network at once and can slide rows of circles together, which a local disc cannot do. Keep the other 75% of kicks as they are.",
+  "family": "data",
+  "sim_hist_bge": 0.8438918590545654,
+  "sim_tried_bge": 0.8438918590545654,
+  "sim_hist_mini": 0.6429339051246643,
+  "sources": [
+   [
+    "opus",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Non-uniform radius initialisation and random restarts mix",
+  "spec": "Change the first-start initialisation in _solve_once. Instead of giving every circle radius INIT_RADIUS and uniform centres, draw initial radii from a uniform distribution on [0.02, 0.12] per circle and draw centres uniformly in [0.05, 0.95]. Use these for the first phase too. Also use a fresh random restart with probability 0.2 on each iteration, so that a fraction of the budget explores new regions rather than only local kicks. Both choices add diversity across seeds.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8428421020507812,
+  "sim_tried_bge": 0.8428421020507812,
+  "sim_hist_mini": 0.6950308084487915,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Only active pair constraints",
+  "spec": "In the SLSQP constraints, include only pairs whose centre distance in the starting point is less than 0.5, recomputed at each kick (the pair set is fixed within one minimize call). After the solve, verify all pairs, and let the repair or LP fix any violations. This cuts the constraint count from 325 to about 100 and speeds up each iteration substantially.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8708680868148804,
+  "sim_tried_bge": 0.823104977607727,
+  "sim_hist_mini": 0.7378066778182983,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b021",
+  "title": "Adaptive kick strength from acceptance history",
+  "spec": "Track the success rate of recent kicks over a sliding window of the last 20 attempts, counting a success when the new sum beats the best. Scale the kick radius range (currently 0.15 to 0.35 for the disc kick) up when the success rate is below 0.1 and down when it is above 0.3, clamped to [0.05, 0.5]. Also scale the Gaussian noise sd in the basin-hopping move the same way. This removes the hand-tuned kick size and adapts it to the difficulty of the instance during the run.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7602401971817017,
+  "sim_tried_bge": 0.7602401971817017,
+  "sim_hist_mini": 0.42667055130004883,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b022",
+  "title": "Tighter repair using exact LP radii",
+  "spec": "After optimisation, fix the centres and solve a linear program using scipy.optimize.linprog (HiGHS) to maximise the sum of radii subject to r_i+r_j<=d_ij, r_i<=wall distance, r>=0, with d_ij reduced by 1e-12. Use the result in place of the heuristic shrink repair, then subtract SHRINK. This recovers the loss from the repair step and gives an exactly feasible packing.",
+  "family": "other",
+  "sim_hist_bge": 0.9201749563217163,
+  "sim_tried_bge": 0.9201749563217163,
+  "sim_hist_mini": 0.7855464220046997,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b023",
+  "title": "Smaller, adaptive kick radius",
+  "spec": "In solve, replace the fixed kick radius R ~ U(0.15, 0.35) with an adaptive R. Keep a scalar R_mean, starting at 0.25, and draw R = clip(R_mean * exp(rng.normal(0, 0.3)), 0.08, 0.4). After each kick, if it improved best, set R_mean = 0.8*R_mean + 0.2*R. Otherwise grow R_mean by 1% toward 0.25 every 10 failed kicks. Also, instead of always setting the kicked radii to 0, set them to 0.5 * their old value. This keeps more structure and gives finer late-stage refinement.",
+  "family": "other",
+  "sim_hist_bge": 0.7834646701812744,
+  "sim_tried_bge": 0.7834646701812744,
+  "sim_hist_mini": 0.5308230519294739,
+  "sources": [
+   [
+    "opus",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b024",
+  "title": "Anisotropic Gaussian displacement kick",
+  "spec": "Replace the uniform re-randomisation in the disc kick with a directional displacement. Pick a random angle theta and a stretch factor s uniform in [2, 4]. For each circle inside the disc, add to its centre a Gaussian displacement with standard deviation 0.08 along the direction theta, scaled by s, and 0.08 perpendicular to it. Clip to the square, set the radii of the displaced circles to 0, and re-optimise with _solve_once. The displacement is elongated along one direction, which moves circles through the gaps of their neighbours more easily than an isotropic shake.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8101034164428711,
+  "sim_tried_bge": 0.8101034164428711,
+  "sim_hist_mini": 0.5918932557106018,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b025",
+  "title": "Remove-and-reinsert smallest circles kick",
+  "spec": "In solve, alternate between the existing disc kick and a new kick, choosing each with probability 0.5. The new kick: pick k = rng.integers(1, 4) circles, chosen from the 6 with the smallest radii. Move each one to the best of 200 random candidate points in [0,1]^2, where best means the point that maximises the clearance min(min_j(|p - c_j| - r_j), the distance to the nearest wall). Leave out the moved circles when computing clearance. Set the moved radii to 0, then call _solve_once with that start vector as the disc kick does. This targets the known weak spot of local optima: small circles stuck in poor holes.",
+  "family": "other",
+  "sim_hist_bge": 0.8344385623931885,
+  "sim_tried_bge": 0.8344385623931885,
+  "sim_hist_mini": 0.6665149331092834,
+  "sources": [
+   [
+    "opus",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b026",
+  "title": "Rattler relocation move",
+  "spec": "Add a second move type, used with probability 0.3 instead of the disc kick. Take the current best, find the circle with the smallest radius, and remove it. Sample 3000 uniform points, compute each point's clearance min(wall distances, min_j(|x - c_j| - r_j)), and put the removed circle at the point with the largest clearance, with radius 0. Then run _solve_once with this start, clip, repair, and accept if it beats best. Small circles that rattle in poor holes get moved to the biggest gap.",
+  "family": "other",
+  "sim_hist_bge": 0.8792535066604614,
+  "sim_tried_bge": 0.7681229114532471,
+  "sim_hist_mini": 0.6262044906616211,
+  "sources": [
+   [
+    "opus",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b027",
+  "title": "Analytic Jacobians for SLSQP",
+  "spec": "In _solve_once, give SLSQP exact gradients so it does not use finite differences. Pass jac for the objective: for phase 2 the gradient of -sum(r) is zeros on the centres and -1 on the radii; for phase 1 it is -1 on the t entry. Add a 'jac' function to each constraint dict that returns the dense Jacobian (rows = constraints, cols = variables). For each pair row k=(i,j): d(dist)/dc_i = (c_i-c_j)/dist, d/dc_j = -(c_i-c_j)/dist, -1 on r_i and r_j (or -2 on t in phase 1). Guard dist with max(dist,1e-12). The boundary rows are +1 or -1 on the relevant coordinate and -1 on r_i (or t). The nonnegativity row is +1 on r_i. Build the Jacobian with numpy fancy indexing into a preallocated zero matrix. Change nothing else. Within the same time budget this should give many more kicks.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9122619032859802,
+  "sim_tried_bge": 0.9122619032859802,
+  "sim_hist_mini": 0.7409469485282898,
+  "sources": [
+   [
+    "opus",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b028",
+  "title": "Kick centred on the largest empty region",
+  "spec": "In solve, replace the uniform random kick centre p with the point of largest empty space. Draw 200 uniform candidate points in [0,1]^2, compute each candidate's distance to its nearest circle centre (or to the walls, whichever is smaller), and set p to the candidate with the largest such distance. Keep the disc radius R and the disc re-randomisation unchanged. The kick then targets the holes of the incumbent, where rearrangement is most likely to pay off.",
+  "family": "data",
+  "sim_hist_bge": 0.8462314605712891,
+  "sim_tried_bge": 0.8462314605712891,
+  "sim_hist_mini": 0.6553606986999512,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b029",
+  "title": "Swap-and-kick of two discs",
+  "spec": "Add a second kick type, chosen with probability 0.3. Pick two random points p and q. Swap the centres of the circles inside the two small discs of radius 0.15 (match the counts by taking the k nearest circles to each point), set their radii to 0 and re-optimise via _solve_once. Accept it by the same rule as the other kicks.",
+  "family": "data",
+  "sim_hist_bge": 0.8352557420730591,
+  "sim_tried_bge": 0.8352557420730591,
+  "sim_hist_mini": 0.6657990217208862,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b030",
+  "title": "Swap kick: exchange two circles of different size",
+  "spec": "Add a second kick type to solve, used with probability 0.4 (the disc kick otherwise). Pick a random circle i, then a random circle j whose radius differs from r_i by more than 0.02. Swap their centres (c[i], c[j] = c[j].copy(), c[i].copy()). Keep the radii attached to their indices, then scale both radii down to min(r_i, r_j) so the start is near-feasible. Re-optimise with _solve_once from that start vector. Topological swaps reach neighbouring basins that a local disc perturbation rarely finds.",
+  "family": "other",
+  "sim_hist_bge": 0.845328688621521,
+  "sim_tried_bge": 0.845328688621521,
+  "sim_hist_mini": 0.6269193291664124,
+  "sources": [
+   [
+    "opus",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b031",
+  "title": "Squared-distance constraints",
+  "spec": "Rewrite the pair constraints in cons and cons_eq in squared form: dx^2 + dy^2 - (ri + rj)^2 >= 0, which avoids the sqrt. Add the analytic Jacobian for them. Keep the wall constraints linear. Check that the repair step still makes the packing valid. The aim is faster and smoother SLSQP, so there are more kicks per run.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8762229681015015,
+  "sim_tried_bge": 0.8068726062774658,
+  "sim_hist_mini": 0.7539108991622925,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b032",
+  "title": "Sparse neighbour pair constraints in phase 2",
+  "spec": "In _solve_once, when a start is given (the kick path), build the pair list only from pairs (i, j) with |c_i - c_j| - r_i - r_j < 0.3 at the start point, and use these pairs in place of the full triu_indices in cons. Keep all wall constraints and r >= 0. This shrinks the constraint Jacobian from 325 rows to roughly 100-150, so each SLSQP iteration is much cheaper and more kicks fit in the budget. Overlaps between pairs left out are caught by _repair, which still checks all pairs. Fresh restarts keep using all pairs.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9133928418159485,
+  "sim_tried_bge": 0.8287269473075867,
+  "sim_hist_mini": 0.7986271381378174,
+  "sources": [
+   [
+    "opus",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b033",
+  "title": "Lower MAX_ITER for kicks, higher for final polish",
+  "spec": "Use MAX_ITER=100 for kick re-optimisations to get more attempts, and when a candidate is within 0.002 of the best, polish it with an additional SLSQP run of 500 iterations and ftol=1e-12. This gives accurate convergence only for the promising candidates.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8308417797088623,
+  "sim_tried_bge": 0.8308417797088623,
+  "sim_hist_mini": 0.6506818532943726,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b034",
+  "title": "Two-disc compound kick",
+  "spec": "With probability 0.5, apply two independent disc kicks in the same iteration instead of one. Draw two disc centres p1 and p2 and two radii R1 and R2 from the existing ranges, re-randomise the circles inside each disc, and set their radii to 0. The union of the two regions is then re-optimised with a single _solve_once call from the combined start. Keep the acceptance rule and all other settings unchanged.",
+  "family": "batch",
+  "sim_hist_bge": 0.8516781330108643,
+  "sim_tried_bge": 0.8516781330108643,
+  "sim_hist_mini": 0.5736810564994812,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b035",
+  "title": "Reflect rather than clip after kick",
+  "spec": "In the kick, replace the np.clip of the re-randomised centres with reflection at the walls. For each coordinate x outside [0,1], set x to -x if x < 0 and to 2-x if x > 1, then clip once more to [0,1] for safety. The current clip piles displaced circles onto the boundary, which creates a degenerate start for SLSQP. Reflection keeps the kicked points spread out. Keep the rest of the kick loop unchanged.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8045639991760254,
+  "sim_tried_bge": 0.8045639991760254,
+  "sim_hist_mini": 0.6434073448181152,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b036",
+  "title": "Replace shrink-repair with a final re-optimisation of radii",
+  "spec": "After computing the candidate (c, r), instead of relying on _repair to shrink radii, run one extra SLSQP phase on the radii only with centres fixed at the clipped values. Use the constraints: r_i >= 0, r_i <= distance to each wall, and r_i + r_j <= d_ij for all pairs. Maximise the sum of r. Only then apply _repair as a safety net with the tolerance kept at zero shrink, so that the repaired sum is not discarded. The aim is to recover the radius mass that the crude shrink step throws away.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8726401925086975,
+  "sim_tried_bge": 0.8726401925086975,
+  "sim_hist_mini": 0.745394766330719,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b037",
+  "title": "Analytic Jacobians for SLSQP",
+  "spec": "Supply analytic gradients via the jac argument for the objective (constant -1 on radii) and for the constraints (sparse-structure dense matrix built with numpy for pair, wall and positivity constraints), in both phase 1 and phase 2. This removes finite-difference cost (about 80 variables), giving many more restarts and kicks in the 30 s budget. Keep the constraint ordering identical.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9147740602493286,
+  "sim_tried_bge": 0.9147740602493286,
+  "sim_hist_mini": 0.839055597782135,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b038",
+  "title": "Penalty continuation with L-BFGS before SLSQP",
+  "spec": "Add a fast pre-optimiser before the SLSQP phases. Minimise minus the sum of radii plus a quadratic overlap penalty mu * sum(max(0, r_i + r_j - d_ij)^2) plus a wall penalty of the same form, using scipy L-BFGS-B with bounds on all variables. Run it for mu in [1e2, 1e3, 1e4, 1e5] in sequence, warm-starting each step. Pass the output to the existing SLSQP phase 2 as the start. Cheap penalty steps should land in good basins that SLSQP then polishes.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9348230361938477,
+  "sim_tried_bge": 0.9348230361938477,
+  "sim_hist_mini": 0.8017629384994507,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b039",
+  "title": "Optimal radii via LP in repair",
+  "spec": "Replace the body of _repair with a linear program. With the centres fixed, maximise sum(r) subject to r_i + r_j <= d_ij for all pairs i<j, r_i <= min(x_i, y_i, 1-x_i, 1-y_i), and r_i >= 0. Use scipy.optimize.linprog(method='highs') with c=-ones, A_ub built from the pair indices (np.triu_indices), and b_ub = the pair distances, with bounds (0, wall_dist_i). Return np.maximum(r - SHRINK, 0) as before. If linprog fails, fall back to the existing pairwise-shrink code, kept as a helper. This gives the best valid radii for the given centres instead of the lossy pairwise scaling, so each candidate is scored more fairly.",
+  "family": "other",
+  "sim_hist_bge": 0.9429358243942261,
+  "sim_tried_bge": 0.9429358243942261,
+  "sim_hist_mini": 0.843614935874939,
+  "sources": [
+   [
+    "opus",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b040",
+  "title": "Basin-hopping acceptance with current state",
+  "spec": "Instead of always kicking from the best, keep a current solution and accept the new candidate if its sum is greater than current - T, with T about 0.003 decaying linearly to 0 over the time budget. Keep best separately and return it. This helps escape local optima while still exploiting.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8302710056304932,
+  "sim_tried_bge": 0.8302710056304932,
+  "sim_hist_mini": 0.6072717308998108,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b041",
+  "title": "Final polish with tight SLSQP",
+  "spec": "Reserve the last 8% of the time budget. Stop the kick loop at 0.72*time_limit. Then run SLSQP on the best packing's full (centres, radii) vector, with maxiter 500 and ftol 1e-14, restarting from its own output until the sum of radii improves by less than 1e-10. Pass the result through _repair, and keep it only if its sum is larger than the best sum.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.850156307220459,
+  "sim_tried_bge": 0.8277414441108704,
+  "sim_hist_mini": 0.7263043522834778,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b042",
+  "title": "Kick radius schedule",
+  "spec": "In the kick loop, make the disc radius R decay linearly over the time budget. R goes from 0.35 at the start to 0.12 at the end, instead of being uniform in [0.15, 0.35]. Keep a random factor in [0.7, 1.3] around the scheduled value. Everything else stays as in slot 35.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8172540664672852,
+  "sim_tried_bge": 0.8172540664672852,
+  "sim_hist_mini": 0.5975936651229858,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b043",
+  "title": "Randomised initial radii and population of starts",
+  "spec": "For the first 25% of the time, run independent random restarts with initial radii drawn from uniform(0.03, 0.12) and keep the top 3 solutions. In the remaining time, apply kicks to randomly chosen members of the top 3 and replace the worst member when improved. This gives a diversity of basins and avoids a single early basin.",
+  "family": "other",
+  "sim_hist_bge": 0.7930265665054321,
+  "sim_tried_bge": 0.7930265665054321,
+  "sim_hist_mini": 0.6870663166046143,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b044",
+  "title": "Annealed acceptance of kicked solutions",
+  "spec": "Keep a 'current' solution separate from 'best' in solve. Each kick starts from current rather than best. Accept a new solution as current if its sum is larger, or else with probability exp((new_sum - cur_sum)/T). T starts at 0.004 and decays linearly to 0 by the end of the time budget, computed from elapsed process time. Update best whenever new_sum > best_sum. Also, if current has not improved best for 40 consecutive kicks, reset current to best. This lets the search leave a basin it would otherwise never escape.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8438109755516052,
+  "sim_tried_bge": 0.8438109755516052,
+  "sim_hist_mini": 0.5943528413772583,
+  "sources": [
+   [
+    "opus",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b045",
+  "title": "Threshold acceptance on the kick chain",
+  "spec": "Keep a current state cur separate from best. After each kick and repair, accept the new packing as cur if r.sum() > cur_sum - T, where T = 2e-3 * (1 - elapsed/(TIME_FRACTION*time_limit)), so T falls linearly to 0. Update best whenever r.sum() > best_sum. Kicks always start from cur, not best. The first random restart initialises both cur and best. Return best. This is deterministic threshold accepting, not Metropolis, and it lets the chain cross small barriers between nearby basins.",
+  "family": "schedule",
+  "sim_hist_bge": 0.79637610912323,
+  "sim_tried_bge": 0.79637610912323,
+  "sim_hist_mini": 0.6242859363555908,
+  "sources": [
+   [
+    "opus",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b046",
+  "title": "Raise TIME_FRACTION to 0.92",
+  "spec": "Change TIME_FRACTION from 0.8 to 0.92 (CPU time limit is 30 s, hard void at 45 s). Make sure a single SLSQP call is unlikely to overrun by checking the average iteration time and stopping the loop if the elapsed time plus the last iteration's duration exceeds 0.95*time_limit.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8307960629463196,
+  "sim_tried_bge": 0.8307960629463196,
+  "sim_hist_mini": 0.6787271499633789,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b047",
+  "title": "Periodic fresh restarts with stagnation counter",
+  "spec": "In solve, track the number of consecutive kicks that have not improved the local incumbent of the current run. When it reaches 30, start a fresh run from a new random start (_solve_once(n, rng) with start=None) and run kicks from that new local incumbent. Keep a global best across all runs and return it. This turns the single-trajectory search into a multi-start search, which lowers the variance across seeds when one seed's first basin is poor.",
+  "family": "schedule",
+  "sim_hist_bge": 0.781146764755249,
+  "sim_tried_bge": 0.781146764755249,
+  "sim_hist_mini": 0.6039985418319702,
+  "sources": [
+   [
+    "opus",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b048",
+  "title": "Accept-equal-or-slightly-worse walk",
+  "spec": "Change the acceptance rule of the kick walk. Keep a current state separate from the best state. Accept a candidate if its sum is at least current - T, with T decaying geometrically from 0.004 to 0.0002 over the time budget. Kick from the current state and return the best state seen. Do not add chains.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7870044112205505,
+  "sim_tried_bge": 0.7870044112205505,
+  "sim_hist_mini": 0.48442625999450684,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b049",
+  "title": "Neighbour-only constraints in kicked solves",
+  "spec": "In the kick solves, include only the pair constraints for circle pairs whose centre distance is below r_i + r_j + 0.25 in the starting configuration. Run SLSQP with that reduced set. Afterwards check all pairs. If any is violated, re-solve once with the full set from the result. The smaller constraint count should make each solve much faster.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8765630722045898,
+  "sim_tried_bge": 0.7978752255439758,
+  "sim_hist_mini": 0.7522194981575012,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b050",
+  "title": "Smaller kick disc radius",
+  "spec": "In solve, in the local-kick branch, change the disc radius draw from R = rng.uniform(0.15, 0.35) to R = rng.uniform(0.08, 0.25). Smaller discs move fewer circles (about 1-5) per kick, so each kick is cheaper for SLSQP to repair and more of them are accepted. Change nothing else.",
+  "family": "schedule",
+  "sim_hist_bge": 0.865014910697937,
+  "sim_tried_bge": 0.865014910697937,
+  "sim_hist_mini": 0.7093726396560669,
+  "sources": [
+   [
+    "opus",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b051",
+  "title": "Disc centred on a random existing circle",
+  "spec": "In the local-kick branch of solve, draw the disc centre p as the centre of a randomly chosen circle, p = c[rng.integers(n)] + rng.normal(0, 0.02, 2), instead of p = rng.uniform(0, 1, 2). This makes sure at least one circle is re-randomised (with a uniform p, the disc can fall in an empty region or a corner and the kick then does nothing) and spreads kicks in proportion to circle density. Keep R, the re-randomisation, the r[m] = 0 reset and the acceptance rule unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.9262825846672058,
+  "sim_tried_bge": 0.9262825846672058,
+  "sim_hist_mini": 0.646371066570282,
+  "sources": [
+   [
+    "opus",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b052",
+  "title": "Squared-distance pair constraints",
+  "spec": "In both cons and cons_eq, replace the pair constraint sqrt(dx^2+dy^2) - r_i - r_j >= 0 with dx^2 + dy^2 - (r_i + r_j)^2 >= 0 (and 4t^2 in the equal-radius phase). The feasible set is the same for nonnegative radii, but the constraint is smooth everywhere: it has no sqrt singularity when centres coincide, which matters after kicks that drop centres close together. SLSQP's finite-difference Jacobian is then better conditioned. Change nothing else.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8786531686782837,
+  "sim_tried_bge": 0.8138711452484131,
+  "sim_hist_mini": 0.709257960319519,
+  "sources": [
+   [
+    "opus",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b053",
+  "title": "Remove-and-reinsert move for the smallest circle",
+  "spec": "Add a second kick type in the main loop, chosen with probability 0.5 against the disc kick. Pick the circle with the smallest radius in the incumbent, move its centre to a uniformly random point in [0.05, 0.95]^2 with radius set to 0, and re-optimise with _solve_once from that start. Small circles are the usual weak point of a packing, so relocating them is a targeted escape from local optima.",
+  "family": "other",
+  "sim_hist_bge": 0.8582994937896729,
+  "sim_tried_bge": 0.8582994937896729,
+  "sim_hist_mini": 0.7061455249786377,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b054",
+  "title": "Elite pool with random parent selection",
+  "spec": "Keep an elite list of the top 5 distinct packings by radius sum (discard duplicates whose sum is within 1e-6 of an existing entry). On each kick, choose the parent uniformly at random from the elite list instead of always using the single best. Insert a new result into the pool if it beats the worst entry. Return the best entry. This diversifies the search without changing the local optimiser.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8306106328964233,
+  "sim_tried_bge": 0.8306106328964233,
+  "sim_hist_mini": 0.6522778868675232,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b055",
+  "title": "Small-noise basin hopping instead of disc re-randomisation",
+  "spec": "Replace the disc-based kick in solve with a global perturbation: add Gaussian noise with sd drawn uniformly from [0.005, 0.03] to every centre of the incumbent, clip to [0, 1], keep the radii, and re-run _solve_once from that start. Keep the existing acceptance rule (keep the best by sum of radii). This tests whether many small moves around the current basin beat occasional large relocations.",
+  "family": "data",
+  "sim_hist_bge": 0.8763570189476013,
+  "sim_tried_bge": 0.8763570189476013,
+  "sim_hist_mini": 0.6445399522781372,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b056",
+  "title": "Penalty-based pre-relaxation",
+  "spec": "Before SLSQP, run a short L-BFGS-B minimisation on the energy -sum(r) + mu * sum(max(0, overlap)^2) over the walls and pairs, with mu increasing over 3 stages (10, 100, 1000), starting from the random initial layout and with radii initialised to 0.07. Pass the result to SLSQP phase 2 directly, skipping phase 1. This gives a better-conditioned start.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8975321054458618,
+  "sim_tried_bge": 0.8975321054458618,
+  "sim_hist_mini": 0.7746186852455139,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b057",
+  "title": "Analytic Jacobians for SLSQP constraints",
+  "spec": "Pass a `jac` to both SLSQP calls in _solve_once so the solver does not finite-difference the constraint vector. Build the Jacobian of cons (and cons_eq) analytically: for each pair (i, j) in iu, the distance gradient w.r.t. c[i] and c[j] is (c[i]-c[j])/d and its negative, and the radius terms contribute -1 entries on r[i] and r[j]. Boundary rows are simple sparse \u00b11 entries on the coordinates and radii. Fill a dense (num_constraints, 3n) matrix with np.add.at or direct indexing, and give the objective a matching gradient. This should cut per-iteration cost by a large factor, so more kicks fit into the 0.8 * 30 s CPU budget.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9401620626449585,
+  "sim_tried_bge": 0.9401620626449585,
+  "sim_hist_mini": 0.8575686812400818,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b058",
+  "title": "Smaller, more local kicks",
+  "spec": "Change the kick to be cheaper and more varied. Choose among three moves at random: re-randomise circles in a disc of radius 0.1-0.25, remove the smallest circle and reinsert it at the largest-hole location (a random point with the maximum distance to other circles, from 2000 samples), or swap the positions of two circles with different radii. Set the radii of the moved circles to 0 before re-optimising.",
+  "family": "other",
+  "sim_hist_bge": 0.839104950428009,
+  "sim_tried_bge": 0.839104950428009,
+  "sim_hist_mini": 0.6759341955184937,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b059",
+  "title": "Random square-symmetry transform before each kick",
+  "spec": "Before every kick, apply one of the 8 symmetries of the unit square chosen at random with the seeded rng to the incumbent centres: optionally swap x and y, then optionally replace x by 1-x and/or y by 1-y. The radii are unchanged and the packing stays valid because the square is symmetric. The kick then perturbs a different region of the same packing on each iteration, which changes which local defects are exposed without changing the objective of the incumbent.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8030186891555786,
+  "sim_tried_bge": 0.8030186891555786,
+  "sim_hist_mini": 0.6101666688919067,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b060",
+  "title": "Compaction kick",
+  "spec": "Add a compaction kick as an alternative move with probability 0.3. Scale every centre of the incumbent toward (0.5, 0.5) by a factor f drawn uniform in [0.95, 0.99], so that slack appears along the walls. Set all radii to 0.9 times their incumbent values, then re-optimise with _solve_once from this start. The move reorganises the whole packing and is cheap to code, since it needs only one vector operation before the existing local solve.",
+  "family": "other",
+  "sim_hist_bge": 0.7890588641166687,
+  "sim_tried_bge": 0.7721930742263794,
+  "sim_hist_mini": 0.5911216139793396,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    4
+   ]
+  ]
+ }
+]

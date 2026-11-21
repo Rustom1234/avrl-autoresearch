@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+DEPTH = 8               # number of transformer layers
+=======
+DEPTH = 8               # number of transformer layers
+SEQ_CURRICULUM_FRAC = 0.3  # fraction of time budget trained at half context (double batch in sequences)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        with autocast_ctx:
+            loss = model(x, y)
+=======
+        if total_training_time / TIME_BUDGET < SEQ_CURRICULUM_FRAC:
+            x_in = x.reshape(2 * DEVICE_BATCH_SIZE, MAX_SEQ_LEN // 2)
+            y_in = y.reshape(2 * DEVICE_BATCH_SIZE, MAX_SEQ_LEN // 2)
+        else:
+            x_in, y_in = x, y
+        with autocast_ctx:
+            loss = model(x_in, y_in)
+>>>>>>> REPLACE
+-----

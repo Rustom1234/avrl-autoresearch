@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity check passed: the diff changes only one hyperparameter, WARMDOWN_RATIO, from 0.5 to 0.0. It does not touch the val_bpb measurement, the data, the seed lines or the evaluation call.",
+  "No bug found that would make the result meaningless. With WARMDOWN_RATIO = 0 the LR stays constant until the end of training. In the usual autoresearch schedule, the warmdown branch, the only place that divides by WARMDOWN_RATIO, is only reached when progress >= 1 - WARMDOWN_RATIO. With a ratio of 0 that means progress >= 1, which the loop should never reach. I couldn't see the scheduler code, so this is an assumption, but the run finished and the harness raised no integrity flags.",
+  "The numbers support the reject. The candidate's 1.0974 is 0.0313 bpb worse than the incumbent mean of 1.0661, and the negative z means worse here. This fits the known benefit of an LR warmdown.",
+  "I can't recompute z exactly: the incumbent's two individual values and its spread were not given. The reported z = -4.662 implies a spread of about 0.0067 (0.0313 / 4.662), which is plausible. With n=2 for the incumbent and n=1 for the candidate the spread estimate is rough, but the gap is large enough that the decision would not change."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "delta_bpb": 0.0313,
+  "implied_sigma": 0.00671
+ }
+}

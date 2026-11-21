@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/LB_04/cand/s07_0.py",
+ "inc_scores": {
+  "11": 1.8187051851569604
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace random order with a target-similarity filter plus dedup. Steps: (1) Fit a TfidfVectorizer on character n-grams (analyzer='char_wb', ngram_range=(1,4), sublinear_tf=True, max_features=200k, on first ~3000 chars of each doc) over target_sample (label 1) plus a seeded random 4000-doc pool subsample (label 0), train LogisticRegression (C=1, class_weight='balanced'); score all pool docs with predict_proba. Do one round of self-training: take the top 15% scored pool docs as positives and bottom 50% as negatives, refit, rescore. (2) Remove exact/near duplicates: drop docs whose normalized (lowercased, whitespace-collapsed) first 500 chars hash was already seen. (3) Drop junk: docs with <200 chars, or with alphabetic+space fraction <0.7, or whose fraction of words found in the target_sample's vocabulary (words appearing >=2 times in target) is below 0.5 (catches scrambled-letter text). (4) Sort remaining docs by score descending, count tokens with tiktoken gpt2 (encode_ordinary_batch), and keep the top-scoring docs until reaching about 1.0*T tokens (if the docs with proba>0.5 total less than T, still fill up to T with the next-best scored docs rather than cycling). (5) Shuffle the kept set with CURATE_SEED so training order is mixed, and return it.",
+   "outcome": "dev 1.9245 against 1.9407 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Stop filling the budget with low-scoring documents: keep only confidently target-like documents and repeat them to reach T. Concretely, after the existing scoring, junk and dedup filters, keep only candidates whose final self-trained score is >= 0.5. As a safety floor, if those hold fewer than 0.25*T tokens, add the next-best-scored documents until 0.25*T is reached. If the kept set holds T tokens or more, behave as now (top-scored up to T, then shuffle). If it holds less than T, build the output explicitly as consecutive passes over the kept set, each pass shuffled with a different seed (random.Random(seed + epoch)), until the total token count reaches T. This replaces relying on the trainer's implicit cycling in the same order. Everything else stays unchanged. Print or log the kept token fraction of T and the number of kept documents so the effect can be diagnosed.",
+   "outcome": "dev 1.9252 against 1.9245 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Add a word-order (shuffled-text) filter to the junk step; keep everything else unchanged. The pool contains Wikipedia-style documents whose words have been shuffled (e.g. '= Nefertiti Bust =\\nthe Wife Royal The year coated Egyptian ...'). These pass the char n-gram classifier and the vocabulary filter because they have the right words and formatting.\n\nImplementation:\n1. Build a set B of all adjacent lowercase token bigrams from target_sample, tokenizing with re.findall(r\"[^\\W\\d_]+|[^\\w\\s]\", text.lower()) so punctuation counts as tokens.\n2. For each pool doc, take the tokens of its first 6000 chars, skipping the first line (the title). If there are fewer than 30 tokens, leave the doc to the existing rules.\n3. Compute h_real = the fraction of adjacent token bigrams that are in B.\n4. Compute h_shuf = the same fraction after shuffling that token list with random.Random(seed + i), where i is the doc index.\n5. Mark the doc as junk if h_real < 1.6 * h_shuf + 0.03, i.e. its real word order is hardly more predictable than a random permutation of its own words.\n6. Apply this in _is_junk before dedup, so a clean copy of a document is not displaced by a shuffled copy seen earlier.\n7. Log how many documents the filter removes and the token total of what remains. The budget then fills to 1.0*T with the next-best-scored clean documents, as now.",
+   "outcome": "dev 1.9004 against 1.9245 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 4,
+   "idea": "Make the word-order junk check cover the whole document instead of only its second line; keep everything else unchanged. The current check uses body_text = lines[1] of the first 5000 chars, so it passes any shuffled or damaged document whose first paragraph has fewer than 30 tokens, or whose damage starts later. Implementation: (1) In _is_junk, take the full text after the first line (the title), all lines joined, capped at 40,000 chars for time. Tokenize it with _ORDER_RE on the lowercased text. (2) If there are fewer than 30 tokens in total, leave the doc to the existing rules, as now. (3) Global test: compute h_real and h_shuf over the full token list. Shuffle with random.Random(seed + doc_index), passing the doc index into _is_junk, which replaces the current len(doc)-based seed. Mark junk if h_real < 1.6*h_shuf + 0.03. (4) Window test: split the token list into consecutive windows of 150 tokens, dropping a final window shorter than 60 tokens. For each window compute h_real_w, the fraction of adjacent bigrams found in the target bigram set. Use the global h_shuf as the baseline. Mark the doc junk if more than 25% of its windows have h_real_w < 1.6*h_shuf + 0.03. (5) Compute the existing alphabetic fraction and in-vocabulary fraction on the same 40,000-char span instead of the first 5000 chars. (6) Log how many docs each rule removes, the clean token total as a fraction of T, and the classifier score of the last document admitted to the budget.",
+   "outcome": "dev 1.8417 against 1.9004 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Change only the final ordering of the kept set, from one uniform shuffle to a two-block curriculum that ends on the most target-like text. Selection (scoring, junk rules, dedup, fill to 1.0*T by score) stays exactly as now. After the kept list is built: (1) Split it into block A = kept docs with final classifier score < 0.5 (the off-target fill) and block B = kept docs with score >= 0.5. (2) Shuffle each block separately with random.Random(seed) and random.Random(seed+1). (3) Return A + B, so training sees the fill first and the target-like docs last. (4) Make sure the list does not exceed T tokens by more than the last doc, so the trainer does not truncate the tail of B: if the token total exceeds T, drop the lowest-scored docs from A, not from B. (5) Safety: if block A holds less than 2% or more than 70% of the kept tokens, instead use a soft ordering: sort all kept docs by key = rank_by_score_ascending/len + rng.uniform(0, 0.5), so the order is still mixed but drifts toward high-score docs at the end. (6) Log the token fraction of A and B.",
+   "outcome": "dev 1.8921 against 1.8417 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the weak dedup (hash of the first 500 chars) with content-level redundancy removal over the whole document; keep scoring, junk rules, fill to 1.0*T and the final uniform shuffle unchanged.\n\n1. For every doc that passes the junk rules, split the first 40,000 chars into sentence units with re.split(r\"\\n+| \\. |(?<=[.!?])\\s+\", text). Normalize each unit (lowercase, collapse whitespace) and keep units of at least 40 chars. Hash each with Python hash() or md5, and weight it by its char length.\n\n2. Intra-doc repetition rule: if a doc has at least 5 units and its distinct units hold less than 70% of its total unit chars, drop it as repeated or boilerplate text. Also drop it if len(zlib.compress(text[:40000].encode())) / len(bytes) < 0.22.\n\n3. Cross-doc near-duplicate rule: process the surviving docs in descending classifier score, ties broken by doc index. Keep a global set of seen unit hashes. For each doc, compute the char-weighted fraction of its units already in the set. If that fraction is above 0.5, drop the doc as a near-duplicate; this catches copies with a changed title, a changed or truncated head, or small edits. Otherwise keep it and add its units to the set. Docs with fewer than 3 units fall back to the existing first-500-char hash key.\n\n4. Keep the existing first-500-char key as an additional check.\n\n5. Fill the budget to 1.0*T by score from the kept docs and shuffle with the seed, as now.\n\n6. Log how many docs the repetition rule and the near-duplicate rule each remove, and the clean token total as a fraction of T.",
+   "outcome": "dev 1.8357 against 1.8417 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Mix repetition of target-like docs with fill, instead of pure fill (current best) or pure repetition (experiment 2). Scoring, junk rules, dedup and the final uniform shuffle stay unchanged.\n\n1. After the junk and dedup filters, count tokens for candidates in descending score order, as now. Define tier 1 as the candidates with final self-trained score >= 0.5, and let a = tier1_tokens / T.\n2. If a >= 1, behave exactly as now: top-scored docs up to 1.0*T, then shuffle.\n3. If a < 1, build the output list as follows:\n   (a) Add every tier-1 doc once.\n   (b) Add a second copy of tier-1 docs in descending score order until the tier-1 total (first plus second copies) reaches min(2a, 0.85)*T tokens.\n   (c) Fill the remaining budget up to 1.0*T with the next-best-scored docs below 0.5, once each, in descending score order.\n4. Shuffle the whole list once with random.Random(seed), so the two copies of a doc sit far apart. Make sure the total does not exceed T by more than one doc.\n5. Log a, the number of tier-1 docs, the token share of second copies, the token share of fill, and the score of the last fill doc admitted.",
+   "outcome": "dev 1.8187 against 1.8417 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 8,
+   "idea": "Replace the current chunk-based token counting (which might cause a slight discrepancy between actual training length and budget management) with a more precise token count and ensure that the final shuffle is only performed on the selected indices, ensuring that the order follows the 'descending score' logic for block construction before the final shuffle. Specifically, prioritize a more robust 'similarity' metric by including a 'document density' score: normalize the classifier score by (tokens / length) to favor high-information-density documents over long, low-quality fluff that may otherwise 'drain' the T-token budget.",
+   "outcome": "dev 1.8208 against 1.8187 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Implement a content-based 'information density' weight for the classifier scores: instead of using the raw self-trained score, calculate a new score as (self_trained_score * (1 - (word_count / 10000)) / (1 - (word_count / 50000))), effectively penalizing extremely long documents that provide low per-token information. Combine this with the existing junk and dedup filters, and keep the current tier-1 repetition/fill logic.",
+   "outcome": "dev 1.8346 against 1.8187 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Improve the similarity scoring by replacing the LogisticRegression with a 'target-aware' cross-entropy training scheme: first, train a LogisticRegression on (target_sample, pool_subsample); then, use the resulting probabilities as soft labels to train a second LogisticRegression on a larger subsample of the pool (e.g., 10,000 docs), and finally use the second model's probabilities for the final scoring. Additionally, add a 'diversity' penalty to the score: subtract a small factor proportional to the cosine similarity of a doc's character n-gram vector against the mean vector of the target_sample if it is extremely similar, to favor variety.",
+   "outcome": "dev 1.8330 against 1.8187 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Refine the 'junk' filter to include a 'title-to-body' ratio and a 'repetitive-line' check. Many junk documents in the pool (like the 'Best... online store' examples) have a high ratio of repetitive marketing phrases and a very low ratio of unique words compared to the target sample. I will calculate a 'uniqueness' score for the document body by measuring the ratio of unique words to total words (excluding very short words) and drop documents where this falls significantly below the target sample's average uniqueness.",
+   "outcome": "FAILED to run (SyntaxError: invalid syntax (line 1))"
+  },
+  {
+   "slot": 12,
+   "idea": "Replace the current LogisticRegression scoring with a 'Cross-Entropy' approach where we train on (target_sample, pool_subsample) to get soft labels, then use those soft labels to train a second model on a much larger (15,000 doc) pool subset, and finally use the probabilities from this second model as the primary scores. Additionally, implement a 'distributional' filter: remove any document where the character n-gram distribution deviates significantly (using KL divergence or a simple variance check) from the target_sample's global character n-gram distribution to prune out high-volume 'noise' domains (like legal/code) that might share a high vocabulary overlap but have different structural statistics.",
+   "outcome": "dev 1.8401 against 1.8187 for the best at the time, rejected"
+  }
+ ],
+ "usd": 2.5268170999999997,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.28724359999999993,
+   "dev": 1.9245438839280709,
+   "inc": 1.9407285395331555,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.227450537446276,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.13095099999999998,
+   "dev": 1.9251540934429157,
+   "inc": 1.9245438839280709,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.227450537446276,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.13812945000000004,
+   "dev": 1.9003524069206192,
+   "inc": 1.9245438839280709,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 5.556858328177299,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.16955109999999995,
+   "dev": 1.8416943371563421,
+   "inc": 1.9003524069206192,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 13.629810401433165,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5450036000000001,
+   "dev": 1.8921318691548938,
+   "inc": 1.8416943371563421,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 13.629810401433165,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5903475999999999,
+   "dev": 1.8356685159113315,
+   "inc": 1.8416943371563421,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 13.629810401433165,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.6379876000000002,
+   "dev": 1.8187051851569604,
+   "inc": 1.8416943371563421,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 4,
+   "gain_sd": 16.793745441259986,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.004046250000000029,
+   "dev": 1.820765176194723,
+   "inc": 1.8187051851569604,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 4,
+   "gain_sd": 16.793745441259986,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00719489999999956,
+   "dev": 1.8346370835296302,
+   "inc": 1.8187051851569604,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 4,
+   "gain_sd": 16.793745441259986,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.004447050000000008,
+   "dev": 1.8329738651784846,
+   "inc": 1.8187051851569604,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 4,
+   "gain_sd": 16.793745441259986,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.007576049999999945,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 4,
+   "fails": 1,
+   "n_accept": 4,
+   "gain_sd": 16.793745441259986,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.004338900000000034,
+   "dev": 1.840109508815696,
+   "inc": 1.8187051851569604,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9407285395331555,
+ "inc_slot": 7
+}

@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, maxiter=MAX_ITER, ftol=1e-6):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+                   options={"maxiter": maxiter, "ftol": ftol})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+=======
+    while time.process_time() - t0 < 0.72 * time_limit:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    # Final polish: tight SLSQP restarted from its own output
+    start = np.concatenate([best[0].ravel(), best[1]])
+    prev = best[1].sum()
+    while time.process_time() - t0 < 0.97 * time_limit:
+        c, r = _solve_once(len(best[1]), rng, start, 500, 1e-14)
+        start = np.concatenate([c.ravel(), r])
+        s = r.sum()
+        if s - prev < 1e-10:
+            break
+        prev = s
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+smooth_train_loss = 0
+total_training_time = 0
+=======
+smooth_train_loss = 0
+gn_ema = 0.0
+total_training_time = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    # Adaptive outlier-batch clipping: only scale down gradients whose norm exceeds 2x the running norm EMA
+    gn = torch.nn.utils.clip_grad_norm_(model.parameters(), float('inf')).item()
+    clip_thresh = 2.0 * gn_ema if step > 10 else float('inf')
+    if gn > clip_thresh:
+        scale = clip_thresh / gn
+        for p in model.parameters():
+            if p.grad is not None:
+                p.grad.mul_(scale)
+    gn_ema = gn if step == 0 else 0.95 * gn_ema + 0.05 * min(gn, clip_thresh)
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+-----

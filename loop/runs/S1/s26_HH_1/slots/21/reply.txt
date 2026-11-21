@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+def _adam_soft(c0, iters=1500):
+    # Adam on a softplus overlap energy with radii as variables, minus their sum.
+=======
+def _adam_soft(c0, iters=1500, cycles=4):
+    # Cycled restarts: each cycle runs the Adam softplus energy (lr and beta annealed within
+    # the cycle), restarts the moments, and perturbs the centres; keep the best cycle candidate.
+    rng = np.random.default_rng(7)
+    best_c, best_s = None, -1.0
+    start = np.clip(c0, 0.0, 1.0)
+    per = max(iters // cycles, 1)
+    for _ in range(cycles):
+        cand = _adam_run(start, per)
+        s = float(np.sum(_lp_radii(cand)))
+        if s > best_s:
+            best_c, best_s = cand, s
+        start = np.clip(cand + rng.normal(0.0, 0.005, cand.shape), 0.0, 1.0)
+    return best_c
+
+
+def _adam_run(c0, iters):
+    # Adam on a softplus overlap energy with radii as variables, minus their sum.
+>>>>>>> REPLACE
+-----

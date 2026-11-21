@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+        r0 = np.full(_N, 0.05)
+=======
+        if _k % 2 == 0:
+            P = rng.uniform(0.05, 0.95, size=(_N, 2))
+            r0 = np.full(_N, 0.05)
+        else:
+            P, r0 = _corner_start(rng)
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _corner_start(rng):
+    # 4 corner circles at r0=0.13 (centers 0.13 from both walls),
+    # 12 edge circles at random perimeter positions (r0=0.08),
+    # 10 interior circles uniform in [0.2, 0.8]; edge parameter t drawn per start
+    corners = [(0.13, 0.13), (0.87, 0.13), (0.13, 0.87), (0.87, 0.87)]
+    edge = []
+    for side in range(4):
+        for _ in range(3):
+            t = rng.uniform(0.15, 0.85)
+            if side == 0:
+                edge.append((t, 0.08))
+            elif side == 1:
+                edge.append((t, 0.92))
+            elif side == 2:
+                edge.append((0.08, t))
+            else:
+                edge.append((0.92, t))
+    interior = rng.uniform(0.2, 0.8, size=(_N - 16, 2))
+    P = np.vstack([np.array(corners), np.array(edge), interior])
+    R = np.concatenate([np.full(4, 0.13), np.full(12, 0.08), np.full(_N - 16, 0.05)])
+    return P, R
+
+
+def construct_packing():
+>>>>>>> REPLACE
+-----

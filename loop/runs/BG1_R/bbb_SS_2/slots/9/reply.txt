@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+=======
+def clean(s):
+    m = Chem.MolFromSmiles(s)
+    try:
+        m = rdMolStandardize.LargestFragmentChooser().choose(m)
+        m = rdMolStandardize.Uncharger().uncharge(m)
+        Chem.SanitizeMol(m)
+    except Exception:
+        m = Chem.MolFromSmiles(s)
+    return m
+
+
+def featurize(smiles):
+    mols = [clean(s) for s in smiles]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < 0.5 * total:   # random restarts for half of the time
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+    pool = []   # elite pool: (radius sum, centres, radii) of the best 5 packings so far
+    while time.process_time() - t0 < 0.5 * total:   # random restarts for half of the time
+        if pool and rng.random() < 0.5:
+            _, pc, pr = pool[rng.integers(len(pool))]
+            start = np.concatenate([np.clip(pc + 0.02 * rng.standard_normal(pc.shape), 0, 1).ravel(), pr])
+            c, r = _solve_once(n, rng, start)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((r.sum(), c, r))
+        pool.sort(key=lambda p: -p[0])
+        del pool[5:]
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+>>>>>>> REPLACE
+-----

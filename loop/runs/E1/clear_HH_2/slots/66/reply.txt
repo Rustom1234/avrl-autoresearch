@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def graph_features(all_smiles, k=10):
+    X = bit_fingerprints(all_smiles)
+    S = tanimoto(X, X)
+    np.fill_diagonal(S, -np.inf)
+    n = len(all_smiles)
+    nn = np.argsort(-S, axis=1)[:, :k]
+    A = np.zeros((n, n))
+    A[np.repeat(np.arange(n), k), nn.ravel()] = 1.0
+    A = np.maximum(A, A.T)
+    deg = A.sum(1)
+    mean_sim = np.take_along_axis(S, nn, axis=1).mean(1)
+    outdeg = np.maximum(deg, 1.0)
+    pr = np.full(n, 1.0 / n)
+    for _ in range(30):
+        pr = 0.15 / n + 0.85 * (A @ (pr / outdeg))
+    return np.column_stack([deg, mean_sim, pr])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lgbm.fit(desc_features(train_smiles), r)
+    p_desc = lgbm.predict(desc_features(test_smiles)) + base_te
+=======
+    G = graph_features(list(train_smiles) + list(test_smiles))
+    n_tr = len(train_smiles)
+    D_tr = np.hstack([desc_features(train_smiles), G[:n_tr]])
+    D_te = np.hstack([desc_features(test_smiles), G[n_tr:]])
+    lgbm.fit(D_tr, r)
+    p_desc = lgbm.predict(D_te) + base_te
+>>>>>>> REPLACE
+-----

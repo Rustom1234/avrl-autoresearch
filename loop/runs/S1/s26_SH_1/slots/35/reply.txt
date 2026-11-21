@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+def _lp_radii(x, y, shrink=1e-7):
+=======
+def _reg_pair(lam):
+    """Objective -sum(r) - lam*sum exp(-gap/0.01) over pairs, with analytic gradient."""
+    I, J = _I, _J
+
+    def _unpack(z):
+        x = z[:_N]
+        y = z[_N:2 * _N]
+        r = z[2 * _N:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        d = np.sqrt(dx * dx + dy * dy) + 1e-12
+        gap = d - (r[I] + r[J])
+        return dx, dy, d, gap
+
+    def f(z):
+        _, _, _, gap = _unpack(z)
+        e = np.exp(-gap / 0.01)
+        return -np.sum(z[2 * _N:]) - lam * np.sum(e)
+
+    def g(z):
+        dx, dy, d, gap = _unpack(z)
+        e = np.exp(-gap / 0.01)
+        w = lam * e / 0.01
+        ux = dx / d
+        uy = dy / d
+        gr = np.zeros(3 * _N)
+        gr[2 * _N:] = -1.0
+        gr[:_N] += np.bincount(I, w * ux, _N) - np.bincount(J, w * ux, _N)
+        gr[_N:2 * _N] += np.bincount(I, w * uy, _N) - np.bincount(J, w * uy, _N)
+        gr[2 * _N:] += -np.bincount(I, w, _N) - np.bincount(J, w, _N)
+        return gr
+
+    return f, g
+
+
+def _lp_radii(x, y, shrink=1e-7):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for cap in (0.08, 0.10, 0.12, None):
+        hi = None if cap is None else cap
+        bnds = [(None, None)] * (2 * _N) + [(0.0, hi)] * _N
+        z_prev = z
+        try:
+            res = minimize(_obj, z_prev, jac=_obj_grad, constraints=cons,
+=======
+    for k, cap in enumerate((0.08, 0.10, 0.12, None)):
+        hi = None if cap is None else cap
+        lam = 1e-3 * (1.0 - k / 3.0)
+        if lam > 0:
+            fobj, gobj = _reg_pair(lam)
+        else:
+            fobj, gobj = _obj, _obj_grad
+        bnds = [(None, None)] * (2 * _N) + [(0.0, hi)] * _N
+        z_prev = z
+        try:
+            res = minimize(fobj, z_prev, jac=gobj, constraints=cons,
+>>>>>>> REPLACE
+-----

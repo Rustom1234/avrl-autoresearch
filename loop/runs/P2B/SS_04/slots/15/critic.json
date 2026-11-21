@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: none found. The diff changes only TOTAL_BATCH_SIZE (2**19 to 2**18). It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing.",
+  "Correctness: no bug found. Halving the batch size is a normal hyperparameter change. Assuming DEVICE_BATCH_SIZE=64 and a 2048-token sequence (2**17 tokens per micro-step), gradient accumulation goes from 4 to 2 and stays a whole number. If the sequence length differs, the existing divisibility assert in train.py should still catch any mismatch.",
+  "Not a bug, but worth knowing: the LRs and schedule were tuned for 2**19. With half the tokens per step, the run takes about twice as many optimizer steps in the 300 s. The gain may come partly from this hidden LR/step-count interaction, so it may not hold up if other settings change later.",
+  "z could not be recomputed. Only the incumbent mean (1.0796, n=2) is given, without the individual runs, so its spread is unknown. Candidate mean = 1.06285 and candidate sample SD = 0.00233, so the difference in means is 0.01675. Using the candidate SD alone as the pooled SD would give z \u2248 7.2. The reported z = 3.059 therefore implies a larger incumbent spread, which is plausible but can't be checked here.",
+  "Both candidate runs (1.0612 and 1.0645) are well below the incumbent mean. That direction matches the provisional decision to accept, and n=2 per arm is small."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.06285,
+  "candidate_sd": 0.00233,
+  "delta_mean": 0.01675
+ }
+}

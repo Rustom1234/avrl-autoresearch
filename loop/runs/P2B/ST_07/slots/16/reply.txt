@@ -1,0 +1,78 @@
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+model = torch.compile(model, dynamic=False)
+# EMA of weights for evaluation
+ema_model = None
+tmp_params = []
+for p in model.parameters():
+    tmp_params.append(p.clone())
+ema_model = model
+for i, p in enumerate(tmp_params):
+    # Keep a copy of current params before swap
+    tmp_params[i] = p
+=======
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    while True:
+        torch.cuda.synchronize()
+        t0 = time.time()
+        for micro_step in range(grad_accum_steps):
+            with autocast_ctx:
+                loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    while True:
+        torch.cuda.synchronize()
+        t0 = time.time()
+        for micro_step in range(grad_accum_steps):
+            with autocast_ctx:
+                loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+        # EMA computation: gather a copy of params, update with grads
+        if ema_model is not None:
+            params_temp = list(ema_model.parameters())
+            for i, (orig, param) in enumerate(zip(model.parameters(), params_temp)):
+                new_mask = i > 0 or param.grad is not None
+                params_temp[i] = torch._foreach_lerp_(param, orig.clone(), ema_decay)
+            ema_model = model
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+model.eval()
+with autocast_ctx:
+    val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+=======
+# EMA swap before evaluation
+model.eval()
+if ema_model is not None:
+    ema_model_weights = None
+    for p, temp_w in zip(model.parameters(), model.parameters()):
+        if ema_model_weights is None:
+            ema_model_weights = []
+            for i, param in enumerate(model.parameters()):
+                ema_model_weights.append(param.clone())
+    # Update EMA with current weights
+    for i in range(len(ema_model_weights)):
+        if i > 0:
+            ema_model_weights[i] = params_temp[i]
+        else:
+            pass
+    # Actually, use a simpler swap: just copy EMA to model in place
+    for p, temp in zip(model.parameters(), params_temp):
+        model.load_state_dict({k: ema_model_weights[0] if k == 'w' else v for k, v in zip(model.layers[0].attn.q_proj.weight.data.keys(), [v for v in model.layers[0].attn.q_proj.weight.data])})
+    # Simpler: just swap EMA for SwiGLU
+    for p in model.parameters():
+        model.load_state_dict({k: v for k, v in zip(model.state_dict().items(), [])})
+    # Correct approach: apply EMA directly to model state
+    for i, (p, t) in enumerate(zip(model.parameters(), params_temp)):
+        p.load_state_dict({k: ema_model_weights[0] if k == 'w' else v for k, v in zip(p, t)})
+    val_bpb = evaluate_bpb(model, tokenizer, DEVICE_BATCH_SIZE)
+>>>>>>> REPLACE
+-----

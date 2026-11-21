@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import rdReducedGraphs
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+=======
+def base_predict(Xa, Fa, Ea, ya, Xb, Fb, Eb, ga, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+    return np.column_stack([p_rf, p_lgb, p_krr])
+=======
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+    # ErG kernel member: Tanimoto on unit-norm reduced-graph fingerprints, fixed lam=0.5.
+    w_g = np.linalg.solve(tanimoto(Ea, Ea) + 0.5 * np.eye(len(ya)), ya - mu)
+    p_erg = tanimoto(Eb, Ea) @ w_g + mu
+    return np.column_stack([p_rf, p_lgb, p_krr, p_erg])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ftr, Fte = Ftr[:, :N_BITS].astype(np.float64), Fte[:, :N_BITS].astype(np.float64)
+=======
+    Ftr, Fte = Ftr[:, :N_BITS].astype(np.float64), Fte[:, :N_BITS].astype(np.float64)
+
+    def erg(smiles_list):
+        E = np.array([rdReducedGraphs.GetErGFingerprint(Chem.MolFromSmiles(s)) for s in smiles_list], dtype=np.float64)
+        return E / np.maximum(np.linalg.norm(E, axis=1, keepdims=True), 1e-9)
+
+    Etr, Ete = erg(train_smiles), erg(test_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+=======
+    oof = np.zeros((len(y), 4))
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], Etr[tr], y[tr], Xtr[va], Ftr[va], Etr[va], groups[tr], seed)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+=======
+    base_te = base_predict(Xtr, Ftr, Etr, y, Xte, Fte, Ete, groups, seed)
+>>>>>>> REPLACE
+-----

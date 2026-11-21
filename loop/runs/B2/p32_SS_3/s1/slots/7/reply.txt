@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _halton(n, rng):
+    """Scrambled Halton points (bases 2 and 3) in [INIT_LOW, 1 - INIT_LOW]^2, shifted and permuted by rng."""
+    pts = np.zeros((n, 2))
+    for k, b in enumerate((2, 3)):
+        for i in range(n):
+            f, j = 1.0, i + 1
+            while j > 0:
+                f /= b
+                pts[i, k] += f * (j % b)
+                j //= b
+    pts = (pts + rng.uniform(0, 1, 2)) % 1
+    pts = pts[rng.permutation(n)]
+    return INIT_LOW + (1 - 2 * INIT_LOW) * pts
+
+
+def _solve_once(n, rng, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        y0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), [INIT_RADIUS]])
+=======
+        y0 = np.concatenate([_halton(n, rng).ravel(), [INIT_RADIUS]])
+>>>>>>> REPLACE
+-----

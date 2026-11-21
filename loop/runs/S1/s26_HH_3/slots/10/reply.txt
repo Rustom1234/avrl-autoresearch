@@ -1,0 +1,90 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _box_opt(c0, r0, box):
+    """SLSQP over (x, y, r) with centers confined to the sub-rectangle box = (x0, x1, y0, y1)."""
+    x0, x1, y0, y1 = box
+    n = len(r0)
+    iu, ju = np.triu_indices(n, 1)
+    m = len(iu)
+    idx = np.arange(n)
+
+    def cons(z):
+        x, y, r = z[:n], z[n:2 * n], z[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        pair = dx * dx + dy * dy - (r[iu] + r[ju]) ** 2
+        bnd = np.concatenate([x - r - x0, x1 - x - r, y - r - y0, y1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    def cons_jac(z):
+        x, y, r = z[:n], z[n:2 * n], z[2 * n:]
+        J = np.zeros((m + 4 * n, 3 * n))
+        rows = np.arange(m)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        s = r[iu] + r[ju]
+        J[rows, iu] = 2 * dx
+        J[rows, ju] = -2 * dx
+        J[rows, n + iu] = 2 * dy
+        J[rows, n + ju] = -2 * dy
+        J[rows, 2 * n + iu] = -2 * s
+        J[rows, 2 * n + ju] = -2 * s
+        J[m + idx, idx] = 1
+        J[m + idx, 2 * n + idx] = -1
+        J[m + n + idx, idx] = -1
+        J[m + n + idx, 2 * n + idx] = -1
+        J[m + 2 * n + idx, n + idx] = 1
+        J[m + 2 * n + idx, 2 * n + idx] = -1
+        J[m + 3 * n + idx, n + idx] = -1
+        J[m + 3 * n + idx, 2 * n + idx] = -1
+        return J
+
+    z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+    bounds = [(x0, x1)] * n + [(y0, y1)] * n + [(0.0, 0.5)] * n
+    res = minimize(lambda z: -np.sum(z[2 * n:]), z0,
+                   jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                   method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                   bounds=bounds, options={"maxiter": 200, "ftol": 1e-10})
+    z = res.x
+    return np.column_stack([z[:n], z[n:2 * n]]), np.maximum(z[2 * n:], 0.0)
+
+
+def _hier_start(rng):
+    """Cluster-then-merge: split circles into 2 or 3 vertical strips, optimise each strip
+    inside its sub-rectangle, then stack the strips into one 26-circle start."""
+    n = 26
+    g = 2 if rng.random() < 0.5 else 3
+    sizes = [n // g + (1 if i < n % g else 0) for i in range(g)]
+    cs, rs = [], []
+    for i, sz in enumerate(sizes):
+        box = (i / g, (i + 1) / g, 0.0, 1.0)
+        xs = box[0] + (box[1] - box[0]) * rng.uniform(0.1, 0.9, size=sz)
+        ys = rng.uniform(0.1, 0.9, size=sz)
+        c, r = _box_opt(np.column_stack([xs, ys]), np.full(sz, 0.05), box)
+        cs.append(c)
+        rs.append(r)
+    return np.vstack(cs), np.concatenate(rs)
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for k in (4, 6, 8, 10):
+=======
+    for _ in range(6):
+        if time.time() - t0 > 120:
+            break
+        try:
+            c, r = _hier_start(rng)
+            c, r = _optimize(c, r)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    for k in (4, 6, 8, 10):
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    from sklearn.linear_model import Ridge
+=======
+    from rdkit.Chem import MACCSkeys
+    nd = len(Descriptors.descList)
+    def dm(smiles, X):
+        mac = np.array([list(MACCSkeys.GenMACCSKeys(Chem.MolFromSmiles(s))) for s in smiles], dtype=np.float32)
+        return np.hstack([X[:, :nd], mac])
+    cb = CatBoostRegressor(iterations=800, learning_rate=0.05, depth=6, l2_leaf_reg=5, thread_count=8,
+                           random_seed=seed, verbose=0)
+    cb.fit(dm(train_smiles, Xtr), y)
+    preds.append(rankdata(cb.predict(dm(test_smiles, Xte))) / len(Xte))
+    from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+-----

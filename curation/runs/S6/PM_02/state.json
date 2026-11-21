@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/S6/PM_02/cand/s12_0.py",
+ "inc_scores": {
+  "11": 1.8112473394010085
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Implement a filter that removes short (<200 chars), spam (lines containing 'discount code', 'coupon', 'free shipping'), and near-duplicate (hash of normalized first 200 characters) documents, then returns the shuffled indices of remaining docs.",
+   "outcome": "dev 2.0176 against 1.9397 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Implement a domain filter that keeps only documents where the first line matches `^= .+ $`, `^= [A-Z]+\n.+` followed by a WikiText marker, or those with WikiText-aligned punctuation (e.g., `' @-@ '`, `' . '`), while removing spam and duplicates.",
+   "outcome": "FAILED to run (select() did not finish in 180 seconds)"
+  },
+  {
+   "slot": 3,
+   "idea": "Build a pre-computed DOM-BIGRAM hit-rate filter using the 200 `target_sample` docs to compute a reference bigram set, then remove all pool documents whose fraction of unique bigrams (in first 1000 words) matching that set is below the 15th percentile of scores computed on the first 50 clean docs; deduplicate by full hash and shuffle.",
+   "outcome": "dev 1.9267 against 1.9397 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the single bigram (word-check) filter with a dual-metric filter that requires documents to have a high unigram bigram hit-rate AND a structural header match (first line starts with '= ' or contains WikiText '@-@' markers), while also explicitly dropping docs with very high zlib compression ratios (< 0.2) which usually indicate boilerplate spam.",
+   "outcome": "dev 1.8811 against 1.9267 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Modify the existing best strategy (from experiment 4) to perform post-filtering deduplication not only by full SHA-1 hash but also by normalizing the first 200 characters of each kept document and retaining only the first occurrence of any near-duplicates, plus re-rank the final top-scoring list by the new deduplicated set's total token count to ensure we approach T before shuffling.",
+   "outcome": "dev 1.8954 against 1.8811 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Adopt the 'filter-then-fill' strategy from the 1.8300 dev bpb result: first build a strong word-level TF-IDF/LogisticRegression classifier using target_sample (and chunks) vs a random negative sample to rank pool documents, then exactly deduplicate via hashed normalized text and real gpt2 token counting. If the ranked top candidates sum to fewer than ~0.35T tokens (causing early cycling), supplement the list with the next-best scoring non-spam docs until reaching T. If the top set already exceeds T tokens, strictly truncate to the first T tokens, never refilling. Finally shuffle the entire final list using CURATE_SEED.",
+   "outcome": "dev 3.1087 against 1.8811 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Construct a LogisticRegression classifier using hashed unigrams and bigrams (from target_sample vs a random negative pool sample), fine-tune on weighted Wikipedia-style structural features (header=First Linestarts, markers=[ '@-@ ', ' , ', ' . ' ] in first 300 chars), and rank surviving docs by this score, then fill the final list only if clean docs under 0.35T by adding next-best-scoring non-spam docs to approach T, finally shuffle with CURATE_SEED.",
+   "outcome": "dev 1.9647 against 1.8811 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Integrate a mild, low-cost character-shuffling detector (counting adjacent non-alphanumeric, non-space char overlaps in the first 300 chars) combined with the existing bigram hit-rate and header filters to surgically remove the subtle 'word-scrambled wiki' articles that pass the bigram filter but still degrade quality.",
+   "outcome": "dev 1.8810 against 1.8811 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Replace the hard-coded 'header match' requirement with a learned structural feature score: train a multinomial logistic regression on unigrams+bigrams to predict the target domain probability, keeping docs with score > 0.35 large enough to pass domain identification, without requiring the strict '= Title =' pattern which is too brittle for edge cases appearing in the pool.",
+   "outcome": "dev 1.9653 against 1.8811 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Add a post-ranking 'domain-adjudicator' step that explicitly checks for 'word-scrambled' wiki articles (using a bigram hit-rate threshold derived from the clean 200 target docs) on the top-scoring documents before finalizing the list, to surgically remove the subtle quality degraders that the current bigram filter keeps.",
+   "outcome": "dev 1.8463 against 1.8811 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 11,
+   "idea": "Integrate a cyclic padding strategy where the final selection is first reduced to avoid duplicates, then cycled (repeated) from the stable computed list until the token count reaches T, rather than silently truncating or arbitrarily selecting which clean documents to drop to fill a size gap.",
+   "outcome": "dev 1.9340 against 1.8463 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Incorporate a 'word-scramble' detection filter into the existing pipeline by calculating the fraction of adjacent word bigrams in the top-scoring documents that appear in the target bigram set, and dropping any document where this hit-rate falls significantly below the median of the clean documents (acting as a bilevel-like split threshold) to remove subtle shuffled-wiki articles that still pass the initial bigram check.",
+   "outcome": "dev 1.8112 against 1.8463 for the best at the time, KEPT as the new best"
+  }
+ ],
+ "usd": 0.016623150000000003,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00042635000000000004,
+   "dev": 2.01762403505149,
+   "inc": 1.9397006287716017,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.0013875,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 1,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0010867,
+   "dev": 1.92671544867004,
+   "inc": 1.9397006287716017,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.7871153456594673,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0014840999999999995,
+   "dev": 1.8811432883159573,
+   "inc": 1.92671544867004,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 8.059088969948295,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0016515000000000002,
+   "dev": 1.8954320818044825,
+   "inc": 1.8811432883159573,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 8.059088969948295,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0012658,
+   "dev": 3.1086579567693966,
+   "inc": 1.8811432883159573,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 8.059088969948295,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0020187500000000014,
+   "dev": 1.9646808337431239,
+   "inc": 1.8811432883159573,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 8.059088969948295,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.001763650000000002,
+   "dev": 1.8809668520115816,
+   "inc": 1.8811432883159573,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 8.059088969948295,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00202515,
+   "dev": 1.9652652450391566,
+   "inc": 1.8811432883159573,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 8.059088969948295,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0015997500000000005,
+   "dev": 1.8463327079875633,
+   "inc": 1.8811432883159573,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 12.849975334990136,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0009719499999999992,
+   "dev": 1.9340065791517127,
+   "inc": 1.8463327079875633,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 12.849975334990136,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0009419500000000004,
+   "dev": 1.8112473394010085,
+   "inc": 1.8463327079875633,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9397006287716017,
+ "inc_slot": 12
+}

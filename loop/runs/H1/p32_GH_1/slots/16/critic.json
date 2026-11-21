@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The diff reads no files, uses no network, pastes no coordinates and does not use any test labels. The new code is deterministic, so its only randomness is the existing seeded rng.",
+  "No bug makes the result meaningless. The analytic gradient of -sum(r) + mu*(squared overlap, wall and negative-radius penalties) is correct for each term. The pass only moves centres and radii, and the existing repair step still checks validity, so the measurement stays sound.",
+  "Likely reason for the regression: _momentum_pass runs after every SLSQP call, including the last one. That last pass returns a point that breaks the constraints, because a penalty with mu=100 allows some overlap. The repair step then has to shrink radii. This fits the drop of about 0.0115 in sum of radii.",
+  "Numbers check: the candidate is 0.0115 worse (-2.9249 vs -2.9364). Using job noise sd 0.0034 for each side, the difference has sd 0.0034*sqrt(2) \u2248 0.00481, which gives z \u2248 -2.39. The harness's -2.375 matches within rounding of the displayed values.",
+  "Each side has only 1 run, so the evidence is thin. Even so, the regression is about 2.4 sd, which is enough to support the provisional reject. Simplicity also argues against the edit: it adds 24 lines and makes the result worse."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -2.39
+ }
+}

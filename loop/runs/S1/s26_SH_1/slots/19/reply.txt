@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+=======
+def _de_fitness(v):
+    x = v[:_N]
+    y = v[_N:]
+    r = _lp_radii(x, y)
+    if r is None:
+        return 0.0
+    return -float(np.sum(r))
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+    from scipy.optimize import differential_evolution
+    de = differential_evolution(_de_fitness, bounds=[(0.0, 1.0)] * (2 * _N),
+                                seed=12345, popsize=4, maxiter=25, tol=1e-8,
+                                polish=False, init="latinhypercube")
+    v = np.asarray(de.x, dtype=float)
+    x_de, y_de = _optimize(v[:_N].copy(), v[_N:].copy(), np.full(_N, 0.05))
+    r_de = _lp_radii(x_de, y_de)
+    if r_de is not None and np.all(np.isfinite(r_de)):
+        best = (float(np.sum(r_de)),
+                np.column_stack([np.clip(x_de, 0.0, 1.0), np.clip(y_de, 0.0, 1.0)]),
+                r_de)
+>>>>>>> REPLACE
+-----

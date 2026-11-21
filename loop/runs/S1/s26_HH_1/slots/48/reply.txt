@@ -1,0 +1,81 @@
+<<<<<<< SEARCH
+def run_packing():
+=======
+def _pen_grad(z, n, I, J):
+    # Gradient of 0.5*sum(overlap^2) + 0.5*sum(boundary^2) - sum(r), z = [x, y, r].
+    x = z[:n]
+    y = z[n:2 * n]
+    r = z[2 * n:]
+    dx = x[I] - x[J]
+    dy = y[I] - y[J]
+    dist = np.sqrt(dx * dx + dy * dy) + 1e-12
+    ux = dx / dist
+    uy = dy / dist
+    m = np.maximum(r[I] + r[J] - dist, 0.0)
+    gx = np.zeros(n)
+    gy = np.zeros(n)
+    gr = np.zeros(n)
+    np.add.at(gr, I, m)
+    np.add.at(gr, J, m)
+    np.add.at(gx, I, -m * ux)
+    np.add.at(gx, J, m * ux)
+    np.add.at(gy, I, -m * uy)
+    np.add.at(gy, J, m * uy)
+    v1 = np.maximum(r - x, 0.0)
+    v2 = np.maximum(r + x - 1.0, 0.0)
+    v3 = np.maximum(r - y, 0.0)
+    v4 = np.maximum(r + y - 1.0, 0.0)
+    gr += v1 + v2 + v3 + v4
+    gx += -v1 + v2
+    gy += -v3 + v4
+    gr -= 1.0
+    return np.concatenate([gx, gy, gr])
+
+
+def _penalty_hessian(z, n, I, J, h=1e-6):
+    # Central finite differences of the analytic gradient, symmetrised.
+    D = z.size
+    H = np.zeros((D, D))
+    for k in range(D):
+        e = np.zeros(D)
+        e[k] = h
+        H[:, k] = (_pen_grad(z + e, n, I, J) - _pen_grad(z - e, n, I, J)) / (2.0 * h)
+    return 0.5 * (H + H.T)
+
+
+def _eigen_escape(c, r, rng, trials, deadline):
+    # Perturb the incumbent along random mixes of its 3-5 lowest Hessian eigenvectors,
+    # re-optimise with _local_opt, keep only valid improvements.
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    best_c = np.array(c, dtype=float)
+    best_r = np.array(r, dtype=float)
+    best_s = float(np.sum(best_r))
+    z = np.concatenate([best_c[:, 0], best_c[:, 1], best_r])
+    H = _penalty_hessian(z, n, I, J)
+    _, V = np.linalg.eigh(H)
+    for _ in range(trials):
+        if time.perf_counter() > deadline:
+            break
+        coef = rng.normal(size=5)
+        coef[int(rng.integers(3, 6)):] = 0.0
+        d = V[:, :5] @ coef
+        d = d / (np.linalg.norm(d) + 1e-12) * 0.1
+        zc = z + d
+        cand = np.clip(np.stack([zc[:n], zc[n:2 * n]], axis=1), 0.0, 1.0)
+        cc, rr = _local_opt(cand)
+        s = float(np.sum(rr))
+        if s > best_s and _valid_packing(cc, rr):
+            best_c, best_r, best_s = cc, rr, s
+    return best_c, best_r
+
+
+def run_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+=======
+        best_c, best_r = _eigen_escape(best_c, best_r, np.random.default_rng(4242), 12, t_start + 215.0)
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+>>>>>>> REPLACE
+-----

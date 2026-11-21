@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+# This part remains fixed (not evolved)
+=======
+def _coord_line_search(c, r, budget=15.0, seed=4242):
+    # Cyclic coordinate line search: for each centre (seeded random order) and each axis,
+    # try 25 positions within +-0.05 and keep the best one if the LP radii sum increases.
+    n = 26
+    t_end = time.perf_counter() + budget
+    rng = np.random.default_rng(seed)
+    offs = np.linspace(-0.05, 0.05, 25)
+    best_c = np.array(c, dtype=float)
+    best_r = _lp_radii(best_c)
+    best_s = float(np.sum(best_r))
+    start_c, start_r = best_c.copy(), best_r.copy()
+    done = False
+    while not done:
+        gain = 0.0
+        for i in rng.permutation(n):
+            for ax in (0, 1):
+                if time.perf_counter() > t_end:
+                    done = True
+                    break
+                local_s = best_s
+                local_c = None
+                local_r = None
+                for v in np.clip(best_c[i, ax] + offs, 0.0, 1.0):
+                    trial = best_c.copy()
+                    trial[i, ax] = v
+                    tr = _lp_radii(trial)
+                    ts = float(np.sum(tr))
+                    if ts > local_s + 1e-12:
+                        local_s, local_c, local_r = ts, trial, tr
+                if local_c is not None:
+                    gain += local_s - best_s
+                    best_c, best_r, best_s = local_c, local_r, local_s
+            if done:
+                break
+        if gain <= 1e-6:
+            break
+    if best_s >= float(np.sum(start_r)) and _valid_packing(best_c, best_r):
+        return best_c, best_r
+    return start_c, start_r
+
+
+# This part remains fixed (not evolved)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best_c is not None:
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+=======
+    if best_c is not None:
+        best_c, best_r = _coord_line_search(best_c, best_r, budget=15.0, seed=4242)
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+>>>>>>> REPLACE
+-----

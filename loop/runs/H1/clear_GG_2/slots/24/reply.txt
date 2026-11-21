@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+
+# Settings
+N_BITS = 2048
+=======
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
+from lightgbm import LGBMRegressor
+from scipy.stats import rankdata
+
+# Settings
+N_BITS = 2048
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+
+    rf = RandomForestRegressor(n_estimators=N_TREES_RF, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    return np.expm1(preds)
+=======
+    y_train_raw = np.asarray(train_y, dtype=np.float64)
+    y_train = rankdata(y_train_raw)
+
+    rf = RandomForestRegressor(n_estimators=N_TREES_RF, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    
+    # Map rank-space predictions back to original space
+    sorted_indices = np.argsort(y_train_raw)
+    sorted_preds = preds[sorted_indices]
+    # This is a simplified rank-to-value mapping; for higher precision we use linear interpolation
+    # but since we only need a continuous mapping back, we'll use the sorted original values
+    return np.interp(preds, y_train, y_train_raw)
+>>>>>>> REPLACE
+-----

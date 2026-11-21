@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def _local_opt(c0):
+=======
+def _relax(c, iters=120):
+    # Force-directed relaxation: pairs repel with strength ~ (r_i + r_j), walls push inward,
+    # damping decreases over time; radii from the LP are refreshed every 10 steps.
+    n = c.shape[0]
+    c = c.copy()
+    I, J = np.triu_indices(n, 1)
+    r = _lp_radii(c)
+    for t in range(iters):
+        if t % 10 == 0:
+            r = _lp_radii(c)
+        damp = 0.05 * (1.0 - t / iters) + 0.002
+        dvec = c[I] - c[J]
+        d = np.sqrt(np.sum(dvec * dvec, axis=1)) + 1e-9
+        s = r[I] + r[J]
+        pf = (s / d ** 3)[:, None] * dvec
+        F = np.zeros_like(c)
+        np.add.at(F, I, pf)
+        np.add.at(F, J, -pf)
+        F[:, 0] += np.maximum(r - c[:, 0], 0.0) - np.maximum(r - (1.0 - c[:, 0]), 0.0)
+        F[:, 1] += np.maximum(r - c[:, 1], 0.0) - np.maximum(r - (1.0 - c[:, 1]), 0.0)
+        m = np.max(np.abs(F)) + 1e-12
+        c = np.clip(c + damp * F / m, 0.0, 1.0)
+    return c
+
+
+def _local_opt(c0):
+    c0 = _relax(c0)
+>>>>>>> REPLACE
+-----

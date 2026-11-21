@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+from xgboost import XGBRegressor
+import xgboost as xgb
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    stage2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400, **params)
+    stage2.fit(Xtr, y - base_tr, xgb_model=stage1.get_booster())
+    return base_te + stage2.predict(Xte)
+=======
+    base_booster = stage1.get_booster()
+    dtr = xgb.DMatrix(Xtr, label=y - base_tr)
+    dte = xgb.DMatrix(Xte)
+    rng = np.random.RandomState(seed)
+    n_feat = Xtr.shape[1]
+    preds = []
+    for k in range(3):
+        w = np.full(n_feat, 0.2)
+        w[rng.permutation(n_feat)[: n_feat // 2]] = 1.0
+        dtr.set_info(feature_weights=w)
+        p = dict(objective='reg:absoluteerror', max_depth=6, learning_rate=0.03,
+                 subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                 seed=seed + k, nthread=8, tree_method='hist')
+        bst = xgb.train(p, dtr, num_boost_round=400, xgb_model=base_booster)
+        preds.append(bst.predict(dte))
+    return base_te + np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

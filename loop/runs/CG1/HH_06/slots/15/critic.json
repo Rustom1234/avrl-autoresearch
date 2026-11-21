@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Measurement integrity: none found. The diff adds no seeding, no file access, does not train on test images, and carries nothing between runs. The optimizer and its parameter groups are built inside train() from the freshly initialised model.",
+  "Possible bug I could not check, because the diff does not show the code: Muon now receives 3 parameter groups instead of 1. If Muon.step() only reads self.param_groups[0], or gathers filter_params_with_grad from one group only, blocks 2 and 3 would never be updated. The result would then be broken, not just a different lr. The new lr_of lookup spans all groups, which suggests step() collects parameters from every group, but this should be confirmed.",
+  "Possible bug I could not check: the linear lr decay must scale each group's own starting lr (for example group['lr'] = group['initial_lr'] * frac). If it assigns MUON_LR * frac to every group, the 0.6/1.0/1.4 multipliers are silently erased after the first step. Weight decay and do_norm_scaling may also still read group['lr'] from a single group. This should be checked.",
+  "This assumes model.layers[1:4] are exactly the three ConvGroups and that the whitening conv is frozen (requires_grad=False). If so, the 4-D trainable filters are the same set as the old filter_params, and the head stays with SGD.",
+  "Minor: lr_of is rebuilt every step, and the update is now a Python loop instead of the fused _foreach_add_. The time cost is small (6 tensors) but non-zero. The comments were also removed.",
+  "Statistics: there is 1 candidate run against 2 incumbent runs. The difference is -0.1333 - (-0.1136) = -0.0197, lower is better. With sd 0.026 the standard error is 0.026*sqrt(1 + 1/2) = 0.0318, so z = 0.62. This is consistent with the reported 0.624 and far below significance, so the provisional reject is reasonable. A replicate would be needed before believing the gain."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.62
+ }
+}

@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        fp = gen.GetFingerprintAsNumPy(m).astype(np.float32)
+        desc = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        desc = np.clip(np.nan_to_num(desc, nan=0.0, posinf=0.0, neginf=0.0), -1e5, 1e5).astype(np.float32)
+        grp = np.array([len(m.GetSubstructMatches(p)) for p in GROUPS], dtype=np.float32)
+        rows.append(np.concatenate([fp, desc, grp]))
+    return np.array(rows, dtype=np.float32)
+=======
+_CACHE = {}
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        if s not in _CACHE:
+            m = Chem.MolFromSmiles(s)
+            fp = gen.GetFingerprintAsNumPy(m).astype(np.float32)
+            desc = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+            desc = np.clip(np.nan_to_num(desc, nan=0.0, posinf=0.0, neginf=0.0), -1e5, 1e5).astype(np.float32)
+            grp = np.array([len(m.GetSubstructMatches(p)) for p in GROUPS], dtype=np.float32)
+            _CACHE[s] = np.concatenate([fp, desc, grp])
+        rows.append(_CACHE[s])
+    return np.array(rows, dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        oof[va] = base_preds(Xtr[tr], y[tr], Xtr[va], seed, 200)
+    meta = LinearRegression(positive=True, fit_intercept=False).fit(oof, y)
+    return meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES)) + cte
+=======
+    return base_preds(Xtr, y, Xte, seed, N_TREES).mean(axis=1) + cte
+>>>>>>> REPLACE
+-----

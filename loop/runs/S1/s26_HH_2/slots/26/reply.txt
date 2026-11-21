@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+=======
+def _sweep(c, deadline):
+    """Deterministic single-circle line search scored by the exact LP radii sum."""
+    c = c.copy()
+    _rv, best = _score(c)
+    if best < 0:
+        return c
+    dirs = []
+    for rad in (0.01, 0.03, 0.08):
+        for a in range(8):
+            ang = 2 * np.pi * a / 8
+            dirs.append((rad * np.cos(ang), rad * np.sin(ang)))
+    dirs = np.array(dirs)
+    g = np.linspace(0.02, 0.98, 49)
+    G = np.array(np.meshgrid(g, g)).reshape(2, -1).T
+    moved = True
+    while moved and _time.time() < deadline:
+        moved = False
+        for i in range(_N):
+            if _time.time() > deadline:
+                break
+            base = c[i].copy()
+            bi = base.copy()
+            cands = np.vstack([np.clip(base + dirs, 0.0, 1.0), G])
+            for p in cands:
+                if _time.time() > deadline:
+                    break
+                c[i] = p
+                _rv, s = _score(c)
+                if s > best + 1e-9:
+                    best = s
+                    bi = p.copy()
+            c[i] = bi
+            if not np.allclose(bi, base):
+                moved = True
+    return c
+
+
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+    centers = _sweep(centers, T0 + 190)
+    rv_s, _s = _score(centers)
+    if rv_s is not None:
+        radii = rv_s
+>>>>>>> REPLACE
+-----

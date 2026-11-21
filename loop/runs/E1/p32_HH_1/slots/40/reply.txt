@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+def _riesz_init(n, rng):
+    """Centres minimising a Riesz s-energy with random exponent s; the box bounds act as the wall term."""
+    s = rng.uniform(1, 8)
+
+    def energy(x):
+        c = x.reshape(n, 2)
+        diff = c[:, None] - c[None]
+        d2 = (diff ** 2).sum(-1) + np.eye(n)
+        e = d2 ** (-s / 2)
+        w = e / d2
+        np.fill_diagonal(e, 0)
+        np.fill_diagonal(w, 0)
+        grad = -2 * s * (w[:, :, None] * diff).sum(1)
+        return e.sum(), grad.ravel()
+
+    res = minimize(energy, rng.uniform(0.05, 0.95, 2 * n), jac=True, method="L-BFGS-B",
+                   bounds=[(0.05, 0.95)] * (2 * n), options={"maxiter": 100})
+    return res.x.reshape(n, 2)
+
+
+def _solve_once(n, rng, init=None):
+    if init is None and rng.random() < 0.5:
+        base = _riesz_init(n, rng)
+    elif init is None:
+        base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    else:
+        base = np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+-----

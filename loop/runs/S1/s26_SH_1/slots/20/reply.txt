@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+        if time.time() - t0 > 200.0 and best is not None:
+=======
+        if time.time() - t0 > 150.0 and best is not None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _sa_refine(centers, rng, t_budget):
+    # simulated annealing over center moves; objective = LP max sum of radii
+    x = centers[:, 0].copy()
+    y = centers[:, 1].copy()
+
+    def score(xx, yy):
+        rr = _lp_radii(xx, yy)
+        return -1.0 if rr is None else float(np.sum(rr))
+
+    cur = score(x, y)
+    best_s = cur
+    best_xy = (x.copy(), y.copy())
+    T0, T1 = 0.01, 1e-5
+    t_start = time.time()
+    while True:
+        el = time.time() - t_start
+        if el > t_budget:
+            break
+        frac = el / t_budget
+        T = T0 * (T1 / T0) ** frac
+        step = 0.05 * (1.0 - frac) + 0.002
+        k = int(rng.integers(_N))
+        nx = x.copy()
+        ny = y.copy()
+        nx[k] = np.clip(x[k] + rng.normal(0.0, step), 0.0, 1.0)
+        ny[k] = np.clip(y[k] + rng.normal(0.0, step), 0.0, 1.0)
+        s = score(nx, ny)
+        if s >= cur or rng.random() < np.exp((s - cur) / T):
+            x, y, cur = nx, ny, s
+            if cur > best_s:
+                best_s = cur
+                best_xy = (x.copy(), y.copy())
+    return best_xy
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best[1], best[2]
+=======
+    sx, sy = _sa_refine(best[1], rng, 40.0)
+    rr = _lp_radii(sx, sy)
+    if rr is not None and float(np.sum(rr)) > best[0]:
+        best = (float(np.sum(rr)), np.column_stack([np.clip(sx, 0.0, 1.0), np.clip(sy, 0.0, 1.0)]), rr)
+    px, py = _optimize(sx, sy, rr if rr is not None else np.full(_N, 0.01))
+    pr = _lp_radii(px, py)
+    if pr is not None and float(np.sum(pr)) > best[0]:
+        best = (float(np.sum(pr)), np.column_stack([np.clip(px, 0.0, 1.0), np.clip(py, 0.0, 1.0)]), pr)
+    return best[1], best[2]
+>>>>>>> REPLACE
+-----

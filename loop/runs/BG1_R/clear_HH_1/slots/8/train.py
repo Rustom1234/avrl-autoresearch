@@ -1,0 +1,54 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (regression).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from scipy.stats import rankdata
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+import lightgbm as lgb
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import StandardScaler
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def tanimoto(A, B):
+    inter = A @ B.T
+    na = A.sum(axis=1)[:, None]
+    nb = B.sum(axis=1)[None, :]
+    return inter / np.maximum(na + nb - inter, 1e-9)
+
+
+def descriptors(smiles):
+    rows = [[f(Chem.MolFromSmiles(s)) for _, f in Descriptors.descList] for s in smiles]
+    D = np.array(rows, dtype=np.float64)
+    return np.clip(np.nan_to_num(D, nan=0.0, posinf=0.0, neginf=0.0), -1e6, 1e6)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = np.hstack([featurize(train_smiles).astype(np.float64), descriptors(train_smiles)])
+    Xt = np.hstack([featurize(test_smiles).astype(np.float64), descriptors(test_smiles)])
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    scaler = StandardScaler().fit(X)
+    Xs = np.clip(scaler.transform(X), -5, 5)
+    Xts = np.clip(scaler.transform(Xt), -5, 5)
+    preds = []
+    for k in range(3):
+        mlp = MLPRegressor(hidden_layer_sizes=(256, 128), alpha=1e-2, early_stopping=True,
+                           validation_fraction=0.15, max_iter=500, random_state=seed + k)
+        mlp.fit(Xs, (y - mu) / sd)
+        preds.append(mlp.predict(Xts))
+    return np.mean(preds, axis=0)

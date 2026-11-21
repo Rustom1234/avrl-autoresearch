@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+=======
+def _swap_move(x, y, r, rng):
+    """Swap centers of a large circle and a neighbouring smaller circle."""
+    order = np.argsort(-r)
+    big = order[rng.integers(0, _N // 3)]
+    d = np.hypot(x - x[big], y - y[big])
+    d[big] = np.inf
+    nb = np.argsort(d)[:4]
+    cands = [int(j) for j in nb if r[j] < r[big]]
+    if not cands:
+        return x.copy(), y.copy(), r.copy()
+    j = cands[rng.integers(0, len(cands))]
+    x2, y2, r2 = x.copy(), y.copy(), r.copy()
+    x2[big], x2[j] = x[j], x[big]
+    y2[big], y2[j] = y[j], y[big]
+    r2[big], r2[j] = r[j], r[big]
+    return x2, y2, r2
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best is None:
+        centers = np.column_stack(_seed(rng))
+        radii = np.zeros(_N)
+        return centers, radii
+    return best[1], best[2]
+=======
+    if best is None:
+        centers = np.column_stack(_seed(rng))
+        radii = np.zeros(_N)
+        return centers, radii
+    # basin hopping with swap moves between large and small neighbours
+    cur_s, cur_c, cur_r = best
+    cx = cur_c[:, 0].copy()
+    cy = cur_c[:, 1].copy()
+    for _ in range(8):
+        x, y, r = _swap_move(cx, cy, cur_r, rng)
+        x, y = _optimize(x, y, r)
+        r2 = _lp_radii(x, y)
+        if r2 is None:
+            continue
+        s2 = float(np.sum(r2))
+        if s2 > cur_s + 1e-12:
+            cur_s = s2
+            cx = np.clip(x, 0.0, 1.0)
+            cy = np.clip(y, 0.0, 1.0)
+            cur_r = r2
+            cur_c = np.column_stack([cx, cy])
+    return cur_c, cur_r
+>>>>>>> REPLACE
+-----

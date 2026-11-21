@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+from xgboost import XGBRegressor
+from xgboost.callback import LearningRateScheduler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = XGBRegressor(objective='reg:absoluteerror', tree_method='hist', max_depth=6, learning_rate=0.03,
+                         n_estimators=600, subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                         random_state=seed, n_jobs=8)
+    model.fit(featurize(train_smiles), y - base_tr)
+=======
+    n_rounds = 800
+    lr_hi, lr_lo = 0.06, 0.003
+
+    def cosine_lr(epoch):
+        return lr_lo + 0.5 * (lr_hi - lr_lo) * (1 + np.cos(np.pi * epoch / (n_rounds - 1)))
+
+    model = XGBRegressor(objective='reg:absoluteerror', tree_method='hist', max_depth=6, learning_rate=lr_hi,
+                         n_estimators=n_rounds, subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                         random_state=seed, n_jobs=8)
+    model.fit(featurize(train_smiles), y - base_tr, callbacks=[LearningRateScheduler(cosine_lr)])
+>>>>>>> REPLACE
+-----

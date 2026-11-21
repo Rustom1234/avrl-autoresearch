@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "The comment is wrong: 2**17 is about 131K tokens, not ~256K. It also says 'increased grad accumulation steps', but a smaller total batch reduces accumulation steps. If DEVICE_BATCH_SIZE is 64 and the sequence length is 2048, there is now 1 step instead of 4. The code does what the number says; only the comment is misleading and should be fixed.",
+  "This is not an integrity problem. Only TOTAL_BATCH_SIZE changed. Evaluation, data, seed lines and the prepare import are untouched, and the harness raised no integrity flags.",
+  "The change makes sense: each optimizer step uses fewer tokens, so the fixed 300 s budget fits about 4x as many steps. A large gain, around 0.062 bpb, is plausible here. The LRs and the warmup/warmdown schedule were not retuned for the new batch size, so they are worth a follow-up sweep.",
+  "There are only 2 candidate runs, but they agree closely (1.0524 and 1.0516, mean 1.0520). Both are far below the incumbent mean of 1.1145.",
+  "I can't recompute z independently because the incumbent's std and the formula were not given. The reported z = 15.235 matches a difference of 0.0625 and an implied standard error of about 0.0041. That fits the numbers shown."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

@@ -1,0 +1,3 @@
+import numpy as np
+def equation(t, A, params):
+    return params[0] + params[1]*A + params[2]*A**2 + params[3]/A + params[4]*t + params[5]*t/A + params[6]*t**2 + params[7]*t**2/A + params[8]*t*A

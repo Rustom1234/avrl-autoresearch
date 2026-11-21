@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, maxiter=MAX_ITER, warm=False):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if start is not None:
+        c0, r0 = start[0].copy(), start[1].copy()
+=======
+    if warm:
+        x0 = np.concatenate([start[0].ravel(), start[1]])
+    elif start is not None:
+        c0, r0 = start[0].copy(), start[1].copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        explore = time.process_time() - t0 < 0.3 * TIME_FRACTION * time_limit or best is None
+        c, r = _solve_once(n, rng, None if explore else best)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    pool = []
+    while time.process_time() - t0 < 0.4 * time_limit or not pool:
+        c, r = _solve_once(n, rng, maxiter=40)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((r.sum(), c, r))
+        pool.sort(key=lambda p: -p[0])
+        pool = pool[:5]
+    best = (pool[0][1], pool[0][2])
+    for _, c0, r0 in pool:
+        if time.process_time() - t0 > 0.8 * time_limit:
+            break
+        c, r = _solve_once(n, rng, (c0, r0), maxiter=500, warm=True)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

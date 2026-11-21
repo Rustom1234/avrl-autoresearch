@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+=======
+from rdkit import Chem
+from rdkit.Avalon import pyAvalonTools
+from rdkit.Chem import rdReducedGraphs
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        _CACHE[smi] = np.concatenate([fp, desc])
+=======
+        try:
+            av = np.zeros(512, dtype=np.float32)
+            for k, v in pyAvalonTools.GetAvalonCountFP(m, nBits=512).GetNonzeroElements().items():
+                av[k] = v
+        except Exception:
+            av = np.zeros(512, dtype=np.float32)
+        try:
+            erg = np.nan_to_num(np.asarray(rdReducedGraphs.GetErGFingerprint(m), dtype=np.float32))
+            if erg.shape != (315,):
+                erg = np.zeros(315, dtype=np.float32)
+        except Exception:
+            erg = np.zeros(315, dtype=np.float32)
+        _CACHE[smi] = np.concatenate([fp, desc, av, erg])
+>>>>>>> REPLACE
+-----

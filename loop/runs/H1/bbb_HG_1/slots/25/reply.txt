@@ -1,0 +1,193 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from catboost import CatBoostClassifier
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        features.append(np.concatenate([fp, desc]))
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from catboost import CatBoostClassifier
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        features.append(np.concatenate([fp, desc]))
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+    
+    # Initial model
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(X_train, y_train)
+    
+    # Pseudo-labeling
+    X_test = featurize(test_smiles)
+    probs = model.predict_proba(X_test)[:, 1]
+    
+    # Get indices for top and bottom 15%
+    n_test = len(test_smiles)
+    k = max(1, int(n_test * 0.15))
+    top_indices = np.argsort(probs)[-k:]
+    bot_indices = np.argsort(probs)[:k]
+    
+    pseudo_X = X_test[np.concatenate([top_indices, bot_indices])]
+    pseudo_y = np.concatenate([np.ones(len(top_indices)), np.zeros(len(bot_indices))]).astype(np.int64)
+    pseudo_w = np.full(len(pseudo_X), 0.5)
+    
+    X_extended = np.concatenate([X_train, pseudo_X])
+    y_extended = np.concatenate([y_train, pseudo_y])
+    weights_extended = np.concatenate([np.ones(len(y_train)), pseudo_w])
+    
+    # Refit with pseudo-labels
+    model.fit(X_extended, y_extended, sample_weight=weights_extended)
+    return model.predict_proba(X_test)[:, 1]
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+    X_test = featurize(test_smiles)
+    
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(X_train, y_train)
+    
+    probs = model.predict_proba(X_test)[:, 1]
+    k = max(1, int(len(test_smiles) * 0.15))
+    
+    top_idx = np.argsort(probs)[-k:]
+    bot_idx = np.argsort(probs)[:k]
+    
+    pseudo_indices = np.concatenate([bot_idx, top_idx])
+    pseudo_X = X_test[pseudo_indices]
+    pseudo_y = np.concatenate([np.zeros(len(bot_idx)), np.ones(len(top_idx))]).astype(np.int64)
+    pseudo_w = np.full(len(pseudo_indices), 0.5)
+    
+    X_ext = np.concatenate([X_train, pseudo_X])
+    y_ext = np.concatenate([y_train, pseudo_y])
+    w_ext = np.concatenate([np.ones(len(y_train)), pseudo_w])
+    
+    model.fit(X_ext, y_ext, sample_weight=w_ext)
+    return model.predict_proba(X_test)[:, 1]
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+рная
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+    X_test = featurize(test_smiles)
+    
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(X_train, y_train)
+    
+    probs = model.predict_proba(X_test)[:, 1]
+    k = max(1, int(len(test_smiles) * 0.15))
+    
+    top_idx = np.argsort(probs)[-k:]
+    bot_idx = np.argsort(probs)[:k]
+    
+    pseudo_indices = np.concatenate([bot_idx, top_idx])
+    pseudo_X = X_test[pseudo_indices]
+    pseudo_y = np.concatenate([np.zeros(len(bot_idx)), np.ones(len(top_idx))]).astype(np.int64)
+    pseudo_w = np.full(len(pseudo_indices), 0.5)
+    
+    X_ext = np.concatenate([X_train, pseudo_X], axis=1)
+    y_ext = np.concatenate([y_train, pseudo_y])
+    w_ext = np.concatenate([np.ones(len(y_train)), pseudo_w])
+    
+    model.fit(X_ext, y_ext, sample_weight=w_ext)
+    return model.predict_proba(X_test)[:, 1]
+-----

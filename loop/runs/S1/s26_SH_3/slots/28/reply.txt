@@ -1,0 +1,71 @@
+<<<<<<< SEARCH
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+    """Simulated annealing over centers; objective is LP-optimal sum of radii."""
+    import time
+    import math
+    cur = c.copy()
+    cur_v = float(np.sum(lp_radii(cur)))
+    best, best_v = cur.copy(), cur_v
+    for s in range(steps):
+        if time.time() - t0 > 120:
+            break
+        frac = s / steps
+        T = T0 * (T1 / T0) ** frac
+        sigma = 0.005 + 0.045 * (T / T0)
+        k = int(rng.integers(c.shape[0]))
+        cand = cur.copy()
+        cand[k] = np.clip(cand[k] + rng.normal(0.0, sigma, 2), 0.02, 0.98)
+        v = float(np.sum(lp_radii(cand)))
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v = cand, v
+            if v > best_v:
+                best, best_v = cand.copy(), v
+    return best
+=======
+def sa_centers(c, rng, t0, steps=6000, T0=0.01, T1=0.0001):
+    """Simulated annealing over centers; objective is LP-optimal sum of radii."""
+    import time
+    import math
+    cur = c.copy()
+    cur_r = lp_radii(cur)
+    cur_v = float(np.sum(cur_r))
+    best, best_v = cur.copy(), cur_v
+    for s in range(steps):
+        if time.time() - t0 > 60:
+            break
+        frac = s / steps
+        T = T0 * (T1 / T0) ** frac
+        sigma = 0.003 + 0.02 * (T / T0)
+        if rng.random() < 0.5:
+            k = int(np.argsort(cur_r)[int(rng.integers(5))])
+        else:
+            k = int(rng.integers(c.shape[0]))
+        cand = cur.copy()
+        cand[k] = np.clip(cand[k] + rng.normal(0.0, sigma, 2), 0.02, 0.98)
+        cand_r = lp_radii(cand)
+        v = float(np.sum(cand_r))
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v, cur_r = cand, v, cand_r
+            if v > best_v:
+                best, best_v = cand.copy(), v
+    return best
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for start in range(4):
+        if start > 0 and time.time() - t0 > 150:
+            break
+        c0 = hex_jitter(rng)
+        c0 = sa_centers(c0, rng, t0)
+=======
+    for start in range(3):
+        if start > 0 and time.time() - t0 > 200:
+            break
+        c0 = hex_jitter(rng)
+        c0 = sa_centers(c0, rng, time.time())
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            if time.time() - t0 > 180:
+=======
+            if time.time() - t0 > 230:
+>>>>>>> REPLACE
+-----

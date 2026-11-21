@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+def _cross(pool, n, rng):
+    a, b = rng.choice(len(pool), 2, replace=False)
+    t = rng.uniform(0.3, 0.7)
+    (ca, ra), (cb, rb) = pool[a], pool[b]
+    ma, mb = ca[:, 0] < t, cb[:, 0] >= t
+    c, r = np.concatenate([ca[ma], cb[mb]]), np.concatenate([ra[ma], rb[mb]])
+    if len(r) > n:
+        k = rng.choice(len(r), n, replace=False)
+        c, r = c[k], r[k]
+    elif len(r) < n:
+        m = n - len(r)
+        c = np.vstack([c, rng.uniform(INIT_LOW, 1 - INIT_LOW, (m, 2))])
+        r = np.concatenate([r, np.full(m, INIT_RADIUS)])
+    return np.concatenate([c.ravel(), r])
+=======
+def _relax(c, r, steps=30):
+    n = len(r)
+    i0, i1 = np.triu_indices(n, 1)
+
+    def f(x):
+        p = x.reshape(n, 2)
+        dv = p[i0] - p[i1]
+        d = np.sqrt((dv ** 2).sum(1)) + 1e-12
+        o = np.maximum(r[i0] + r[i1] - d, 0)
+        coef = (-2 * o / d)[:, None] * dv
+        g = np.zeros((n, 2))
+        np.add.at(g, i0, coef)
+        np.add.at(g, i1, -coef)
+        lo = np.maximum(r[:, None] - p, 0)
+        hi = np.maximum(p + r[:, None] - 1, 0)
+        e = (o ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum()
+        g += -2 * lo + 2 * hi
+        return e, g.ravel()
+
+    res = minimize(f, c.ravel(), jac=True, method="L-BFGS-B", options={"maxiter": steps})
+    return np.clip(res.x.reshape(n, 2), 0, 1)
+
+
+def _cross(pool, n, rng):
+    a, b = rng.choice(len(pool), 2, replace=False)
+    th = rng.uniform(0, np.pi)
+    u = np.array([np.cos(th), np.sin(th)])
+    t = rng.uniform(-0.2, 0.2)
+    (ca, ra), (cb, rb) = pool[a], pool[b]
+    ma, mb = (ca - 0.5) @ u < t, (cb - 0.5) @ u >= t
+    c, r = np.concatenate([ca[ma], cb[mb]]), np.concatenate([ra[ma], rb[mb]])
+    if len(r) > n:
+        k = np.argsort(-r)[:n]
+        c, r = c[k], r[k]
+    elif len(r) < n:
+        m = n - len(r)
+        c = np.vstack([c, rng.uniform(INIT_LOW, 1 - INIT_LOW, (m, 2))])
+        r = np.concatenate([r, np.full(m, INIT_RADIUS)])
+    c = _relax(c, r)
+    return np.concatenate([c.ravel(), r])
+>>>>>>> REPLACE
+-----

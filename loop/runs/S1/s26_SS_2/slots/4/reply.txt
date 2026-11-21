@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+    cur_v = bv.copy(); cur_s = bs
+=======
+    from scipy.optimize import linprog
+    Aub = np.zeros((m, n)); Aub[np.arange(m), I] = 1; Aub[np.arange(m), J] = 1
+
+    def lp_eval(c):
+        d = np.hypot(c[I, 0] - c[J, 0], c[I, 1] - c[J, 1])
+        ub = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+        ub = np.maximum(ub, 0)
+        res = linprog(-np.ones(n), A_ub=Aub, b_ub=d,
+                      bounds=np.stack([np.zeros(n), ub], 1), method="highs")
+        if res.status != 0:
+            return -1.0, None
+        return -res.fun, res.x
+
+    cc = np.clip(np.stack([bv[:n], bv[n:2 * n]], 1), 0.001, 0.999)
+    cs, _ = lp_eval(cc)
+    sa_best_c = cc.copy(); sa_best_s = cs
+    iters = 3000
+    T0, T1 = 3e-3, 1e-5
+    for it in range(iters):
+        if time.time() - t0 > 150:
+            break
+        f = it / iters
+        T = T0 * (T1 / T0) ** f
+        step = 0.08 * (1 - f) + 0.003
+        nc = cc.copy()
+        i = rng.integers(n)
+        nc[i] = np.clip(nc[i] + rng.normal(0, step, 2), 0.001, 0.999)
+        ns, _ = lp_eval(nc)
+        if ns > cs or rng.random() < np.exp((ns - cs) / T):
+            cc = nc; cs = ns
+            if cs > sa_best_s:
+                sa_best_s = cs; sa_best_c = cc.copy()
+    _, rr = lp_eval(sa_best_c)
+    if rr is not None:
+        w = np.concatenate([sa_best_c[:, 0], sa_best_c[:, 1], rr])
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), w,
+                           jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                           method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                           options={"maxiter": 200, "ftol": 1e-12})
+            w = res.x
+        except Exception:
+            pass
+        c, r = finalize(w)
+        if r.sum() > bs:
+            bs = r.sum(); best = (c, r); bv = w.copy()
+
+    cur_v = bv.copy(); cur_s = bs
+>>>>>>> REPLACE
+-----

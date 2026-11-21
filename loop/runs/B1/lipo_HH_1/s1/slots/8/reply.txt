@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import QuantileRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    meta = QuantileRegressor(quantile=0.5, alpha=0.0, solver="highs").fit(oof, y)
+    mask = np.ones(oof.shape[1], dtype=bool)
+    if (meta.coef_ < 0).any():
+        mask = meta.coef_ > 0
+        meta = QuantileRegressor(quantile=0.5, alpha=0.0, solver="highs").fit(oof[:, mask], y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te[:, mask])
+>>>>>>> REPLACE
+-----

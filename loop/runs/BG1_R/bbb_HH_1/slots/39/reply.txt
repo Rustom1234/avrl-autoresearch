@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+N_BAGS = 5
+N_TREES_BAG = 100
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    D_train = full_descriptors(train_smiles)
+    D_test = full_descriptors(test_smiles)
+    lo, hi = np.percentile(D_train, [1, 99], axis=0)
+    X_train = np.hstack([X_train, np.clip(D_train, lo, hi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+    y = np.asarray(train_y, dtype=np.int64)
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    D_train = full_descriptors(train_smiles)
+    D_test = full_descriptors(test_smiles)
+    lo, hi = np.percentile(D_train, [1, 99], axis=0)
+    X_train = np.hstack([X_train, np.clip(D_train, lo, hi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+    y = np.asarray(train_y, dtype=np.int64)
+
+    # Group training rows by Murcko scaffold, then bootstrap whole scaffold groups
+    groups = {}
+    for i, s in enumerate(train_smiles):
+        scaf = MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(s))
+        groups.setdefault(scaf, []).append(i)
+    group_idx = [np.array(v) for v in groups.values()]
+    n_groups = len(group_idx)
+    rng = np.random.default_rng(seed)
+
+    rf_scores, gb_scores = [], []
+    for b in range(N_BAGS):
+        picks = rng.integers(0, n_groups, size=n_groups)
+        idx = np.concatenate([group_idx[g] for g in picks])
+        rf = RandomForestClassifier(n_estimators=N_TREES_BAG, max_features=MAX_FEATURES,
+                                    min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed + b)
+        rf.fit(X_train[idx], y[idx])
+        rf_scores.append(scaled_rank(rf.predict_proba(X_test)[:, 1]))
+        gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                            random_state=seed + b, n_jobs=8, verbose=-1)
+        gb.fit(X_train[idx], y[idx])
+        gb_scores.append(scaled_rank(gb.predict_proba(X_test)[:, 1]))
+    return 0.5 * (np.mean(rf_scores, axis=0) + np.mean(gb_scores, axis=0))
+>>>>>>> REPLACE
+-----

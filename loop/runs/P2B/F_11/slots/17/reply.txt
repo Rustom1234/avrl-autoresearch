@@ -1,0 +1,71 @@
+<<<<<<< SEARCH
+    softcap = 15
+    logits = self.lm_head(x)
+    logits = logits.float()
+    logits = softcap * torch.tanh(logits / softcap)
+=======
+    softcap = 15
+    logits = self.lm_head(x)
+    logits = logits.float()
+    # Label smoothing and temperature scaling
+    log_probs = logits.log_softmax(dim=-1)
+    targets_onehot = torch.zeros_like(logits)
+    for i in range(x.size(0)):
+        targets_onehot[i] = torch.scatterdim(torch.zeros_like(logits), 1, y[i], torch.tensor([1.0] * logits[i].size(0)).to(logits.device))
+    eps = 0.02
+    log_probs_smoothed = log_probs * (1.0 - eps) + (eps / logits.size(-1))
+    log_probs_smoothed = log_probs_smoothed.addcmul(-1.0, targets_onehot)
+    print(f"Using label smoothing eps={eps} and temp adjustment via logsumexp")
+
+    # Temperature scaling to soften probabilities
+    T = 1.2
+    logits_t = (logits / T).log_softmax(dim=-1)
+    logits = torch.log_softmax(logits_t.sum(dim=-1), dim=-1)
+    logits = logits * T
+    logits = logits.float()
+    logits = softcap * torch.tanh(logits / softcap)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH haste = True
+    logits = logits.float()
+    logits = softcap * torch.tanh(logits / softcap)
+=======
+    logits = logits.float()
+    logits = softcap * torch.tanh(logits / softcap)
+
+    # Temperature scaling to soften probabilities
+    T = 1.2
+    logits = logits / T
+
+    # Label smoothing (printfriendly style smoothed cross-entropy approximation)
+    epsilon = 0.02
+    n_classes = logits.size(-1)
+    smoothed_logits = logits
+    # Compute smoothed logits without full one-hot expansion
+    log_probs = logits.log_softmax(dim=-1)
+    log_probs_smoothed = log_probs * (1.0 - epsilon) + (epsilon / n_classes)
+    # Apply label smoothing via log-prob addition (approximated)
+    smoothed_logits = -logsumexp(smoothed_logits, dim=-1) + n_classes
+=======
+    softcap = 15
+    logits = self.lm_head(x)
+    logits = logits.float()
+    logits = softcap * torch.tanh(logits / softcap)
+-----
+		logits = self.lm_head(x)
+		logits = logits.float()
+
+		# Temperature scaling and label smoothing for stability
+		self.temperature = 1.2
+		logits = logits / self.temperature
+		
+		# Label smoothing (printfriendly style)
+		espsilon = 0.02
+		n_classes = logits.size(-1)
+		smoothed_logits = logits
+		log_probs = smoothed_logits.log_softmax(dim=-1)
+		smooth_prob = (1.0 - epsilon) * log_probs + (epsilon / n_classes)
+		smoothed_logits = -torch.logsumexp(smooth_prob, dim=-1) + n_classes
+
+		logits = softcap * torch.tanh(logits / softcap)
+-----

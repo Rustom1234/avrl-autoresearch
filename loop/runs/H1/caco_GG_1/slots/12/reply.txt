@@ -1,0 +1,210 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 500
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    params = {
+        'objective': 'regression',
+        'metric': 'mae',
+        'boosting_type': 'gbdt',
+        'learning_rate': LEARNING_RATE,
+        'num_leaves': NUM_LEAVES,
+        'verbose': -1,
+        'seed': seed
+    }
+    train_x = featurize(train_smiles)
+    test_x = featurize(test_smiles)
+    
+    train_data = lgb.Dataset(train_x, label=np.asarray(train_y, dtype=np.float64))
+    
+    model = lgb.train(
+        params,
+        train_data,
+        num_boost_round=N_ESTIMATORS,
+        boosting_type='gbdt'
+    )
+    
+    return model.predict(test_x)
+-----
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+ нюанс
+=======
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 500
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_x = featurize(train_smiles)
+    test_x = featurize(test_smiles)
+    train_y = np.asarray(train_y, dtype=np.float64)
+    
+    train_data = lgb.Dataset(train_x, label=train_y)
+    
+    params = {
+        'objective': 'regression',
+        'metric': 'mae',
+        'learning_rate': LEARNING_RATE,
+        'num_leaves': NUM_LEAVES,
+        'verbose': -1,
+        'seed': seed
+    }
+    
+    model = lgb.train(
+        params,
+        train_data,
+        num_boost_round=N_ESTIMATORS
+    )
+    
+    return model.predict(test_x)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+ нюанс
+Dos
+>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_ESTIMATORS = 500
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_x = featurize(train_smiles)
+    test_x = featurize(test_smiles)
+    train_y = np.asarray(train_y, dtype=np.float64)
+    
+    train_data = lgb.Dataset(train_x, label=train_y)
+    
+    params = {
+        'objective': 'regression',
+        'metric': 'mae',
+        'learning_rate': LEARNING_RATE,
+        'num_leaves': NUM_LEAVES,
+        'verbose': -1,
+        'seed': seed
+    }
+    
+    model = lgb.train(
+        params,
+        train_data,
+        num_boost_round=N_ESTIMATORS
+    )
+    
+    return model.predict(test_x)
+>>>>>>> REPLACE
+-----

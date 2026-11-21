@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from xgboost import XGBClassifier
+=======
+from xgboost import XGBClassifier
+from lightgbm import LGBMClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def morgan_blend(x_tr, y, x_te, seed):
+    rf = RandomForestClassifier(n_estimators=500, max_features='sqrt', random_state=seed, n_jobs=8)
+    rf.fit(x_tr, y)
+    lgb = LGBMClassifier(n_estimators=300, learning_rate=0.05, subsample=0.8, subsample_freq=1,
+                         colsample_bytree=0.3, random_state=seed, n_jobs=8, verbose=-1)
+    lgb.fit(x_tr, y)
+    scaler = StandardScaler().fit(x_tr)
+    lr = LogisticRegression(C=0.5, max_iter=2000)
+    lr.fit(scaler.transform(x_tr), y)
+    probs = [rf.predict_proba(x_te)[:, 1], lgb.predict_proba(x_te)[:, 1],
+             lr.predict_proba(scaler.transform(x_te))[:, 1]]
+    return np.mean(probs, axis=0)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+=======
+    total += rankdata(morgan_blend(train_sets[0], y, test_sets[0], seed))
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def optimized_packing():
+=======
+def _soft(c, rng):
+    n = _N
+    i, j = _IU
+    t = rng.lognormal(0, 0.3, n)
+    t *= 2.6 / t.sum()
+    ti = t[i] + t[j]
+
+    def f(x):
+        P = x.reshape(n, 2)
+        dv = P[i] - P[j]
+        d = np.sqrt((dv ** 2).sum(1)) + 1e-12
+        o = np.maximum(ti - d, 0)
+        val = (o ** 2).sum()
+        g = np.zeros((n, 2))
+        w = (-2 * o / d)[:, None] * dv
+        np.add.at(g, i, w)
+        np.add.at(g, j, -w)
+        a = np.maximum(t[:, None] - P, 0)
+        b = np.maximum(P + t[:, None] - 1, 0)
+        val += (a ** 2).sum() + (b ** 2).sum()
+        g += -2 * a + 2 * b
+        return val, g.ravel()
+
+    x = c.ravel().copy()
+    for mu in (10.0, 100.0, 1e3, 1e4):
+        res = minimize(lambda z: tuple(mu * q for q in f(z)), x, jac=True,
+                       method="L-BFGS-B", bounds=[(0.01, 0.99)] * (2 * n),
+                       options={"maxiter": 200})
+        x = res.x
+    return np.clip(x.reshape(n, 2), 0.01, 0.99)
+
+
+def optimized_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+=======
+            if rng.random() < 0.4:
+                c = _soft(c, rng)
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+>>>>>>> REPLACE
+-----

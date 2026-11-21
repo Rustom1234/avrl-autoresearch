@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    best = None
+    best_val = -1.0
+    it = 0
+
+    try:
+        from scipy.optimize import dual_annealing, linprog
+        A_lp = np.zeros((m, n))
+        A_lp[ar, iu] = 1.0
+        A_lp[ar, ju] = 1.0
+        c_lp = -np.ones(n)
+
+        def lp_solve(xy):
+            P = xy.reshape(n, 2)
+            d = np.sqrt(((P[iu] - P[ju]) ** 2).sum(1))
+            w = np.minimum(P.min(1), (1 - P).min(1))
+            rs = linprog(c_lp, A_ub=A_lp, b_ub=d,
+                         bounds=list(zip(np.zeros(n), w)), method="highs")
+            if rs.status != 0:
+                return None
+            return rs.x
+
+        def fit(xy):
+            r_ = lp_solve(xy)
+            return 0.0 if r_ is None else -float(r_.sum())
+
+        da_t0 = time.time()
+
+        def stop_cb(x, f, context):
+            return time.time() - da_t0 > 0.4 * time_budget
+
+        da = dual_annealing(fit, [(0.03, 0.97)] * (2 * n), maxiter=200,
+                            seed=0, no_local_search=True, callback=stop_cb)
+        P = da.x.reshape(n, 2)
+        r_ = lp_solve(da.x)
+        if r_ is not None:
+            z0 = np.concatenate([P[:, 0], P[:, 1], r_ * 0.999])
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+            out = finalize(res.x)
+            if out is not None and out[1].sum() > best_val:
+                best = out
+                best_val = out[1].sum()
+    except Exception:
+        pass
+>>>>>>> REPLACE
+-----

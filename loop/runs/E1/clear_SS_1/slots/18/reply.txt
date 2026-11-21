@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+=======
+    Ftr, Fte = xgb_features(train_smiles), xgb_features(test_smiles)
+    model.fit(Ftr, y)
+    p_rf = model.predict(Fte)
+    nd = len(Descriptors.descList)
+    Dtr, Dte = Ftr[:, :nd], Fte[:, :nd]
+    keep = Dtr.std(0) > 1e-6
+    qt = QuantileTransformer(output_distribution="normal", n_quantiles=min(200, len(Dtr)), random_state=seed)
+    Ztr = qt.fit_transform(Dtr[:, keep])
+    Zte = qt.transform(Dte[:, keep])
+    p_desc = SVR(kernel="rbf", C=3, gamma="scale").fit(Ztr, y).predict(Zte)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr) + rankdata(p_desc) / len(p_desc)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    r_safe = np.maximum(r - 1e-10, 0)
+
+    def _valid(cc, rr):
+        if np.any(rr < 0):
+            return False
+        if np.any(cc[:, 0] - rr < 0) or np.any(cc[:, 0] + rr > 1):
+            return False
+        if np.any(cc[:, 1] - rr < 0) or np.any(cc[:, 1] + rr > 1):
+            return False
+        ii, jj = _IU
+        d = np.sqrt((cc[ii, 0] - cc[jj, 0]) ** 2 + (cc[ii, 1] - cc[jj, 1]) ** 2)
+        return bool(np.all(d - rr[ii] - rr[jj] >= 0))
+
+    try:
+        cc = np.clip(c, 0, 1)
+        rr = _lp_radii(cc)
+        ii, jj = _IU
+        for _ in range(5):
+            wall = np.minimum(np.minimum(cc[:, 0], cc[:, 1]),
+                              np.minimum(1 - cc[:, 0], 1 - cc[:, 1]))
+            rr = np.minimum(rr, np.maximum(wall, 0))
+            d = np.sqrt((cc[ii, 0] - cc[jj, 0]) ** 2 + (cc[ii, 1] - cc[jj, 1]) ** 2)
+            for k in range(len(ii)):
+                ex = rr[ii[k]] + rr[jj[k]] - d[k]
+                if ex > 0:
+                    rr[ii[k]] = max(rr[ii[k]] - ex, 0)
+                    rr[jj[k]] = max(rr[jj[k]] - ex, 0)
+        rr = np.maximum(rr - 1e-13, 0)
+        if _valid(cc, rr) and rr.sum() >= r_safe.sum():
+            return cc, rr
+    except Exception:
+        pass
+    return c, r_safe
+>>>>>>> REPLACE
+-----

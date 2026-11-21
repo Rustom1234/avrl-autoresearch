@@ -1,0 +1,94 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+}
+======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    
+    # Simple oversampling of the minority class
+    indices = np.argsort(y)
+    minority_idx = indices[y == 0]
+    majority_idx = indices[y == 1]
+    
+    if len(minority_idx) < len(majority_idx):
+        # Oversample minority (0) to match majority (1)
+        num_to_add = len(majority_idx) - len(minority_idx)
+        repeat_idx = np.random.choice(minority_idx, size=num_to_add, replace=True).astype(int)
+        
+        X_combined = np.concatenate([X, X[repeat_idx]], axis=0)
+        y_combined = np.concatenate([y, y[repeat_idx]], axis=0)
+        
+        X, y = X_combined, y_combined
+    
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(X, y)
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+}
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    
+    # Oversample minority class to balance the dataset
+    np.random.seed(seed)
+    y_min = y[y == 0]
+    y_maj = y[y == 1]
+    if len(y_min) < len(y_maj):
+        num_to_add = len(y_maj) - len(y_min)
+        idx = np.random.choice(len(y_min), size=num_to_add, replace=True)
+        X = np.concatenate([X, X[y == 0][idx]], axis=0)
+        y = np.concatenate([y, y[y == 0][idx]], axis=0)
+
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(X, y)
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+ Chau
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    
+    # Oversample minority class to balance the dataset
+    rng = np.random.RandomState(seed)
+    y_min = y[y == 0]
+    y_maj = y[y == 1]
+    if len(y_min) < len(y_maj):
+        num_to_add = len(y_maj) - len(y_min)
+        idx = rng.choice(len(y_min), size=num_to_add, replace=True)
+        X = np.concatenate([X, X[y == 0][idx]], axis=0)
+        y = np.concatenate([y, y[y == 0][idx]], axis=0)
+
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(X, y)
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+>>>>>>> REPLACE
+-----

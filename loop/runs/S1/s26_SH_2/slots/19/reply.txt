@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _pack_once(seed, init=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    try:
+        zp = z0.copy()
+=======
+    if init is not None:
+        z0 = np.asarray(init, dtype=float).copy()
+    try:
+        zp = z0.copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if seed > 0 and time.time() - t0 > 200.0:
+=======
+        if seed > 0 and time.time() - t0 > 140.0:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            best = (c, r)
+    return best
+=======
+            best = (c, r)
+    best_c, best_r = best
+    k = 0
+    while time.time() - t0 < 210.0:
+        sigma = (0.02, 0.05, 0.1)[k % 3]
+        rng = np.random.default_rng(10000 + k)
+        c0 = np.clip(best_c + rng.normal(0.0, sigma, size=best_c.shape), 0.0, 1.0)
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], best_r])
+        c, r = _pack_once(10000 + k, init=z0)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum = s
+            best = (c, r)
+            best_c, best_r = c, r
+        k += 1
+    return best
+>>>>>>> REPLACE
+-----

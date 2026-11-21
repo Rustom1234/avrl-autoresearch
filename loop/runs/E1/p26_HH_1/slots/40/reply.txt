@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _radius_lp(n, c):
+    """Fix the centres and maximise sum(r) subject to pairwise and wall constraints (LP via HiGHS)."""
+    iu = np.triu_indices(n, 1)
+    d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+    A = np.zeros((len(d), n))
+    A[np.arange(len(d)), iu[0]] = 1
+    A[np.arange(len(d)), iu[1]] = 1
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=[(0, w) for w in wall], method="highs")
+    return res.x if res.status == 0 else np.zeros(n)
+
+
+def _centre_maxmin(n, c, r):
+    """Fix the radii and maximise the minimum slack over the centres (SLSQP with an epigraph variable)."""
+    iu = np.triu_indices(n, 1)
+
+    def slack(p):
+        return np.concatenate([np.sqrt(((p[iu[0]] - p[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]],
+                               p[:, 0] - r, p[:, 1] - r, 1 - p[:, 0] - r, 1 - p[:, 1] - r])
+
+    def cons(v):
+        return slack(v[:2 * n].reshape(n, 2)) - v[2 * n]
+
+    v0 = np.concatenate([c.ravel(), [slack(c).min()]])
+    res = minimize(lambda v: -v[2 * n], v0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return np.clip(res.x[:2 * n].reshape(n, 2), 0, 1)
+
+
+def _alternate(n, c, rounds=15):
+    """Alternate the centre step and the radius LP until sum(r) stops improving."""
+    r = _radius_lp(n, c)
+    for _ in range(rounds):
+        c_new = _centre_maxmin(n, c, r)
+        r_new = _radius_lp(n, c_new)
+        if r_new.sum() <= r.sum() + 1e-9:
+            break
+        c, r = c_new, r_new
+    return c, r
+
+
+def _solve_once(n, rng, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x2 = start
+=======
+    c_alt, r_alt = _alternate(n, np.clip(start[:2 * n].reshape(n, 2), 0, 1))
+    x2 = np.concatenate([c_alt.ravel(), r_alt])
+>>>>>>> REPLACE
+-----

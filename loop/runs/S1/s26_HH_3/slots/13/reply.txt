@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+    best_sum, best_c, best_r = -1.0, None, None
+    # Mirror-symmetric phase: reduced SLSQP, then one unconstrained polish and repair.
+    for _ in range(8):
+        if time.time() - t0 > 40:
+            break
+        try:
+            c, r = _sym_search(rng)
+            c, r = _optimize(c, r)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    for k in (4, 6, 8, 10):
+=======
+    best_sum, best_c, best_r = -1.0, None, None
+    sym_sum, sym_c, sym_r = -1.0, None, None
+    # Mirror-symmetric phase: reduced SLSQP, then one unconstrained polish and repair.
+    for _ in range(8):
+        if time.time() - t0 > 40:
+            break
+        try:
+            c, r = _sym_search(rng)
+            c, r = _optimize(c, r)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > sym_sum:
+            sym_sum, sym_c, sym_r = s, c, r
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    # Symmetry-breaking chain: perturb the best symmetric packing and re-optimise freely.
+    if sym_c is not None and sym_sum > 2.6:
+        for p in range(5):
+            if time.time() - t0 > 120:
+                break
+            prng = np.random.default_rng(1000 + p)
+            c0 = np.clip(sym_c + prng.uniform(-1e-3, 1e-3, size=sym_c.shape), 0.0, 1.0)
+            r0 = np.maximum(sym_r + prng.uniform(-1e-3, 1e-3, size=sym_r.shape), 0.0)
+            try:
+                c, r = _optimize(c0, r0)
+                r = _repair(c, r)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+    for k in (4, 6, 8, 10):
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C0/CC_01/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.9431645685307755
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Filter the docs pool to only include documents that share a significant vocabulary overlap with the target_sample before shuffling and selecting.",
+   "outcome": "dev 1.9432 against 1.9614 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Calculate the token count for each document in the pool and the target_sample, then prioritize documents in the pool that have a higher average token count and a higher frequency of words appearing in the target_sample.",
+   "outcome": "dev 1.9776 against 1.9432 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Use tiktoken to count tokens for both the pool and the target_sample, then score each document in the pool based on the proportion of its tokens that match the set of tokens present in the target_sample, selecting indices in descending order of this score.",
+   "outcome": "dev 1.9785 against 1.9432 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Use tiktoken to encode the target_sample and the docs pool, then calculate a relevance score for each doc in the pool based on the cosine similarity between the normalized token frequency vectors of the doc and the aggregated target_sample vector.",
+   "outcome": "dev 2.0431 against 1.9432 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Use tiktoken to count tokens for each document in the pool. Calculate a score for each document based on the density of unique tokens that appear in the target sample (i.e., count of target-shared tokens divided by total tokens in the doc). Sort the indices by this score in descending order, but discard documents that are extremely short (e.g., fewer than 50 tokens) or contain very high proportions of non-alphanumeric characters to filter out junk/templates.",
+   "outcome": "dev 1.9901 against 1.9432 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Tokenize the entire pool and target_sample using tiktoken to identify 'domain-specific' vocabulary; then score each document by the sum of the frequencies of these domain-specific tokens, favoring documents that are long and have a high concentration of these terms while explicitly filtering out documents with a high 'junk' ratio (e.g., high density of symbols/numbers or very low word-to-token ratio).",
+   "outcome": "dev 1.9420 against 1.9432 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Tokenize the target_sample to create a 'vocabulary of interest' (tokens that appear multiple times across different target documents). Score every document in the pool by the count of these specific tokens it contains, and select the top 15% of docs by this score, filtering out any document with a 'junk' density (ratio of non-alphanumeric characters to total characters) exceeding 20%.",
+   "outcome": "dev 2.0270 against 1.9432 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Use tiktoken to tokenize the target sample and the entire pool to calculate a 'relevance score' for each document in the pool. The score is the sum of the counts of tokens in the document that appear in the target sample's vocabulary. Then, sort the pool by this score descending and select the top N documents (where N is large enough to cover T tokens) to form the training set.",
+   "outcome": "dev 2.0881 against 1.9432 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Use tiktoken to tokenize the target_sample and build a frequency map of tokens. Score every document in the pool by the sum of the frequencies of its tokens as they appear in the target_sample's map (higher weight for more frequent target tokens). Sort by this score descending, but discard documents where the ratio of non-alphanumeric characters to total characters exceeds 15% or where the total token count is less than 50.",
+   "outcome": "dev 3.7140 against 1.9432 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Calculate the average length of the documents in target_sample. Select documents from the pool that have a similar token length and a high overlap with target_sample tokens, while explicitly filtering out documents with a high density of symbols (greater than 10%) to remove junk like discount codes and web-scraped templates.",
+   "outcome": "dev 6.5994 against 1.9432 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Use tiktoken to encode the target_sample and pool, and select indices based on a weighted score: (sum of target_vocabulary_token_counts) * (log(1 + total_tokens)). Filter out any document where the ratio of non-alphanumeric characters to total characters is greater than 15% and those with fewer than 100 tokens.",
+   "outcome": "dev 3.3600 against 1.9432 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Use tiktoken to tokenize the target sample and calculate a 'document quality' score for the pool. Documents are scored by the sum of counts of tokens that appear in the target sample, weighted by the target sample's token frequency. From this, select the top indices. To ensure high-quality data, explicitly filter out documents where the ratio of symbols/punctuation to total tokens exceeds 15% and where the document length is under 100 tokens. Sort the filtered indices by score descending and return them.",
+   "outcome": "dev 2.0678 against 1.9432 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.013768950000000002,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.00068235,
+   "dev": 1.9431645685307755,
+   "inc": 1.961392249130023,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.508626561966367,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0009757500000000001,
+   "dev": 1.9776130991884862,
+   "inc": 1.9431645685307755,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.508626561966367,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0007916999999999998,
+   "dev": 1.9785056009489836,
+   "inc": 1.9431645685307755,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.508626561966367,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0011514,
+   "dev": 2.0431495711514804,
+   "inc": 1.9431645685307755,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.508626561966367,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0008993999999999999,
+   "dev": 1.9901280131240469,
+   "inc": 1.9431645685307755,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.508626561966367,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0018275999999999995,
+   "dev": 1.9419851535403023,
+   "inc": 1.9431645685307755,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.508626561966367,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0009389999999999997,
+   "dev": 2.027014011120083,
+   "inc": 1.9431645685307755,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.508626561966367,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0008443499999999998,
+   "dev": 2.0881083921881505,
+   "inc": 1.9431645685307755,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.508626561966367,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0009502500000000014,
+   "dev": 3.714035252665909,
+   "inc": 1.9431645685307755,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.508626561966367,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0020719500000000012,
+   "dev": 6.5994080697484065,
+   "inc": 1.9431645685307755,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.508626561966367,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0016126500000000002,
+   "dev": 3.3600379076944837,
+   "inc": 1.9431645685307755,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.508626561966367,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0010225500000000005,
+   "dev": 2.067784451934549,
+   "inc": 1.9431645685307755,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.961392249130023,
+ "inc_slot": 1
+}

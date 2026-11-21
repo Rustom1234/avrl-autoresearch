@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+        self.transformer.wte.to(dtype=torch.bfloat16)
+=======
+        self.transformer.wte.to(dtype=torch.bfloat16)
+        # Tie lm_head to the token embedding (one shared parameter)
+        self.lm_head.weight = self.transformer.wte.weight
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        lm_head_params = list(self.lm_head.parameters())
+=======
+        lm_head_params = []  # weight is tied to wte, optimized in the embedding group
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=lm_head_params, lr=unembedding_lr * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+=======
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        softcap = 15
+        logits = self.lm_head(x)
+=======
+        softcap = 15
+        logits = self.lm_head(x * (x.size(-1) ** -0.5))
+>>>>>>> REPLACE
+-----

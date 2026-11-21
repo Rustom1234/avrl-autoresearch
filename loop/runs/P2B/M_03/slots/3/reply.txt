@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+=======
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+SHORT_SEQ_FRAC = 0.4    # fraction of time budget using short sequences
+SHORT_SEQ_LEN = 512     # short sequence length (must divide MAX_SEQ_LEN)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+=======
+    t0 = time.time()
+    # Sequence curriculum: early steps reshape batches into short rows (same tokens per step)
+    short_phase = total_training_time < SHORT_SEQ_FRAC * TIME_BUDGET
+    for micro_step in range(grad_accum_steps):
+        xb, yb = (x.reshape(-1, SHORT_SEQ_LEN), y.reshape(-1, SHORT_SEQ_LEN)) if short_phase else (x, y)
+        with autocast_ctx:
+            loss = model(xb, yb)
+>>>>>>> REPLACE
+-----

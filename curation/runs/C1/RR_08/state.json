@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/RR_08/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.932759505043184
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Calculate the average number of tokens in each document using tiktoken, then use a greedy approach to select documents from the pool that have high lexical overlap (calculated via simple word frequency) with the target_sample to maximize relevance.",
+   "outcome": "dev 1.9328 against 1.9529 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Add a word-order check so word-shuffled Wikipedia articles (e.g. the \"= Olly Blackburn =\" doc, whose vocabulary is on-target but whose words are permuted) are no longer selected; the current unigram score cannot tell them apart from clean articles.\n\nImplementation:\n1. Tokenize with a regex that keeps punctuation as tokens (`[a-z]+|[0-9]+|[^\\sa-z0-9]`) on the lowercased text.\n2. Build a Counter of adjacent-token bigrams from the 200 target docs. For each pool doc, compute `bigram_hit` = the fraction of its adjacent bigrams (first 4000 chars) that occur at least 2 times in the target bigram counter.\n3. Calibrate the threshold on the target itself: compute leave-one-out `bigram_hit` for each target doc (subtract that doc's own bigram counts before testing) and set `thr = 0.6 * (5th percentile of the target leave-one-out values)`.\n4. Move pool docs with `bigram_hit < thr` to the low-priority `rest` list (used only if the budget cannot be filled otherwise). This should also catch the letter-scrambled docs and the spam templates.\n5. Rank the remaining docs by the existing unigram score plus `2.0 * bigram_hit`, and keep the greedy fill and seeded shuffle unchanged.\n6. If the surviving docs hold fewer than T tokens, do not pad with `rest`; return only the clean set and let the trainer cycle it. Use `rest` only if the clean set is below 0.3 T.",
+   "outcome": "dev 1.9358 against 1.9328 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Add the word-order check as a pure exclusion filter only, and backfill with natural-order text instead of cycling. Experiment 2 bundled three changes (filter, re-ranking, cycling); this tests the filter alone.\n\n1. Tokenize lowercased text with `[a-z]+|[0-9]+|[^\\sa-z0-9]`, using the first 4000 chars of each doc.\n2. Build an adjacent-bigram Counter from the 200 target docs PLUS the seeded 4000-doc background pool sample. Including the pool means general English of any domain counts as well-ordered, so only shuffled or scrambled text scores low.\n3. For each pool doc compute `hit` = the fraction of its adjacent bigrams with count >= 3 in that Counter.\n4. Calibrate the threshold on the target: compute leave-one-out `hit` for each target doc (subtract its own bigram counts first) and set `thr = 0.6 * (5th percentile of those values)`.\n5. Move docs with `hit < thr` to `rest`. They are never selected unless the surviving set is below 0.25 T.\n6. Leave everything else exactly as in the current best: the same unigram LLR score with no bigram term added, the same dedup and junk checks, the same greedy fill to 1.08 T, the same seeded shuffle. The slots freed by removed shuffled articles are therefore filled by the next-best order-intact docs, not by cycling the clean set.",
+   "outcome": "dev 1.9283 against 1.9328 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the final uniform shuffle with a coarse easy-to-target curriculum, and make the token budget exact so the end of the stream is not cut off.\n\n1. Keep scoring, dedup, junk checks and the unigram LLR score exactly as in the current best.\n2. Count real tokens for every candidate doc with tiktoken gpt2 (`enc.encode_ordinary_batch` on the docs, 8 threads, in chunks of about 2000 docs). If a time guard of about 100 s is hit, fall back to `len(doc) * tpc` for the remaining docs.\n3. Greedy fill by score, best first, until the cumulative real token count reaches 1.00 T. Use no 1.08 margin, so that nothing selected is truncated. Stop at the doc that crosses T.\n4. Order the chosen docs in three blocks by score rank, splitting by cumulative tokens: the lowest-scoring 30% of tokens first, the middle 40% next, and the highest-scoring 30% last. Shuffle within each block using the CURATE_SEED rng. Return the concatenation.\n\nTraining then finishes its last ~90 steps on the most target-like text (the Wikipedia-style articles), while the more generic text is seen early.",
+   "outcome": "dev 1.9353 against 1.9328 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Implement a 'weighted target-similarity' score using a simplified TF-IDF logic: weight each document's unigram score by the proportion of its tokens that appear in the target sample's vocabulary, rather than just averaging the scores of its individual words.",
+   "outcome": "dev 1.9450 against 1.9328 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the unigram LLR ranking score with a discriminative positive-vs-pool classifier on word 1-2-gram features, so that format and word order both count. Keep dedup, junk checks, the greedy fill to 1.08 T and the seeded shuffle exactly as they are.\n\n1. Features: `HashingVectorizer(analyzer='word', token_pattern=r\"[a-z]+|[0-9]+|[^\\sa-z0-9]\", lowercase=True, ngram_range=(1,2), n_features=2**18, norm='l2', alternate_sign=False)` with `sublinear_tf`-style binary=True. Apply it to the first 4000 chars of each doc.\n2. Positives: the 200 target docs cut into consecutive 4000-char chunks (cap 40 chunks per doc, so about 2-4k positives).\n3. Negatives: a seeded random sample of 6000 pool docs (first 4000 chars). These are noisy, since some are on-target.\n4. Round 1: fit `LogisticRegression(C=1.0, solver='liblinear', class_weight='balanced')` and score all pool docs with `decision_function`.\n5. Round 2 (self-training to clean the negatives): take as positives the target chunks plus the top 15% of pool docs by round-1 score, and as negatives the bottom 50% of pool docs. Refit the same model and score all pool docs again.\n6. Use the round-2 decision value as the ranking score in place of the mean word weight. Docs failing the existing junk checks still go to `rest`.\n\nWord-shuffled or letter-scrambled articles lack the target bigrams (\". the\", \", and\", \"of the\", \"@ - @\" patterns), so they should rank below order-intact text without a hand-set threshold.",
+   "outcome": "dev 1.9422 against 1.9328 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Replace the unigram LLR scoring with a multi-task objective score: for each document, calculate both the unigram LLR score (as in the current best) and a 'density of target-specific bigrams' score. The final score is the average of these two. A 'target-specific bigram' is defined as any bigram that appears in the target_sample but has a frequency of less than 0.01% in the seeded background pool.",
+   "outcome": "dev 1.9371 against 1.9328 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Add near-duplicate removal and a damaged-text filter on top of the current best, keeping the unigram LLR score, the greedy fill to 1.08 T and the seeded shuffle unchanged.\n\n1. Near-duplicate removal. The current code only drops exact duplicates after whitespace/lowercase normalisation. For each doc, also build two keys: (a) the first 200 characters with everything except [a-z0-9] removed, lowercased; (b) the sorted tuple of the 12 smallest values of zlib.crc32 over its word 5-gram shingles from the first 4000 chars (a min-hash sketch). Process docs in descending order of unigram score. Drop a doc if key (a) was already seen, or if its sketch shares at least 9 of 12 values with an already kept doc. Implement the sketch check with a dict from each sketch value to the kept doc ids, and count collisions. Dropped docs are never selected.\n\n2. Damaged-text filter (word-order and letter-scramble), exclusion only. Tokenize the lowercased first 4000 chars with `[a-z]+|[0-9]+|[^\\sa-z0-9]`. Build an adjacent-bigram Counter from the 200 target docs plus the seeded 4000-doc pool sample. For each doc, hit = fraction of its adjacent bigrams with count >= 3. Calibrate thr = 0.6 * (5th percentile of leave-one-out hit over the target docs). Also compute oov = fraction of alphabetic words of length >= 4 that are not in the set of words occurring >= 3 times in target plus background sample, and set oov_thr = 2.0 * (95th percentile of leave-one-out oov over the target docs) + 0.05. Docs with hit < thr or oov > oov_thr go to `rest`, used only if the surviving set is below 0.25 T.\n\n3. The freed budget is filled by the next-best unique, intact docs by unigram score. No cycling and no re-ranking term.\n\nNote: step 2's bigram filter is the same as experiment 3, which is listed as rejected although its dev bpb (1.9283) is lower than the best (1.9328). I am reusing it as a component, not as the new change; the new parts are the near-duplicate removal and the oov check.",
+   "outcome": "FAILED to run (, line 165, in select ws_shingles.append(zlib.crc32(shingle.encode()).tobytes()) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ AttributeError: 'int' object has no attribute 'tobytes'. Did you mean: 'to_bytes'?)"
+  },
+  {
+   "slot": 9,
+   "idea": "Re-run the failed experiment 8 in a simpler, bug-free form: the experiment-3 word-order filter plus near-duplicate removal, with everything else as in the current best (unigram LLR score, junk checks, greedy fill to 1.08 T, seeded shuffle).\n\nNote on the log: experiment 3 scored 1.9283, which is lower than the best 1.9328, yet it is recorded as rejected. I am treating its filter as a likely improvement rather than a failure; that record should be checked.\n\n1. Damaged-text filter (same as experiment 3). Tokenize the lowercased first 4000 chars with `[a-z]+|[0-9]+|[^\\sa-z0-9]`. Build an adjacent-bigram Counter from the 200 target docs plus the seeded 4000-doc pool sample. For each doc, hit = fraction of its adjacent bigrams with count >= 3. Set thr = 0.6 * (5th percentile of leave-one-out hit over the target docs, subtracting each doc's own bigram counts first). Docs with hit < thr go to `rest`, used only if the surviving set is below 0.25 T.\n\n2. Near-duplicate removal. Process the surviving docs in descending unigram score. For each doc compute:\n   (a) key_a = `re.sub(r'[^a-z0-9]', '', doc[:300].lower())[:150]`;\n   (b) a sketch = the 12 smallest distinct values of `zlib.crc32(' '.join(words[j:j+5]).encode())` over the word 5-gram shingles of the first 4000 chars. `zlib.crc32` returns a plain int; use it directly, with no `.tobytes()`.\n   Drop the doc if key_a is already in a seen set (only when len(key_a) >= 50), or if at least 9 of its 12 sketch values match one already kept doc. Implement the sketch check with a dict from sketch value to a list of kept doc ids and a Counter of collisions per kept doc. Skip the sketch check for docs with fewer than 12 shingles. Dropped docs are never selected.\n\n3. Fill the freed budget with the next-best unique, intact docs by unigram score. No cycling, no re-ranking term, no oov check.",
+   "outcome": "dev 1.9360 against 1.9328 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Keep the experiment-3 word-order filter and add one new thing: include the clearly on-target, order-intact documents twice, instead of padding the budget with lower-scoring generic text.\n\nNote on the log: experiment 3 scored 1.9283, below the best of 1.9328, yet is recorded as rejected. I am treating its filter as a probable improvement, but that record should be checked. If the rejection was for a reason other than the score, drop step 1 and apply steps 2-5 to the current best.\n\n1. Damaged-text filter (same as experiment 3). Tokenize the lowercased first 4000 chars with `[a-z]+|[0-9]+|[^\\sa-z0-9]`. Build an adjacent-bigram Counter from the 200 target docs plus the seeded 4000-doc pool sample. For each doc, hit = fraction of its adjacent bigrams with count >= 3. Set thr = 0.6 * (5th percentile of leave-one-out hit over the target docs, subtracting each doc's own bigram counts first). Docs with hit < thr go to `rest`, used only if the surviving set is below 0.25 T.\n\n2. Calibrate an on-target tier from the target itself. For each of the 200 target docs, compute the same mean unigram word-weight score on its first 4000 chars, leave-one-out: recompute the weights with that doc's word counts subtracted from the target Counter. Set tier_thr = the 10th percentile of those 200 scores.\n\n3. Tier A = surviving docs (unique, passing the junk checks and the word-order filter) with unigram score >= tier_thr. Estimate its tokens as len(doc) * tpc, call this A_tok.\n\n4. Build the selection to a budget of 1.08 T:\n   - If A_tok >= 1.08 T, do the plain greedy fill by score as now, with no repeats.\n   - Otherwise add every tier-A doc once. Then add a second copy of tier-A docs, best score first, until the second copies reach min(A_tok, 0.45 T) tokens or the budget is full. Then fill what remains of the budget with the next-best surviving non-tier-A docs by unigram score, one copy each.\n\n5. Apply the seeded shuffle to the whole list, so the two copies of a doc are far apart. Leave dedup, junk checks and the scoring formula unchanged.",
+   "outcome": "dev 1.9294 against 1.9328 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Apply the experiment-3 word-order filter, but check and score the whole document instead of only its first 4000 characters, and order the output so that the trainer's cut-off drops only the lowest-scoring documents.\n\nNote on the log: experiments 3 (1.9283) and 10 (1.9294) both scored below the best of 1.9328 yet are recorded as rejected. I do not know the reason, so that record should be checked. If the filter was rejected for something other than the score (for example run time), drop step 2 and apply steps 1, 3 and 4 to the current best.\n\n1. Windows. For each doc take up to three 3000-char windows: the start, the middle (centred on len/2) and the end. Use one window if the doc is 3000 chars or shorter, and two (start, end) if it is 6000 or shorter. Apply the same windows to the target docs when building counts and calibrating.\n\n2. Damaged-text filter (as in experiment 3, per window). Tokenize lowercased text with `[a-z]+|[0-9]+|[^\\sa-z0-9]`. Build an adjacent-bigram Counter from the windows of the 200 target docs plus the seeded 4000-doc pool sample. For each window, hit = the fraction of adjacent bigrams with count >= 3. A doc's hit is the MINIMUM over its windows. Set thr = 0.6 * (5th percentile of the leave-one-out min-window hit over the target docs). Docs with hit < thr go to `rest`, used only if the surviving set is below 0.25 T.\n\n3. Unigram score. Keep the same LLR word weights, built from the same first-4000-char counts as now. A doc's score is the mean word weight over the words of all its windows pooled. Apply the existing junk checks (type/token ratio, alphabetic fraction) to the pooled windows too.\n\n4. Ordering. Greedy fill by score to 1.08 T as now. Split the chosen list into the docs that fill the first 1.00 T of estimated tokens (best scores) and the marginal remainder. Apply the seeded shuffle to the first part only, then append the marginal part, itself shuffled, at the end.\n\nLeave exact dedup, LAMBDA and MAX_W unchanged. Add no near-duplicate removal, no repeats and no curriculum.",
+   "outcome": "dev 1.9439 against 1.9328 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Implement the word-order filter from experiment 3 (bigram hit counter with leave-one-out calibration) as a standalone feature. Specifically: 1. Tokenize all texts (pool and target) using [a-z]+|[0-9]+|[^\\sa-z0-9]. 2. Build a bigram Counter for the 200 target docs and a 4000-doc pool sample. 3. For each pool doc, calculate 'hit' (fraction of bigrams with count >= 3). 4. Calibrate 'thr' as 0.6 * (5th percentile of leave-one-out bigram hit over target docs). 5. Move docs with hit < thr to a 'rest' list (only used if surviving set < 0.3T). 6. Keep all other components (unigram LLR, junk checks, 1.08T budget, seeded shuffle) from the current best.",
+   "outcome": "dev 1.9286 against 1.9328 for the best at the time, rejected"
+  }
+ ],
+ "usd": 2.8541939999999997,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.18141169999999995,
+   "dev": 1.932759505043184,
+   "inc": 1.9528897989540728,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.770478104994319,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.11449789999999999,
+   "dev": 1.9357856688929735,
+   "inc": 1.932759505043184,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.770478104994319,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.42073160000000004,
+   "dev": 1.9282539560844862,
+   "inc": 1.932759505043184,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.770478104994319,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.3663875999999999,
+   "dev": 1.9353340432793882,
+   "inc": 1.932759505043184,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.770478104994319,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002023499999999956,
+   "dev": 1.944964825352034,
+   "inc": 1.932759505043184,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.770478104994319,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.40915560000000006,
+   "dev": 1.9422244461307276,
+   "inc": 1.932759505043184,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.770478104994319,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002279549999999908,
+   "dev": 1.9370831535725932,
+   "inc": 1.932759505043184,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.770478104994319,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.1824648000000002,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 1,
+   "n_accept": 1,
+   "gain_sd": 2.770478104994319,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.17371994999999996,
+   "dev": 1.9360151027396832,
+   "inc": 1.932759505043184,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.770478104994319,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.22984154999999995,
+   "dev": 1.9293729393547683,
+   "inc": 1.932759505043184,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.770478104994319,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.5187156000000002,
+   "dev": 1.94387476811157,
+   "inc": 1.932759505043184,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.770478104994319,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.25296464999999957,
+   "dev": 1.9285852970954576,
+   "inc": 1.932759505043184,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9528897989540728,
+ "inc_slot": 1
+}

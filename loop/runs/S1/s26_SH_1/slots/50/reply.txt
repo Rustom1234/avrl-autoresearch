@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+    for _k in range(100000):
+        if time.time() - t0 > 200.0 and best is not None:
+            break
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+        r0 = np.full(_N, 0.05)
+        x, y = _optimize(x0, y0, r0)
+        r = _lp_radii(x, y)
+        if r is None:
+            continue
+        s = float(np.sum(r))
+        if best is None or s > best[0]:
+            centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            best = (s, centers, r)
+=======
+def _run_stages(z, caps, maxiter):
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    for cap in caps:
+        bnds = [(None, None)] * (2 * _N) + [(0.0, cap)] * _N
+        try:
+            res = minimize(_obj, z, jac=_obj_grad, constraints=cons,
+                           bounds=bnds, method="SLSQP",
+                           options={"maxiter": maxiter, "ftol": 1e-12})
+            if np.all(np.isfinite(res.x)):
+                z = res.x
+        except Exception:
+            pass
+    return z
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+    while best is None or time.time() - t0 < 200.0:
+        batch = []
+        for _b in range(50):
+            P = rng.uniform(0.05, 0.95, size=(_N, 2))
+            z0 = np.concatenate([P[:, 0], P[:, 1], np.full(_N, 0.05)])
+            z1 = _run_stages(z0, (0.08,), 60)
+            r1 = _lp_radii(z1[:_N], z1[_N:2 * _N])
+            if r1 is None:
+                continue
+            batch.append((float(np.sum(r1)), z1))
+            if time.time() - t0 > 200.0 and best is not None:
+                break
+        batch.sort(key=lambda t: -t[0])
+        for _s1, z1 in batch[:10]:
+            z = _run_stages(z1, (0.10, 0.12, None), 300)
+            x = z[:_N]
+            y = z[_N:2 * _N]
+            r = _lp_radii(x, y)
+            if r is None:
+                continue
+            s = float(np.sum(r))
+            if best is None or s > best[0]:
+                centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+                best = (s, centers, r)
+>>>>>>> REPLACE
+-----

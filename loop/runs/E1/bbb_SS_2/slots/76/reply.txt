@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    n = len(p_rf)
+    return (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn)) / (3 * n)
+=======
+    n = len(p_rf)
+    blend = (rankdata(p_rf) + rankdata(p_mlp) + rankdata(p_knn)) / (3 * n)
+    k = max(1, int(0.125 * n))
+    order = np.argsort(blend)
+    idx = np.concatenate([order[:k], order[-k:]])
+    yp = np.concatenate([np.zeros(k, dtype=np.int64), np.ones(k, dtype=np.int64)])
+    Qaug = np.vstack([Qtr, Qte[idx]])
+    yaug = np.concatenate([y, yp])
+    p_mlp2 = np.zeros(len(Xte))
+    for i in range(3):
+        mlp = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True,
+                            random_state=seed + 100 + i, max_iter=200)
+        mlp.fit(Qaug, yaug)
+        p_mlp2 += mlp.predict_proba(Qte)[:, 1] / 3
+    return (rankdata(p_rf) + rankdata(p_mlp2) + rankdata(p_knn)) / (3 * n)
+>>>>>>> REPLACE
+-----

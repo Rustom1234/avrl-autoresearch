@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _fresh_centres(n, rng):
+    kind = rng.integers(3)
+    if kind == 0:
+        return rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    if kind == 1:
+        chosen, cand, m = rng.uniform(INIT_LOW, 1 - INIT_LOW, (1, 2)), rng.uniform(INIT_LOW, 1 - INIT_LOW, (400, 2)), n - 1
+    else:
+        pos = (np.arange(3) + 0.5) / 3
+        ring = []
+        for w in range(4):
+            along = np.clip(pos + rng.normal(0, 0.03, 3), 0.01, 0.99)
+            d = rng.uniform(0.03, 0.12, 3)
+            if w == 0:
+                p = np.stack([along, d], 1)
+            elif w == 1:
+                p = np.stack([along, 1 - d], 1)
+            elif w == 2:
+                p = np.stack([d, along], 1)
+            else:
+                p = np.stack([1 - d, along], 1)
+            ring.append(p)
+        chosen = np.vstack(ring)
+        cand, m = rng.uniform(0.2, 0.8, (400, 2)), n - 12
+    for _ in range(m):
+        dmin = np.linalg.norm(cand[:, None] - chosen[None], axis=2).min(1)
+        chosen = np.vstack([chosen, cand[np.argmax(dmin)]])
+    return chosen
+
+
+def _solve_once(n, rng, start=None):
+    centres = _fresh_centres(n, rng) if start is None else rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    x0 = np.concatenate([centres.ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+-----

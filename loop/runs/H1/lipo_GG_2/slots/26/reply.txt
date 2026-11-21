@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+    fp = gen.GetFingerprintAsNumPy(mol)
+        # Add 4 descriptors: MolWt, LogP (RDKit estimate), NumDonors, NumAcceptors
+        descriptors = np.array([ 
+            Descriptors.MolWt(mol),
+            Descriptors.MolLogP(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol)
+        ], dtype=np.float32)
+        features.append(np.concatenate([fp, descriptors]))
+    return np.array(features, dtype=np.float32)
+=======
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Identify indices of non-zero bits
+        indices = np.where(fp > 0)[0]
+        fp_reduced = fp[indices]
+        
+        # Add 4 descriptors: MolWt, LogP (RDKit estimate), NumDonors, NumAcceptors
+        descriptors = np.array([ 
+            Descriptors.MolWt(mol),
+            Descriptors.MolLogP(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol)
+        ], dtype=np.float32)
+        features.append(np.concatenate([fp_reduced, descriptors]))
+    return np.array(features, dtype=np.float32)
+-----
+<<<<<<< SEARCH
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add 4 descriptors: MolWt, LogP (RDKit estimate), NumDonors, NumAcceptors
+        descriptors = np.array([ 
+            Descriptors.MolWt(mol),
+            Descriptors.MolLogP(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol)
+        ], dtype=np.float32)
+        features.append(np.concatenate([fp, descriptors]))
+    return np.array(features, dtype=np.float32)
+=======
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Keep only bits that are non-zero for this specific molecule to reduce noise
+        fp_active = fp[fp > 0]
+        # Add 4 descriptors: MolWt, LogP (RDKit estimate), NumDonors, NumAcceptors
+        descriptors = np.array([ 
+            Descriptors.MolWt(mol),
+            Descriptors.MolLogP(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol)
+        ], dtype=np.float32)
+        features.append(np.concatenate([fp_active, descriptors]))
+    return np.array(features, dtype=np.float32)
+-----

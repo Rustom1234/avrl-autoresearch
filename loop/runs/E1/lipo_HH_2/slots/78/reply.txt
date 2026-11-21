@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def base_predict(Xtr, ytr, Xte, seed):
+=======
+def drop_rare(Xtr, Xte, min_count=3):
+    # keep SMARTS columns always; drop fingerprint columns nonzero in fewer than min_count training rows
+    nz = (Xtr != 0).sum(0)
+    keep = np.ones(Xtr.shape[1], dtype=bool)
+    fp = np.r_[0:N_BITS, N_BITS + len(SMARTS_PATS):Xtr.shape[1]]
+    keep[fp] = nz[fp] >= min_count
+    nm = int(keep[:N_BITS].sum())  # kept Morgan columns are the first nm columns
+    return Xtr[:, keep], Xte[:, keep], nm
+
+
+def base_predict(Xtr, ytr, Xte, seed, nm):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr.fit(tanimoto(Xtr[:, :N_BITS], Xtr[:, :N_BITS]), ytr)
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS]))])
+=======
+    svr.fit(tanimoto(Xtr[:, :nm], Xtr[:, :nm]), ytr)
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :nm], Xtr[:, :nm]))])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xte = featurize(test_smiles)
+=======
+    Xte = featurize(test_smiles)
+    X, Xte, nm = drop_rare(X, Xte)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed)
+=======
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed, nm)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return meta.predict(base_predict(X, y, Xte, seed)) + a + b * Lte
+=======
+    return meta.predict(base_predict(X, y, Xte, seed, nm)) + a + b * Lte
+>>>>>>> REPLACE
+-----

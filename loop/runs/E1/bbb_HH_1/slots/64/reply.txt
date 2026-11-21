@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    gb_ranks = []
+    idx = 0
+    for mcs in (10, 40):
+        for cs in (0.1, 0.3):
+            gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=cs,
+                                min_child_samples=mcs, random_state=seed + idx, n_jobs=8, verbose=-1)
+            gb.fit(X_train, y)
+            gb_ranks.append(scaled_rank(gb.predict_proba(X_test)[:, 1]))
+            idx += 1
+    gb_score = scaled_rank(np.mean(gb_ranks, axis=0))
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + gb_score)
+>>>>>>> REPLACE
+-----

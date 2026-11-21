@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_warm(n, rng):
+    c, r = _solve_once(n - 2, rng)
+    c, r = np.clip(c, 0, 1), np.maximum(r, 0)
+    for _ in range(2):
+        p = rng.uniform(0, 1, (2000, 2))
+        gap = np.sqrt(((p[:, None] - c[None]) ** 2).sum(-1)) - r[None]
+        s = np.minimum(gap.min(1), np.minimum(p, 1 - p).min(1))
+        c, r = np.vstack([c, p[np.argmax(s)]]), np.append(r, 0.02)
+    return _solve_once(n, rng, warm=(c, r))
+
+
+def _solve_once(n, rng, start=None, warm=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+=======
+    if warm is not None:
+        x0 = np.concatenate([warm[0].ravel(), warm[1]])
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        else:
+            c, r = _solve_once(n, rng)
+=======
+        elif rng.random() < 0.4:
+            c, r = _solve_warm(n, rng)
+        else:
+            c, r = _solve_once(n, rng)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+from lightgbm import LGBMClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.svm import SVC
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(1000, len(y)), random_state=seed)
+    Q_train = qt.fit_transform(np.clip(D_train, lo, hi))
+    Q_test = qt.transform(np.clip(D_test, lo, hi))
+    svc = SVC(kernel='rbf', C=1.0, gamma='scale', probability=True, random_state=seed)
+    svc.fit(Q_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(svc.predict_proba(Q_test)[:, 1]))
+>>>>>>> REPLACE
+-----

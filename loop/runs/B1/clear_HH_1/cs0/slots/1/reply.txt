@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def get_mol(s):
+    m = Chem.MolFromSmiles(s)
+    frags = Chem.rdmolops.GetMolFrags(m, asMols=True)
+    if len(frags) > 1:
+        m = max(frags, key=lambda f: f.GetNumHeavyAtoms())
+    return m
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(get_mol(s)) for s in smiles], dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        m = Chem.MolFromSmiles(s)
+        rows.append
+=======
+        m = get_mol(s)
+        rows.append
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def get_mol(s):
+    m = Chem.MolFromSmiles(s)
+    frags = Chem.rdmolops.GetMolFrags(m, asMols=True)
+    if len(frags) > 1:
+        m = max(frags, key=lambda f: f.GetNumHeavyAtoms())
+    return m
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(get_mol(s)) for s in smiles], dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([f(m) for _, f in Descriptors.descList])
+=======
+    for s in smiles:
+        m = get_mol(s)
+        rows.append([f(m) for _, f in Descriptors.descList])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "No attempt to get around the measurement: no file or network access, no pasted coordinates, and all randomness comes from the seed via the rng.",
+  "No bug that makes the result meaningless. The polished packing is clipped and passed through _repair before it is compared with best. Any SLSQP failure falls back to the restart result. raw keeps the unrepaired radii correctly because _repair gets r.copy().",
+  "Recomputed z = 0: the candidate scored -2.9375 over 1 run and the incumbent -2.9375 over 1 run, so the difference is 0. This matches the reported z = 0.000. With one run on each side and a noise sd of about 0.0034, the test has almost no power, so reject is the right call.",
+  "Timing risk (not a veto): restarts now run until 0.85*time_limit = 25.5 s instead of TIME_FRACTION. After that, a final SLSQP polish runs with up to 500 iterations on 656 constraints and 96 variables, and the last restart can also run past 25.5 s. This probably stays under 45 s, but it is not bounded. The fixed 0.85 also bypasses the TIME_FRACTION constant.",
+  "Both scores (2.9375) are above the best published value (about 2.9370). This is within noise and the incumbent has the same score, so it doesn't point to anything new in this diff. Still, the repair step's validity margin should get a periodic check.",
+  "Complexity: about 40 added lines (an analytic Jacobian) with no measured gain. That goes against the card's 'simpler is better' rule unless more replicates show an improvement."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0
+ }
+}

@@ -1,0 +1,79 @@
+<<<<<<< SEARCH
+def _lattice_start(rng, amp):
+=======
+def _gravity_start(rng, iters=800, kpull=0.1):
+    # Adam on the same softplus energy, plus a weak pull of every centre toward (0.5, 0.5)
+    # whose strength decays linearly to zero over the pass.
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    c0 = rng.uniform(0.05, 0.95, (n, 2))
+    z = np.concatenate([c0[:, 0], c0[:, 1], _lp_radii(c0)])
+    m = np.zeros_like(z)
+    v = np.zeros_like(z)
+    b1, b2, eps = 0.9, 0.999, 1e-8
+    for t in range(1, iters + 1):
+        frac = (t - 1) / max(iters - 1, 1)
+        beta = 20.0 * (2000.0 / 20.0) ** frac
+        lr = 0.01 * (1e-4 / 0.01) ** frac
+        kp = kpull * (1.0 - frac)
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        dist = np.sqrt(dx * dx + dy * dy) + 1e-12
+        ux = dx / dist
+        uy = dy / dist
+        gp = _sig(beta * (r[I] + r[J] - dist))
+        gx = np.zeros(n)
+        gy = np.zeros(n)
+        gr = np.zeros(n)
+        np.add.at(gr, I, gp)
+        np.add.at(gr, J, gp)
+        np.add.at(gx, I, -gp * ux)
+        np.add.at(gx, J, gp * ux)
+        np.add.at(gy, I, -gp * uy)
+        np.add.at(gy, J, gp * uy)
+        gl = _sig(beta * (r - x))
+        gx -= gl
+        gr += gl
+        gR = _sig(beta * (r + x - 1.0))
+        gx += gR
+        gr += gR
+        gB = _sig(beta * (r - y))
+        gy -= gB
+        gr += gB
+        gT = _sig(beta * (r + y - 1.0))
+        gy += gT
+        gr += gT
+        gr -= 1.0
+        # gravity: gradient of (kp/2)*|c - (0.5,0.5)|^2
+        gx += kp * (x - 0.5)
+        gy += kp * (y - 0.5)
+        g = np.concatenate([gx, gy, gr])
+        m = b1 * m + (1.0 - b1) * g
+        v = b2 * v + (1.0 - b2) * g * g
+        mh = m / (1.0 - b1 ** t)
+        vh = v / (1.0 - b2 ** t)
+        z = z - lr * mh / (np.sqrt(vh) + eps)
+        z[:2 * n] = np.clip(z[:2 * n], 0.0, 1.0)
+        z[2 * n:] = np.clip(z[2 * n:], 0.0, 0.5)
+    return np.clip(np.stack([z[:n], z[n:2 * n]], axis=1), 0.0, 1.0)
+
+
+def _lattice_start(rng, amp):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        start = None
+        if k > 0:
+            amp = 0.01 + 0.09 * ((k - 1) % 4) / 3.0
+            start = _lattice_start(np.random.default_rng(999 + k), amp)
+=======
+        start = None
+        if k > 0 and k % 3 == 2:
+            start = _gravity_start(np.random.default_rng(999 + k))
+        elif k > 0:
+            amp = 0.01 + 0.09 * ((k - 1) % 4) / 3.0
+            start = _lattice_start(np.random.default_rng(999 + k), amp)
+>>>>>>> REPLACE
+-----

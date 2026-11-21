@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _reshuffle(c, r, rng):
+    n = len(r)
+    c, r = c.copy(), r.copy()
+    p = rng.uniform(0, 1, 2)
+    m = ((c - p) ** 2).sum(1) < 0.25 ** 2
+    k = int(m.sum())
+    if k:
+        ang, rad = rng.uniform(0, 2 * np.pi, k), 0.25 * np.sqrt(rng.uniform(0, 1, k))
+        c[m] = np.clip(p + rad[:, None] * np.stack([np.cos(ang), np.sin(ang)], 1), 0.03, 0.97)
+        r[m] = 0.03
+    i, j = np.triu_indices(n, 1)
+
+    def f(x):
+        q = x.reshape(n, 2)
+        d = q[i] - q[j]
+        dist = np.sqrt((d ** 2).sum(1)) + 1e-12
+        ov = np.maximum(r[i] + r[j] - dist, 0)
+        lo, hi = np.maximum(r[:, None] - q, 0), np.maximum(q + r[:, None] - 1, 0)
+        g = np.zeros((n, 2))
+        w = (-2 * ov / dist)[:, None] * d
+        np.add.at(g, i, w)
+        np.add.at(g, j, -w)
+        g += -2 * lo + 2 * hi
+        return (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum(), g.ravel()
+
+    res = minimize(f, c.ravel(), jac=True, method="L-BFGS-B", options={"maxiter": 100})
+    return np.concatenate([np.clip(res.x, 0, 1), r])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        if pool and time.process_time() - t0 > 0.6 * TIME_FRACTION * time_limit:
+            x0 = _reshuffle(pool[0][0], pool[0][1], rng)
+        else:
+            x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+>>>>>>> REPLACE
+-----

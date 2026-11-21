@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+        final_orthogonalized_grads = _zeropower_via_newtonschulz5(
+            nesterov_grads,
+            filter_meta_for_current_step,
+            self.max_D,
+            self.max_K,
+            self.step_count,
+            self.total_train_steps,
+        )
+=======
+        final_orthogonalized_grads = _zeropower_via_newtonschulz5(
+            nesterov_grads,
+            filter_meta_for_current_step,
+            self.max_D,
+            self.max_K,
+            self.step_count,
+            self.total_train_steps,
+        )
+        # NorMuon-style row normalisation: equalise step size across output channels
+        normed_grads = []
+        for p, u in zip(filter_params_with_grad, final_orthogonalized_grads):
+            state = self.state[p]
+            u2 = u.reshape(p.shape[0], -1).float()
+            row_sq = u2.pow(2).sum(dim=1)
+            if "row_ema" not in state:
+                state["row_ema"] = torch.zeros_like(row_sq)
+            state["row_ema"].mul_(0.95).add_(row_sq, alpha=0.05)
+            v = u2 / (state["row_ema"].sqrt() + 1e-8).unsqueeze(1)
+            v = v * (u2.norm() / v.norm())
+            normed_grads.append(v.to(u.dtype).view(p.shape))
+        final_orthogonalized_grads = normed_grads
+>>>>>>> REPLACE
+-----

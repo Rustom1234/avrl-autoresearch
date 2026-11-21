@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+=======
+        else:              # local kick: one of three small moves, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            move = rng.integers(3)
+            if move == 0:  # re-randomise the centres in a small disc
+                p, R = rng.uniform(0, 1, 2), rng.uniform(0.1, 0.25)
+                m = np.hypot(*(c - p).T) < R
+                k = m.sum()
+                ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+                c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+                r[m] = 0
+            elif move == 1:  # move the smallest circle to the largest hole among 2000 samples
+                i = np.argmin(r)
+                others = np.delete(c, i, axis=0)
+                S = rng.uniform(0, 1, (2000, 2))
+                gap = np.sqrt(((S[:, None] - others[None]) ** 2).sum(-1)).min(1)
+                c[i] = S[np.argmax(gap)]
+                r[i] = 0
+            else:          # swap the centres of two circles
+                i, j = rng.choice(n, 2, replace=False)
+                c[[i, j]] = c[[j, i]]
+                r[[i, j]] = 0
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 10 in (0, 4, 8):
+            ne = int(rng.integers(6, 11))
+            ni = n - 4 - ne
+            pts = [[0.12, 0.12], [0.88, 0.12], [0.12, 0.88], [0.88, 0.88]]
+            for _ in range(ne):
+                side = int(rng.integers(4))
+                t = rng.uniform(0.25, 0.75)
+                pts.append([[t, 0.10], [t, 0.90], [0.10, t], [0.90, t]][side])
+            hexp = []
+            for kk in range(5):
+                for jj in range(5):
+                    hx = 0.2 + 0.15 * jj + (0.075 if kk % 2 else 0.0)
+                    hy = 0.2 + 0.15 * kk
+                    if hx <= 0.82:
+                        hexp.append([hx, hy])
+            hexp = np.array(hexp) + rng.normal(0, 0.02, (len(hexp), 2))
+            hexp = hexp[rng.permutation(len(hexp))][:ni].tolist()
+            while len(hexp) < ni:
+                hexp.append(list(rng.uniform(0.2, 0.8, 2)))
+            c0 = np.clip(np.array(pts + hexp) + rng.normal(0, 0.01, (n, 2)), 0.03, 0.97)
+            r0 = np.array([0.12] * 4 + [0.10] * ne + [0.09] * ni)
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+>>>>>>> REPLACE
+-----

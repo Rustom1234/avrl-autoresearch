@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _lloyd(c, rng, iters=4):
+    """Weighted Lloyd relaxation of the centres on a 60 x 60 grid, with a small random step per iteration."""
+    g = (np.arange(60) + 0.5) / 60
+    gx, gy = np.meshgrid(g, g)
+    p = np.stack([gx.ravel(), gy.ravel()], 1)
+    for _ in range(iters):
+        lab = np.argmin(((p[:, None] - c[None]) ** 2).sum(-1), 1)
+        cnt = np.bincount(lab, minlength=len(c))
+        s = np.stack([np.bincount(lab, p[:, k], minlength=len(c)) for k in range(2)], 1)
+        m = cnt > 0
+        c = c.copy()
+        c[m] = s[m] / cnt[m, None]
+        c = np.clip(c + rng.normal(0, 0.01, c.shape), 0, 1)
+    return c
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c0 = np.clip(cur[0] + rng.normal(0, 0.05, (n, 2)), 0, 1)
+=======
+            c0 = _lloyd(cur[0], rng)
+>>>>>>> REPLACE
+-----

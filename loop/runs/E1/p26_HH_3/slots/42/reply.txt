@@ -1,0 +1,75 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+RESTART_FRACTION = 0.3
+=======
+RESTART_FRACTION = 0.3
+LP_DELTA0 = 0.01
+LP_MAX_DELTA = 0.1
+LP_MIN_DELTA = 1e-7
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _lp_polish(c, r, deadline):
+    """Sequential LP with a trust region: linearised pair and wall constraints, maximise the sum of radii."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+    m = len(iu[0])
+    k, i = np.arange(m), np.arange(n)
+    delta = LP_DELTA0
+    cost = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+    while delta > LP_MIN_DELTA and time.process_time() < deadline:
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.maximum(np.sqrt((diff ** 2).sum(1)), 1e-12)
+        g = diff / d[:, None]
+        A = np.zeros((m + 4 * n, 3 * n))
+        b = np.zeros(m + 4 * n)
+        # pair rows: d_ij + g.(dc_i - dc_j) - (r_i + dr_i + r_j + dr_j) >= 0
+        A[k, 2 * iu[0]] = -g[:, 0]
+        A[k, 2 * iu[0] + 1] = -g[:, 1]
+        A[k, 2 * iu[1]] = g[:, 0]
+        A[k, 2 * iu[1] + 1] = g[:, 1]
+        A[k, 2 * n + iu[0]] = 1
+        A[k, 2 * n + iu[1]] = 1
+        b[:m] = d - r[iu[0]] - r[iu[1]]
+        # wall rows: x - r >= 0, y - r >= 0, 1 - x - r >= 0, 1 - y - r >= 0
+        A[m + i, 2 * i] = -1
+        A[m + i, 2 * n + i] = 1
+        b[m:m + n] = c[:, 0] - r
+        A[m + n + i, 2 * i + 1] = -1
+        A[m + n + i, 2 * n + i] = 1
+        b[m + n:m + 2 * n] = c[:, 1] - r
+        A[m + 2 * n + i, 2 * i] = 1
+        A[m + 2 * n + i, 2 * n + i] = 1
+        b[m + 2 * n:m + 3 * n] = 1 - c[:, 0] - r
+        A[m + 3 * n + i, 2 * i + 1] = 1
+        A[m + 3 * n + i, 2 * n + i] = 1
+        b[m + 3 * n:] = 1 - c[:, 1] - r
+        lb = np.concatenate([np.full(2 * n, -delta), np.maximum(-delta, -r)])
+        ub = np.full(3 * n, delta)
+        res = linprog(cost, A_ub=A, b_ub=b, bounds=np.column_stack([lb, ub]), method="highs")
+        if res.status != 0:
+            delta *= 0.5
+            continue
+        c_new = c + res.x[:2 * n].reshape(n, 2)
+        r_new = r + res.x[2 * n:]
+        if r_new.sum() - r.sum() > 1e-12:   # linearised pair constraints are lower bounds (d is convex), so the step stays valid
+            c, r = c_new, r_new
+            delta = min(1.5 * delta, LP_MAX_DELTA)
+        else:
+            delta *= 0.5
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+=======
+        c2, r2 = _lp_polish(c2, r2, t0 + budget)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+JITTER_START = 0.05
+JITTER_END = 0.002
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:
+        if best is None:
+            x0 = None   # first run: random start
+        else:           # basin hopping: jitter the incumbent, sd decays geometrically with elapsed budget
+            frac = (time.process_time() - t0) / budget
+            sigma = JITTER_START * (JITTER_END / JITTER_START) ** frac
+            c0 = best[0] + rng.normal(0, sigma, best[0].shape)
+            x0 = np.concatenate([c0.ravel(), best[1]])
+        c, r = _solve_once(n, rng, x0)
+        c = np.clip(c, 0, 1)
+>>>>>>> REPLACE
+-----

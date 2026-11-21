@@ -1,0 +1,74 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    c, r = best
+    gx = (np.arange(60) + 0.5) / 60
+    G = np.stack(np.meshgrid(gx, gx), -1).reshape(-1, 2)
+    I, J = _IU
+
+    def chash(cc, rr):
+        d = np.sqrt(((cc[I] - cc[J]) ** 2).sum(1)) - rr[I] - rr[J]
+        cnt = np.zeros(_N, int)
+        for k in np.where(d < 1e-7)[0]:
+            cnt[I[k]] += 1
+            cnt[J[k]] += 1
+        cnt += (cc[:, 0] - rr < 1e-7).astype(int) + (1 - cc[:, 0] - rr < 1e-7) + \
+            (cc[:, 1] - rr < 1e-7) + (1 - cc[:, 1] - rr < 1e-7)
+        return hash(tuple(sorted(cnt.tolist())))
+
+    visited = {chash(c, r)}
+    cur_c, cur_r = c, r
+    rng2 = np.random.default_rng(7)
+    while time.time() - t0 < 170:
+        try:
+            k = int(rng2.integers(2, 5))
+            rem = rng2.permutation(_N)[:k]
+            keep = np.setdiff1d(np.arange(_N), rem)
+            cc = cur_c.copy()
+            rr = cur_r.copy()
+            for q in rem:
+                m = np.ones(_N, bool)
+                m[rem[rem >= 0]] = False
+                m[q] = False
+                for q2 in rem:
+                    pass
+                ptsC = cc[keep]
+                ptsR = rr[keep]
+                for q2 in rem:
+                    if q2 in placed if False else False:
+                        pass
+                break
+            placed_c = list(cur_c[keep])
+            placed_r = list(cur_r[keep])
+            for q in rem:
+                P = np.array(placed_c)
+                R = np.array(placed_r)
+                dm = np.sqrt(((G[:, None, :] - P[None]) ** 2).sum(2)) - R[None]
+                cl = np.minimum(dm.min(1), np.minimum(np.minimum(G[:, 0], G[:, 1]),
+                                np.minimum(1 - G[:, 0], 1 - G[:, 1])))
+                top = np.argsort(-cl)[:5]
+                p = G[top[rng2.integers(len(top))]] + rng2.normal(0, 0.005, 2)
+                placed_c.append(np.clip(p, 0.02, 0.98))
+                placed_r.append(max(cl[top[0]] * 0.5, 0.01))
+            cc = np.array(placed_c)
+            c2 = _polish(cc, np.array(placed_r))
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+            h = chash(c2, r2)
+            if h in visited:
+                continue
+            visited.add(h)
+            if r2.sum() > cur_r.sum():
+                cur_c, cur_r = c2, r2
+        except Exception:
+            continue
+    c, r = cur_c, cur_r
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

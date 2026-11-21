@@ -1,0 +1,76 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints Wings="type": "ineq", "fun": cons},
+                   optionsWings={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c = res.x[:2 * n].reshape(n, 2)
+    r = res.x[2 * n:]
+
+    # Small perturbation local search
+    for _ in range(100):
+        improved = False
+        idx = np.random.randint(0, n)
+        for dx, dy in [(-0.002, 0), (0.002, 0), (0, -0.002), (0, 0.002), 
+                        (-0.001, -0.001), (-0.001, 0.001), (0.001, -0.001), (0.001, 0.001)]:
+            nc = c[idx] + [dx, dy]
+            nr = r[idx] + 0.0005
+            
+            # Check boundaries
+            if not (nr <= nc[0] and nr <= 1 - nc[0] and nr <= nc[1] and nr <= 1 - nc[1]):
+                continue
+            
+            # Check overlaps
+            dist_sq = np.sum((c - nc)**2, axis=1)
+            min_dist = r + nr
+            # The current circle's distance to others must be >= r + nr
+            # We must exclude the current index
+            mask = np.arange(n) != idx
+            if np.all(dist_sq[mask] >= (r[mask] + nr)**2 - 1e-12):
+                c[idx] = nc
+                r[idx] = nr
+                improved = True
+                break
+        if not improved: break
+
+    return c, r
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c = res.x[:2 * n].reshape(n, 2)
+    r = res.x[2 * n:]
+
+    # Small perturbation local search
+    for _ in range(100):
+        idx = rng.randint(0, n)
+        found_better = False
+        for dx, dy in [(-0.002, 0), (0.002, 0), (0, -0.002), (0, 0.002), 
+                        (-0.001, -0.001), (-0.001, 0.001), (0.001, -0.001), (0.001, 0.001)]:
+            nc = c[idx] + [dx, dy]
+            nr = r[idx] + 0.0005
+            
+            # Check boundaries
+            if not (nr <= nc[0] and nr <= 1 - nc[0] and nr <= nc[1] and nr <= 1 - nc[1]):
+                continue
+            
+            # Check overlaps
+            dist_sq = np.sum((c - nc)**2, axis=1)
+            # Only check indices that are not the current circle
+            mask = np.arange(n) != idx
+            if np.all(dist_sq[mask] >= (r[mask] + nr)**2 - 1e-12):
+                c[idx] = nc
+                r[idx] = nr
+                found_better = True
+                break
+        if not found_better: break
+
+    return c, r
+>>>>>>> REPLACE
+-----

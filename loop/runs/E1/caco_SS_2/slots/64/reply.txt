@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from rdkit.Chem import Lipinski, rdMolDescriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+
+_CHOOSER = rdMolStandardize.LargestFragmentChooser()
+_PATTS = [Chem.MolFromSmarts(p) for p in (
+    'C(=O)[OX2H1,OX1-]',
+    '[NX3;H2,H1,H0;!$(NC=[O,S,N]);!$(N-a);!$(N-S(=O)=O)]',
+    'C(=O)[NX3]')]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64))
+=======
+        m = Chem.MolFromSmiles(s)
+        m = _CHOOSER.choose(m)
+        d = [f(m) for _, f in Descriptors.descList]
+        mw = Descriptors.MolWt(m)
+        nb = max(1, m.GetNumBonds())
+        d += [Lipinski.NumHDonors(m), Lipinski.NumHAcceptors(m),
+              rdMolDescriptors.CalcTPSA(m) / max(mw, 1.0),
+              rdMolDescriptors.CalcNumRotatableBonds(m) / nb]
+        d += [len(m.GetSubstructMatches(p)) for p in _PATTS]
+        rows.append(np.array(d, dtype=np.float64))
+>>>>>>> REPLACE
+-----

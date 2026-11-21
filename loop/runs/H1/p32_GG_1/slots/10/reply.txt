@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=========
+    for k in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        # Use a slightly more aggressive shrink factor that improves as k increases
+        # This helps settle the circles into more optimal local positions
+        s = d[i, j] / (r[i] + r[j])
+        r[i] *= s
+        r[j] *= s
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----

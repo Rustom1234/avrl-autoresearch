@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def lp_radii(c):
+=======
+def radial_init(rng):
+    """Best-candidate sampling: min spacing ~0.22 near centre, ~0.14 near border."""
+    def spacing(p):
+        rho = np.minimum(np.linalg.norm(p - 0.5, axis=-1) / 0.5, 1.0)
+        return 0.22 - 0.08 * rho
+    pts = [rng.uniform(0.05, 0.95, 2)]
+    for _ in range(25):
+        P = np.array(pts)
+        S = spacing(P)
+        cand = rng.uniform(0.05, 0.95, (60, 2))
+        sc = spacing(cand)
+        d = np.linalg.norm(cand[:, None, :] - P[None, :, :], axis=2)
+        ratio = d / (0.5 * (sc[:, None] + S[None, :]))
+        score = ratio.min(axis=1)
+        pts.append(cand[int(np.argmax(score))])
+    pts = np.array(pts) + rng.normal(0.0, 0.01, (26, 2))
+    return np.clip(pts, 0.05, 0.95)
+
+
+def lp_radii(c):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = hex_jitter(rng)
+=======
+        c0 = radial_init(rng) if start % 2 == 0 else hex_jitter(rng)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+        w = cur_v.copy()
+        k = rng.integers(1, 5)
+        idx = rng.choice(n, k, replace=False)
+        w[idx] += rng.normal(0, 0.05, k)
+        w[n + idx] += rng.normal(0, 0.05, k)
+=======
+        w = cur_v.copy()
+        if rng.random() < 0.5:
+            sl = cons(cur_v)[:m]
+            cl = np.where(sl < 1e-6)[0]
+            if len(cl) == 0:
+                continue
+            e = rng.choice(cl)
+            a, b = I[e], J[e]
+            dvec = np.array([w[a] - w[b], w[n + a] - w[n + b]])
+            dn = np.linalg.norm(dvec) + 1e-12
+            dvec /= dn
+            w[a] += 0.01 * dvec[0]; w[n + a] += 0.01 * dvec[1]
+            w[b] -= 0.01 * dvec[0]; w[n + b] -= 0.01 * dvec[1]
+            nb = [q for q in range(n) if q not in (a, b) and (
+                (cons(cur_v)[:m][np.where(((I == a) & (J == q)) | ((I == q) & (J == a)) | ((I == b) & (J == q)) | ((I == q) & (J == b)))[0]] < 1e-6).any())]
+            q = rng.choice(nb) if nb else rng.integers(n)
+            cand = rng.uniform(0.05, 0.95, (200, 2))
+            px = np.delete(cur_v[:n], q); py = np.delete(cur_v[n:2 * n], q)
+            dd = np.sqrt((cand[:, None, 0] - px[None]) ** 2 + (cand[:, None, 1] - py[None]) ** 2)
+            best_c = cand[np.argmax(dd.min(1))]
+            w[q] = best_c[0]; w[n + q] = best_c[1]
+        else:
+            k = rng.integers(1, 5)
+            idx = rng.choice(n, k, replace=False)
+            w[idx] += rng.normal(0, 0.05, k)
+            w[n + idx] += rng.normal(0, 0.05, k)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+            # Specific functional groups
+            amines = sum(1 for match in mol.GetSubstructMatches('[NX3;H2,H1,H0;!$(NC=O);!$(N-a);!$(N-S(=O)=O)]') for _ in [1])
+            acids = sum(1 for match in mol.GetSubstructMatches('[C;H1,H2,H3;(=O)[O,OH])') for _ in [1])
+            quat_n = sum(1 for match in mol.GetSubstructMatches('[NX3;H0;!$(NC=O);!$(N-a);!$(N-S(=O)=O)]') for _ in [1])
+            
+            sp3_c = sum(1 for a in atoms if a.GetSymbol() == 'C' and a.GetHybridization() == rdkit.Chem.rdMolDescriptors.RDmolDescriptors.SP3) or 0
+            
+            desc = np.array([*heavy_counts, aromatic_count, aliphatic_count, hbd, hba, amines, acids, quat_n, sp3_c], dtype=np.float32)
+=======
+            # Specific functional groups
+            def get_matches(smarts):
+                q = Chem.MolFromSmarts(smarts)
+                return sum(1 for _ in mol.GetSubstructMatches(q) for _ in [1])
+
+            amines = get_matches('[NX3;H2,H1,H0;!$(NC=O);!$(N-a);!$(N-S(=O)=O)]')
+            acids = get_matches('[C;H1,H2,H3;(=O)[O,OH]')
+            quat_n = get_matches('[NX3;H0;!$(NC=O);!$(N-a);!$(N-S(=O)=O)]')
+            
+            sp3_c = sum(1 for a in atoms if a.GetSymbol() == 'C' and a.GetHybridization() == rdkit.Chem.rdMolDescriptors.RDmolDescriptors.SP3) or 0
+            
+            desc = np.array([*heavy_counts, aromatic_count, aliphatic_count, hbd, hba, amines, acids, quat_n, sp3_c], dtype=np.float32)
+>>>>>>> REPLACE
+-----

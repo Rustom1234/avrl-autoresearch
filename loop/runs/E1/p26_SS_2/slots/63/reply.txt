@@ -1,0 +1,82 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None, sd=0.0):
+=======
+def _solve_once(n, rng, start=None, sd=0.0, maxiter=MAX_ITER, scale=0.5):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+start[1] * 0.5])
+=======
+start[1] * scale])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+                   options={"maxiter": maxiter})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _regrow(best, rng):
+    c, r = best
+    n = len(r)
+    k = rng.choice(np.argsort(r)[:5])
+    keep = np.arange(n) != k
+    c2, r2 = _solve_once(n - 1, rng, (c[keep], r[keep]), 0.0, 100, 1.0)
+    c2, r2 = np.clip(c2, 0, 1), np.maximum(r2, 0)
+    g = (np.arange(100) + 0.5) / 100
+    P = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    d = np.sqrt(((P[:, None] - c2[None]) ** 2).sum(-1)) - r2[None]
+    wall = np.minimum(np.minimum(P[:, 0], P[:, 1]), np.minimum(1 - P[:, 0], 1 - P[:, 1]))
+    p = P[np.argmax(np.minimum(d.min(1), wall))]
+    return _solve_once(n, rng, (np.vstack([c2, p]), np.append(r2, 0.02)), 0.0, 200, 1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+=======
+            if rng.random() < 0.5:
+                c, r = _regrow(best, rng)
+            else:
+                c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None, sd=0.0):
+=======
+def _solve_once(n, rng, start=None, sd=0.0, maxiter=MAX_ITER, scale=0.5):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = np.concatenate([(start[0] + rng.normal(0, sd, start[0].shape)).ravel(), start[1] * 0.5])
+=======
+        x0 = np.concatenate([(start[0] + rng.normal(0, sd, start[0].shape)).ravel(), start[1] * scale])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+                   options={"maxiter": maxiter})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _regrow(best, rng):
+    c, r = best
+    n = len(r)
+    k = rng.choice(np.argsort(r)[:5])
+    keep = np.arange(n) != k
+    c2, r2 = _solve_once(n - 1, rng, (c[keep], r[keep]), 0.0, 100, 1.0)
+    c2, r2 = np.clip(c2, 0, 1), np.maximum(r2, 0)
+    g = (np.arange(100) + 0.5) / 100
+    P = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    d = np.sqrt(((P[:, None] - c2[None]) ** 2).sum(-1)) - r2[None]
+    wall = np.minimum(np.minimum(P[:, 0], P[:, 1]), np.minimum(1 - P[:, 0], 1 - P[:, 1]))
+    p = P[np.argmax(np.minimum(d.min(1), wall))]
+    return _solve_once(n, rng, (np.vstack([c2, p]), np.append(r2, 0.02)), 0.0, 200, 1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+=======
+            if rng.random() < 0.5:
+                c, r = _regrow(best, rng)
+            else:
+                c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+>>>>>>> REPLACE
+-----

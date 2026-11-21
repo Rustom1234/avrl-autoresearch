@@ -1,0 +1,68 @@
+<<<<<<< SEARCH
+    bv = None
+    while time.time() - t0 < 60:
+=======
+    bv = None
+    pool = []
+
+    def add_pool(vv, ss):
+        rs = np.sort(vv[2 * n:])
+        for k_, e in enumerate(pool):
+            if np.max(np.abs(e[2] - rs)) <= 1e-4:
+                if ss > e[0]:
+                    pool[k_] = (ss, vv.copy(), rs)
+                    pool.sort(key=lambda z: -z[0])
+                return
+        if len(pool) < 10:
+            pool.append((ss, vv.copy(), rs))
+        elif ss > pool[-1][0]:
+            pool[-1] = (ss, vv.copy(), rs)
+        else:
+            return
+        pool.sort(key=lambda z: -z[0])
+
+    while time.time() - t0 < 60:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = finalize(v)
+        s = r.sum()
+=======
+        c, r = finalize(v)
+        s = r.sum()
+        add_pool(v, s)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        w[2 * n:] = np.minimum(w[2 * n:], 0.5) * 0.9
+=======
+        w[2 * n:] = np.minimum(w[2 * n:], 0.5) * 0.9
+        child = False
+        if time.time() - t0 < 174 and len(pool) >= 2 and rng.random() < 0.3:
+            ia, ib = rng.choice(len(pool), 2, replace=False)
+            va = pool[ia][1]; vb = pool[ib][1]
+            th = rng.uniform(0, np.pi)
+            nrm = np.array([np.cos(th), np.sin(th)])
+            off = 0.5 + rng.normal(0, 0.1)
+            pa = np.stack([va[:n], va[n:2 * n]], 1)
+            pb = np.stack([vb[:n], vb[n:2 * n]], 1)
+            ma = (pa @ nrm - off) > 0
+            mb = (pb @ nrm - off) <= 0
+            pts = np.concatenate([pa[ma], pb[mb]])
+            rr = np.concatenate([va[2 * n:][ma], vb[2 * n:][mb]])
+            if len(pts) > n:
+                keep = np.argsort(-rr)[:n]
+                pts = pts[keep]
+            elif len(pts) < n:
+                pts = np.concatenate([pts, rng.uniform(0.05, 0.95, (n - len(pts), 2))])
+            w = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.045)])
+            child = True
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = finalize(w)
+        s = r.sum()
+=======
+        c, r = finalize(w)
+        s = r.sum()
+        if child:
+            add_pool(w, s)
+>>>>>>> REPLACE
+-----

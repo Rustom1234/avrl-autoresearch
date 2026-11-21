@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is not None:
+            fp = gen.GetFingerprintAsNumPy(mol)
+            mw = Chem.MolWt(mol)
+            features.append(np.concatenate([fp, np.array([mw], dtype=np.float32)]))
+    return np.array(features, dtype=np.float32)
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from rdkit.Chem import Descriptors
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is not None:
+            fp = gen.GetFingerprintAsNumPy(mol)
+            mw = Descriptors.MolecularWeight(mol)
+            features.append(np.concatenate([fp, np.array([mw], dtype=np.float32)]))
+    return np.array(features, dtype=np.float32)
+>>>>>>> REPLACE
+-----

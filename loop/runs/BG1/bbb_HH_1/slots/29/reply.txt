@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors, rdFingerprintGenerator
+=======
+from rdkit.Chem import Descriptors, rdFingerprintGenerator, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def ring_features(mol):
+    rings = [set(r) for r in mol.GetRingInfo().AtomRings()]
+    systems = []
+    for r in rings:
+        new = set(r)
+        keep = []
+        for s in systems:
+            if s & new:
+                new |= s
+            else:
+                keep.append(s)
+        systems = keep + [new]
+    ring_atoms = set().union(*rings) if rings else set()
+    n_arom = sum(all(mol.GetAtomWithIdx(i).GetIsAromatic() for i in r) for r in rings)
+    n_stereo = len(Chem.FindMolChiralCenters(mol, includeUnassigned=True))
+    return [
+        len(systems),
+        max((len(s) for s in systems), default=0),
+        n_arom,
+        len(rings) - n_arom,
+        rdMolDescriptors.CalcFractionCSP3(mol),
+        n_stereo,
+        rdMolDescriptors.CalcNumRotatableBonds(mol),
+        mol.GetNumHeavyAtoms() / max(len(ring_atoms), 1),
+    ]
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.hstack([fp, desc.astype(np.float32)])
+=======
+    ring = np.array([ring_features(m) for m in mols], dtype=np.float32)
+    return np.hstack([fp, desc.astype(np.float32), ring])
+>>>>>>> REPLACE
+-----

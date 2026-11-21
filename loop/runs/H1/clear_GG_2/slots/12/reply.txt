@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+        # Calculate 206 descriptors
+        desc_list = []
+        for name, func in Descriptors._desc_mol_functions.items():
+            try:
+                val = func(mol)
+                desc_list.append(float(val))
+            except:
+                desc_list.append(0.0)
+        features.append(np.concatenate([fp, np.array(desc_list, dtype=np.float32)]))
+ =======
+        # Calculate common descriptors
+        desc_list = []
+        # Use a subset of common descriptors to avoid complex dictionary lookups
+        for name in ['MolWt', 'LogP', 'NumHDonors', 'NumHAcceptors', 'TPSA', 'NumRotatableBonds', 'MolConnectivityሼ', 'NumHeavyAtoms', 'MaxMorse']:
+            try:
+                # Standard RDKit Descriptors are usually accessible via Descriptors.MolWt etc.
+                # To keep it simple and robust, we use the known ones
+                pass
+            except: pass
+        
+        # Simpler approach for robustness: just use the fingerprints
+        features.append(fp)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+
+    rf = RandomForestRegressor(n_estimators=N_TREES_RF, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y_train)
+    
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    return np.expm1(preds)
+=======
+    y_train = np.log1p(np.asarray(train_y, dtype=np.float64))
+
+    # Use XGBoost as the primary model, it's usually strongest for this size
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=7, learning_rate=0.05, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    preds = xgb.predict(X_test)
+    return np.expm1(preds)
+>>>>>>> REPLACE
+-----

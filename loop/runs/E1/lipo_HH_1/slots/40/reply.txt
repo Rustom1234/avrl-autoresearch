@@ -1,0 +1,83 @@
+<<<<<<< SEARCH
+import numpy as np
+=======
+import zlib
+import numpy as np
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+N_CONFIGS = 1
+N_ROUNDS = 600
+=======
+WL_BUCKETS = 1024
+WL_ITERS = 3
+N_DESC = len(Descriptors._descList)
+
+
+def wl_counts(smiles):
+    # Hashed Weisfeiler-Lehman subtree counts over the heavy-atom graph (iterations 0..WL_ITERS).
+    rows = np.zeros((len(smiles), WL_BUCKETS), dtype=np.float32)
+    for i, s in enumerate(smiles):
+        mol = Chem.MolFromSmiles(s)
+        labels = [f"{a.GetSymbol()}|{a.GetDegree()}|{a.GetFormalCharge()}|{int(a.GetIsAromatic())}|{a.GetTotalNumHs()}"
+                  for a in mol.GetAtoms()]
+        for it in range(WL_ITERS + 1):
+            for lab in labels:
+                rows[i, zlib.crc32(f"{it}|{lab}".encode()) % WL_BUCKETS] += 1
+            new = []
+            for a, lab in zip(mol.GetAtoms(), labels):
+                nb = sorted(labels[n.GetIdx()] for n in a.GetNeighbors())
+                new.append(str(zlib.crc32((lab + "#" + ",".join(nb)).encode())))
+            labels = new
+    return rows
+
+
+N_CONFIGS = 1
+N_ROUNDS = 600
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Descriptor block is the last columns of X (already clipped to 1st-99th percentiles on the full train set).
+    Za = Xa[:, 2 * N_BITS:].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:].astype(np.float64)
+=======
+    # Descriptor block sits right after the Morgan bits (already clipped to 1st-99th percentiles on the full train set).
+    Za = Xa[:, 2 * N_BITS:2 * N_BITS + N_DESC].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:2 * N_BITS + N_DESC].astype(np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32)])
+=======
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32), wl_counts(train_smiles)])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32), wl_counts(test_smiles)])
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import zlib
+import numpy as np
+=======
+import numpy as np
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def wl_counts(smiles):
+=======
+def _crc(text):
+    # Deterministic polynomial string hash (replaces zlib.crc32; zlib import is not allowed).
+    h = 0
+    for c in text.encode("utf-8"):
+        h = (h * 131 + c) & 0xFFFFFFFF
+    return h
+
+
+def wl_counts(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                rows[i, zlib.crc32(f"{it}|{lab}".encode()) % WL_BUCKETS] += 1
+=======
+                rows[i, _crc(f"{it}|{lab}") % WL_BUCKETS] += 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                new.append(str(zlib.crc32((lab + "#" + ",".join(nb)).encode())))
+=======
+                new.append(str(_crc(lab + "#" + ",".join(nb))))
+>>>>>>> REPLACE
+-----

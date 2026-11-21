@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+HOP_SD = 0.04
+=======
+HOP_SD = 0.04
+DIMER_P = 0.2
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _dimer_insert(c, r, rng):
+    """Merge a random adjacent pair into one circle, drop the smaller one and re-insert it at the emptiest grid point."""
+    n = len(r)
+    gap = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1)) - r[:, None] - r[None]
+    np.fill_diagonal(gap, np.inf)
+    i = int(rng.integers(n))
+    j = int(np.argmin(gap[i]))
+    s, k = (i, j) if r[i] < r[j] else (j, i)
+    r2 = r.copy()
+    r2[k] = 0.5 * (r[i] + r[j])
+    keep = np.arange(n) != s
+    c2, r2 = c[keep], r2[keep]
+    g = np.linspace(0, 1, 60)
+    G = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    dist = np.sqrt(((G[:, None] - c2[None]) ** 2).sum(-1)).min(1)
+    clear = np.minimum(dist, np.minimum(G, 1 - G).min(1))
+    return np.vstack([c2, G[np.argmax(clear)][None]])
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+=======
+        c, r = best
+        if rng.random() < DIMER_P:
+            p = _dimer_insert(c, r, rng).ravel()
+        else:
+            p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+=======
+def _poisson_start(rng):
+    # dart-throwing Poisson-disk sampling with a per-restart minimum distance;
+    # topped up with uniform random points if fewer than _N are accepted
+    dmin = rng.uniform(0.14, 0.2)
+    pts = []
+    tries = 0
+    while len(pts) < _N and tries < 3000:
+        tries += 1
+        c = rng.uniform(0.05, 0.95, size=2)
+        if all((c[0] - p[0]) ** 2 + (c[1] - p[1]) ** 2 >= dmin * dmin for p in pts):
+            pts.append(c)
+    P = np.array(pts).reshape(-1, 2)
+    if len(P) < _N:
+        extra = rng.uniform(0.05, 0.95, size=(_N - len(P), 2))
+        P = np.vstack([P, extra])
+    return P
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+=======
+        P = _poisson_start(rng)
+>>>>>>> REPLACE
+-----

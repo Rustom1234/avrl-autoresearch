@@ -1,0 +1,117 @@
+
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraintsइसी{"type": "ineq", "fun": cons},
+                   optionsifs{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    # Block 1: Centers only, maximize minimum slack
+    def cons_centers(c):
+        d_pairs = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        d_walls = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        return np.concatenate([d_pairs, d_walls])
+
+    def obj_centers(c):
+        d_pairs = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        d_walls = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        return -np.min(np.concatenate([d_pairs, d_walls]))
+
+    # Block 2: Radii only, maximize sum
+    def cons_radii(r_val):
+        d_pairs = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        d_walls = np.concatenate([c[:, 0], c[:, 1], 1 - c[:, 0], 1 - c[:, 1]])
+        return d_pairs - r_val[iu[0]] - r_val[iu[1]], d_walls - r_val
+
+    # Optimization loop
+    curr_c = x0[:2*n].reshape(n, 2)
+    curr_r = x0[2*n:]
+    
+    for _ in range(3):
+        # Optimize Centers
+        res_c = minimize(obj_centers, curr_c.flatten(), method="SLSQP", 
+                           constraints={`"type": "ineq", "fun": cons_centers`}, 
+                           options={`"maxiter": 100`})
+        if res_c.success: curr_c = res_c.x.reshape(n, 2)
+        # Optimize Radii
+        res_r = minimize(lambda r_val: -r_val.sum(), curr_r, method="SLSQP", 
+                           constraints={`"type": "ineq", "fun": cons_radii`}, 
+                           options={`"maxiter": 100`})
+        if res_r.success: curr_r = res_r.x
+
+    # Final joint optimization
+    def cons_joint(v):
+        c_v = v[:2 * n].reshape(n, 2)
+        r_v = v[2 * n:]
+        d_pairs = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+        d_walls = np.concatenate([c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v])
+        return np.concatenate([d_pairs, d_walls])
+
+    res_final = minimize(lambda v: -v[2 * n:].sum(), np.concatenate([curr_c.flatten(), curr_r]), 
+                           method="SLSQP", constraints={`"type": "ineq", "fun": cons_joint`}, 
+                           options={`"maxiter": 100`})
+    return res_final.x[:2 * n].reshape(n, 2), res_final.x[2 * n:]
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+    curr_c = x0[:2 * n].reshape(n, 2)
+    curr_r = x0[2 * n:]
+
+    def get_slacks(c, r):
+        d_pairs = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        d_walls = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        return np.concatenate([d_pairs, d_walls])
+
+    for _ in range(3):
+        # Block 1: Centers only, maximize minimum slack
+        def obj_c(c_flat):
+            c_mat = c_flat.reshape(n, 2)
+            return -np.min(get_slacks(c_mat, curr_r))
+        
+        res_c = minimize(obj_c, curr_c.flatten(), method="SLSQP", 
+                           constraints={"type": "ineq", "fun": lambda v: get_slacks(v.reshape(n, 2), curr_r)}, 
+                           options={"maxiter": 100})\n        if res_c.success: curr_c = res_c.x.reshape(n, 2)
+
+        # Block 2: Radii only, maximize sum
+        def obj_r(r_val):
+            return -r_val.sum()
+        
+        def cons_r(r_val):
+            return get_slacks(curr_c, r_val)
+
+        res_r = minimize(obj_r, curr_r, method="SLSQP", 
+                           constraints={"type": "ineq", "fun": cons_r}, 
+                           options={"maxiter": 100})
+        if res_r.success: curr_r = res_r.x
+
+    # Final joint optimization
+    def cons_joint(v):
+        c_v = v[:2 * n].reshape(n, 2)
+        r_v = v[2 * n:]
+        return get_slacks(c_v, r_v)
+
+    res_f = minimize(lambda v: -v[2 * n:].sum(), np.concatenate([curr_c.flatten(), curr_r]), 
+                       method="SLSQP", constraints={"type": "ineq", "fun": cons_joint}, 
+                       options={"maxiter": 100})
+    return res_f.x[:2 * n].reshape(n, 2), res_f.x[2 * n:]
+>>>>>>> REPLACE
+-----

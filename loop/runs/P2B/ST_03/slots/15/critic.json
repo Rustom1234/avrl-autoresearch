@@ -1,0 +1,13 @@
+{
+ "ok": false,
+ "issues": [
+  "The edit adds label_smoothing=0.05 to the cross-entropy inside GPT.forward. The same forward path is used during evaluation: the val_bpb evaluator calls model(x, y, reduction='none') and adds up the per-token losses. So the smoothed loss is what gets turned into bits per byte, and the measured val_bpb is no longer the true cross-entropy. This changes how val_bpb is measured (category 1), and it explains why the harness rejected the run on an integrity flag.",
+  "Because the training loss and the eval loss share one code path, any score from this run cannot be compared with the incumbent. Smoothing adds a uniform-target term to the reported per-token loss, so the bpb changes for reasons unrelated to model quality (category 2).",
+  "A valid way to test label smoothing: apply it only in the training loop, for example by computing F.cross_entropy(..., label_smoothing=...) on logits in train.py's training step. Alternatively, gate it on self.training, and keep the reduction='none' eval path exactly as it is in the incumbent.",
+  "The harness gives no numbers, only an integrity rejection, so z cannot be recomputed and there are no stated gains to check."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

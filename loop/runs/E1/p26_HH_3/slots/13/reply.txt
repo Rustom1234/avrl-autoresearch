@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    return _optimise(n, x0)
+=======
+def _optimise_equal(n, c0):
+    """Max-min stage: maximise a common radius t with all circles of radius t."""
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, t = v[:2 * n].reshape(n, 2), v[-1]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * t
+        return np.concatenate([d, c[:, 0] - t, c[:, 1] - t, 1 - c[:, 0] - t, 1 - c[:, 1] - t])
+
+    res = minimize(lambda v: -v[-1], np.append(c0.ravel(), 0.0), method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[-1]
+
+
+def _solve_once(n, rng):
+    c0, t = _optimise_equal(n, rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)))
+    return _optimise(n, np.concatenate([c0.ravel(), np.full(n, t)]))
+>>>>>>> REPLACE
+-----

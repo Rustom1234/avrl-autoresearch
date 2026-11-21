@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def base_predict(Xtr, ytr, Xte, seed):
+=======
+def base_predict(Xtr, ytr, Xte, seed, nd):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS]))])
+=======
+    dl = lgb.LGBMRegressor(objective="l1", n_estimators=500, learning_rate=LEARNING_RATE,
+                           colsample_bytree=0.5, n_jobs=8, random_state=seed, verbose=-1)
+    dl.fit(Xtr[:, -nd:], ytr)
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS])),
+                            dl.predict(Xte[:, -nd:])])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(X):
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed)
+    meta = LinearRegression(positive=True).fit(oof, y)
+    return meta.predict(base_predict(X, y, Xte, seed)) + a + b * Lte
+=======
+    nd = Dtr.shape[1]
+    oof = np.zeros((len(y), 4))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(X):
+        oof[va] = base_predict(X[tr], y[tr], X[va], seed, nd)
+    meta = LinearRegression(positive=True).fit(oof, y)
+    return meta.predict(base_predict(X, y, Xte, seed, nd)) + a + b * Lte
+>>>>>>> REPLACE
+-----

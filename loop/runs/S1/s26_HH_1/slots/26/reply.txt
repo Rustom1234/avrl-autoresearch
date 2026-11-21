@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def run_packing():
+=======
+def _multi_adam(best_c, deadline):
+    # Multi-start Adam: seeded lattice starts plus noisy copies of the best centres.
+    # Keep the top 3 by LP sum, then run _local_opt on each. Stops at the deadline.
+    n = 26
+    cands = []
+    for k in range(6):
+        if time.perf_counter() > deadline:
+            break
+        if k < 4:
+            amp = 0.02 + 0.08 * k / 3.0
+            start = _lattice_start(np.random.default_rng(4242 + k), amp)
+        else:
+            rng = np.random.default_rng(777 + k)
+            start = np.clip(best_c + rng.normal(0.0, 0.01, (n, 2)), 0.0, 1.0)
+        c = _adam_soft(start)
+        cands.append((float(np.sum(_lp_radii(c))), c))
+    cands.sort(key=lambda t: -t[0])
+    best_mc, best_mr, best_ms = None, None, -1.0
+    for _, c in cands[:3]:
+        if time.perf_counter() > deadline:
+            break
+        cc, rr = _local_opt(c)
+        s = float(np.sum(rr))
+        if s > best_ms and _valid_packing(cc, rr):
+            best_mc, best_mr, best_ms = cc, rr, s
+    return best_mc, best_mr
+
+
+def run_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best_c is not None:
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+=======
+    if best_c is not None:
+        mc, mr = _multi_adam(best_c, t_start + 215.0)
+        if mc is not None and float(np.sum(mr)) > best_s and _valid_packing(mc, mr):
+            best_c, best_r, best_s = mc, mr, float(np.sum(mr))
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+>>>>>>> REPLACE
+-----

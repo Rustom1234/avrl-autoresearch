@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+=======
+    while time.process_time() - t0 < budget:   # cluster rotation kick on a copy of the incumbent
+        c2, r2 = c.copy(), r.copy()
+        i = rng.integers(n)
+        k = rng.integers(4, 9)
+        idx = np.argsort(np.linalg.norm(c2 - c2[i], axis=1))[:k]
+        cen = c2[idx].mean(0)
+        a = rng.uniform(-0.3, 0.3)
+        R = np.array([[np.cos(a), -np.sin(a)], [np.sin(a), np.cos(a)]])
+        c2[idx] = (c2[idx] - cen) @ R.T + cen
+        c2 = np.clip(c2, 0, 1)
+        dm = np.sqrt(((c2[idx][:, None] - c2[None]) ** 2).sum(-1))
+        dm[np.arange(len(idx)), idx] = np.inf
+        r2[idx] = dm.min(1) / 2
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+>>>>>>> REPLACE
+-----

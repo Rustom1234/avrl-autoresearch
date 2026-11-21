@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+        self.register_buffer("sin", sin, persistent=False)
+
+    @torch.no_grad()
+=======
+        self.register_buffer("sin", sin, persistent=False)
+        self.register_buffer("sd_p", torch.zeros(()), persistent=False)
+
+    @torch.no_grad()
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+        # Per-layer scalars
+        self.resid_lambdas.fill_(1.0)
+=======
+        self.sd_p.fill_(0.2)  # stochastic depth drop prob, zeroed after 200s in the train loop
+        # Per-layer scalars
+        self.resid_lambdas.fill_(1.0)
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+=======
+            x_new = block(x, ve, cos_sin, self.window_sizes[i])
+            if self.training:
+                keep = torch.rand((), device=x.device) >= self.sd_p
+                x_new = torch.where(keep, x_new, x)
+            x = x_new
+        x = norm(x)
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+=======
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+    if total_training_time >= 200:
+        model.sd_p.fill_(0.0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+=======
+def featurize(smiles, radius=RADIUS):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    model = KernelRidge(alpha=1.0, kernel="precomputed")
+    model.fit(minmax_kernel(Xtr, Xtr), y - y.mean())
+    return model.predict(minmax_kernel(Xte, Xtr)) + y.mean()
+=======
+    Ktr, Kte = 0.0, 0.0
+    for r in (1, 2, 3):
+        Xtr, Xte = featurize(train_smiles, r), featurize(test_smiles, r)
+        Ktr = Ktr + minmax_kernel(Xtr, Xtr) / 3
+        Kte = Kte + minmax_kernel(Xte, Xtr) / 3
+    model = KernelRidge(alpha=1.0, kernel="precomputed")
+    model.fit(Ktr, y - y.mean())
+    return model.predict(Kte) + y.mean()
+>>>>>>> REPLACE
+-----

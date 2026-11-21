@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = _soft_relax(n, rng)
+=======
+def _grid(n):
+    """Fixed square-grid layout: the first n cells of a k x k grid, with equal small radii."""
+    k = int(np.ceil(np.sqrt(n)))
+    g = (np.arange(k) + 0.5) / k
+    c = np.array([(x, y) for x in g for y in g])[:n]
+    return np.concatenate([c.ravel(), np.full(n, 0.5 / k)])
+
+
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = _soft_relax(n, rng)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    x0 = _grid(n)   # first restart starts from the fixed grid; later restarts use random soft-body inits
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng, x0)
+        x0 = None
+>>>>>>> REPLACE
+-----

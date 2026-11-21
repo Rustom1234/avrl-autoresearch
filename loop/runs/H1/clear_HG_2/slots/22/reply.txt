@@ -1,0 +1,244 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+=======
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from sklearn.linear_model import RidgeCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import Crossaremos_validation, KFold
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    
+    # 1. RidgeCV on descriptors only (last 6 columns)
+    X_desc_train = X_train[:, -6:]
+    scaler = StandardScaler()
+    X_desc_scaled = scaler.fit_transform(X_desc_train)
+    
+    ridge = RidgeCV(alphas=np.logspace(0, 4, 5)).fit(X_desc_scaled, y_train_log)
+    
+    # 2. XGBoost on residuals
+    kf = KFold(n_splits=5, shuffle=True, random_state=seed)
+    y_pred_ridge = np.zeros_like(y_train_log)
+    
+    for train_idx, val_idx in kf.split(X_desc_scaled):
+        X_train_fold = X_desc_scaled[train_idx]
+        y_train_fold = y_train_log[train_idx]
+        X_val_fold = X_desc_scaled[val_idx]
+        
+        # We use the ridge model trained on the fold
+        # Actually, to get true OOF residuals, we need a model for each fold
+        # But to save time/slots, we can use the full ridge and compute residuals
+        pass 
+    
+    # Simpler: use the full ridge to get residuals for the XGBoost target
+    y_pred_ridge_full = ridge.predict(X_desc_scaled)
+    y_resid = y_train_log - y_pred_ridge_full
+    
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    model.fit(X_train, y_resid)
+    
+    # Prediction
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -6:]
+    X_test_desc_scaled = scaler.transform(X_test_desc)
+    
+    pred_ridge = ridge.predict(X_test_desc_scaled)
+    pred_resid = model.predict(X_test)
+    
+    return pred_ridge + pred_resid
+>>>>>>>
+-----
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+维 =========== Replace the XGBRegressor with a two-stage model: RidgeCV on descriptors followed by XGBoost on residuals.
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+from sklearn.linear_model import RidgeCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import KFold
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    
+    # Stage 1: RidgeCV on descriptors (last 6 features)
+    X_desc = X_train[:, -6:]
+    scaler = StandardScaler()
+    X_desc_scaled = scaler.fit_transform(X_desc)
+    
+    ridge = RidgeCV(alphas=np.logspace(0, 4, 5)).fit(X_desc_scaled, y_train_log)
+    
+    # Stage 2: XGBoost on residuals
+    kf = KFold(n_splits=5, shuffle=True, random_state=seed)
+    residuals = np.zeros_like(y_train_log)
+    
+    for train_idx, val_idx in kf.split(X_desc_scaled):
+        X_train_fold = X_desc_scaled[train_idx]
+        y_train_fold = y_train_log[train_idx]
+        
+        ridge_fold = RidgeCV(alphas=np.logspace(0, 4, 5)).fit(X_train_fold, y_train_fold)
+        ridge_preds = ridge_fold.predict(X_desc_scaled[val_idx])
+        residuals[val_idx] = y_train_log[val_idx] - ridge_preds
+
+    xgb_model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                               subsample=0.8, colsample_bytree=0.5, 
+                               min_child_weight=3, random_state=seed, 
+                               n_jobs=-1, tree_method='hist')
+    xgb_model.fit(X_train, residuals)
+    
+    X_test = featurize(test_smiles)
+    X_test_desc = X_test[:, -6:]
+    X_test_desc_scaled = scaler.transform(X_test_desc)
+    
+    ridge_test_preds = ridge.predict(X_test_desc_scaled)
+    xgb_test_resids = xgb_model.predict(X_test)
+    
+    return ridge_test_preds + xgb_test_resids
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+-----

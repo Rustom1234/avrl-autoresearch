@@ -1,0 +1,17 @@
+{
+ "slot": 1,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/B1/SS_03/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.8458054383340612
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random-order baseline with a filter-and-rank curator. (1) Exact dedup: keep one copy of each document keyed on a hash of whitespace-normalised text; also drop near-duplicates sharing the same first 200 characters. (2) Train a classifier for target-likeness: TfidfVectorizer over word 1-2 grams (sublinear_tf, min_df=2, max_features ~200k) PLUS a char_wb 2-4 gram TF-IDF, LogisticRegression with positives = the 200 target_sample docs (split into ~2000-char chunks to get more positives, class_weight='balanced') and negatives = a seeded random sample of ~4000 pool docs (chunks likewise); score each pool doc by the mean probability over its first few chunks. (3) Word-order shuffle detector, since the pool contains WikiText-style articles whose words have been scrambled (title line fine, body scrambled): build a bigram set from target_sample tokens (whitespace split) and for each doc compute the fraction of its adjacent word bigrams that appear in the target bigram set, plus cheap grammar signals such as the fraction of sentences-ending ' .' tokens followed by a capitalised token and the rate of ' , ,' / ' . ,' / line-initial lowercase or punctuation; calibrate the threshold on the target sample itself (e.g. reject docs below the 1st percentile of target_sample values scaled by 0.8) and drop docs below it. (4) Junk filters: drop docs with non-ASCII homoglyph ratio in Latin words (Cyrillic/Armenian chars mixed into ASCII words), spam templates ('discount code', 'coupon', 'free shipping', 'Click here to order'), very short docs (<200 chars), and docs with low alpha ratio or very high repeated-line ratio. (5) Keep docs passing the filters with classifier score above a threshold chosen so that survivors are the WikiText-style ('= Title =' header, ' @-@ ', ' , ' spaced punctuation) clean articles; count tokens with tiktoken gpt2 (or estimate len/4 if time is tight). If survivors total >= T tokens, take the top-scoring T tokens' worth; if fewer than T, return only the survivors (letting the trainer cycle them) rather than padding with off-domain text, unless survivors are < 0.35 T, in which case pad with the next-best-scoring clean (non-spam, non-scrambled) docs. (6) Shuffle the final list with random.Random(CURATE_SEED) so that the order is mixed and cycling is uniform.",
+   "outcome": "dev 1.8458 against 1.9618 for the best at the time, KEPT as the new best"
+  }
+ ],
+ "usd": 0.7008036,
+ "status": "running",
+ "inc_slot": 1
+}

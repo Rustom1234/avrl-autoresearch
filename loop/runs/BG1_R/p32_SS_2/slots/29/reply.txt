@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, start=None, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+=======
+    if start is not None:
+        x0 = start
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < 0.5 * time_limit:   # random restarts
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # swap-based search on the best
+        bc, br = best
+        i, j = rng.choice(n, 2, replace=False)
+        if abs(br[i] - br[j]) < 0.02:
+            continue
+        c0 = bc.copy()
+        c0[[i, j]] = c0[[j, i]]
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), 0.8 * br]), 150)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > br.sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

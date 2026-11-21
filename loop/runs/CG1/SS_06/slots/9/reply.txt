@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+class Muon(torch.optim.Optimizer):
+=======
+@torch.compile(fullgraph=True)
+def _muon_momentum(grads, buffers, momentum: float):
+    torch._foreach_mul_(buffers, momentum)
+    torch._foreach_add_(buffers, [g.to(b.dtype) for g, b in zip(grads, buffers)])
+    return torch._foreach_add(grads, buffers, alpha=momentum)
+
+
+class Muon(torch.optim.Optimizer):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if momentum_buffers is not None:
+            torch._foreach_mul_(momentum_buffers, group["momentum"])
+            grad_casts = [g.to(mb.dtype) for g, mb in zip([p.grad for p in filter_params_with_grad], momentum_buffers)]
+            torch._foreach_add_(momentum_buffers, grad_casts)
+        else:
+            momentum_buffers = [p.grad for p in filter_params_with_grad]
+
+        if group["nesterov"]:
+            nesterov_grads = torch._foreach_add(
+                [p.grad for p in filter_params_with_grad], momentum_buffers, alpha=group["momentum"])
+        else:
+            nesterov_grads = momentum_buffers
+=======
+        nesterov_grads = _muon_momentum(
+            [p.grad for p in filter_params_with_grad], momentum_buffers, group["momentum"])
+>>>>>>> REPLACE
+-----

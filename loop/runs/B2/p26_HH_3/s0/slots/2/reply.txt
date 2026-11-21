@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+=======
+    c, r = best
+    gbest, stall = best, 0
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+            stall = 0
+        else:
+            stall += 1
+        if stall == 60:   # stagnation: keep the best packing seen, then restart from a fresh random start
+            if r.sum() > gbest[1].sum():
+                gbest = (c, r)
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            stall = 0
+    if r.sum() > gbest[1].sum():
+        gbest = (c, r)
+    return gbest
+>>>>>>> REPLACE
+-----

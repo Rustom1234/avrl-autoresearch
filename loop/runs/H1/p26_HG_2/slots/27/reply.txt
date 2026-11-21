@@ -1,0 +1,184 @@
+<<<<<<< SEARCH
+    for i in range(1, n):
+        candidates = rng.uniform(0, 1, (2000, 2))
+        # Distances to existing centers
+        d_centers = np.linalg.norm(candidates - centers[:i], axis=1)
+        min_d_centers = np.min(d_centers, axis=1)
+        # Distance to boundaries
+        dist_to_bound = np.minimum(np.minimum(candidates, 1 - candidates), axis=1)
+        min_dist_to_bound = np.min(dist_to_bound, axis=1)
+        
+        # Clearances available at candidates
+        clearances = np.minimum(min_d_centers - radii[:i], min_dist_to_bound)
+        
+        # Add small noise to keep diversity
+        scores = clearances + rng.uniform(0, 0.005, size=2000)
+        best_idx = np.argmax(scores)
+        
+        centers[i] = candidates[best_idx]
+        radii[i] = max(0, scores[best_idx])
+=======
+    for i in range(1, n):
+        candidates = rng.uniform(0, 1, (2000, 2))
+        # Distances to existing centers
+        if i == 1:
+            d_centers = np.linalg.norm(candidates - centers[0:1], axis=1)
+        else:
+            d_centers = np.linalg.norm(candidates - centers[:i], axis=1)
+        
+        # Handle case where i=1 and d_centers is (2000, 1)
+        min_d_centers = np.min(d_centers, axis=1)
+        
+        # Distance to boundaries
+        dist_to_bound = np.minimum(np.minimum(candidates, 1 - candidates), axis=1)
+        min_dist_to_bound = np.min(dist_to_bound, axis=1)
+        
+        # Clearances available at candidates
+        clearances = np.minimum(min_d_centers - radii[:i], min_dist_to_bound)
+        
+        # Add small noise to keep diversity
+        scores = clearances + rng.uniform(0, 0.005, size=2000)
+        best_idx = np.argmax(scores)
+        
+        centers[i] = candidates[best_idx]
+        radii[i] = max(0, scores[best_idx])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+=======
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Non-overlapping constraints
+        d_sq = np.sum((c[iu[0]] - c[iu[1]])**2, axis=1)
+        d = np.sqrt(d_sq) - r[iu[0]] - r[iu[1]]
+        # Boundary constraints
+        b1 = c[:, 0] - r
+        b2 = c[:, 1] - r
+        b3 = 1 - c[:, 0] - r
+        b4 = 1 - c[:, 1] - r
+        # Radius must be positive (handled by SLSQP for inequality > 0)
+        return np.concatenate([d, b1, b2, b3, b4, r])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    for i in range(1, n):
+        candidates = rng.uniform(0, 1, (2000, 2))
+        # Distances to existing centers
+        d_centers = np.linalg.norm(candidates - centers[:i], axis=1)
+        min_d_centers = np.min(d_centers, axis=1)
+        # Distance to boundaries
+        dist_to_bound = np.minimum(np.minimum(candidates, 1 - candidates), axis=1)
+        min_dist_to_bound = np.min(dist_to_bound, axis=1)
+        
+        # Clearances available at candidates
+        clearances = np.minimum(min_d_centers - radii[:i], min_dist_to_bound)
+        
+        # Add small noise to keep diversity
+        scores = clearances + rng.uniform(0, 0.005, size=2000)
+        best_idx = np.argmax(scores)
+        
+        centers[i] = candidates[best_idx]
+        radii[i] = max(0, scores[best_idx])
+=======
+    for i in range(1, n):
+        candidates = rng.uniform(0, 1, (2000, 2))
+        # Distances to existing centers
+        if i == 1:
+            d_centers = np.linalg.norm(candidates - centers[0:1], axis=1)
+        else:
+            d_centers = np.linalg.norm(candidates - centers[:i], axis=1)
+        
+        # d_centers is (2000, i) or (2000, 1). We need the minimum distance to any existing center.
+        # For i=1, it's (2000, 1). For i>1, it's (2000, i-1).
+        # If it's (2000, 1), np.min(axis=1) works. If it's (2000, 1), it works.
+        # Wait, the error was axis 1 out of bounds, which happens if d_centers is (2000,). 
+        # But np.linalg.norm( (2000,2) - (1,2) , axis=1 ) results in (2000,).
+        
+        # Let's rewrite to be safe:
+        diffs = candidates[np.newaxis, :, :] - centers[:i]
+        d_centers = np.linalg.norm(diffs, axis=0)
+        min_d_centers = np.min(d_centers, axis=1)
+        
+        # Distance to boundaries
+        dist_to_bound = np.minimum(np.minimum(candidates, 1 - candidates), axis=1)
+        min_dist_to_bound = np.min(dist_to_bound, axis=1)
+        
+        # Clearances available at candidates
+        clearances = np.minimum(min_d_centers - radii[:i], min_dist_to_bound)
+        
+        # Add small noise to keep diversity
+        scores = clearances + rng.uniform(0, 0.005, size=2000)
+        best_idx = np.argmax(scores)
+        
+        centers[i] = candidates[best_idx]
+        radii[i] = max(0, scores[best_idx])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+=======
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Non-overlapping constraints
+        d_sq = np.sum((c[iu[0]] - c[iu[1]])**2, axis=1)
+        d = np.sqrt(d_sq) - r[iu[0]] - r[iu[1]]
+        # Boundary constraints
+        b1 = c[:, 0] - r
+        b2 = c[:, 1] - r
+        b3 = 1 - c[:, 0] - r
+        b4 = 1 - c[:, 1] - r
+        # Radius must be positive
+        return np.concatenate([d, b1, b2, b3, b4, r])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    for i in range(1, n):
+        candidates = rng.uniform(0, 1, (2000, 2))
+        # Distances to existing centers
+        d_centers = np.linalg.norm(candidates - centers[:i], axis=1)
+        min_d_centers = np.min(d_centers, axis=1)
+        # Distance to boundaries
+        dist_to_bound = np.minimum(np.minimum(candidates, 1 - candidates), axis=1)
+        min_dist_to_bound = np.min(dist_to_bound, axis=1)
+        
+        # Clearances available at candidates
+        clearances = np.minimum(min_d_centers - radii[:i], min_dist_to_bound)
+        
+        # Add small noise to keep diversity
+        scores = clearances + rng.uniform(0, 0.005, size=2000)
+        best_idx = np.argmax(scores)
+        
+        centers[i] = candidates[best_idx]
+        radii[i] = max(0, scores[best_idx])
+=======
+    for i in range(1, n):
+        candidates = rng.uniform(0, 1, (2000, 2))
+        # Distances to existing centers
+        # candidates is (2000, 2), centers[:i] is (i, 2)
+        # Use broadcasting to get (2000, i)
+        d_centers = np.linalg.norm(candidates[:, np.newaxis, :] - centers[:i], axis=2)
+        min_d_centers = np.min(d_centers, axis=1)
+        # Distance to boundaries
+        dist_to_bound = np.minimum(np.minimum(candidates, 1 - candidates), axis=1)
+        min_dist_to_bound = np.min(dist_to_bound, axis=1)
+        
+        # Clearances available at candidates
+        clearances = np.minimum(min_d_centers - radii[:i], min_dist_to_bound)
+        
+        # Add small noise to keep diversity
+        scores = clearances + rng.uniform(0, 0.005, size=2000)
+        best_idx = np.argmax(scores)
+        
+        centers[i] = candidates[best_idx]
+        radii[i] = max(0, scores[best_idx])
+>>>>>>> REPLACE
+-----

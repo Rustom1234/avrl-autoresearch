@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The diff has no file or network access and no pasted coordinates. The new code only spreads the random start points with a penalty function and gives SLSQP exact gradients for the objective and constraints.",
+  "Checked both Jacobians by hand. The constraint Jacobian matches cons(): for each pair, dd/dc_i = u, dd/dc_j = -u and -1 for each radius. For the walls the signs are +1, +1, -1, -1 on the coordinates and -1 on r, and the r >= 0 row is +1. The penalty gradient -2*ov/d*diff is also correct. Nothing here makes the result meaningless.",
+  "The repair step that shrinks radii is not in the diff, so it should still run and the packings stay valid. The penalty pre-spread reuses the starting-radius bounds and stops after 30 iterations, so it adds little time.",
+  "z recomputed: both sides are -2.9375 from one run each, so the difference is 0 and z = 0. With n=1 per side the test has almost no power: one job has noise sd of about 0.0034. Reject is the right call, since there is no evidence of a gain and the change adds about 40 lines.",
+  "Worth checking: the incumbent and the candidate both score 2.9375, above the best published value of about 2.9370. The difference is small next to the noise, but a valid packing should not beat the published best. Check that 'adjusted values' do not hide an issue in the validity check or the scoring. This affects both sides equally and does not come from this diff."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0
+ }
+}

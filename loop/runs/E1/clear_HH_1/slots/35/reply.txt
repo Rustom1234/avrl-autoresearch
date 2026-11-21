@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata, norm
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    dmu, dsd = D.mean(axis=0), D.std(axis=0) + 1e-9
+    D = np.clip((D - dmu) / dsd, -5.0, 5.0)
+    Dt = np.clip((Dt - dmu) / dsd, -5.0, 5.0)
+=======
+    n = D.shape[0]
+    Dq = np.empty_like(D)
+    Dtq = np.empty_like(Dt)
+    for j in range(D.shape[1]):
+        srt = np.sort(D[:, j])
+        Dq[:, j] = norm.ppf((rankdata(D[:, j]) - 0.5) / n)
+        Dtq[:, j] = norm.ppf(np.interp(Dt[:, j], srt, (np.arange(n) + 0.5) / n))
+    D, Dt = Dq, Dtq
+>>>>>>> REPLACE
+-----

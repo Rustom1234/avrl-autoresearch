@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if it % 2 == 0:
+            lam = 0.002
+
+            def obj2(z):
+                return -np.sum(z[2 * n:]) + lam * np.sum(1.0 / (z[2 * n:] + 0.01))
+
+            def grad2(z):
+                gg = np.zeros(N3)
+                gg[2 * n:] = -1.0 - lam / (z[2 * n:] + 0.01) ** 2
+                return gg
+
+            try:
+                r1 = minimize(obj2, z0, jac=grad2, method="SLSQP", bounds=bounds,
+                              constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                              options={"maxiter": 80, "ftol": 1e-9})
+                if np.all(np.isfinite(r1.x)):
+                    z0 = r1.x
+            except Exception:
+                pass
+        try:
+>>>>>>> REPLACE
+-----

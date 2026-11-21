@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "Measurement integrity: no problems. The diff changes only the low-resolution training phase: the first 50% of steps (was 40%) now run at 28x28 (was 24x24). This happens inside train() on that run's own training batches. Nothing carries over between runs or from the untimed call, nothing is seeded, the test images are not used and there is no file access.",
+  "Bugs: none that would make the result meaningless. F.interpolate on the input batch is the same mechanism the incumbent already uses, and the network ends in global pooling, so it accepts either input size. One side effect: 28x28 for a longer phase costs more compute per run than 24x24 for 40% of the steps. That makes the candidate slower and probably explains most of its worse cost.",
+  "Numbers: the candidate's cost is -0.0053 against an incumbent mean of -0.1364 over 2 runs, so it is worse by 0.131. With a per-job noise sd of 0.026, the standard error of the difference is 0.026*sqrt(1 + 1/2) \u2248 0.0318, which gives |z| \u2248 4.12. Using the harness's sign (negative means the candidate is worse), z \u2248 -4.12. The harness reports -4.152. The small gap probably comes from a slightly different noise estimate. Either way the conclusion is the same and the reject decision is consistent.",
+  "The candidate has only 1 run, but the gap is so large that a replicate run would not change the decision."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -4.12
+ }
+}

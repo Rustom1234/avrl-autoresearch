@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if it % 10 in (0, 4, 8):
+            def obj2(z):
+                return -0.5 * np.sum(z[2 * n:] ** 2)
+
+            def grad2(z):
+                gg = np.zeros(N3)
+                gg[2 * n:] = -z[2 * n:]
+                return gg
+            try:
+                res0 = minimize(obj2, z0, jac=grad2, method="SLSQP", bounds=bounds,
+                                constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                                options={"maxiter": 100, "ftol": 1e-9})
+                if np.all(np.isfinite(res0.x)):
+                    z0 = np.clip(res0.x, [b[0] for b in bounds], [b[1] for b in bounds])
+            except Exception:
+                pass
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit:
+            c, r = _jump(best[0], best[1], rng)   # basin-hopping jump from the best packing
+        else:
+            c, r = _solve_once(n, rng)            # random restart
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    gap, since = 1, 0   # iterations between jumps, adapted to the observed gain
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        since += 1
+        jumping = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and since >= gap
+        if jumping:
+            old = best[1].sum()
+            c, r = _jump(best[0], best[1], rng)   # basin-hopping jump from the best packing
+            since = 0
+        else:
+            c, r = _solve_once(n, rng)            # random restart
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        if jumping:
+            gain = r.sum() - old
+            if gain > 1e-3:
+                gap = max(1, gap // 2)            # significant gain: jump more often
+            elif gain < 1e-4:
+                gap = min(8, 2 * gap)             # marginal gain: linger in this basin
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,60 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _polish(c, r, n):
+    """Final SLSQP stage from a warm start, with radius at most 1."""
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c_, r_ = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_[iu[0]] - c_[iu[1]]) ** 2).sum(1)) - r_[iu[0]] - r_[iu[1]]
+        return np.concatenate([d, c_[:, 0] - r_, c_[:, 1] - r_, 1 - c_[:, 0] - r_, 1 - c_[:, 1] - r_, r_, 1 - r_])
+
+    x = np.concatenate([np.clip(c, 0, 1).ravel(), np.maximum(r, 0)])
+    res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _insert_two(c, r):
+    """Insert two circles at the largest holes found on a 200 x 200 grid."""
+    g = np.linspace(0, 1, 200)
+    gx, gy = np.meshgrid(g, g)
+    p = np.stack([gx.ravel(), gy.ravel()], 1)
+    for _ in range(2):
+        d = np.sqrt(((p[:, None] - c[None]) ** 2).sum(-1)) - r[None]
+        wall = np.minimum(np.minimum(p[:, 0], p[:, 1]), np.minimum(1 - p[:, 0], 1 - p[:, 1]))
+        clear = np.minimum(d.min(1), wall)
+        k = np.argmax(clear)
+        c = np.vstack([c, p[k]])
+        r = np.append(r, max(clear[k], 0))
+    return c, r
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        cands = [(np.clip(c, 0, 1), r)]
+        c24, r24 = _solve_once(n - 2, rng)
+        c24, r24 = _insert_two(np.clip(c24, 0, 1), r24)
+        cands.append(_polish(c24, r24, n))
+        c28, r28 = _solve_once(n + 2, rng)
+        c28, keep = np.clip(c28, 0, 1), np.argsort(r28)[2:]
+        cands.append(_polish(c28[keep], r28[keep], n))
+        for c, r in cands:
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

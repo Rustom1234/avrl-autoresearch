@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def featurize_counts(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(gen.GetCountFingerprintAsNumPy(m) / max(m.GetNumHeavyAtoms(), 1))
+    return np.array(rows, dtype=np.float64)
+
+
+def minmax(A, B):
+    out = np.empty((A.shape[0], B.shape[0]))
+    sb = B.sum(axis=1)
+    for i in range(A.shape[0]):
+        mn = np.minimum(A[i][None, :], B).sum(axis=1)
+        mx = A[i].sum() + sb - mn
+        out[i] = mn / np.maximum(mx, 1e-9)
+    return out
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    CN = featurize_counts(train_smiles)
+    CNt = featurize_counts(test_smiles)
+    K_train = (tanimoto(X, X) + rbf(D, D, gamma) + minmax(CN, CN)) / 3.0
+    K_test = (tanimoto(Xt, X) + rbf(Dt, D, gamma) + minmax(CNt, CN)) / 3.0
+>>>>>>> REPLACE
+-----

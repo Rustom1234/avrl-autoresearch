@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+t_start_training = time.time()
+smooth_train_loss = 0
+=======
+EMA_DECAY = 0.999
+EMA_START = 0.1
+ema_params = None
+all_params = list(model.parameters())
+t_start_training = time.time()
+smooth_train_loss = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+    with torch.no_grad():
+        if progress >= EMA_START:
+            if ema_params is None:
+                ema_params = [p.detach().float().clone() for p in all_params]
+            else:
+                torch._foreach_lerp_(ema_params, [p.detach().float() for p in all_params], 1 - EMA_DECAY)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Swap EMA weights into the model
+if ema_params is not None:
+    with torch.no_grad():
+        for p, e in zip(all_params, ema_params):
+            p.copy_(e)
+
+# Final eval
+model.eval()
+>>>>>>> REPLACE
+-----

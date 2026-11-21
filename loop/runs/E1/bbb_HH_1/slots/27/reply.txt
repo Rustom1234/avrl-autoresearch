@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from sklearn.preprocessing import QuantileTransformer, StandardScaler
+from sklearn.linear_model import LogisticRegression
+
+N_RFF = 1000
+RFF_C = 0.1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    Dc_train = np.clip(D_train, lo, hi)
+    Dc_test = np.clip(D_test, lo, hi)
+    qt = QuantileTransformer(n_quantiles=min(1000, len(D_train)), output_distribution='normal', random_state=seed)
+    Q_train = qt.fit_transform(Dc_train)
+    Q_test = qt.transform(Dc_test)
+    sc = StandardScaler().fit(Q_train)
+    Z_train = sc.transform(Q_train)
+    Z_test = sc.transform(Q_test)
+    rng = np.random.RandomState(seed)
+    d = Z_train.shape[1]
+    gamma = 1.0 / d
+    W = rng.normal(0.0, np.sqrt(2.0 * gamma), size=(d, N_RFF))
+    b = rng.uniform(0.0, 2.0 * np.pi, size=N_RFF)
+    R_train = np.sqrt(2.0 / N_RFF) * np.cos(Z_train @ W + b)
+    R_test = np.sqrt(2.0 / N_RFF) * np.cos(Z_test @ W + b)
+    lr_rff = LogisticRegression(C=RFF_C, solver='lbfgs', max_iter=2000)
+    lr_rff.fit(R_train, y)
+    p_rff = lr_rff.predict_proba(R_test)[:, 1]
+    return (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1])
+            + scaled_rank(p_rff)) / 3.0
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _screen(n, rng, K=64, steps=200, lr=0.05, w=0.01, keep=3):
+    """Penalty gradient descent on K random starts at once; returns the `keep` best starts by repaired radius sum."""
+    c = rng.uniform(INIT_LOW, 1 - INIT_LOW, (K, n, 2))
+    r = np.full((K, n), INIT_RADIUS)
+    mask = 1 - np.eye(n)
+    for s in range(steps):
+        step = lr * 0.5 ** (2 * s // steps)
+        diff = c[:, :, None] - c[:, None]
+        d = np.sqrt((diff ** 2).sum(-1)) + np.eye(n)
+        over = np.maximum(r[:, :, None] + r[:, None] - d, 0) * mask
+        gc = -2 * ((over / d)[..., None] * diff).sum(2)
+        gr = 2 * over.sum(2) - w
+        xl, xr = np.maximum(r - c[..., 0], 0), np.maximum(r - 1 + c[..., 0], 0)
+        yl, yr = np.maximum(r - c[..., 1], 0), np.maximum(r - 1 + c[..., 1], 0)
+        gr += 2 * (xl + xr + yl + yr)
+        gc[..., 0] += 2 * (xr - xl)
+        gc[..., 1] += 2 * (yr - yl)
+        c = c - step * gc
+        r = np.maximum(r - step * gr, 0)
+    cands = []
+    for k in range(K):
+        ck = np.clip(c[k], 0, 1)
+        rk = _repair(ck, r[k])
+        cands.append((rk.sum(), ck, rk))
+    cands.sort(key=lambda t: -t[0])
+    return [(ck, rk) for _, ck, rk in cands[:keep]]
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < 0.5 * total:   # random restarts for half of the time
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+    while time.process_time() - t0 < 0.5 * total:   # random restarts for half of the time
+        for c, r in _screen(n, rng):
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if best is None or r.sum() > best[1].sum():
+                best = (c, r)
+>>>>>>> REPLACE
+-----

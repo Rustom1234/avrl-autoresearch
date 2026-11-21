@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _relocate(c, r, rng, trials=30):
+    """Move the smallest circle to the best of several random centres, scored by the local sum of radii."""
+    c, r = c.copy(), r.copy()
+    k = int(np.argmin(r))
+    best = None
+    for _ in range(trials):
+        p = rng.uniform(0, 1, 2)
+        d = np.sqrt(((c - p) ** 2).sum(1))
+        d[k] = np.inf
+        rk = max(min(p.min(), (1 - p).min(), (d - r).min()), 0)
+        nb = d < rk + r + 0.05
+        score = rk + r[nb].sum()
+        if best is None or score > best[0]:
+            best = (score, p, rk)
+    _, p, rk = best
+    c[k], r[k] = p, rk
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+=======
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+>>>>>>> REPLACE
+-----

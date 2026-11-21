@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+    SCALE = 10.0
+    def cons(v):
+        c, r_scaled = v[:2 * n].reshape(n, 2), v[2 * n:]
+        r = r_scaled / SCALE
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), x0, method="SLSQP", constraints是一位{"type": "ineq", "fun": cons},
+                   options是一位{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:] / SCALE
+=======
+    SCALE = 10.0
+    def cons(v):
+        c, r_scaled = v[:2 * n].reshape(n, 2), v[2 * n:]
+        r = r_scaled / SCALE
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    # Exploration phase with random weights
+    weights = rng.uniform(0.5, 1.5, n)
+    res_weighted = minimize(lambda v: -((v[2 * n:] / SCALE) * weights).sum(), x0, 
+                               method="SLSQP", constraints={
+-----
+<<<<<<< SEARCH
+    SCALE = 10.0
+    def cons(v):
+        c, r_scaled = v[:2 * n].reshape(n, 2), v[2 * n:]
+        r = r_scaled / SCALE
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    SCALE = 10.0
+    def cons(v):
+        c, r_scaled = v[:2 * n].reshape(n, 2), v[2 * n:]
+        r = r_scaled / SCALE
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:] / SCALE
+=======
+    SCALE = 10.0
+    def cons(v):
+        c, r_scaled = v[:2 * n].reshape(n, 2), v[2 * n:]
+        r = r_scaled / SCALE
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    # Diversification step with weights
+    w = rng.uniform(0.5, 1.5, n)
+    res_w = minimize(lambda v: -((v[2 * n:] / SCALE) * w).sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    
+    # Polish step with weights = 1
+    res = minimize(lambda v: -(v[2 * n:] / SCALE).sum(), res_w.x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})\n    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:] / SCALE
+-----

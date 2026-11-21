@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+=======
+        else:
+            # Perform a remove-and-reinsert move
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            r_new = r_curr.copy()
+            
+            # Pick one of the 3 smallest circles
+            idx = rng.choice(np.argsort(r_curr)[:3])
+            
+            # Candidate points for reinsertion
+            candidates = rng.uniform(INIT_LOW, 1 - INIT_LOW, (200, 2))
+            # Distance to other circles and boundaries
+            # To keep it fast, we use a subset of points or a simple heuristic
+            # Here we just sample 200 points and pick the best
+            dist_scores = np.zeros((200, 1))
+            for i in range(200):
+                # Distance to walls
+                d_wall = min(candidates[i, 0], 1 - candidates[i, 0], candidates[i, 1], 1 - candidates[i, 1])
+                # Distance to other centers
+                other_centers = np.delete(c_curr, idx, axis=0)
+                d_others = np.min(np.linalg.norm(candidates[i, :1] - other_centers, axis=1), initial=10.0)
+                dist_scores[i] = d_wall + d_others
+            
+            best_cand_idx = np.argmax(dist_scores)
+            c_new[idx] = candidates[best_cand_idx]
+            
+            x0 = np.concatenate([c_new.ravel(), r_new])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from scipy.stats import rankdata
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    model.fit(Xtr, y)
+    p_lgbm = model.predict_proba(Xte)[:, 1]
+
+    # Laplacian-corrected naive Bayes on binary ECFP4 bits
+    btr = (Xtr[:, :N_BITS] > 0).astype(np.float64)
+    bte = (Xte[:, :N_BITS] > 0).astype(np.float64)
+    yf = y.astype(np.float64)
+    prior = yf.mean()
+    n_with = btr.sum(0)
+    act_with = btr.T @ yf
+    n_without = len(yf) - n_with
+    act_without = yf.sum() - act_with
+    w_with = np.log(((act_with + 1) / (n_with + 2)) / prior)
+    w_without = np.log(((act_without + 1) / (n_without + 2)) / prior)
+    nb_score = w_without.sum() + bte @ (w_with - w_without)
+    p_nb = 1 / (1 + np.exp(-nb_score))
+
+    # equal-weight rank average of the two predictors within the test set
+    n = len(test_smiles)
+    return (rankdata(p_lgbm) + rankdata(p_nb)) / (2 * n)
+>>>>>>> REPLACE
+-----

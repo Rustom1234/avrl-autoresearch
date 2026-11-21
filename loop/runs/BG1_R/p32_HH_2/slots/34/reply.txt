@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+=======
+def _lloyd(c, iters=10):
+    """Lloyd smoothing of centres on a 64 x 64 grid over [0, 1]^2 (Voronoi cells clipped to the square)."""
+    g = (np.arange(64) + 0.5) / 64
+    G = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    for _ in range(iters):
+        a = np.argmin(((G[:, None] - c[None]) ** 2).sum(-1), axis=1)
+        cnt = np.bincount(a, minlength=len(c))
+        sx = np.bincount(a, weights=G[:, 0], minlength=len(c))
+        sy = np.bincount(a, weights=G[:, 1], minlength=len(c))
+        ok = cnt > 0
+        c = c.copy()
+        c[ok] = np.stack([sx[ok] / cnt[ok], sy[ok] / cnt[ok]], 1)
+    return c
+
+
+def _solve_once(n, centers0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for _, p in pool[:KEEP]:
+            c, r = _solve_once(n, p)
+=======
+        for _, p in pool[:KEEP]:
+            c, r = _solve_once(n, _lloyd(p.reshape(n, 2)).ravel())
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+=======
+        p = _lloyd(c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+>>>>>>> REPLACE
+-----

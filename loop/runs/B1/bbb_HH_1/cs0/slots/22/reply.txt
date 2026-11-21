@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors, Descriptors, Crippen
+=======
+from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors, Descriptors, Crippen, rdPartialCharges
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            _DESC_CACHE[s] = [f(mol) for _, f in Descriptors.descList]
+=======
+            _DESC_CACHE[s] = [f(mol) for _, f in Descriptors.descList] + gasteiger(mol)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+def gasteiger(mol):
+    try:
+        rdPartialCharges.ComputeGasteigerCharges(mol)
+        q = np.array([a.GetDoubleProp('_GasteigerCharge') for a in mol.GetAtoms()], dtype=np.float64)
+    except Exception:
+        q = np.zeros(1)
+    q = np.nan_to_num(q, nan=0.0, posinf=0.0, neginf=0.0)
+    if len(q) == 0:
+        q = np.zeros(1)
+    return [q.max(), q.min(), q[q > 0].sum(), -q[q < 0].sum(), q.max() - q.min(), float((np.abs(q) > 0.2).sum())]
+
+
+_DESC_CACHE = {}
+>>>>>>> REPLACE
+-----

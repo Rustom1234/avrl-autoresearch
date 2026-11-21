@@ -1,0 +1,98 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+_MOL_CACHE = {}
+
+
+def clean_mol(smiles):
+    # Largest fragment by heavy atoms, neutralised; falls back to the plain parse on failure.
+    if smiles not in _MOL_CACHE:
+        mol = Chem.MolFromSmiles(smiles)
+        try:
+            frags = Chem.GetMolFrags(mol, asMols=True)
+            big = max(frags, key=lambda m: m.GetNumHeavyAtoms())
+            big = rdMolStandardize.Uncharger().uncharge(big)
+            out = Chem.MolFromSmiles(Chem.MolToSmiles(big))
+            if out is None:
+                raise ValueError("bad standardised mol")
+        except Exception:
+            out = mol
+        _MOL_CACHE[smiles] = out
+    return _MOL_CACHE[smiles]
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        mol = Chem.MolFromSmiles(s)
+        rows.append(
+=======
+        mol = clean_mol(s)
+        rows.append(
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        mol = Chem.MolFromSmiles(smiles)
+        _DESC_CACHE
+=======
+        mol = clean_mol(smiles)
+        _DESC_CACHE
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles
+=======
+MurckoScaffold.MurckoScaffoldSmiles(mol=clean_mol(s)) for s in train_smiles
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        mol = Chem.MolFromSmiles(s)
+=======
+        mol = clean_mol(s)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        mol = Chem.MolFromSmiles(smiles)
+=======
+        mol = clean_mol(smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    groups = np.array([MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles])
+=======
+    groups = np.array([MurckoScaffold.MurckoScaffoldSmiles(mol=clean_mol(s)) for s in train_smiles])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+_MOL_CACHE = {}
+
+
+def clean_mol(smiles):
+    # Largest fragment by heavy atoms, neutralised; falls back to the plain parse on failure.
+    if smiles not in _MOL_CACHE:
+        mol = Chem.MolFromSmiles(smiles)
+        try:
+            frags = Chem.GetMolFrags(mol, asMols=True)
+            big = max(frags, key=lambda m: m.GetNumHeavyAtoms())
+            big = rdMolStandardize.Uncharger().uncharge(big)
+            out = Chem.MolFromSmiles(Chem.MolToSmiles(big))
+            if out is None:
+                raise ValueError("bad standardised mol")
+        except Exception:
+            out = mol
+        _MOL_CACHE[smiles] = out
+    return _MOL_CACHE[smiles]
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+-----

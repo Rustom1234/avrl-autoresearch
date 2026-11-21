@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    model.fit(np.hstack([Xtr, extra_feats(train_smiles)]), y)
+    p_lgb = model.predict(np.hstack([Xte, extra_feats(test_smiles)]))
+=======
+    Ftr, Fte = np.hstack([Xtr, extra_feats(train_smiles)]), np.hstack([Xte, extra_feats(test_smiles)])
+    model.fit(Ftr, y)
+    z = norm.ppf((rankdata(y) - 0.5) / len(y))
+    model2 = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                           colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed + 1, n_jobs=8)
+    model2.fit(Ftr, z)
+    p_rank = np.interp(model2.predict(Fte), np.sort(z), np.sort(y))
+    p_lgb = 0.5 * model.predict(Fte) + 0.5 * p_rank
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from scipy.stats import rankdata, norm
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+PHYS_NAMES = ["MolLogP", "MolMR", "TPSA", "NumHDonors", "NumHAcceptors", "NumRotatableBonds", "FractionCSP3",
+              "HeavyAtomCount", "NumAromaticRings", "NumAliphaticRings", "NumSaturatedRings", "RingCount",
+              "NHOHCount", "NOCount", "BertzCT", "BalabanJ", "HallKierAlpha", "Kappa1", "Kappa2", "Kappa3"]
+
+
+def physchem(smiles):
+    fns = dict(Descriptors.descList)
+    rows = [[fns[n](Chem.MolFromSmiles(s)) for n in PHYS_NAMES] for s in smiles]
+    return np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    P = physchem(list(train_smiles) + list(test_smiles))
+    R = np.column_stack([rankdata(P[:, j]) for j in range(P.shape[1])]) / len(P)
+    Ptr, Pte = R[:len(train_smiles)], R[len(train_smiles):]
+    svr_phys = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr_phys.fit(tanimoto(Ptr, Ptr), (y - y.mean()) / (y.std() + 1e-9))
+    p_phys = svr_phys.predict(tanimoto(Pte, Ptr))
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr) + rankdata(p_phys) / len(p_phys)
+>>>>>>> REPLACE
+-----

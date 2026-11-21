@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from collections import Counter
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def scaffold_weights(smiles):
+    scaf = [MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(s)) for s in smiles]
+    cnt = Counter(scaf)
+    w = np.array([1.0 / np.sqrt(cnt[c]) for c in scaf])
+    return w / w.mean()
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+=======
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    w = scaffold_weights(train_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(xgb_features(train_smiles), y)
+=======
+    model.fit(xgb_features(train_smiles), y, sample_weight=w)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+=======
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9), sample_weight=w)
+>>>>>>> REPLACE
+-----

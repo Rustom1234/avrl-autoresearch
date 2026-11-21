@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata, norm
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def scaled_rank(p):
+    return (rankdata(p) - 1) / max(len(p) - 1, 1)
+=======
+def scaled_rank(p):
+    return (rankdata(p) - 1) / max(len(p) - 1, 1)
+
+
+def knn_descriptor_score(Dtr, y, Dte, k=15):
+    keep = Dtr.std(axis=0) > 0
+    Dtr, Dte = Dtr[:, keep], Dte[:, keep]
+    Ztr = np.empty_like(Dtr)
+    Zte = np.empty_like(Dte)
+    grid = np.linspace(0, 1, Dtr.shape[0])
+    for j in range(Dtr.shape[1]):
+        qs = np.sort(Dtr[:, j])
+        u_tr = (rankdata(Dtr[:, j]) - 0.5) / len(qs)
+        u_te = np.interp(Dte[:, j], qs, grid)
+        Ztr[:, j] = norm.ppf(np.clip(u_tr, 1e-3, 1 - 1e-3))
+        Zte[:, j] = norm.ppf(np.clip(u_te, 1e-3, 1 - 1e-3))
+    d2 = (Zte ** 2).sum(1)[:, None] + (Ztr ** 2).sum(1)[None, :] - 2.0 * Zte @ Ztr.T
+    d = np.sqrt(np.maximum(d2, 0.0))
+    idx = np.argpartition(d, k, axis=1)[:, :k]
+    dk = np.take_along_axis(d, idx, 1)
+    w = 1.0 / (dk + 1e-3)
+    return (w * y[idx]).sum(1) / w.sum(1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    knn = knn_descriptor_score(np.clip(D_train, lo, hi), y, np.clip(D_test, lo, hi))
+    return (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1])
+            + scaled_rank(knn)) / 3
+>>>>>>> REPLACE
+-----

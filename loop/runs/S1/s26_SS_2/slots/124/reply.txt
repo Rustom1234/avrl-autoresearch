@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+        w = cur_v.copy()
+        k = rng.integers(1, 5)
+        idx = rng.choice(n, k, replace=False)
+        w[idx] += rng.normal(0, 0.05, k)
+        w[n + idx] += rng.normal(0, 0.05, k)
+        w[:2 * n] = np.clip(w[:2 * n], 0, 1)
+=======
+        w = cur_v.copy()
+        done = False
+        if rng.random() < 0.3:
+            try:
+                from scipy.spatial import Voronoi
+                sm = np.argsort(w[2 * n:])[:2]
+                keep = np.setdiff1d(np.arange(n), sm)
+                P = np.stack([w[keep], w[n + keep]], 1)
+                rk = w[2 * n + keep]
+                vor = Voronoi(np.vstack([P, [[0, 0], [0, 1], [1, 0], [1, 1]]]))
+                V = np.clip(vor.vertices, 0, 1)
+                dd = np.sqrt(((V[:, None, :] - P[None, :, :]) ** 2).sum(2)) - rk[None, :]
+                sc = dd.min(1)
+                order = np.argsort(-sc)
+                pick = [order[0]]
+                for o in order[1:]:
+                    if np.hypot(*(V[o] - V[pick[0]])) > 0.03:
+                        pick.append(o)
+                        break
+                if len(pick) == 2:
+                    for s_, o in zip(sm, pick):
+                        w[s_] = V[o, 0]
+                        w[n + s_] = V[o, 1]
+                        w[2 * n + s_] = 0.02
+                    done = True
+            except Exception:
+                done = False
+        if not done:
+            w = cur_v.copy()
+            k = rng.integers(1, 5)
+            idx = rng.choice(n, k, replace=False)
+            w[idx] += rng.normal(0, 0.05, k)
+            w[n + idx] += rng.normal(0, 0.05, k)
+        w[:2 * n] = np.clip(w[:2 * n], 0, 1)
+>>>>>>> REPLACE
+-----

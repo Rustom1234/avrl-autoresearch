@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def gp_mean(K_tr, y, K_te, sigma2):
+    mu = y.mean()
+    alpha = np.linalg.solve(K_tr + sigma2 * np.eye(len(y)), y - mu)
+    return mu + K_te @ alpha
+=======
+def knn_density(K, k=10):
+    Kd = K.copy()
+    np.fill_diagonal(Kd, -np.inf)
+    return np.sort(Kd, axis=1)[:, -k:].mean(1)
+
+
+def gp_mean(K_tr, y, K_te, sigma2, c):
+    mu = y.mean()
+    noise = sigma2 * (1 + c * (1 - knn_density(K_tr)))
+    alpha = np.linalg.solve(K_tr + np.diag(noise), y - mu)
+    return mu + K_te @ alpha
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_score, best_s2 = -np.inf, 0.3
+    for s2 in (0.1, 0.3, 1.0):
+        pred = np.zeros(len(y))
+        for tr, va in GroupKFold(n_splits=5).split(K, y, groups):
+            pred[va] = gp_mean(K[np.ix_(tr, tr)], y[tr], K[np.ix_(va, tr)], s2)
+        score = spearmanr(pred, y).correlation
+        if score > best_score:
+            best_score, best_s2 = score, s2
+    return best_s2
+=======
+    best_score, best_params = -np.inf, (0.3, 0.5)
+    for s2 in (0.1, 0.3, 1.0):
+        for c in (0.5, 1.0):
+            pred = np.zeros(len(y))
+            for tr, va in GroupKFold(n_splits=5).split(K, y, groups):
+                pred[va] = gp_mean(K[np.ix_(tr, tr)], y[tr], K[np.ix_(va, tr)], s2, c)
+            score = spearmanr(pred, y).correlation
+            if score > best_score:
+                best_score, best_params = score, (s2, c)
+    return best_params
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+=======
+    s2, c = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2, c)
+>>>>>>> REPLACE
+-----

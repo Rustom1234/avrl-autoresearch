@@ -1,0 +1,221 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 600
+LEARNING_RATE = 0.03
+NUM_LEAVES = 31
+FEATURE_FRACTION = 0.3
+BAGGING_FRACTION = 0.8
+BAGGING_FREQ = 1
+MIN_CHILD_SAMPLES = 10
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMClassifier(
+        n_estimators=N_TREES,
+        learning_rate=LEARNING_RATE,
+        num_leaves=NUM_LEAVES,
+        feature_fraction=FEATURE_FRACTION,
+        bagging_fraction=BAGGING_FRACTION,
+        bagging_freq=BAGGING_FREQ,
+        min_child_samples=MIN_CHILD_SAMPLES,
+        random_state=seed,
+        n_jobs=8,
+        verbose=-1
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+from lightgbm import LGBMClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES_RF = 200
+N_TREES_LGBM = 200
+LEARNING_RATE = 0.03
+NUM_LEAVES = 31
+FEATURE_FRACTION = 0.3
+BAGGING_FRACTION = 0.8
+BAGGING_FREQ = 1
+MIN_CHILD_SAMPLES = 10
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    X_test = featurize(test_smiles)
+    
+    # Define base models
+    base_models = [
+        RandomForestClassifier(n_estimators=N_TREES_RF, max_depth=15, random_state=seed, n_jobs=-1),
+        LGBMClassifier(
+            n_estimators=N_TREES_LGBM,
+            learning_rate=LEARNING_RATE,
+            num_leaves=NUM_LEAVES,
+            feature_fraction=FEATURE_FRACTION,
+            bagging_fraction=BAGGING_FRACTION,
+            bagging_freq=BAGGING_FREQ,
+            min_child_samples=MIN_CHILD_SAMPLES,
+            random_state=seed,
+            n_jobs=8,
+            verbose=-1
+        ),
+        LogisticRegression(C=1.0, random_state=seed, n_jobs=-1)
+    ]
+    
+    # Out-of-fold predictions
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+    oof_preds = np.zeros((len(X), len(base_models)))
+    
+    for i, model in enumerate(base_models):
+        for train_idx, test_idx in skf.split(X, y):
+            model.fit(X[train_idx], y[train_idx])
+            oof_preds[test_idx, i] = model.predict_proba(X[test_idx])[:, 1] if hasattr(model, 'predict_proba') else model.decision_function(X[test_idx])
+    
+    # Meta-learner
+    meta_model = LogisticRegression(C=1.0, random_state=seed, n_jobs=-1)
+    meta_model.fit(oof_preds, y)
+    
+    # Final test predictions
+    meta_feats = np.zeros((len(X_test), len(base_models)))
+    for i, model in enumerate(base_models):
+        model.fit(X, y)
+        meta_feats[:, i] = model.predict_proba(X_test)[:, 1] if hasattr(model, 'predict_proba') else model.decision_function(X_test)
+    
+    return meta_model.predict_proba(meta_feats)[:, 1]
+-----
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 600
+LEARNING_RATE = 0.03
+NUM_LEAVES = 31
+FEATURE_FRACTION = 0.3
+BAGGING_FRACTION = 0.8
+BAGGING_FREQ = 1
+MIN_CHILD_SAMPLES = 10
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMClassifier(
+        n_estimators=N_TREES,
+        learning_rate=LEARNING_RATE,
+        num_leaves=NUM_LEAVES,
+        feature_fraction=FEATURE_FRACTION,
+        bagging_fraction=BAGGING_FRACTION,
+        bagging_freq=BAGGING_FREQ,
+        min_child_samples=MIN_CHILD_SAMPLES,
+        random_state=seed,
+        n_jobs=8,
+        verbose=-1
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+ нюанс
+-----
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 600
+LEARNING_RATE = 0.03
+NUM_LEAVES = 31
+FEATURE_FRACTION = 0.3
+BAGGING_FRACTION = 0.8
+BAGGING_FREQ = 1
+MIN_CHILD_SAMPLES = 10
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMClassifier(
+        n_estimators=N_TREES,
+        learning_rate=LEARNING_RATE,
+        num_leaves=NUM_LEAVES,
+        feature_fraction=FEATURE_FRACTION,
+        bagging_fraction=BAGGING_FRACTION,
+        bagging_freq=BAGGING_FREQ,
+        min_child_samples=MIN_CHILD_SAMPLES,
+        random_state=seed,
+        n_jobs=8,
+        verbose=-1
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+from lightgbm import LGBMClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import StratifiedKFold
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.int64)
+    X_test = featurize(test_smiles)
+    
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+    oof_probs = np.zeros((X_train.shape[0], 3))
+    
+    # Base Models
+    base_models = [
+        RandomForestClassifier(n_estimators=100, max_depth=10, random_state=seed, n_jobs=-1),
+        LGBMClassifier(n_estimators=200, learning_rate=0.05, num_leaves=31, random_state=seed, n_jobs=-1, verbose=-1),
+        LogisticRegression(max_iter=500, random_state=seed)
+    ]
+    
+    for i, model in enumerate(base_models):
+        for train_idx, val_idx in skf.split(X_train, y_train):
+            model.fit(X_train[train_idx], y_train[train_idx])
+            oof_probs[val_idx, i] = model.predict_proba(X_train[val_idx])[:, 1]
+            
+    # Meta-learner
+    meta_model = LogisticRegression(random_state=seed)
+    meta_model.fit(oof_probs, y_train)
+    
+    # Final predictions
+    test_probs = np.zeros((X_test.shape[0], 3))
+    for i, model in enumerate(base_models):
+        model.fit(X_train, y_train)
+        test_probs[:, i] = model.predict_proba(X_test)[:, 1]
+        
+    return meta_model.predict_proba(test_probs)[:, 1]
+-----

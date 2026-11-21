@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if it % 8 == 0:
+            def obj2(z):
+                x = z[:n]
+                y = z[n:2 * n]
+                DX = x[:, None] - x[None]
+                DY = y[:, None] - y[None]
+                D = DX * DX + DY * DY + np.eye(n) * 10.0
+                nn = D.argmin(1)
+                ai = np.arange(n)
+                d2 = D[ai, nn]
+                mu = d2.mean()
+                val = -np.sum(z[2 * n:]) + 0.05 * np.mean((d2 - mu) ** 2)
+                gd = 0.05 * 2.0 / n * (d2 - mu)
+                gr = np.zeros(N3)
+                ddx = 2 * (x - x[nn])
+                ddy = 2 * (y - y[nn])
+                gr[:n] += gd * ddx
+                gr[n:2 * n] += gd * ddy
+                np.add.at(gr, nn, -gd * ddx)
+                np.add.at(gr, n + nn, -gd * ddy)
+                gr[2 * n:] = -1.0
+                return val, gr
+            try:
+                res0 = minimize(obj2, z0, jac=True, method="SLSQP", bounds=bounds,
+                                constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                                options={"maxiter": 100, "ftol": 1e-9})
+                if np.all(np.isfinite(res0.x)):
+                    z0 = res0.x
+            except Exception:
+                pass
+>>>>>>> REPLACE
+-----

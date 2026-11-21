@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+import pandas as pd
+from catboost import CatBoostRegressor
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def scaffold_strings(smiles):
+    out = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        generic = Chem.MolToSmiles(MurckoScaffold.MakeScaffoldGeneric(MurckoScaffold.GetScaffoldForMol(m)))
+        systems = []
+        for ring in m.GetRingInfo().AtomRings():
+            merged = set(ring)
+            keep = []
+            for sy in systems:
+                if sy & merged:
+                    merged |= sy
+                else:
+                    keep.append(sy)
+            systems = keep + [merged]
+        out.append((generic, ",".join(sorted(str(len(sy)) for sy in systems))))
+    return out
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    X_tr = featurize(train_smiles)
+    X_te = featurize(test_smiles)
+    n = X_tr.shape[1]
+    s_tr = scaffold_strings(train_smiles)
+    s_te = scaffold_strings(test_smiles)
+    maps = [{v: i for i, v in enumerate(sorted(set(c)))} for c in zip(*s_tr)]
+
+    def encode(rows):
+        return np.array([[maps[j].get(r[j], len(maps[j])) for j in range(2)] for r in rows], dtype=np.int64)
+
+    F_tr = pd.concat([pd.DataFrame(X_tr), pd.DataFrame(encode(s_tr), columns=[n, n + 1])], axis=1)
+    F_te = pd.concat([pd.DataFrame(X_te), pd.DataFrame(encode(s_te), columns=[n, n + 1])], axis=1)
+    model.fit(F_tr, y - A_tr @ coef, cat_features=[n, n + 1])
+    return model.predict(F_te) + A_te @ coef
+>>>>>>> REPLACE
+-----

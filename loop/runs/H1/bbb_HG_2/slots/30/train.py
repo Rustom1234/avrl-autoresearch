@@ -1,0 +1,77 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (binary classification; return the probability of class 1).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+import lightgbm as lgb
+from sklearn.model_selection import GroupKFold
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    
+    mols = [Chem.MolFromSmiles(s) for s in train_smiles]
+    scaffolds = [Chem.GetScaffoldForMolParts(m, 0)[1] for m in mols if m]
+    
+    gkf = GroupKFold(n_splits=5)
+    train_idx, val_idx = next(iter(gkf.split(X, y, groups=scaffolds)))
+    
+    X_train, y_train = X[train_idx], y[train_idx]
+    X_val, y_val = X[val_idx], y[val_idx]
+    
+    params = {
+        'learning_rate': 0.02,
+        'num_leaves': 15,
+        'min_child_samples': 10,
+        'feature_fraction': 0.3,
+        'bagging_fraction': 0.7,
+        'bagging_freq': 1,
+        'lambda_l2': 5,
+        'is_unbalance': True,
+        'verbosity': -1,
+        'random_state': seed
+    }
+    
+    train_set = lgb.Dataset(X_train, label=y_train)
+    val_set = lgb.Dataset(X_val, label=y_val, reference=train_set)
+    
+    bst = lgb.train(
+        params,
+        train_set,
+        num_boost_round=3000,
+        valid_sets=[train_set, val_set],
+        valid_names=['train', 'val'],
+        callbacks=[lgb.early_stopping(200, div=val_set)],
+        learning_rate_fn=lambda i: 0.02 * (0.002 / 0.02) ** (i / 3000)
+    )
+    
+    best_round = bst.best_iteration
+    final_rounds = int(best_round * 1.1)
+    
+    final_model = lgb.train(
+        params,
+        lgb.Dataset(X, label=y),
+        num_boost_round=max(1, final_rounds)
+    )
+    
+    return final_model.predict(featurize(test_smiles))

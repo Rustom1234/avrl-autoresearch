@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def objective(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Basic sum of radii (negative for minimization)
+        obj = -r.sum()
+        
+        # Penalty terms (Barrier-like) to keep circles inside and non-overlapping
+        # We use a small epsilon to avoid log(0) issues or just large negative penalties
+        # For simplicity, we keep the constraints but use a soft-penalty-like objective
+        # to guide the solver away from the boundaries.
+        # However, SLSQP handles constraints well, so let's stick to SLSQP
+        # but improve the initial guess and constraints slightly.
+        return obj
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Distance between centers - sum of radii >= 0
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - (r[iu[0]] + r[iu[1]])
+        # Boundary constraints
+        bound_cons = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        # Ensure radii are positive
+        return np.concatenate([d, bound_cons, r])
+
+    res = minimize(objective, x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER, "ftol": 1e-9, "preallocate": True})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

@@ -1,0 +1,296 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train, y_train)
+    
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+=======
+from scipy.stats import spearmanr
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        # Physchem descriptors including Crippen LogP
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    # Supervised bit selection
+    # X_train columns are [0:2048] (Morgan) and [2048:2057] (Descriptors)
+    correlations = []
+    for i in range(N_BITS):
+        corr, _ = spearmanr(X_train[:, i], y_train)
+        correlations.append(abs(corr))
+    
+    # Get indices of top 400 bits
+    top_bit_indices = np.argsort(correlations)[-400:]
+    
+    # Keep top bits + the 9 descriptors
+    selected_indices = sorted(list(set(top_bit_indices + list(range(N_BITS, N_BITS + 9)))))
+    
+    X_train_reduced = X_train[:, selected_indices]
+    X_test = featurize(test_smiles)
+    X_test_reduced = X_test[:, selected_indices]
+    
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train_reduced, y_train)
+    
+    return model.predict(X_test_reduced)
+>>>>>>>
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from catboost import CatBoostRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ITERATIONS = 1500
+LEARNING_RATE = 0.05
+DEPTH = 6
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train, y_train)
+    
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from catboost import CatBoostRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ITERATIONS = 1500
+LEARNING_RATE = 0.05
+DEPTH = 6
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train, y_train)
+    
+    X_test = featurize(test_smiles)
+    return model.predict(X_test)
+=
+from rdkit import Chem
+from rdkit import DataStructs
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from catboost import CatBoostRegressor
+from scipy.stats import spearmanr
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+ITERATIONS = 1500
+LEARNING_RATE = 0.05
+DEPTH = 6
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        
+        # Physchem descriptors
+        descs = [
+            Descriptors.MolLogP(mol),
+            Descriptors.MolWt(mol),
+            Descriptors.TPSA(mol),
+            Descriptors.NumHDonors(mol),
+            Descriptors.NumHAcceptors(mol),
+            Descriptors.NumRotatableBonds(mol),
+            Descriptors.FractionCSP3(mol),
+            Descriptors.HeavyAtomCount(mol),
+            Descriptors.NumAromaticRings(mol)
+        ]
+        fps.append(np.concatenate([fp, np.array(descs, dtype=np.float32)]))
+    
+    return np.array(fps, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    # Supervised bit selection
+    # X_train shape is (N, N_BITS + 9)
+    # Calculate Spearman correlation for the Morgan bits only
+    correlations = []
+    for i in range(N_BITS):
+        corr, _ = spearmanr(X_train[:, i], y_train)
+        correlations.append(abs(corr))
+    
+    # Get indices of top 400 bits
+    top_indices = np.argsort(correlations)[-400:]
+    
+    # Construct feature index list: top bits + the last 9 descriptors
+    # We need to be careful: we want to keep the relative order if possible, 
+    # but simple concatenation is fine as long as it's consistent.
+    final_indices = np.concatenate([top_indices, np.arange(N_BITS, N_BITS + 9)])
+    
+    X_train_selected = X_train[:, final_indices]
+    X_test = featurize(test_smiles)
+    X_test_selected = X_test[:, final_indices]
+    
+    model = CatBoostRegressor(
+        iterations=ITERATIONS,
+        learning_rate=LEARNING_RATE,
+        depth=DEPTH,
+        loss_function='MAE',
+        random_seed=seed,
+        thread_count=8,
+        verbose=0
+    )
+    model.fit(X_train_selected, y_train)
+    
+    return model.predict(X_test_selected)
+-----

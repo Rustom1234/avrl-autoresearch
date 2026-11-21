@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def featurize_coarse(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, fpSize=N_BITS,
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganAtomInvGen(includeRingMembership=False))
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    Xc = featurize_coarse(train_smiles).astype(np.float64)
+    Xct = featurize_coarse(test_smiles).astype(np.float64)
+    K_train = 0.25 * tanimoto(X, X) + 0.25 * tanimoto(Xc, Xc) + 0.5 * rbf(D, D, gamma)
+    K_test = 0.25 * tanimoto(Xt, X) + 0.25 * tanimoto(Xct, Xc) + 0.5 * rbf(Dt, D, gamma)
+>>>>>>> REPLACE
+-----

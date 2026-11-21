@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+from xgboost import XGBRegressor
+from sklearn.feature_selection import SelectKBest, f_regression
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+N_SELECT = 1024
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=1000, learning_rate=0.05, max_depth=6, subsample=0.8, colsample_bytree=0.5,
+                         tree_method="hist", n_jobs=8, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    n_desc = len(Descriptors.descList)
+    sel = SelectKBest(f_regression, k=N_SELECT).fit(Xtr[:, n_desc:], np.asarray(train_y, dtype=np.float64))
+    Xtr = np.hstack([Xtr[:, :n_desc], sel.transform(Xtr[:, n_desc:])])
+    Xte = np.hstack([Xte[:, :n_desc], sel.transform(Xte[:, n_desc:])])
+    model = XGBRegressor(n_estimators=1000, learning_rate=0.05, max_depth=6, subsample=0.8, colsample_bytree=0.5,
+                         tree_method="hist", n_jobs=8, random_state=seed)
+    model.fit(Xtr, np.asarray(train_y, dtype=np.float64))
+    return model.predict(Xte)
+>>>>>>> REPLACE
+-----

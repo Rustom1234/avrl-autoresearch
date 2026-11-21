@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+AMINE = Chem.MolFromSmarts('[NX3;!$(NC=[O,S,N]);!$(N-a);!$(NS=O)]')
+=======
+AMINE = Chem.MolFromSmarts('[NX3;!$(NC=[O,S,N]);!$(N-a);!$(NS=O)]')
+
+
+def clean_mol(s):
+    # Keep the largest fragment (drops counter-ions); fall back to the original molecule on any failure.
+    try:
+        m = Chem.MolFromSmiles(s)
+        best = max(Chem.GetMolFrags(m, asMols=True), key=lambda f: f.GetNumHeavyAtoms())
+        out = Chem.MolFromSmiles(Chem.MolToSmiles(best))
+        return out if out is not None else m
+    except Exception:
+        return Chem.MolFromSmiles(s)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        m = Chem.MolFromSmiles(s)
+        d = [f(m) for _, f in Descriptors.descList]
+=======
+        m = clean_mol(s)
+        d = [f(m) for _, f in Descriptors.descList]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(s), RADIUS, nBits=N_BITS)
+=======
+        fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(clean_mol(s), RADIUS, nBits=N_BITS)
+>>>>>>> REPLACE
+-----

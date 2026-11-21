@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _jam(n, rng, sweeps=200):
+    """Monte Carlo jamming: random moves at a shrinking step, radii set to the largest feasible value after each move."""
+    c, r = rng.uniform(0, 1, (n, 2)), np.zeros(n)
+    for sweep in range(sweeps):
+        sd = 0.02 * (1 - sweep / sweeps) + 1e-4
+        for i in rng.permutation(n):
+            p = c[i] + sd * rng.standard_normal(2)
+            if p.min() < r[i] or p.max() > 1 - r[i]:
+                continue
+            d = np.sqrt(((c - p) ** 2).sum(1))
+            d[i] = np.inf
+            if np.any(d < r + r[i]):
+                continue
+            c[i] = p
+            r[i] = max(0, min(np.min(d - r), p.min(), 1 - p.max()))
+        r = _repair(c, r * 1.001)
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng)
+=======
+        c, r = _jam(n, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+>>>>>>> REPLACE
+-----

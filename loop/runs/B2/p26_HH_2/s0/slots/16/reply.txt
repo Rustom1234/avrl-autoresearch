@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    def cons(v, cap):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r, cap - r])
+
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v, cap=cap: cons(v, cap)},
+                       options={"maxiter": MAX_ITER})
+=======
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        return np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+
+    x = x0
+    for cap in list(np.arange(0.05, 0.4 + 1e-9, 0.02)) + [1.0]:
+        bounds = [(0, 1)] * (2 * n) + [(0, cap)] * n
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", bounds=bounds,
+                       constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, sd=0.02):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        centers = np.clip(start + rng.normal(0, 0.02, (n, 2)), 0, 1)
+=======
+        centers = np.clip(start + rng.normal(0, sd, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        c, r = _solve_once(n, rng, start)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        start = best[0] if rng.random() < 0.5 else None   # reuse the best centres half of the time
+=======
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:   # restarts until the time is used
+        frac = (time.process_time() - t0) / budget   # 0 at the start, 1 at the end
+        c, r = _solve_once(n, rng, start, 0.05 * (1 - frac) + 0.005 * frac)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        start = best[0] if rng.random() < 0.5 + 0.5 * frac else None   # reuse probability rises to 1
+>>>>>>> REPLACE
+-----

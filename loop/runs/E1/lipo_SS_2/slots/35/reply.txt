@@ -1,0 +1,67 @@
+<<<<<<< SEARCH
+import lightgbm as lgb
+=======
+import lightgbm as lgb
+from concurrent.futures import ThreadPoolExecutor
+
+_AP_CACHE = {}
+
+
+def ap_counts(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+    for s in smiles:
+        if s not in _AP_CACHE:
+            _AP_CACHE[s] = gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)).astype(np.float32)
+    return np.array([_AP_CACHE[s] for s in smiles], dtype=np.float32)
+
+
+def minmax_kernel(A):
+    sa = A.sum(1)
+    def rows(i):
+        return np.minimum(A[i:i + 4, None, :], A[None, :, :]).sum(2)
+    with ThreadPoolExecutor(8) as ex:
+        S = np.vstack(list(ex.map(rows, range(0, len(A), 4))))
+    return S / (sa[:, None] + sa[None, :] - S + 1e-9)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+=======
+def base_preds(Xtr, ytr, Xte, seed, n_trees, Ktr, Kte):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr))])
+=======
+    sp = SVR(kernel="precomputed", C=5.0, epsilon=0.1).fit(Ktr, ytr)
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr)), sp.predict(Kte)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        oof[va] = base_preds(Xtr[tr], y[tr], Xtr[va], seed, 200)
+    meta = LinearRegression(positive=True, fit_intercept=False).fit(oof, y)
+    return meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES)) + cte
+=======
+    K = minmax_kernel(ap_counts(list(train_smiles) + list(test_smiles)))
+    n = len(y)
+    Ktt, Kte = K[:n, :n], K[n:, :n]
+    oof = np.zeros((n, 4))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        oof[va] = base_preds(Xtr[tr], y[tr], Xtr[va], seed, 200, Ktt[np.ix_(tr, tr)], Ktt[np.ix_(va, tr)])
+    meta = LinearRegression(positive=True, fit_intercept=False).fit(oof, y)
+    return meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES, Ktt, Kte)) + cte
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from concurrent.futures import ThreadPoolExecutor
+=======
+from scipy.spatial.distance import cdist
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def rows(i):
+        return np.minimum(A[i:i + 4, None, :], A[None, :, :]).sum(2)
+    with ThreadPoolExecutor(8) as ex:
+        S = np.vstack(list(ex.map(rows, range(0, len(A), 4))))
+=======
+    S = (sa[:, None] + sa[None, :] - cdist(A, A, "cityblock")) / 2
+>>>>>>> REPLACE
+-----

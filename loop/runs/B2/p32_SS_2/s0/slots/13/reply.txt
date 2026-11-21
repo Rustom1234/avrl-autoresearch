@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+=======
+    def cons_eq(v):
+        c, t = v[:2 * n].reshape(n, 2), v[2 * n]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * t
+        return np.concatenate([d, c[:, 0] - t, c[:, 1] - t, 1 - c[:, 0] - t, 1 - c[:, 1] - t, [t]])
+
+    eq = minimize(lambda v: -v[-1], np.append(pts.ravel(), INIT_RADIUS), method="SLSQP",
+                  constraints={"type": "ineq", "fun": cons_eq}, options={"maxiter": MAX_ITER}).x
+    x0 = np.concatenate([eq[:2 * n], np.full(n, max(eq[2 * n], 0))])
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+>>>>>>> REPLACE
+-----

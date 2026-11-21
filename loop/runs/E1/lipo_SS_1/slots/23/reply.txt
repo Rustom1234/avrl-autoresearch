@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors, rdMolDescriptors
+from rdkit.Chem.EState import Fingerprinter
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.hstack([morgan, desc, ion])
+=======
+    edges = np.linspace(-1.2, 0.8, 21)
+    extra = []
+    for m in mols:
+        c = np.array(rdMolDescriptors._CalcCrippenContribs(m), dtype=np.float64)
+        idx = np.digitize(c[:, 0], edges)
+        lp = np.bincount(idx, weights=c[:, 0], minlength=23)
+        mr = np.bincount(idx, weights=c[:, 1], minlength=23)
+        cnt, sm = Fingerprinter.FingerprintMol(m)
+        extra.append(np.concatenate([lp, mr, cnt, sm]))
+    extra = np.nan_to_num(np.array(extra, dtype=np.float64)).astype(np.float32)
+    return np.hstack([morgan, desc, ion, extra])
+>>>>>>> REPLACE
+-----

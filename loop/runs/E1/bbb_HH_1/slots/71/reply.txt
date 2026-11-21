@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+=======
+from rdkit import Chem
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    # Stability selection: scaffold-level bootstrap draws, keep columns with nonzero gain in >= 60% of draws
+    scaffolds = [MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(s)) for s in train_smiles]
+    groups = {}
+    for i, sc in enumerate(scaffolds):
+        groups.setdefault(sc, []).append(i)
+    group_idx = [np.array(v) for v in groups.values()]
+    rng = np.random.default_rng(seed)
+    n_draws = 20
+    counts = np.zeros(X_train.shape[1])
+    for _ in range(n_draws):
+        picks = rng.integers(0, len(group_idx), size=len(group_idx))
+        rows = np.concatenate([group_idx[g] for g in picks])
+        if len(np.unique(y[rows])) < 2:
+            continue
+        sel = LGBMClassifier(n_estimators=100, learning_rate=0.1, num_leaves=15, colsample_bytree=0.3,
+                             random_state=int(rng.integers(1 << 30)), n_jobs=8, verbose=-1)
+        sel.fit(X_train[rows], y[rows])
+        counts += sel.booster_.feature_importance(importance_type='gain') > 0
+    keep = np.where(counts >= 0.6 * n_draws)[0]
+    if len(keep) < 20:
+        keep = np.arange(X_train.shape[1])
+    X_train = X_train[:, keep]
+    X_test = X_test[:, keep]
+>>>>>>> REPLACE
+-----

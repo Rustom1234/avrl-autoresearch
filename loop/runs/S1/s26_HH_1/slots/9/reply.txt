@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+# This part remains fixed (not evolved)
+def _valid_packing(centers, radii):
+=======
+def _reinsert_polish(c, r, deadline):
+    # Remove the smallest circle, reinsert it at the grid point with the most clearance,
+    # re-optimise all centres with _local_opt, and keep the result only if the sum improves.
+    n = 26
+    best_c = np.array(c, dtype=float)
+    best_r = np.array(r, dtype=float)
+    best_s = float(np.sum(best_r))
+    g = np.linspace(0.0, 1.0, 51)
+    gx, gy = np.meshgrid(g, g)
+    grid = np.stack([gx.ravel(), gy.ravel()], axis=1)
+    border = np.minimum(np.minimum(grid[:, 0], grid[:, 1]), np.minimum(1 - grid[:, 0], 1 - grid[:, 1]))
+    attempt = 0
+    while time.perf_counter() < deadline:
+        order = np.argsort(best_r)
+        i = int(order[attempt % n])
+        attempt += 1
+        keep = np.delete(best_c, i, axis=0)
+        keep_r = np.delete(best_r, i)
+        dist = np.sqrt(((grid[:, None, :] - keep[None, :, :]) ** 2).sum(-1))
+        clear = np.minimum(border, np.min(dist - keep_r[None, :], axis=1))
+        p = grid[int(np.argmax(clear))]
+        newc = np.vstack([keep, p[None, :]])
+        cc, rr = _local_opt(newc)
+        s = float(np.sum(rr))
+        if s > best_s + 1e-9 and _valid_packing(cc, rr):
+            best_c, best_r, best_s = cc, rr, s
+            attempt = 0
+    return best_c, best_r
+
+
+# This part remains fixed (not evolved)
+def _valid_packing(centers, radii):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best_c is None:
+        # Last-resort valid output (all radii zero).
+=======
+    if best_c is not None:
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+    if best_c is None:
+        # Last-resort valid output (all radii zero).
+>>>>>>> REPLACE
+-----

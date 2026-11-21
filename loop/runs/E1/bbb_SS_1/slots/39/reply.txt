@@ -1,0 +1,96 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        m = Chem.MolFromSmiles(s)
+        fp = gen
+=======
+        m = Chem.MolFromSmiles(s)
+        try:
+            m2 = rdMolStandardize.Uncharger().uncharge(rdMolStandardize.LargestFragmentChooser().choose(m))
+            Chem.SanitizeMol(m2)
+            m = m2
+        except Exception:
+            pass
+        fp = gen
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+=======
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+
+    nd = len(Descriptors.descList)
+    # Tanimoto kNN on binary Morgan bits
+    A = (X[:, nd:] > 0).astype(np.float32)
+    B = (Xt[:, nd:] > 0).astype(np.float32)
+    inter = B @ A.T
+    sim = inter / np.maximum(B.sum(1)[:, None] + A.sum(1)[None, :] - inter, 1e-9)
+    idx = np.argsort(-sim, axis=1)[:, :10]
+    w = np.take_along_axis(sim, idx, axis=1)
+    knn = (w * y[idx]).sum(1) / np.maximum(w.sum(1), 1e-9)
+    preds.append(rankdata(knn) / len(Xt))
+
+    # MLP on quantile-scaled descriptors
+    qt = QuantileTransformer(n_quantiles=min(200, len(X)), output_distribution="normal", random_state=seed)
+    Dq = qt.fit_transform(X[:, :nd])
+    Dtq = qt.transform(Xt[:, :nd])
+    mlp = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True, max_iter=300,
+                        random_state=seed)
+    mlp.fit(Dq, y)
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        m = Chem.MolFromSmiles(s)
+=======
+        m = Chem.MolFromSmiles(s)
+        try:
+            m2 = rdMolStandardize.Uncharger().uncharge(rdMolStandardize.LargestFragmentChooser().choose(m))
+            Chem.SanitizeMol(m2)
+            m = m2
+        except Exception:
+            pass
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+=======
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+
+    nd = len(Descriptors.descList)
+    # Tanimoto kNN on binary Morgan bits
+    A = (X[:, nd:] > 0).astype(np.float32)
+    B = (Xt[:, nd:] > 0).astype(np.float32)
+    inter = B @ A.T
+    sim = inter / np.maximum(B.sum(1)[:, None] + A.sum(1)[None, :] - inter, 1e-9)
+    idx = np.argsort(-sim, axis=1)[:, :10]
+    w = np.take_along_axis(sim, idx, axis=1)
+    knn = (w * y[idx]).sum(1) / np.maximum(w.sum(1), 1e-9)
+    preds.append(rankdata(knn) / len(Xt))
+
+    # MLP on quantile-scaled descriptors
+    qt = QuantileTransformer(n_quantiles=min(200, len(X)), output_distribution="normal", random_state=seed)
+    Dq = qt.fit_transform(X[:, :nd])
+    Dtq = qt.transform(Xt[:, :nd])
+    mlp = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=1e-2, early_stopping=True, max_iter=300,
+                        random_state=seed)
+    mlp.fit(Dq, y)
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

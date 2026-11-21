@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    X_train = np.hstack([X_train, np.clip(D_train, lo, hi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+=======
+    Dc_train = np.clip(D_train, lo, hi).astype(np.float32)
+    Dc_test = np.clip(D_test, lo, hi).astype(np.float32)
+    X_train = np.hstack([X_train, Dc_train])
+    X_test = np.hstack([X_test, Dc_test])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    rf_d = RandomForestClassifier(n_estimators=N_TREES, max_features=0.5, min_samples_leaf=2,
+                                  n_jobs=-1, random_state=seed)
+    rf_d.fit(Dc_train, y)
+    return (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1])
+            + scaled_rank(rf_d.predict_proba(Dc_test)[:, 1])) / 3.0
+>>>>>>> REPLACE
+-----

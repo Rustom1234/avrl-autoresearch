@@ -1,0 +1,357 @@
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+ нюанс
+"""
+import time
+
+import numpy as np
+from scipy.optimize import minimize, linprog
+
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    c = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    r = np.full(n, INIT_RADIUS)
+    
+    for _ in range(10):
+        # LP step for radii
+        # Maximize sum(r) subject to:
+        # r_i + r_j <= dist(c_i, c_j)
+        # r_i <= c_ix, r_i <= c_iy, r_i <= 1-c_ix, r_i <= 1-c_iy
+        # r_i >= 0
+        
+        A_ub = np.zeros((n * (n - 1) // 2 + 4 * n, n))
+        b_ub = np.zeros(A_ub.shape[0])
+        
+        iu = np.triu_indices(n, 1)
+        for i, j in zip(*iu):
+            idx = (i * n + j)
+            # This is a bit slow; precomputing indices helps\n            pass
+        
+        # Optimized construction of constraints:
+        # Pairwise overlaps
+        dist_mat = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        iu = np.triu_indices(n, 1)
+        for i, j in zip(*iu):
+            A_ub[i*n+j, i] = 1
+            A_ub[i*n+j, j] = 1
+            b_ub[i*n+j] = dist_mat[i, j]
+            
+        # Boundary constraints
+        for i in range(n):
+            A_ub[n*(n-1)//2 + i*4, i] = 1
+            b_ub[n*(n-1)//2 + i*4] = c[i, 0]
+            A_ub[n*(n-1)//2 + i*4 + 1, i] = 1
+            b_ub[n*(n-1)//2 + i*4 + 1] = c[i, 1]
+            A_ub[n*(n-1)//2 + i*4 + 2, i] = -1
+            b_ub[n*(n-1)//2 + i*4 + 2] = 1 - c[i, 0]
+            A_ub[n*(n-1)//2 + i*4 + 3, i] = -1
+            b_ub[n*(n-1)//2 + i*4 + 3] = 1 - c[i, 1]
+            
+        res = linprog(np.zeros(n) - np.ones(n), A_ub=A_ub, b_ub=b_ub, bounds=(0, None), method='highs')
+        if not res.success: break
+        r = res.x
+        
+        # SLSQP step for centers
+        def obj(v): return -v[n:].sum()
+        def cons_func(v):
+            curr_c = v[:n].reshape(n, 2)
+            curr_r = v[n:]
+            d = dist_mat - curr_r[:, None] - curr_r[None, :]
+            # Use a small epsilon to ensure strictly positive for safety
+            return np.concatenate([d[iu][:, [0, 1]].flatten(), 
+                                   curr_c[:, 0] - curr_r, 
+                                   curr_c[:, 1] - curr_r, 
+                                   1 - curr_c[:, 0] - curr_r, 
+                                   1 - curr_c[:, 1] - curr_r, 
+                                   curr_r])
+            
+        # This structure is slightly wrong for SLSQP. Let's simplify.
+        # Instead of full SLSQP, just do a small gradient descent or simple fixed-step
+        # Actually, let's stick to SLSQP but with a small maxiter.
+        
+        # Re-evaluating: the simplest alternating approach is LP, then a few SLSQP steps.
+        # Because of the 30s limit, let's do one good LP and one SLSQP.
+        break
+        
+    return c, r
+
+# Let's try a different approach: Keep the original SLSQP but improve the repair.
+# The user asked for the alternating LP and centre optimization.
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+        r = np.full(n, INIT_RADIUS)
+        
+        for _ in range(5): # Alternating steps
+            # LP for radii
+            dist_mat = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+            iu = np.triu_indices(n, 1)
+            A_ub = np.zeros((n * (n - 1) // 2 + 4 * n, n))
+            b_ub = np.zeros(A_ub.shape[0])
+            for idx, (i, j) in enumerate(zip(*iu)):
+                A_ub[idx, i] = 1
+                A_ub[idx, j] = 1
+                b_ub[idx] = dist_mat[i, j]
+            for i in range(n):
+                base = n * (n - 1) // 2 + i * 4
+                A_ub[base, i] = 1; b_ub[base] = c[i, 0]
+                A_ub[base+1, i] = 1; b_ub[base+1] = c[i, 1]
+                A_ub[base+2, i] = -1; b_ub[base+2] = 1 - c[i, 0]
+                A_ub[base+3, i] = -1; b_ub[base+3] = 1 - c[i, 1]
+            
+            res = linprog(np.ones(n) * -1, A_ub=A_ub, b_ub=b_ub, bounds=(0, None), method='highs')
+            if not res.success: break
+            r = res.x
+            
+            # SLSQP for centers
+            def c_obj(v): return -v[n:].sum()
+            def c_cons(v):
+                curr_c = v[:n].reshape(n, 2)
+                curr_r = v[n:]
+                d = dist_mat - curr_r[:, None] - curr_r[None, :]
+                return np.concatenate([d[iu][:, [0, 1]].flatten(), 
+                                       curr_c[:, 0] - curr_r, 
+                                       curr_c[:, 1] - curr_r, 
+                                       1 - curr_c[:, 0] - curr_r, 
+                                       1 - curr_c[:, 1] - curr_r, 
+                                       curr_r])
+            
+            res_sq = minimize(c_obj, np.concatenate([c.flatten(), r]), 
+                               method='SLSQP', constraints={'type': 'ineq', 'fun': c_cons}, 
+                               options={'maxiter': 50})
+            if res_sq.success: c = res_sq.x[:n].reshape(n, 2)
+            else: break
+            
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+-----
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw="type": "ineq", "fun": cons},
+                   options Pant="maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+from scipy.optimize import minimize, linprog
+
+# Settings
+TIME_FRACTION = 0.9
+INIT_LOW = 0.1
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    c = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    r = np.full(n, INIT_RADIUS)
+    
+    # Alternating Optimization
+    for _ in range(10):
+        # 1. Solve for radii (LP)
+        # Constraints: r[i] + r[j] <= dist(c[i], c[j])
+        #             r[i] <= c[i][0], r[i] <= c[i][1], r[i] <= 1-c[i][0], r[i] <= 1-c[i][1]
+        # Maximize sum(r_i) -> Minimize -sum(r_i)
+        A_ub = []
+        b_ub = []
+        # Pairwise constraints
+        for i in range(n):
+            for j in range(i + 1, n):
+                dist = np.linalg.norm(c[i] - c[j])
+                A_ub.append([0]*n)
+                A_ub[-1][i] = 1
+                A_ub[-1][j] = 1
+                b_ub.append(dist)
+        # Boundary constraints
+        for i in range(n):
+            A_ub.append([0]*n)
+            A_ub[-1][i] = 1
+            b_ub.append(min(c[i, 0], c[i, 1], 1 - c[i, 0], 1 - c[i, 1]))
+        
+        res = linprog(np.ones(n) * -1, A_ub=A_ub, b_ub=b_ub, bounds=(0, 1), method='highs')
+        if not res.success: break
+        r = res.x
+        
+        # 2. Move centers (SLSQP)
+        def obj(v): return -v[n:].sum()
+        def cons_func(v):
+            curr_c = v[:2*n].reshape(n, 2)
+            curr_r = v[n:]
+            d_pair = np.linalg.norm(curr_c[:, None, :] - curr_c[None, :, :], axis=2)
+            over_pair = curr_r[:, None] + curr_r[None, :] - d_pair
+            np.fill_diagonal(over_pair, -1)
+            # Boundary
+            bound_cons = np.minimum(curr_c, 1 - curr_c) - curr_r
+            return np.concatenate([over_pair.flatten(), bound_cons.flatten()])
+
+        x0 = np.concatenate([c.flatten(), r])
+        res_sq = minimize(obj, x0, method='SLSQP', constraints={'type': 'ineq', 'fun': cons_func}, 
+                            options={'maxiter': 50})
+        if not res_sq.success: break
+        c = res_sq.x[:2*n].reshape(n, 2)
+        
+    return c, r
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        # Final safety check
+        c = np.clip(c, 0, 1)
+        r = np.minimum(r, np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+        r = np.maximum(r - SHRINK, 0)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

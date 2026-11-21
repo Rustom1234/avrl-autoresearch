@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _reinsert(c, r):
+    """Move the smallest rattler (fewer than two active contacts) to the point with the largest clearance."""
+    n = len(r)
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    slack = d - r[:, None] - r[None]
+    np.fill_diagonal(slack, np.inf)
+    walls = np.stack([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r], 1)
+    contacts = (slack < 1e-7).sum(1) + (walls < 1e-7).sum(1)
+    rattlers = np.flatnonzero(contacts < 2)
+    if len(rattlers) == 0:
+        return c, r
+    k = rattlers[np.argmin(r[rattlers])]
+    keep = np.arange(n) != k
+    g = np.linspace(0, 1, 200)
+    gx, gy = np.meshgrid(g, g)
+    P = np.stack([gx.ravel(), gy.ravel()], 1)
+    dc = np.sqrt(((P[:, None] - c[keep][None]) ** 2).sum(-1)) - r[keep][None]
+    wall = np.minimum(np.minimum(P[:, 0], P[:, 1]), np.minimum(1 - P[:, 0], 1 - P[:, 1]))
+    clear = np.minimum(dc.min(1), wall)
+    j = np.argmax(clear)
+    c, r = c.copy(), r.copy()
+    c[k] = P[j]
+    r[k] = max(clear[j], 0)
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+=======
+        bc, br = best
+        if rng.random() < 0.3:
+            c0, r0 = _reinsert(bc, br)
+        else:
+            c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+            r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+>>>>>>> REPLACE
+-----

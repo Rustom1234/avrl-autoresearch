@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def choose_sigma2(K, y, smiles):
+=======
+def smooth_targets(K, y, k=5, thr=0.4):
+    K = K.copy()
+    np.fill_diagonal(K, -1.0)
+    out = y.copy()
+    for i in range(len(y)):
+        idx = np.argsort(-K[i])[:k]
+        idx = idx[K[i, idx] > thr]
+        if len(idx) == 0:
+            continue
+        w = K[i, idx] / K[i, idx].sum()
+        out[i] = 0.5 * y[i] + 0.5 * np.dot(w, y[idx])
+    return out
+
+
+def choose_sigma2(K, y, smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+=======
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    y = smooth_targets(K_tr, y)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+=======
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+>>>>>>> REPLACE
+-----

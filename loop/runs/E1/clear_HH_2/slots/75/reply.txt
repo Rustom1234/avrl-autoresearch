@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+    inter = A @ B.T
+    return inter / np.maximum(A.sum(1)[:, None] + B.sum(1)[None, :] - inter, 1e-9)
+=======
+def tanimoto(A, B):
+    inter = A @ B.T
+    return inter / np.maximum(A.sum(1)[:, None] + B.sum(1)[None, :] - inter, 1e-9)
+
+
+def minmax(A, B, chunk=8):
+    out = np.zeros((len(A), len(B)))
+    for i in range(0, len(A), chunk):
+        a = A[i:i + chunk, None, :]
+        mn = np.minimum(a, B[None, :, :]).sum(2)
+        mx = np.maximum(a, B[None, :, :]).sum(2)
+        out[i:i + chunk] = mn / np.maximum(mx, 1e-9)
+    return out
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, r, train_smiles)
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+=======
+    X_tr = count_features(train_smiles).astype(np.float64)
+    X_te = count_features(test_smiles).astype(np.float64)
+    K_tr = minmax(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, r, train_smiles)
+    p_fp = gp_mean(K_tr, r, minmax(X_te, X_tr), s2) + base_te
+>>>>>>> REPLACE
+-----

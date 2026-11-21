@@ -1,0 +1,339 @@
+<<<<<<< SEARCH
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    base_preds = model.predict(K_test)
+    
+    # Residual boosting
+    rng = np.random.RandomState(seed)
+    indices = np.arange(len(train_smiles))
+    rng.shuffle(indices)
+    
+    oof_preds = np.zeros(len(train_smiles))
+    # Simple 5-fold OOF (approximate for speed/simplicity)
+    folds = 5
+    fold_size = len(train_smiles) // folds
+    for i in range(folds):
+        start, end = i * fold_size, (i + 1) * fold_size
+        train_idx = indices[::fold_size]
+        # For OOF, we use a subset of the indices
+        # To save time/memory, we use a subset of train_smiles
+        # but to be strictly correct, we slice the shuffled indices
+        # Here we use a simplified 5-split of the shuffled indices
+        idx_subset = indices[i*fold_size : (i+1)*fold_size]
+        val_idx = indices[i*fold_size : (i+1)*fold_size]
+        # This part is tricky with K_train structure. Let's just use 5-fold on data.
+    
+    # Alternative: because K_train is already built, we can just
+    # take 5 blocks of the training data.
+    # However, to keep it clean and avoid complex OOF K-matrix logic:
+    # We'll use a simplified residual approach: train LightGBM on the
+    # residuals of a simple split to ensure we stay under 10 mins
+    
+    # Simplified residual: use a simple 80/20 split for the booster
+    # since OOF K-matrix logic is heavy on memory/time.
+    
+    split = int(len(train_smiles) * 0.8)
+    train_idx = indices[:split]
+    val_idx = indices[split:]
+    
+    model.fit(K_train[np.ix_(train_idx, train_idx)], train_y_arr[train_idx])
+    
+    # Predict on the validation set to get residuals
+    val_preds = model.predict(K_train[np.ix_(val_idx, train_idx)])
+    residuals = train_y_arr[val_idx] - val_preds
+    
+    X_train_desc_sub = X_train_desc[train_idx]
+    X_val_desc = X_train_desc[val_idx]
+    
+    params = {'objective': 'l1', 'n_estimators': 300, 'learning_rate': 0.03,
+                'num_leaves': 15, 'min_child_samples': 20, 'verbosity': -1}
+    
+    train_lm = lgb.train(params, lgb.Dataset(X_train_desc_sub, label=train_y_arr[train_idx]),
+                            num_boost_round=300)
+    
+    # Test: Predict with base model and add the booster's correction
+    # The booster was trained on RDKit descriptors to predict residuals
+    test_desc = get_descriptors(test_smiles)
+    
+    # Note: Since we used a split for OOF, the booster learns the
+    # error of that specific split. We apply it to the test set.
+    # To be more robust, we could do a real OOF, but memory/time is tight.
+    
+    booster_preds = train_lm.predict(X_val_desc)
+    # We need to map the booster's logic back to the test set
+    # Actually, let's just train the booster on the residuals of the full train set to keep it simple.
+    
+    # Re-do: Train on all residuals for better generalization
+    base_model_full = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    base_model_full.fit(K_train, train_y_arr)
+    full_base_preds = base_model_full.predict(K_test)
+    
+    # Get residuals on training set (this is technically 'leakage' but common in boosting)
+    # To avoid leakage, we use the fold-based residuals
+    # but given the constraints, let's use the split residuals.
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good.
+    # Let's use the split residuals.
+    
+    train_full_preds = base_model_full.predict(K_train)
+    train_residuals = train_y_arr - train_full_preds
+    
+    train_lm_full = lgb.train(params, lgb.Dataset(X_train_desc, label=train_residuals),
+                                 num_boost_round=300)
+    
+    test_preds = full_base_preds + train_lm_full.predict(test_desc)
+    return test_preds
+<<<<<<< SEARCH
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    base_preds = model.predict(K_test)
+    
+    # Residual boosting
+    rng = np.random.RandomState(seed)
+    indices = np.arange(len(train_smiles))
+    rng.shuffle(indices)
+    
+    oof_preds = np.zeros(len(train_smiles))
+    # Simple 5-fold OOF (approximate for speed/simplicity)
+    folds = 5
+    fold_size = len(train_smiles) // folds
+    for i in range(folds):
+        start, end = i * fold_size, (i + 1) * fold_size
+        train_idx = indices[::fold_size]
+        # For OOF, we use a subset of the indices
+        # To save time/memory, we use a subset of train_smiles
+        # but to be strictly correct, we slice the shuffled indices
+        # Here we use a simplified 5-split of the shuffled indices
+        idx_subset = indices[i*fold_size : (i+1)*fold_size]
+        val_idx = indices[i*fold_size : (i+1)*fold_size]
+        # This part is tricky with K_train structure. Let's just use 5-fold on data.
+    
+    # Alternative: because K_train is already built, we can just
+    # take 5 blocks of the training data.
+    # However, to keep it clean and avoid complex OOF K-matrix logic:
+    # We'll use a simplified residual approach: train LightGBM on the
+    # residuals of a simple split to ensure we stay under 10 mins
+    
+    # Simplified residual: use a simple 80/20 split for the booster
+    # since OOF K-matrix logic is heavy on memory/time.
+    
+    split = int(len(train_smiles) * 0.8)
+    train_idx = indices[:split]
+    val_idx = indices[split:]
+    
+    model.fit(K_train[np.ix_(train_idx, train_idx)], train_y_arr[train_idx])
+    
+    # Predict on the validation set to get residuals
+    val_preds = model.predict(K_train[np.ix_(val_idx, train_idx)])
+    residuals = train_y_arr[val_idx] - val_preds
+    
+    X_train_desc_sub = X_train_desc[train_idx]
+    X_val_desc = X_train_desc[val_idx]
+    
+    params = {'objective': 'l1', 'n_estimators': 300, 'learning_rate': 0.03,
+                'num_leaves': 15, 'min_child_samples': 20, 'verbosity': -1}
+    
+    train_lm = lgb.train(params, lgb.Dataset(X_train_desc_sub, label=train_y_arr[train_idx]),
+                            num_boost_round=300)
+    
+    # Test: Predict with base model and add the booster's correction
+    # The booster was trained on RDKit descriptors to predict residuals
+    test_desc = get_descriptors(test_smiles)
+    
+    # Note: Since we used a split for OOF, the booster learns the
+    # error of that specific split. We apply it to the test set.
+    # To be more robust, we could do a real OOF, but memory/time is tight.
+    
+    booster_preds = train_lm.predict(X_val_desc)
+    # We need to map the booster's logic back to the test set
+    # Actually, let's just train the booster on the residuals of the full train set to keep it simple.
+    
+    # Re-do: Train on all residuals for better generalization
+    base_model_full = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    base_model_full.fit(K_train, train_y_arr)
+    full_base_preds = base_model_full.predict(K_test)
+    
+    # Get residuals on training set (this is technically 'leakage' but common in boosting)
+    # To avoid leakage, we use the fold-based residuals
+    # but given the constraints, let's use the split residuals.
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good.
+    # Let's use the split residuals.
+    
+    train_full_preds = base_model_full.predict(K_train)
+    train_residuals = train_y_arr - train_full_preds
+    
+    train_lm_full = lgb.train(params, lgb.Dataset(X_train_desc, label=train_residuals),
+                                 num_boost_round=300)
+    
+    test_preds = full_base_preds + train_lm_full.predict(test_desc)
+    return test_preds
+修改为：
+    train_y_arr = np.asarray(train_y, dtype=np.float64)
+    X_train_desc = get_descriptors(train_smiles)
+    
+    # Base model fit
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, train_y_arr)
+    
+    # Identify and trim outliers
+    train_full_preds = model.predict(K_train)
+    residuals = np.abs(train_y_arr - train_full_preds)
+    
+    # Take indices of 95% smallest residuals
+    num_keep = int(len(train_y_arr) * 0.95)
+    keep_indices = np.argsort(residuals)[:num_keep]
+    
+    # Refit on trimmed data
+    model.fit(K_train[np.ix_(keep_indices, keep_indices)], train_y_arr[keep_indices])
+    
+    # Predict on test set
+    # Note: We need to project the test features onto the kept training features
+    # However, with precomputed kernels, we must ensure indices match.
+    # To keep it simple and follow the spec, we can just use the model as is 
+    # since the kernel is computed over all molecules.
+    
+    # Wait, if we use np.ix_(keep_indices, keep_indices) as the input to fit, 
+    # the model expects that same shape for prediction.
+    # So we need to re-calculate K_test using only the kept indices.
+    
+    # Let's refine the logic to ensure the test set is correctly projected.
+    
+    # Re-calculating kernel for test set based on kept train molecules
+    # This is what is required by the precomputed kernel.
+    
+    # Re-do logic to be clean:
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, train_y_arr)
+    
+    train_full_preds = model.predict(K_train)
+    residuals = np.abs(train_y_arr - train_full_preds)
+    
+    num_keep = int(len(train_y_arr) * 0.95)
+    keep_indices = np.argsort(residuals)[:num_keep]
+    
+    # Refit
+    K_train_trimmed = K_train[np.ix_(keep_indices, keep_indices)]
+    model.fit(K_train_trimmed, train_y_arr[keep_indices])
+    
+    # Correct K_test for the new training set size
+    # This requires K_test to be re-computed or sliced.
+    # Since K_test is (len(test), len(train)), we slice the second dimension.
+    
+    # Because we already have K_test, we can slice it:
+    K_test_trimmed = K_test[:, keep_indices]
+    
+    test_preds = model.predict(K_test_trimmed)
+    return test_preds
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    base_preds = model.predict(K_test)
+    
+    # Residual boosting
+    rng = np.random.RandomState(seed)
+    indices = np.arange(len(train_smiles))
+    rng.shuffle(indices)
+    
+    oof_preds = np.zeros(len(train_smiles))
+    # Simple 5-fold OOF (approximate for speed/simplicity)
+    folds = 5
+    fold_size = len(train_smiles) // folds
+    for i in range(folds):
+        start, end = i * fold_size, (i + 1) * fold_size
+        train_idx = indices[::fold_size]
+        # For OOF, we use a subset of the indices
+        # To save time/memory, we use a subset of train_smiles
+        # but to be strictly correct, we slice the shuffled indices
+        # Here we use a simplified 5-split of the shuffled indices
+        idx_subset = indices[i*fold_size : (i+1)*fold_size]
+        val_idx = indices[i*fold_size : (i+1)*fold_size]
+        # This part is tricky with K_train structure. Let's just use 5-fold on data.
+    
+    # Alternative: because K_train is already built, we can just
+    # take 5 blocks of the training data.
+    # However, to keep it clean and avoid complex OOF K-matrix logic:
+    # We'll use a simplified residual approach: train LightGBM on the
+    # residuals of a simple split to keep the job within limits.
+    
+    # Simplified residual: use a simple split to ensure we stay under 10 mins
+    split = int(len(train_smiles) * 0.8)
+    train_idx = indices[:split]
+    val_idx = indices[split:]
+    
+    model.fit(K_train[np.ix_(train_idx, train_idx)], train_y_arr[train_idx])
+    
+    # Predict on the validation set to get residuals
+    val_preds = model.predict(K_train[np.ix_(val_idx, train_idx)])
+    residuals = train_y_arr[val_idx] - val_preds
+    
+    X_train_desc_sub = X_train_desc[train_idx]
+    X_val_desc = X_train_desc[val_idx]
+    
+    params = {'objective': 'l1', 'n_estimators': 300, 'learning_rate': 0.03,
+                'num_leaves': 15, 'min_child_samples': 20, 'verbosity': -1}
+    
+    train_lm = lgb.train(params, lgb.Dataset(X_train_desc_sub, label=train_y_arr[train_idx]),
+                            num_boost_round=300)
+    
+    # Test: Predict with base model and add the booster's correction
+    # The booster was trained on RDKit descriptors to predict residuals
+    test_desc = get_descriptors(test_smiles)
+    
+    # Note: Since we used a split for OOF, the booster learns the
+    # error of that specific split. We apply it to the test set.
+    # To be more robust, we could do a real OOF, but memory/time is tight.
+    
+    booster_preds = train_lm.predict(X_val_desc)
+    # We need to map the booster's logic back to the test set
+    # Actually, let's just train the booster on the residuals of the full train set to keep it simple.
+    
+    # Re-do: Train on all residuals for better generalization
+    base_model_full = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    base_model_full.fit(K_train, train_y_arr)
+    full_base_preds = base_model_full.predict(K_test)
+    
+    # Get residuals on training set (this is technically 'leakage' but common in boosting)
+    # To avoid leakage, we use the fold-based residuals
+    # but given the constraints, let's use the split residuals.
+    
+    # Let's use a simpler robust approach: 
+    # Just use SVR and if we have time, add the booster.
+    # Re-evaluating: the SVR is already quite good. Let's try the booster 
+    # on the residuals of the full train set to keep it simple.
+    
+    train_full_preds = base_model_full.predict(K_train)
+    train_residuals = train_y_arr - train_full_preds
+    
+    train_lm_full = lgb.train(params, lgb.Dataset(X_train_desc, label=train_residuals),
+                                 num_boost_round=300)
+    
+    test_preds = full_base_preds + train_lm_full.predict(test_desc)
+    return test_preds
+=======
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, train_y_arr)
+    
+    # Trim training data based on residuals to reduce label noise impact
+    train_preds = model.predict(K_train)
+    train_residuals = np.abs(train_y_arr - train_preds)
+    
+    # Drop the 5% of training molecules with the largest residuals
+    num_to_drop = max(1, int(len(train_y_arr) * 0.05))
+    drop_indices = np.argsort(train_residuals)[-num_to_drop:]
+    keep_indices = np.setdiff1d(np.arange(len(train_y_arr)), drop_indices)
+    
+    # Refit on 95% of the data
+    model.fit(K_train[np.ix_(keep_indices, keep_indices)], train_y_arr[keep_indices])
+    
+    # Predict the test set
+    test_preds = model.predict(K_test[..., keep_indices])
+    return test_preds
+>>>>>>>
+-----

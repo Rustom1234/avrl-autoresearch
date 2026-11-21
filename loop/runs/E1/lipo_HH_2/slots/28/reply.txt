@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def base_predict(Xtr, ytr, Xte, seed):
+=======
+def knn_wmedian(Xtr, ytr, Xte, k=10, power=3):
+    # Tanimoto kNN on Morgan bits; weighted median of the k nearest targets, weights = similarity**power
+    S = tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS])
+    idx = np.argpartition(-S, k, axis=1)[:, :k]
+    sims = np.take_along_axis(S, idx, 1)
+    ys = ytr[idx]
+    w = np.maximum(sims, 0) ** power + 1e-12
+    o = np.argsort(ys, axis=1)
+    ys = np.take_along_axis(ys, o, 1)
+    w = np.take_along_axis(w, o, 1)
+    cw = np.cumsum(w, 1)
+    pos = (cw >= cw[:, -1:] / 2).argmax(1)
+    return ys[np.arange(len(ys)), pos]
+
+
+def base_predict(Xtr, ytr, Xte, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS]))])
+=======
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS])), knn_wmedian(Xtr, ytr, Xte)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    oof = np.zeros((len(y), 4))
+>>>>>>> REPLACE
+-----

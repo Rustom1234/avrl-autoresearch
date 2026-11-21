@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Move centres along the overlap gradient, then shrink radii until the packing is valid."""
+    n = len(r)
+    eye = np.eye(n)
+    c = np.clip(c, 0, 1)
+    r = np.maximum(r, 0)
+    for _ in range(300):
+        diff = c[:, None] - c[None]
+        d = np.sqrt((diff ** 2).sum(-1)) + eye
+        over = np.maximum(r[:, None] + r[None] - d, 0) * (1 - eye)
+        if over.max() <= 0:
+            break
+        c = c + 0.5 * ((over / d)[:, :, None] * diff).sum(1)
+        c = np.clip(c, r[:, None], 1 - r[:, None])
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return c, np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+=======
+        c, r = _repair(c, r)
+>>>>>>> REPLACE
+-----

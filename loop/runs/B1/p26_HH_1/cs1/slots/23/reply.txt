@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None:   # first start: a random restart
+            c, r = _solve_once(n, rng)
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+=======
+    rng, t0, pool = np.random.default_rng(seed), time.process_time(), []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if not pool:   # first start: a random restart
+            c, r = _solve_once(n, rng)
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            parent = pool[rng.integers(len(pool))]
+            c, r = parent[0].copy(), parent[1].copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        s = r.sum()
+        if all(abs(s - q[1].sum()) > 1e-6 for q in pool):
+            if len(pool) < 5:
+                pool.append((c, r))
+            else:
+                w = min(range(len(pool)), key=lambda i: pool[i][1].sum())
+                if s > pool[w][1].sum():
+                    pool[w] = (c, r)
+    return max(pool, key=lambda q: q[1].sum())
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def lion_step_fused(p, grad, param_buffer, step_t, lr_t, beta1_t):
+    '''Lion update: p = p - lr * sign(∇L) * f(p, grad)'''
+    # Apply weight decay
+    p.mul_(1 - lr_t * wd_t)
+    # Compute sign of gradients as separate buffer to avoid creating new items
+    sign_grad = grad.sign()
+    # Parameters for Lion sparse manifold
+    exp_avg = grad.bfloat16()
+    # First momentum buffer update
+    param_buffer.mul_(beta1_t - 1)
+    param_buffer.add_(exp_avg)
+    # Angle theta in hyperbolic space defined as cosh^{-1}(||grad/p)||_2
+    norm_grad = grad.abs()
+    norm_param = (param_buffer.abs().sqrt() ** 2).sum(dim=(-2, -1), keepdim=True).sqrt()
+    # Lion update
+    p.add_(sign_grad * (norm_grad * (beta1_t * param_buffer / norm_grad) - norm_grad).sqrt())
+=======
+def adamw_step_fused(p, grad, exp_avg, exp_avg_sq, step_t, lr_t, beta1_t, beta2_t, eps_t, wd_t):
+    '''Standard AdamW update with decoupled weight decay.'''
+    p.mul_(1 - lr_t * wd_t)
+    exp_avg.lerp_(grad, 1 - beta1_t)
+    exp_avg_sq.lerp_(grad.square(), 1 - beta2_t)
+    bias1 = 1 - beta1_t ** step_t
+    bias2 = 1 - beta2_t ** step_t
+    denom = (exp_avg_sq / bias2).sqrt() + eps_t
+    step_size = lr_t / bias1
+    p.add_(exp_avg / denom, alpha=-step_size)
+>>>>>>> REPLACE
+-----

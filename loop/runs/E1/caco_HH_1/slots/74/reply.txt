@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.tree import DecisionTreeRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    stage2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400, **params)
+    stage2.fit(Xtr, y - base_tr, xgb_model=stage1.get_booster())
+    return base_te + stage2.predict(Xte)
+=======
+    t = y - base_tr
+    f_tr = stage1.predict(Xtr)
+    f_te = stage1.predict(Xte)
+    cur_tr = f_tr + np.median(t - f_tr)
+    cur_te = f_te + np.median(t - f_tr)
+    for _ in range(300):
+        res = t - cur_tr
+        tree = DecisionTreeRegressor(max_depth=5, max_features=0.3, min_samples_leaf=3,
+                                     random_state=seed).fit(Xtr, np.sign(res))
+        leaves = tree.apply(Xtr)
+        leafval = np.zeros(tree.tree_.node_count)
+        for lf in np.unique(leaves):
+            leafval[lf] = np.median(res[leaves == lf])
+        cur_tr += 0.05 * leafval[leaves]
+        cur_te += 0.05 * leafval[tree.apply(Xte)]
+    return base_te + cur_te
+>>>>>>> REPLACE
+-----

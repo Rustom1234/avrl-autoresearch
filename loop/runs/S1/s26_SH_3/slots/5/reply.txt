@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def lp_radii(c):
+    """Max sum of radii for fixed centers via LP (highs); fallback to compute_max_radii."""
+    from scipy.optimize import linprog
+    n = c.shape[0]
+    I, Jp = np.triu_indices(n, 1)
+    m = len(I)
+    d = np.sqrt(np.sum((c[I] - c[Jp]) ** 2, axis=1))
+    A = np.zeros((m, n))
+    A[np.arange(m), I] = 1.0
+    A[np.arange(m), Jp] = 1.0
+    bnd = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    bounds = [(0.0, max(float(b), 0.0)) for b in bnd]
+    try:
+        res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=bounds, method="highs")
+        if res.status == 0 and np.all(np.isfinite(res.x)):
+            return np.maximum(res.x, 0.0)
+    except Exception:
+        pass
+    return compute_max_radii(c)
+
+
+def sa_centers(c, rng, t0, steps=1500, T0=0.02, T1=0.0005):
+    """Simulated annealing over centers; objective is LP-optimal sum of radii."""
+    import time
+    import math
+    cur = c.copy()
+    cur_v = float(np.sum(lp_radii(cur)))
+    best, best_v = cur.copy(), cur_v
+    for s in range(steps):
+        if time.time() - t0 > 120:
+            break
+        frac = s / steps
+        T = T0 * (T1 / T0) ** frac
+        sigma = 0.005 + 0.045 * (T / T0)
+        k = int(rng.integers(c.shape[0]))
+        cand = cur.copy()
+        cand[k] = np.clip(cand[k] + rng.normal(0.0, sigma, 2), 0.02, 0.98)
+        v = float(np.sum(lp_radii(cand)))
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v = cand, v
+            if v > best_v:
+                best, best_v = cand.copy(), v
+    return best
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = hex_jitter(rng)
+        z = np.concatenate([c0[:, 0], c0[:, 1], compute_max_radii(c0)])
+=======
+        c0 = hex_jitter(rng)
+        c0 = sa_centers(c0, rng, t0)
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+SOFT_SPOTS = [
+    "[CX4;H2,H3]-a",
+    "[NX3;!$(N-C=O);!$(N-a)][CH3]",
+    "[NX3;!$(N-C=O);!$(N-a)][CH2][CH3]",
+    "[OX2][CH3]",
+    "[cH]",
+    "[SX2;!a]",
+    "o1cccc1",
+    "s1cccc1",
+    "c1ccc2c(c1)OCO2",
+    "[CX4;H1]([#6])([#6])[#6]",
+    "C1COCCN1",
+    "[n][CH3]",
+    "C(=O)O[CH2,CH3]",
+]
+
+
+def soft_spot_counts(smiles):
+    pats = [Chem.MolFromSmarts(p) for p in SOFT_SPOTS]
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([len(m.GetSubstructMatches(p)) for p in pats])
+    return np.array(rows, dtype=np.float64)
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    D = descriptors(train_smiles)
+    Dt = descriptors(test_smiles)
+=======
+    D = np.hstack([descriptors(train_smiles), soft_spot_counts(train_smiles)])
+    Dt = np.hstack([descriptors(test_smiles), soft_spot_counts(test_smiles)])
+>>>>>>> REPLACE
+-----

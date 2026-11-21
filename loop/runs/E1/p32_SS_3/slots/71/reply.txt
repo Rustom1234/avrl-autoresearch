@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    if start is None:
+        def cons_eq(v):
+=======
+    if start is None and rng.random() < 0.5:
+        p = rng.uniform(0.1, 0.9, (n, 2))
+        vel = rng.normal(0, 1, (n, 2))
+        rad = 0.02
+        for _ in range(200):
+            p = p + 0.005 * vel
+            hit = (p < rad) | (p > 1 - rad)
+            vel = np.where(hit, -vel, vel)
+            p = np.clip(p, rad, 1 - rad)
+            for _k in range(2):
+                dv = p[iu[0]] - p[iu[1]]
+                dist = np.sqrt((dv ** 2).sum(1)) + 1e-12
+                over = np.maximum(2 * rad - dist, 0)
+                push = (0.5 * over / dist)[:, None] * dv
+                np.add.at(p, iu[0], push)
+                np.add.at(p, iu[1], -push)
+                p = np.clip(p, rad, 1 - rad)
+            dv = p[iu[0]] - p[iu[1]]
+            if np.sqrt((dv ** 2).sum(1)).min() >= 1.96 * (rad + 0.002):
+                rad += 0.002
+        x0 = np.concatenate([np.clip(p, 0.01, 0.99).ravel(), np.full(n, rad)])
+    elif start is None:
+        def cons_eq(v):
+>>>>>>> REPLACE
+-----

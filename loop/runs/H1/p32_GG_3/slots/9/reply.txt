@@ -1,0 +1,108 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    # Keep a small buffer of the best layouts to mutate
+    memory = []
+    
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None or (rng.random() < 0.7 and not memory):
+            # Pure random search initially
+            c, r = _solve_once(n, rng)
+        elif memory:
+            # Shake a previous best layout
+            idx = rng.integers(0, len(memory))
+            prev_c, prev_r = memory[idx]
+            # Small mutation: jitter centers and slightly scale radii
+            c = prev_c + rng.normal(0, 0.02, (n, 2))
+            r = prev_r * (1 + rng.uniform(-0.05, 0.05, size=n))
+            c, r = _solve_once(n, rng) # Re-run optimization from mutated point
+        else:
+            c, r = _solve_once(n, rng)
+
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            memory.append((c, r))
+            if len(memory) > 5: memory.pop(0)
+            
+    return best
+-----
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    memory = []
+    
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None or (rng.random() < 0.5 and not memory):
+            c_raw, r_raw = _solve_once(n, rng)
+        else:
+            prev_c, prev_r = rng.choice(memory, 1)[0]
+            c_raw = prev_c + rng.normal(0, 0.02, (n, 2))
+            r_raw = prev_r * (1 + rng.uniform(-0.05, 0.05, size=n))
+            c_raw, r_raw = _solve_once(n, rng)
+            
+        c = np.clip(c_raw, 0, 1)
+        r = _repair(c, r_raw)
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            memory.append((c, r))
+            if len(memory) > 5:
+                memory.pop(0)
+    return best
+-----
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+றுத்த
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    memory = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None or rng.random() < 0.3:
+            c_raw, r_raw = _solve_once(n, rng)
+        else:
+            prev_c, prev_r = rng.choice(memory, 1)[0]
+            c_raw = prev_c + rng.normal(0, 0.02, (n, 2))
+            r_raw = prev_r * (1 + rng.uniform(-0.05, 0.05, size=n))
+            c_raw, r_raw = _solve_once(n, rng)
+        
+        c = np.clip(c_raw, 0, 1)
+        r = _repair(c, r_raw)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            memory.append((c, r))
+            if len(memory) > 5:
+                memory.pop(0)
+    return best
+-----

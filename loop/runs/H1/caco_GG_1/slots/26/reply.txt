@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            # Strip salts and inorganic compounds
+            mol = Chem.MolFromSmiles(Chem.MolToSmiles(mol).replace('\([0-9]+)', ''))
+            features.append(gen.GetFingerprintAsNumPy(mol))
+        else:
+            # Fallback for invalid smiles
+            features.append(np.zeros(N_BITS, dtype=np.float32))
+    return np.array(features, dtype=np.float32)
+>>>>>>> REPLACE
+-----

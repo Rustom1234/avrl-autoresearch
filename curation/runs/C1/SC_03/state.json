@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/SC_03/cand/s09_0.py",
+ "inc_scores": {
+  "11": 1.8582984225118182,
+  "12": 1.8413599907087004
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random-order baseline with a filter-then-fill curator. (1) Build a target-domain classifier: fit a TfidfVectorizer (word 1-2grams, sublinear_tf, max_features ~200k, lowercase=False, token_pattern keeping punctuation tokens like '@-@' and '=') on the first ~3000 chars of every pool doc plus the 200 target_sample docs; compute each pool doc's cosine similarity to the centroid of the target_sample vectors. Also compute cheap structural features per doc: starts with '= Title =' header line, fraction of non-ASCII chars, fraction of spam keywords ('discount code', 'coupon', 'free shipping', 'cheap', 'buy now', 'Click here'). (2) Detect word-shuffled damaged docs (WikiText-looking but scrambled word order): build a bigram set/counter from target_sample (plus the top-similarity pool docs), and for each doc score the fraction of its adjacent word bigrams (on first ~400 words after the title line) that appear in that reference bigram set; also use simple signals such as the rate of sentences/lines beginning with ' ,' or '. ' followed by lowercase and the fraction of ' . ' tokens followed by a lowercase word. Drop docs whose bigram-hit rate falls in the low mode (choose threshold with a 2-cluster split / Otsu on the scores of WikiText-header docs). (3) Deduplicate: drop exact duplicates by hash of normalized text and near-duplicates by hash of the first 500 chars. (4) Keep docs that pass: WikiText-like (header or centroid similarity above an Otsu threshold), not shuffled, not spam, non-ASCII fraction low, not duplicate. (5) Order kept docs in a seeded random shuffle (CURATE_SEED) and return that list; if kept tokens < T (count with tiktoken gpt2 or estimate len/4), let it cycle naturally rather than padding with junk. Print counts of each bucket for diagnostics.",
+   "outcome": "dev 2.2241 against 1.9580 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace hard filtering with a tiered fill to exactly T tokens, so nothing is cycled and only clear junk is removed. Steps:\n\n1. Count tokens per doc with tiktoken gpt2 (encode_ordinary_batch).\n2. Drop exact duplicates only, by hash of whitespace-normalised full text, keeping the first copy.\n3. Mark spam: a doc is spam if it has at least 2 hits per 1000 chars of the template phrases 'Click here to order', 'discount code', 'coupon |', 'best price guaranteed', 'free shipping', 'Limited offer on'.\n4. Mark junk: more than 20% non-ASCII characters, or fewer than 50% of characters being letters or spaces.\n5. Compute a word-order score per doc: over the first 600 whitespace tokens, the count of frequent function bigrams ('of the', 'in the', ', and', 'to the', 'on the', 'and the', 'at the', 'by the', '. The', 'for the', 'with the', 'from the', 'was a', 'as a') per 100 tokens. Mark a doc 'shuffled' if this rate is below 25% of the median rate of the 200 target_sample docs.\n6. Assign tiers:\n   - Tier A: starts with a '= Title =' line, and is not shuffled, spam or junk.\n   - Tier B: any other doc that is not spam, junk or shuffled (ordinary prose, Q&A and so on), sorted by descending TF-IDF cosine similarity to the target centroid (word unigrams, sublinear_tf, max_features 50k, first 2000 chars).\n   - Tier C: shuffled docs with a wiki header.\n   - Tier D: everything else (spam, junk).\n7. Concatenate A, then B, then C, then D, and take the prefix until the cumulative token count reaches T. Shuffle that selected set with random.Random(CURATE_SEED) and return it.\n8. Print the doc and token count of every tier and how many were taken from each.",
+   "outcome": "FAILED to run (, sublinear_tf=True, max_features=50000) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TypeError: TfidfVectorizer.__init__() got an unexpected keyword argument 'count_tfidf')"
+  },
+  {
+   "slot": 3,
+   "idea": "Retry the tiered fill-to-exactly-T curator from experiment 2 (it crashed on an invalid TfidfVectorizer keyword and was never measured), implemented with the standard library, numpy and tiktoken only, plus a valid scikit-learn call for one ranking step.\n\n1. Token counts: use tiktoken gpt2 `encode_ordinary_batch(docs)` and take the length of each; if that raises, fall back to `len(doc) // 4`.\n2. Exact duplicates: hash `' '.join(doc.split())` and keep only the first copy. Do not do near-duplicate removal.\n3. Spam: count occurrences of 'Click here to order', 'discount code', 'best price guaranteed', 'free shipping on all', 'Limited offer on', 'online store |', and 'Home | About | Products'. Mark spam if there are at least 2 hits in total, or at least 1 hit per 1500 chars.\n4. Junk: mark junk if more than 20% of characters are non-ASCII, or fewer than 60% of characters are letters or spaces, or the doc is under 200 chars.\n5. Repeated-line boilerplate: mark junk if the doc has at least 6 lines and unique lines / total lines is below 0.5.\n6. Word-order score: over the first 800 whitespace tokens, count adjacent pairs in {'of the', 'in the', ', and', 'to the', 'on the', 'and the', 'at the', 'by the', '. The', 'for the', 'with the', 'from the', 'was a', 'as a', 'in a', 'of a'} per 100 tokens. Take the median of this rate over target_sample. Mark a doc shuffled if its rate is below 0.3 times that median.\n7. Tiers:\n   - A: starts with a '= ... =' first line (regex `^\\s*= [^=\\n]+ =\\s*\\n`), and is not shuffled, spam, junk or duplicate.\n   - B: other docs that are not shuffled, spam, junk or duplicate, sorted by descending cosine similarity to the mean target_sample vector. Use `TfidfVectorizer(sublinear_tf=True, max_features=50000, lowercase=True)` with only these arguments, fit on `[d[:2000] for d in docs] + [t[:2000] for t in target_sample]`.\n   - C: wiki-header docs marked shuffled, non-duplicate.\n   - D: everything else. Use it only if A, B and C together hold fewer than T tokens.\n8. Concatenate A, B, C, D and take the prefix whose cumulative token count first reaches T * 1.01, so nothing is cycled.\n9. Shuffle the selected indices with `random.Random(int(os.environ.get('CURATE_SEED', 0)))` and return them.\n10. Print the doc and token count of each tier and how many were taken from each.",
+   "outcome": "FAILED to run (/active-audit/curation/runs/C1/SC_03/cand/s03_1.py', '/homes/rdubash/active-audit/data/curation/pool_v2', '/homes/rdubash/active-audit/data/curation/tmp89enu8x3.json']' died with <Signals.SIGKILL: 9>.)"
+  },
+  {
+   "slot": 4,
+   "idea": "Lightweight tiered fill to about T tokens, using only the standard library (no tiktoken, no scikit-learn, since experiment 3 was SIGKILLed, probably on memory or time). Single pass over docs, with every per-doc feature computed on at most the first 4000 chars.\n\n1. Token estimate: est_tokens = len(doc) / 4.0.\n2. Exact duplicates: hash(doc) in a set, keep the first copy only. No near-duplicate removal.\n3. Spam: head = doc[:4000]; hits = total head.count() of 'discount code', 'best price guaranteed', 'free shipping on all', 'Click here to order', 'online store |', 'Limited offer on'. Spam if hits >= 2.\n4. Junk (base64 or binary): head.count(' ') / len(head) < 0.08, or more than 20% of head chars with ord > 127, or len(doc) < 200.\n5. Shuffled-word damage: toks = head.split()[:500]; rate = number of adjacent pairs in {('of','the'), ('in','the'), ('to','the'), ('on','the'), ('and','the'), ('at','the'), ('by','the'), ('for','the'), ('with','the'), ('from','the'), (',','and'), ('.','The'), ('as','a'), ('in','a'), ('of','a')} divided by len(toks). Compute the same rate on each target_sample doc and take the median m. Mark shuffled if rate < 0.3 * m.\n6. Tiers over non-duplicate docs:\n   - A: first line matches r'^\\s*= [^=\\n]+ =\\s*$', and not spam, junk or shuffled.\n   - B: no header, and not spam, junk or shuffled.\n   - C: shuffled, and not spam or junk.\n   - D: spam, junk and duplicates.\n   Shuffle within each tier with random.Random(int(os.environ.get('CURATE_SEED', 0))).\n7. Concatenate A + B + C + D and take the shortest prefix whose cumulative est_tokens >= 1.03 * T, so there is little or no cycling and junk is used only if the clean tiers run short.\n8. Shuffle the selected prefix with the same seeded RNG and return it.\n9. Print the doc count and estimated tokens of each tier, and how many docs were taken from each.",
+   "outcome": "dev 1.9216 against 1.9580 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Keep the selection logic of the current best exactly as it is (same dedup, spam/junk/shuffled rules, tiers A, B, C, D, same fill to 1.03 * T with len/4 token estimates). Change only the final ordering, replacing the uniform final shuffle with a curriculum that ends on target-domain text.\n\n1. For each selected doc draw u = rng.random() from the seeded RNG.\n2. Give it a sort key: u + 0.6 if the doc is tier A (clean '= Title =' wiki docs), u + 0.0 otherwise (tiers B, C, D).\n3. Return the selected indices sorted by ascending key. The first stretch of training is then pure off-domain filler, the middle is a mix, and the final stretch is pure tier A.\n4. Remove the dead duplicated first loop to save time.\n5. Print the doc count and estimated tokens of each tier, how many were taken from each, and the fraction of tier A docs in the last 30% of the ordered list.",
+   "outcome": "dev 1.9731 against 1.9216 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Keep the current best pipeline (stdlib only, len/4 token estimate, exact-hash dedup, same spam/junk/shuffled rules, fill to 1.03*T, final seeded uniform shuffle). Change only how the non-wiki tier B is composed and ordered, so the filler that tops up tier A is the most target-like text instead of a random draw. Also delete the dead duplicated first loop.\n\n1. Boilerplate to tier D: lines = [l for l in doc[:4000].split('\\n') if l.strip()]; if len(lines) >= 6 and len(set(lines)) / len(lines) < 0.5, mark junk. This catches the repeated 'Click here to subscribe...' and 'Home | About | Products' pages, which currently land in B.\n\n2. Headerless wiki rescue into tier A: compute wt = (head.count(' , ') + head.count(' . ') + head.count(' @')) / max(1, len(head.split())) on head = doc[:4000]. Take the median mw of the same quantity over target_sample. A doc with no '= Title =' first line that is not spam, junk or shuffled and has wt >= 0.5 * mw goes to tier A, because it has WikiText-style spaced punctuation.\n\n3. Rank tier B by a target unigram cross-entropy. Build a Counter of whitespace tokens over all target_sample docs (full text) plus the first 4000 chars of up to 3000 tier A docs. Let N be the total count and V the vocabulary size. For each tier B doc, take toks = doc[:3000].split()[:400] and compute score = mean over toks of -log((count[w] + 0.5) / (N + 0.5 * V)). Sort tier B by ascending score (most target-like first) instead of shuffling it. Docs with fewer than 20 tokens get score +inf.\n\n4. Tier order stays A (shuffled), B (ranked), C (shuffled), D (shuffled). Take the shortest prefix with cumulative est_tokens >= 1.03 * T, then apply the final seeded shuffle to the selected set as now.\n\n5. Print the doc and token counts per tier, how many were taken from each, how many docs were rescued in step 2, how many were moved by step 1, and the B score at the cutoff.",
+   "outcome": "dev 1.9296 against 1.9216 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Keep the current best pipeline unchanged (stdlib only, len/4 token estimate, exact-hash dedup, same spam/junk/shuffled rules, same tiers A/B/C/D, final seeded uniform shuffle), and delete the dead duplicated first loop. Change only what tops up tier A when it is short of the budget: use a second copy of tier A (clean '= Title =' wiki docs) before any off-domain tier B text.\n\n1. Build tiers exactly as now. Let tokA = sum of est_tokens over tier A and BUDGET = 1.03 * T.\n2. If tokA >= BUDGET: behave exactly as now (shortest prefix of shuffled A reaching BUDGET).\n3. Otherwise: selected = all of A. Then make a second, independently seeded-shuffled copy of A and append docs from it until cumulative est_tokens reaches BUDGET or the copy is exhausted. At most 2 copies of any doc, never a third.\n4. If still below BUDGET after two full copies of A, continue filling with B (shuffled), then C, then D, as now.\n5. Apply the final seeded uniform shuffle to the whole selected list (repeats included) and return it.\n6. Print the doc count and est tokens per tier, tokA / T, how many docs were taken as second copies, and how many were taken from B, C and D.",
+   "outcome": "dev 1.8656 against 1.9216 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 8,
+   "idea": "Keep the current best pipeline exactly (stdlib only, len/4 token estimate, exact-hash dedup, same spam/junk/shuffled rules, same tiers A/B/C/D, BUDGET = 1.03 * T, final seeded uniform shuffle of the whole selected list). Change only the top-up rule: remove the cap of 2 copies of tier A, so the off-domain tier B is used only as a last resort.\n\n1. Build tiers as now. tokA = sum of est_tokens over tier A.\n2. If tokA >= BUDGET: unchanged (shortest prefix of shuffled A reaching BUDGET).\n3. Otherwise: append full passes over A, each pass independently reshuffled with the seeded RNG, until cumulative est_tokens >= BUDGET. Stop mid-pass when the budget is reached. Allow at most 5 passes in total.\n4. Only if 5 full passes of A are still below BUDGET (A is tiny), fill the remainder with B, then C, then D as now.\n5. Apply the final seeded uniform shuffle to the selected list (repeats included) and return it.\n6. Delete the dead code. Print the doc count and est tokens per tier, tokA / T, the number of A passes used (including the partial one), and the docs taken from B, C and D (expected 0).",
+   "outcome": "dev 1.8660 against 1.8656 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Keep the current best pipeline unchanged (stdlib only, len/4 token estimate, exact-hash dedup, same spam/junk rules, A taken once, then a second reshuffled copy of A, then B, C, D up to 1.03*T, final seeded uniform shuffle). Change only how strictly a doc qualifies for tier A, by auditing the whole document instead of its first 500 tokens, so partly damaged wiki docs stop being trained on twice.\n\n1. Windowed word-order check. For each doc that has a '= Title =' first line and is not spam or junk, set toks = doc.split() (full doc) and cut it into consecutive 300-token windows, dropping a last window under 150 tokens (a doc under 300 tokens is one window). For each window compute the same function-bigram rate as now (same 15 pairs, hits / window length). Compute m as the median of the full-document rate over target_sample. A window is bad if its rate < 0.3 * m. Mark the doc shuffled (tier C) if its first-500-token rate < 0.3 * m (the current rule) OR more than 25% of its windows are bad.\n\n2. Vocabulary check for character-level damage. Build vocab as the set of whitespace tokens that occur in target_sample (full text), plus tokens that occur in at least 5 different header docs of the pool (count document frequency on the first 2000 tokens of each header doc). For each candidate tier A doc compute oov = fraction of its first 2000 tokens not in vocab. Let med and mad be the median and the median absolute deviation of oov over the candidate A docs. Demote a doc to tier C if oov > med + 6 * mad and oov > 0.25.\n\n3. Near-duplicate check inside tier A only. Key = (first line, ' '.join(toks[20:60])). Keep the first doc for each key and send the others to tier D.\n\n4. Everything else is as in the current best: tier A is the docs that pass, two-copy top-up, B, C, D fill, final shuffle. Delete the dead code.\n\n5. Print the tier sizes and tokens, tokA / T, how many docs were demoted by step 1 beyond the old head-only rule, how many by step 2, how many by step 3, the second-copy count, and the docs taken from B, C and D.",
+   "outcome": "dev 1.8583 against 1.8656 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 10,
+   "idea": "Keep the current best pipeline unchanged except for the vocabulary check (Rule 2), which is currently broken: it builds the vocab from the title lines of only the first 5 header docs and measures OOV on the title line only, so it never looks at the article body. Replace it with a real body-level check, standard library only.\n\n1. First pass over the pool: for every doc whose first line matches the '= Title =' regex, take body_toks = doc[:8000].split()[:1000] and add set(body_toks) to a document-frequency Counter.\n2. Build vocab = all whitespace tokens of target_sample (full text, case-sensitive) plus every token with document frequency >= 5 in that Counter.\n3. For each candidate tier A doc (header, not spam, not junk, passes the existing head and windowed word-order checks), compute oov = fraction of doc[:8000].split()[:1000] not in vocab. Skip the title-line tokens.\n4. Let med and mad be the median and the median absolute deviation of oov over all candidate A docs. Demote a doc to tier C if oov > med + 6 * mad and oov > 0.15. This is meant to catch character-corrupted, case-mangled or non-English wiki-looking docs.\n5. Everything else stays the same: exact-hash dedup, spam and junk rules, windowed shuffle rule, near-duplicate key inside A, A once plus a second reshuffled copy of A, then B, C, D up to 1.03 * T by the len/4 estimate, final seeded uniform shuffle.\n6. Print med, mad, the threshold used, the oov deciles of the candidate A docs, the number demoted by this rule, the first 150 chars of 3 demoted docs, and the usual tier counts and tokens.",
+   "outcome": "dev 1.8459 against 1.8583 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Note first: experiment 10 (body-level OOV check) is logged as \"rejected\" although its dev bpb of 1.8459 is lower than the 1.8583 best. That looks like a bookkeeping error or a rejection for a reason not shown (time limit?), and is worth checking before the last experiment is spent. I am not repeating it here.\n\nProposed change, on top of the current best with everything else unchanged (stdlib only, len/4 estimate, exact-hash dedup, same spam/junk rules, head and windowed word-order rule, near-duplicate key, A once plus a second reshuffled copy, then B, C, D up to 1.03*T, final seeded uniform shuffle): rescue headerless WikiText-style docs from tier B into tier A.\n\n1. For each target_sample doc compute wt = (h.count(' , ') + h.count(' . ') + h.count(' @-@ ') + h.count(' ( ')) / max(1, len(h.split())) on h = doc[:4000]. Let mw be the median and p10 the 10th percentile over target_sample.\n2. For each pool doc with no '= Title =' first line that is not a duplicate, spam or junk and that passes the same head and windowed word-order checks as tier A (currently those docs go to B, and the windowed check is only run on them now for this purpose), compute the same wt on doc[:4000]. If wt >= max(0.5 * mw, p10), put the doc in tier A (it passes through the same near-duplicate key step); otherwise it stays in B.\n3. Do not rank or otherwise change tier B, and do not add the repeated-line boilerplate rule (those were the other parts of rejected experiment 6).\n4. Print mw, p10, the number of rescued docs and their estimated tokens, the first 120 chars of 5 rescued docs, tokA / T before and after the rescue, and the usual tier counts and docs taken from each tier.",
+   "outcome": "dev 1.8540 against 1.8583 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Note first: experiments 10 (body-level OOV check, 1.8459) and 11 (headerless wiki rescue, 1.8540) both scored below the 1.8583 best yet are logged as rejected. I can't see the reason, so check the log before spending this run. This proposal is not a repeat of either one alone: it applies both together, which has not been measured.\n\nOn top of the current best, keep everything else unchanged (stdlib only, len/4 estimate, exact-hash dedup, same spam/junk rules, head and windowed word-order rule, near-duplicate key, A once plus a second reshuffled copy of A, then B, C, D up to 1.03*T, final seeded uniform shuffle). Make two changes to tier A membership:\n\n1. Replace the broken title-line vocabulary check with a body-level one.\n   - First pass: for every pool doc whose first line matches the '= Title =' regex, take toks = doc[:8000].split()[:1000] and add set(toks) to a document-frequency Counter.\n   - vocab = all whitespace tokens of target_sample (full text, case-sensitive) plus every token with document frequency >= 5.\n   - For each tier A candidate, oov = fraction of doc[:8000].split()[:1000] (excluding the title line) not in vocab.\n   - Let med and mad be the median and median absolute deviation of oov over the header candidates. Demote to tier C if oov > med + 6*mad and oov > 0.15.\n\n2. Rescue headerless WikiText-style docs into tier A.\n   - On h = doc[:4000], compute wt = (h.count(' , ') + h.count(' . ') + h.count(' @-@ ') + h.count(' ( ')) / max(1, len(h.split())).\n   - Let mw be the median and p10 the 10th percentile of wt over target_sample.\n   - A pool doc with no header that is not a duplicate, spam or junk, passes the same head and windowed word-order checks, has wt >= max(0.5*mw, p10), and passes the OOV rule from step 1 (same vocab and threshold) goes to tier A through the same near-duplicate key step. Otherwise it stays in B.\n\n3. Do not rank tier B and do not add a repeated-line rule. Delete the dead code. Keep it single-pass and cheap (cap per-doc work at the first 8000 chars for OOV; the windowed check is unchanged) to stay well under 180 s.\n\n4. Print med, mad, the OOV threshold, the number demoted by OOV, the number rescued and their tokens, tokA / T, the second-copy count, and the docs taken from B, C and D.",
+   "outcome": "dev 2.0380 against 1.8583 for the best at the time, rejected"
+  }
+ ],
+ "usd": 2.40762605,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.07583010000000001,
+   "dev": 2.224073223601029,
+   "inc": 1.9580068331878582,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.11599499999999999,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 1,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.12148984999999998,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 3,
+   "fails": 2,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.14720665,
+   "dev": 1.9216224760888738,
+   "inc": 1.9580068331878582,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.007481021054825,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.1845327,
+   "dev": 1.9731409404467746,
+   "inc": 1.9216224760888738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.007481021054825,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.22045645000000003,
+   "dev": 1.929615522598257,
+   "inc": 1.9216224760888738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 5.007481021054825,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.23258879999999993,
+   "dev": 1.8656096034169831,
+   "inc": 1.9216224760888738,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 12.716381746610935,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.19367014999999999,
+   "dev": 1.8660274132753147,
+   "inc": 1.8656096034169831,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 12.716381746610935,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.2620971999999999,
+   "dev": 1.8582984225118182,
+   "inc": 1.8656096034169831,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 13.722599872837872,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.26765474999999994,
+   "dev": 1.8459451655422439,
+   "inc": 1.8582984225118182,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 13.722599872837872,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.27941249999999984,
+   "dev": 1.8540404971784494,
+   "inc": 1.8582984225118182,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 3,
+   "gain_sd": 13.722599872837872,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.3066919000000006,
+   "dev": 2.037991111692426,
+   "inc": 1.8582984225118182,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9580068331878582,
+ "inc_slot": 9
+}

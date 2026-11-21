@@ -1,0 +1,54 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (regression).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 3
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+N_DESC = 100
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, fpSize=N_BITS,
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen())
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def descriptors(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        r = []
+        for _, f in Descriptors.descList:
+            try:
+                r.append(f(m))
+            except Exception:
+                r.append(0.0)
+        rows.append(r)
+    X = np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    Dtr, Dte = descriptors(train_smiles), descriptors(test_smiles)
+    quick = RandomForestRegressor(n_estimators=100, max_features=0.3, n_jobs=-1, random_state=seed)
+    quick.fit(Dtr, y)
+    top = np.argsort(quick.feature_importances_)[::-1][:N_DESC]
+    Xtr = np.hstack([Dtr[:, top], featurize(train_smiles)])
+    Xte = np.hstack([Dte[:, top], featurize(test_smiles)])
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(Xtr, y)
+    return model.predict(Xte)

@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+def _solve_once(n, rng, init=None, cut=None, noise=0.03):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, noise, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+    if cut is not None:   # keep only pairs whose starting centres are close together
+        near = np.sqrt(((base[iu[0]] - base[iu[1]]) ** 2).sum(1)) < cut
+        iu = (iu[0][near], iu[1][near])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        c, r = _solve_once(n, rng, best[0] if guided else None, cut=0.35)   # stage 1: near pairs only
+        c, r = _solve_once(n, rng, c, cut=0.35, noise=0.0)                  # stage 2: re-select near pairs
+        c, r = _solve_once(n, rng, c, noise=0.0)                            # final: all pairs
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                  class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+def featurize(smiles, mode='morgan'):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    mols = [m for m in mols if m is not None]
+    smiles_clean = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    if mode == 'morgan':
+        gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+        macc_gen = MACCSkeys.GenMACCSKeys
+        feats = []
+        for m in mols:
+            morgan = gen.GetCountFingerprintAsNumPy(m)
+            maccs = macc_gen(m)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+        return np.array(feats, dtype=np.float32)
+    
+    elif mode == 'atom_pair':
+        gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+        feats = [gen.GetCountFingerprintAsNumPy(m) for m in mols]
+        return np.array(feats, dtype=np.float32)
+    
+    elif mode == 'torsion':
+        gen = rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=N_BITS)
+        feats = [gen.GetCountFingerprintAsNumPy(m) for m in mols]
+        return np.array(feats, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_y_arr = np.asarray(train_y, dtype=np.int64)
+    
+    def get_probs(mode, s_list, y_arr, s):
+        X = featurize(s_list, mode=mode)
+        model = RandomForestClassifier(n_estimators=500, max_features='sqrt', 
+                                      min_samples_leaf=2, class_weight='balanced_subsample', 
+                                      n_jobs=-1, random_state=s)
+        model.fit(X, y_arr)
+        return model.predict_proba(featurize(test_smiles, mode=mode))[:, 1]
+    
+    p1 = get_probs('morgan', train_smiles, train_y_arr, seed)
+    p2 = get_probs('atom_pair', train_smiles, train_y_arr, seed + 1)
+    p3 = get_probs('torsion', train_smiles, train_y_arr, seed + 2)
+    
+    return (p1 + p2 + p3) / 3.0
+>>>>>>> REPLACE
+-----

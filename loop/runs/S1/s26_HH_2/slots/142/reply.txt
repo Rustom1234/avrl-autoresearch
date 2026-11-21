@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+        c = cur_c.copy()
+        if rng.rand() < 0.5:
+            i0 = rng.randint(_N)
+=======
+        c = cur_c.copy()
+        wall_move = rng.rand() < 0.1
+        if wall_move:
+            wl = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+            tw = np.where(wl - cur_r < 1e-6)[0]
+            if tw.size > 0:
+                i0 = tw[rng.randint(tw.size)]
+                if min(c[i0, 0], 1 - c[i0, 0]) <= min(c[i0, 1], 1 - c[i0, 1]):
+                    c[i0, 1] = rng.uniform(0.05, 0.95)
+                else:
+                    c[i0, 0] = rng.uniform(0.05, 0.95)
+            c = np.clip(c, 0.0, 1.0)
+        elif rng.rand() < 0.5:
+            i0 = rng.randint(_N)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, rr = _relax(c, np.full(_N, 0.005), 200, 0.05, 0.01, 0.5, cur_c)
+        c, rr = _slsqp_refine(c, rr, 80)
+=======
+        lr = 0.02 if wall_move else 0.05
+        c, rr = _relax(c, np.full(_N, 0.005), 200, lr, 0.01, 0.5, cur_c)
+        c, rr = _slsqp_refine(c, rr, 80)
+>>>>>>> REPLACE
+-----

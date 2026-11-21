@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+=======
+        c, r = best
+        dist = np.stack([c[:, 0], 1 - c[:, 0], c[:, 1], 1 - c[:, 1]], 1)
+        near = np.where(dist.min(1) < 1.5 * r)[0]
+        if len(near) and rng.random() < 0.25:   # wall slide of one near-wall circle
+            i = rng.choice(near)
+            w, t = np.argmin(dist[i]), rng.uniform(r[i], 1 - r[i])
+            p = c.copy()
+            p[i] = [(r[i], t), (1 - r[i], t), (t, r[i]), (t, 1 - r[i])][w]
+            p = p.ravel()
+        else:
+            p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+>>>>>>> REPLACE
+-----

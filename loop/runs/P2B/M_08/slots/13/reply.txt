@@ -1,0 +1,75 @@
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+
+        # Value residual (ResFormer): mix in value embedding with input-dependent gate per head
+=======
+    def forward(self, x, ve, cos_sin, window_size, v0=None, v0_lam=None):
+        B, T, C = x.size()
+        q = self.c_q(x).view(B, T, self.n_head, self.head_dim)
+        k = self.c_k(x).view(B, T, self.n_kv_head, self.head_dim)
+        v = self.c_v(x).view(B, T, self.n_kv_head, self.head_dim)
+
+        # First-layer value residual (ResFormer): mix in layer-0 values with a learned zero-init scalar
+        if v0 is not None:
+            v = v + v0_lam * v0
+        v_out = v
+
+        # Value residual (ResFormer): mix in value embedding with input-dependent gate per head
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        y = self.c_proj(y)
+        return y
+=======
+        y = self.c_proj(y)
+        return y, v_out
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+        x = x + self.mlp(norm(x))
+        return x
+=======
+    def forward(self, x, ve, cos_sin, window_size, v0=None, v0_lam=None):
+        a, v = self.attn(norm(x), ve, cos_sin, window_size, v0, v0_lam)
+        x = x + a
+        x = x + self.mlp(norm(x))
+        return x, v
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+=======
+        self.x0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        self.v0_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.x0_lambdas.fill_(0.1)
+=======
+        self.x0_lambdas.fill_(0.1)
+        self.v0_lambdas.fill_(0.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        resid_params = [self.resid_lambdas]
+=======
+        resid_params = [self.resid_lambdas, self.v0_lambdas]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+        x0 = x
+        v0 = None
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x, v = block(x, ve, cos_sin, self.window_sizes[i], v0, self.v0_lambdas[i])
+            if i == 0:
+                v0 = v
+>>>>>>> REPLACE
+-----

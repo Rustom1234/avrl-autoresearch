@@ -1,0 +1,67 @@
+<<<<<<< SEARCH
+MAX_ITER = 200
+=======
+MAX_ITER = 100
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+=======
+TIME_FRACTION = 0.8
+POLISH_ITER = 600
+POLISH_FTOL = 1e-12
+TOP_K = 3
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    R = int(rng.integers(5, 8))
+    m = int(np.ceil(n / R))
+    pts = np.array([((j + 0.5 + 0.5 * (i % 2)) / (m + 0.5), (i + 0.5) / R) for i in range(R) for j in range(m)])
+    pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.02, (n, 2))
+    pts = np.clip(pts, 0.03, 0.97)
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, x0=None, maxiter=MAX_ITER, ftol=1e-6):
+    if x0 is None:
+        R = int(rng.integers(5, 8))
+        m = int(np.ceil(n / R))
+        pts = np.array([((j + 0.5 + 0.5 * (i % 2)) / (m + 0.5), (i + 0.5) / R) for i in range(R) for j in range(m)])
+        pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.02, (n, 2))
+        pts = np.clip(pts, 0.03, 0.97)
+        x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter, "ftol": ftol})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, top = np.random.default_rng(seed), time.process_time(), []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        top.append((r.sum(), c, r))
+        top.sort(key=lambda t: -t[0])
+        top = top[:TOP_K]
+    best = top[0]
+    for _, c0, r0 in top:   # polish the top candidates
+        try:
+            c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]), POLISH_ITER, POLISH_FTOL)
+        except Exception:
+            continue
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[0]:
+            best = (r.sum(), c, r)
+    return best[1], best[2]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+from lightgbm import LGBMRegressor
+from sklearn.decomposition import TruncatedSVD
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = XGBRegressor(n_estimators=600, max_depth=4, learning_rate=0.03, subsample=0.8,
+                         colsample_bytree=0.4, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    nd = len(Descriptors.descList)
+    svd = TruncatedSVD(n_components=50, random_state=seed)
+    svd.fit(np.vstack([Xtr[:, nd:], Xte[:, nd:]]))
+    Xtr = np.hstack([Xtr[:, :nd], svd.transform(Xtr[:, nd:])])
+    Xte = np.hstack([Xte[:, :nd], svd.transform(Xte[:, nd:])])
+    model = LGBMRegressor(n_estimators=600, num_leaves=15, learning_rate=0.03, subsample=0.8,
+                          subsample_freq=1, colsample_bytree=0.4, reg_lambda=5, min_child_samples=10,
+                          n_jobs=8, random_state=seed, verbose=-1)
+    model.fit(Xtr, np.asarray(train_y, dtype=np.float64))
+    return model.predict(Xte)
+>>>>>>> REPLACE
+-----

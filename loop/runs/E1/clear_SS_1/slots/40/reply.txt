@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    from sklearn.model_selection import KFold
+    from sklearn.linear_model import LinearRegression
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    Ftr, Fte = xgb_features(train_smiles), xgb_features(test_smiles)
+    Ktr, Kte = tanimoto(Xtr, Xtr), tanimoto(Xte, Xtr)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    ys = (y - y.mean()) / (y.std() + 1e-9)
+
+    def make_xgb():
+        return XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                            min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+
+    def make_svr():
+        return SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+
+    oof = np.zeros((len(y), 2))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Ftr):
+        oof[va, 0] = make_xgb().fit(Ftr[tr], y[tr]).predict(Ftr[va])
+        oof[va, 1] = make_svr().fit(Ktr[np.ix_(tr, tr)], ys[tr]).predict(Ktr[np.ix_(va, tr)])
+    R = np.column_stack([rankdata(oof[:, 0]), rankdata(oof[:, 1])]) / len(y)
+    w = LinearRegression(positive=True).fit(R, y).coef_
+    if w.sum() <= 0:
+        w = np.ones(2)
+    w = w / w.sum()
+
+    p_xgb = make_xgb().fit(Ftr, y).predict(Fte)
+    p_svr = make_svr().fit(Ktr, ys).predict(Kte)
+    return w[0] * rankdata(p_xgb) / len(p_xgb) + w[1] * rankdata(p_svr) / len(p_svr)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def scaled_rank(p):
+    return (rankdata(p) - 1) / max(len(p) - 1, 1)
+=======
+def cross_features(Ct, Ce, y):
+    r = np.array([np.corrcoef(Ct[:, j], y)[0, 1] if Ct[:, j].std() > 0 else 0.0 for j in range(Ct.shape[1])])
+    r = np.nan_to_num(r)
+    top = np.argsort(-np.abs(r))[:12]
+    mu = Ct[:, top].mean(axis=0)
+    sd = Ct[:, top].std(axis=0) + 1e-9
+    Zt = (Ct[:, top] - mu) / sd
+    Ze = (Ce[:, top] - mu) / sd
+
+    def cross(Z):
+        pi, pj = np.triu_indices(12, 1)
+        qi, qj = np.triu_indices(4, 1)
+        return np.hstack([Z[:, pi] * Z[:, pj], Z[:, qi] - Z[:, qj]])
+
+    return cross(Zt), cross(Ze)
+
+
+def scaled_rank(p):
+    return (rankdata(p) - 1) / max(len(p) - 1, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_train = np.hstack([X_train, np.clip(D_train, lo, hi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    Ct = np.clip(D_train, lo, hi)
+    Ce = np.clip(D_test, lo, hi)
+    cross_tr, cross_te = cross_features(Ct, Ce, np.asarray(train_y, dtype=np.float64))
+    X_train = np.hstack([X_train, Ct.astype(np.float32), cross_tr.astype(np.float32)])
+    X_test = np.hstack([X_test, Ce.astype(np.float32), cross_te.astype(np.float32)])
+    y = np.asarray(train_y, dtype=np.int64)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+def _obj_grad(z):
+    g = np.zeros(3 * _N)
+    g[2 * _N:] = -1.0
+    return g
+=======
+def _obj_grad(z):
+    g = np.zeros(3 * _N)
+    g[2 * _N:] = -1.0
+    return g
+
+
+_LAM_REG = 0.5
+
+
+def _obj_reg(z):
+    # -sum(r) + lam * sum((r - rbar)^2): favours uniform radii in early stages
+    r = z[2 * _N:]
+    rbar = np.mean(r)
+    return -np.sum(r) + _LAM_REG * np.sum((r - rbar) ** 2)
+
+
+def _obj_reg_grad(z):
+    # d/dr_i sum((r - rbar)^2) = 2 (r_i - rbar), since sum(r - rbar) = 0
+    g = np.zeros(3 * _N)
+    r = z[2 * _N:]
+    g[2 * _N:] = -1.0 + 2.0 * _LAM_REG * (r - np.mean(r))
+    return g
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        z_prev = z
+        try:
+            res = minimize(_obj, z_prev, jac=_obj_grad, constraints=cons,
+=======
+        z_prev = z
+        if cap is not None and cap < 0.11:
+            f_obj, g_obj = _obj_reg, _obj_reg_grad
+        else:
+            f_obj, g_obj = _obj, _obj_grad
+        try:
+            res = minimize(f_obj, z_prev, jac=g_obj, constraints=cons,
+>>>>>>> REPLACE
+-----

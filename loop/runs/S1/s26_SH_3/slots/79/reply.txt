@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+    def optimize(z0):
+        res = minimize(lambda z: -np.sum(z[2 * n:]), z0, jac=lambda z: obj_grad,
+=======
+    def optimize(z0, maxiter=300):
+        res = minimize(lambda z: -np.sum(z[2 * n:]), z0, jac=lambda z: obj_grad,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                       method="SLSQP", options={"maxiter": 300, "ftol": 1e-12})
+=======
+                       method="SLSQP", options={"maxiter": maxiter, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        cur_val = np.sum(cur[2 * n:])
+        # shrink-and-grow cycles
+=======
+        cur_val = np.sum(cur[2 * n:])
+        # extra polishing passes with small perturbations, keep improvements
+        for _ in range(3):
+            if time.time() - t0 > 180:
+                break
+            zp = cur.copy()
+            zp[:2 * n] = np.clip(zp[:2 * n] + rng.normal(0, 1e-3, 2 * n), 0.0, 1.0)
+            zq = optimize(zp, 500)
+            vq = np.sum(zq[2 * n:])
+            if vq > cur_val:
+                cur, cur_val = zq, vq
+        # shrink-and-grow cycles
+>>>>>>> REPLACE
+-----

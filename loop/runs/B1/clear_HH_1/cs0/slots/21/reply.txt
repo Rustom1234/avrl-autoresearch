@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    z = (y - mu) / sd
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, z)
+    pred = model.predict(K_test)
+    ha = np.array([Chem.MolFromSmiles(s).GetNumHeavyAtoms() for s in train_smiles])
+    hat = np.array([Chem.MolFromSmiles(s).GetNumHeavyAtoms() for s in test_smiles])
+    c1, c2 = np.quantile(ha, [1 / 3, 2 / 3])
+    g_tr = np.digitize(ha, [c1, c2], right=True)
+    g_te = np.digitize(hat, [c1, c2], right=True)
+    for g in range(3):
+        tr = np.where(g_tr == g)[0]
+        te = np.where(g_te == g)[0]
+        if len(tr) < 30 or len(te) == 0:
+            continue
+        m = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+        m.fit(K_train[np.ix_(tr, tr)], z[tr])
+        pred[te] = m.predict(K_test[np.ix_(te, tr)])
+    return pred
+>>>>>>> REPLACE
+-----

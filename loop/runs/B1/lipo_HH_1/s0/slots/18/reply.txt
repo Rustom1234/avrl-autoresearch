@@ -1,0 +1,60 @@
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+N_LEVELS = 5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return dot / np.maximum(na + nb - dot, 1e-9)
+=======
+    return dot / np.maximum(na + nb - dot, 1e-9)
+
+
+def count_features(smiles):
+    # Radius-3 Morgan count fingerprint, clipped at N_LEVELS.
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=N_BITS)
+    return np.array([np.minimum(gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)), N_LEVELS) for s in smiles],
+                    dtype=np.float32)
+
+
+def minmax_kernel(A, B):
+    # Generalised Tanimoto sum(min)/sum(max) on clipped counts; sum(min) = sum_t [a>=t][b>=t] exactly.
+    smin = np.zeros((len(A), len(B)), dtype=np.float32)
+    for t in range(1, N_LEVELS + 1):
+        smin += (A >= t).astype(np.float32) @ (B >= t).astype(np.float32).T
+    sa = A.sum(axis=1)[:, None]
+    sb = B.sum(axis=1)[None, :]
+    return smin / np.maximum(sa + sb - smin, 1e-9)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+=======
+def base_predict(Xa, Fa, Ca, ya, Xb, Fb, Cb, ga, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ta, Ra = tanimoto(Fa, Fa), rbf(Za, Za)
+=======
+    Ta, Ra = (tanimoto(Fa, Fa) + minmax_kernel(Ca, Ca)) / 2, rbf(Za, Za)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+=======
+    p_krr = ((tanimoto(Fb, Fa) + minmax_kernel(Cb, Ca)) / 2 + wr * rbf(Zb, Za)) @ w + mu
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ftr, Fte = Ftr[:, :N_BITS].astype(np.float64), Fte[:, :N_BITS].astype(np.float64)
+=======
+    Ftr, Fte = Ftr[:, :N_BITS].astype(np.float64), Fte[:, :N_BITS].astype(np.float64)
+    Ctr, Cte = count_features(train_smiles), count_features(test_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+=======
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], Ctr[tr], y[tr], Xtr[va], Ftr[va], Ctr[va], groups[tr], seed)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+=======
+    base_te = base_predict(Xtr, Ftr, Ctr, y, Xte, Fte, Cte, groups, seed)
+>>>>>>> REPLACE
+-----

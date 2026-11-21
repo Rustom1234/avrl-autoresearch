@@ -1,0 +1,85 @@
+<<<<<<< SEARCH
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        pos_over = np.maximum(over, 0)
+        if np.any(pos_over > 0):
+            # Pressure-based shrinkage: shrink based on total overlap volume
+            # and weighted by the number of overlaps each circle is involved in.
+            pressure = np.sum(pos_over > 0, axis=1)
+            total_over = np.sum(pos_over) 
+                * (pressure[:, None] + pressure[None, :]) 
+                / (pressure.sum() + 1e-9)
+            shrink_factors = np.exp(-np.sum(pos_over, axis=1) * 0.5)
+            r *= shrink_factors
+            # Ensure radii remain valid and positive
+            r = np.clip(r, 0, 1)
+        else:
+            break
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+==========
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        pos_over = np.maximum(over, 0)
+        if np.any(pos_over > 0):
+            pressure = np.sum(pos_over > 0, axis=1)
+            shrink_factors = np.exp(-np.sum(pos_over, axis=1) * 0.1)
+            r *= shrink_factors
+            r = np.clip(r, 0, 1)
+        else:
+            break
+    return np.maximum(r - SHRINK, 0)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+🌱
+REPLACE
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        pos_over = np.maximum(over, 0)
+        if np.any(pos_over > 0):
+            pressure = np.sum(pos_over, axis=1)
+            r *= np.exp(-pressure * 0.05)
+        else:
+            break
+    return np.maximum(r - SHRINK, 0)
+-----

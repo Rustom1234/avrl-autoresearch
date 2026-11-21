@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import StratifiedKFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    # Label-noise filter: out-of-fold RF probability of each training molecule's own label
+    own_p = np.zeros(len(y))
+    for tr, va in StratifiedKFold(n_splits=5, shuffle=True, random_state=seed).split(X_train, y):
+        oof = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                     n_jobs=-1, random_state=seed).fit(X_train[tr], y[tr])
+        p1 = oof.predict_proba(X_train[va])[:, 1]
+        own_p[va] = np.where(y[va] == 1, p1, 1 - p1)
+    suspicious = np.where(own_p < 0.1)[0]
+    max_drop = int(0.1 * len(y))
+    drop = suspicious[np.argsort(own_p[suspicious])][:max_drop]
+    keep = np.setdiff1d(np.arange(len(y)), drop)
+    X_train, y = X_train[keep], y[keep]
+>>>>>>> REPLACE
+-----

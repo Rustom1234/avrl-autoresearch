@@ -1,0 +1,54 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+POOL_SIZE = 8
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    budget = TIME_FRACTION * time_limit
+    cur = best = None
+    while time.process_time() - t0 < budget:
+        if cur is None:
+            c, r = _solve_once(n, rng)
+        else:
+            frac = (time.process_time() - t0) / budget
+            T = 0.01 * (1e-4 / 0.01) ** frac
+            c0 = np.clip(cur[0] + rng.normal(0, 0.05, (n, 2)), 0, 1)
+            c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), cur[1]]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if cur is None or r.sum() >= cur[1].sum() or np.exp((r.sum() - cur[1].sum()) / T) > rng.uniform():
+            cur = (c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    budget = TIME_FRACTION * time_limit
+    pool = []
+    while time.process_time() - t0 < budget:
+        if len(pool) < POOL_SIZE:
+            c, r = _solve_once(n, rng)
+        else:
+            a, b = rng.choice(len(pool), 2, replace=False)
+            cut = rng.uniform()
+            ca, cb = pool[a][0], pool[b][0]
+            pts = np.concatenate([ca[ca[:, 0] < cut], cb[cb[:, 0] >= cut]])
+            if len(pts) < n:
+                pts = np.concatenate([pts, rng.uniform(INIT_LOW, 1 - INIT_LOW, (n - len(pts), 2))])
+            pts = pts[rng.permutation(len(pts))[:n]]
+            c, r = _solve_once(n, rng, np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if len(pool) < POOL_SIZE:
+            pool.append((c, r))
+        else:
+            w = min(range(len(pool)), key=lambda k: pool[k][1].sum())
+            if r.sum() > pool[w][1].sum():
+                pool[w] = (c, r)
+    return max(pool, key=lambda p: p[1].sum())
+>>>>>>> REPLACE
+-----

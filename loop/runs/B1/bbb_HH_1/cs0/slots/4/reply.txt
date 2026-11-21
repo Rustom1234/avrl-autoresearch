@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    rs = np.random.RandomState(seed)
+    n_cols = X_train.shape[1]
+    gb_p = np.zeros(len(X_test))
+    for i in range(3):
+        cols = np.sort(rs.choice(n_cols, int(0.6 * n_cols), replace=False))
+        gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                            random_state=seed + i, n_jobs=8, verbose=-1)
+        gb.fit(X_train[:, cols], y)
+        gb_p += gb.predict_proba(X_test[:, cols])[:, 1] / 3
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb_p))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit import Chem, RDLogger
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+=======
+RDLogger.DisableLog('rdApp.*')
+_CHOOSER = rdMolStandardize.LargestFragmentChooser()
+_UNCHARGER = rdMolStandardize.Uncharger()
+
+
+def standardize(m):
+    if m is None:
+        return m
+    try:
+        out = _UNCHARGER.uncharge(_CHOOSER.choose(m))
+        return out if out is not None else m
+    except Exception:
+        return m
+
+
+def featurize(smiles):
+    rows = []
+    for s in smiles:
+        m = standardize(Chem.MolFromSmiles(s))
+>>>>>>> REPLACE
+-----

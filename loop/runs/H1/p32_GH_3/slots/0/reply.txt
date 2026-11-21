@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+PERTURB_ROUNDS = 2
+JITTER = 0.01
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def run(x):
+        return minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                        options={"maxiter": MAX_ITER})
+
+    res = run(x0)
+    for _ in range(PERTURB_ROUNDS):   # jitter the centres out of a stalled optimum and re-optimise
+        x = res.x.copy()
+        x[:2 * n] += rng.normal(0, JITTER, 2 * n)
+        new = run(x)
+        if new.fun < res.fun:
+            res = new
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

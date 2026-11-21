@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+    iu = np.triu_indices(n, 1)
+    # stage 1: equal fixed radii, maximise the minimum pairwise slack t
+    r0 = 0.4 / np.sqrt(n)
+    d0 = np.sqrt(((base[iu[0]] - base[iu[1]]) ** 2).sum(1)) - 2 * r0
+
+    def cons1(v):
+        c, t = v[:2 * n], v[-1]
+        d = np.sqrt(((c.reshape(n, 2)[iu[0]] - c.reshape(n, 2)[iu[1]]) ** 2).sum(1)) - 2 * r0 - t
+        return np.concatenate([d, c - r0, 1 - c - r0])
+
+    res1 = minimize(lambda v: -v[-1], np.append(base.ravel(), d0.min()), method="SLSQP",
+                    constraints={"type": "ineq", "fun": cons1}, options={"maxiter": MAX_ITER})
+    c0 = np.clip(res1.x[:2 * n].reshape(n, 2), 0, 1)
+    x0 = np.concatenate([c0.ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 110:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    try:
+        from scipy.optimize import basinhopping, OptimizeResult
+        n = _N
+        brng = np.random.default_rng(7)
+        state = {"s": r.sum(), "c": c.copy(), "r": r.copy()}
+
+        def mini(fun, x0, args=(), **kw):
+            cc = np.clip(x0.reshape(n, 2), 0, 1)
+            try:
+                rr = _lp_radii(cc)
+                c2 = np.clip(_polish(cc, rr), 0, 1)
+                r2 = _lp_radii(c2)
+            except Exception:
+                c2 = cc
+                r2 = _lp_radii(cc)
+            if r2.sum() > state["s"]:
+                state["s"] = r2.sum()
+                state["c"] = c2.copy()
+                state["r"] = r2.copy()
+            return OptimizeResult(x=c2.ravel(), fun=-r2.sum(), success=True, nfev=1)
+
+        def step(x):
+            cc = x.reshape(n, 2).copy()
+            k = int(brng.integers(1, 5))
+            idx = brng.choice(n, k, replace=False)
+            cc[idx] += brng.normal(0, 0.03, (k, 2))
+            return np.clip(cc, 0.02, 0.98).ravel()
+
+        def func(x):
+            return -_lp_radii(np.clip(x.reshape(n, 2), 0, 1)).sum()
+
+        def cb(x, f, accept):
+            return time.time() - t0 > 148
+
+        basinhopping(func, c.ravel(), niter=100000,
+                     minimizer_kwargs={"method": mini}, take_step=step,
+                     callback=cb, seed=1, T=0.002)
+        c, r = state["c"], state["r"]
+    except Exception:
+        pass
+    r = np.maximum(r - 5e-10, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

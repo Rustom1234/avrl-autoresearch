@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def norm(x):
+    return F.rms_norm(x, (x.size(-1),))
+=======
+BIGRAM_BUCKETS = 4096
+
+
+def norm(x):
+    return F.rms_norm(x, (x.size(-1),))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        self.resid_lambdas = nn.Parameter(torch.ones(config.n_layer))
+=======
+        self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
+        self.bigram_embed = nn.Embedding(BIGRAM_BUCKETS, config.n_embd)
+        self.resid_lambdas = nn.Parameter(torch.ones(config.n_layer))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.transformer.wte.to(dtype=torch.bfloat16)
+=======
+        torch.nn.init.zeros_(self.bigram_embed.weight)
+        self.bigram_embed.to(dtype=torch.bfloat16)
+        self.transformer.wte.to(dtype=torch.bfloat16)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        embedding_params = list(self.transformer.wte.parameters())
+=======
+        embedding_params = list(self.transformer.wte.parameters()) + list(self.bigram_embed.parameters())
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x = self.transformer.wte(idx)
+        x = norm(x)
+=======
+        prev = torch.cat([torch.zeros_like(idx[:, :1]), idx[:, :-1]], dim=1)
+        bigram_idx = (prev * 31337 + idx) % BIGRAM_BUCKETS
+        x = self.transformer.wte(idx) + self.bigram_embed(bigram_idx)
+        x = norm(x)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,73 @@
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _pack_once(seed, cheap=False, refine_z=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pts = _relax(pts, rng)
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.05)])
+=======
+    pts = _relax(pts, rng, steps=150 if cheap else 300)
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.05)])
+    if refine_z is not None:
+        z0 = np.asarray(refine_z, dtype=float).copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for mu in (10.0, 1e2, 1e3, 1e4, 1e5):
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 300})
+=======
+        for mu in ((10.0, 1e2, 1e3) if cheap else (10.0, 1e2, 1e3, 1e4, 1e5)):
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 100 if cheap else 300})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                       options={"maxiter": 500, "ftol": 1e-12})
+=======
+                       options={"maxiter": 80 if cheap else 800, "ftol": 1e-12 if cheap else 1e-14})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    radii = _repair(centers, np.maximum(z[2 * n:], 0.0))
+    return centers, radii
+=======
+    radii = _repair(centers, np.maximum(z[2 * n:], 0.0))
+    return centers, radii, z
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def construct_packing():
+    """Multi-start mirror-symmetric init + SLSQP; returns best (centers, radii)."""
+    t0 = time.time()
+    best = None
+    best_sum = -1.0
+    for seed in range(10000):
+        if seed > 0 and time.time() - t0 > 200.0:
+            break
+        c, r = _pack_once(seed)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum = s
+            best = (c, r)
+    return best
+=======
+def construct_packing():
+    """Screen many cheap starts for ~110 s, then fully refine the top 6 until ~220 s."""
+    t0 = time.time()
+    pool = []
+    seed = 0
+    while time.time() - t0 < 110.0:
+        c, r, z = _pack_once(seed, cheap=True)
+        pool.append((float(np.sum(r)), seed, z, c, r))
+        seed += 1
+    pool.sort(key=lambda t: -t[0])
+    best = (pool[0][3], pool[0][4])
+    best_sum = pool[0][0]
+    for s, sd, z, _, _ in pool[:6]:
+        if time.time() - t0 > 220.0:
+            break
+        c, r, _ = _pack_once(sd, cheap=False, refine_z=z)
+        if float(np.sum(r)) > best_sum:
+            best_sum = float(np.sum(r))
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

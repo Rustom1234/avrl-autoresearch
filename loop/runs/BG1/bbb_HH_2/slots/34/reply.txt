@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+=======
+    total = np.zeros(len(test_smiles))
+    # Random Fourier feature logistic member on quantile-normalised curated descriptors
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=200)
+    d_tr = qt.fit_transform(featurize(train_smiles))
+    d_te = qt.transform(featurize(test_smiles))
+    rng = np.random.RandomState(seed)
+    n_rff = 1000
+    W = rng.normal(scale=0.1, size=(d_tr.shape[1], n_rff))
+    b = rng.uniform(0, 2 * np.pi, size=n_rff)
+    z_tr = np.sqrt(2.0 / n_rff) * np.cos(d_tr @ W + b)
+    z_te = np.sqrt(2.0 / n_rff) * np.cos(d_te @ W + b)
+    rff = LogisticRegression(C=1.0, max_iter=2000).fit(z_tr, y)
+    total += rankdata(rff.predict_proba(z_te)[:, 1])
+    for x_tr, x_te in zip(train_sets, test_sets):
+>>>>>>> REPLACE
+-----

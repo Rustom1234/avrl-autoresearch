@@ -1,0 +1,16 @@
+{
+ "slot": 1,
+ "incumbent": "/homes/rdubash/active-audit/curation/task/curate.py",
+ "inc_scores": {
+  "11": 1.9599307524869234
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Train a domain classifier and keep only target-like documents, deduplicated. Steps: (1) Build TF-IDF features with character n-grams (char_wb, 1-3 grams, sublinear_tf, max_features ~50k, on the first ~3000 chars of each doc) for the pool and the 200 target_sample docs. (2) Train a LogisticRegression (class_weight='balanced') with target_sample as positives and a seeded random sample of ~4000 pool docs as negatives; score all pool docs; then do one self-training round: retrain with the top ~1500 scoring pool docs + target_sample as positives and the bottom ~5000 as negatives, and rescore. (3) Exact-dedupe by hash of whitespace-normalised text, and near-dedupe by hash of the first 200 characters, keeping one copy. (4) Drop junk: docs under 200 characters, and docs whose fraction of alphabetic+space characters is below 0.7. (5) Keep docs with final probability > 0.5 (the WikiText-style articles: '= Title =' headers, ' @-@ ', spaced punctuation such as ' , ' and ' . '). Count tokens with tiktoken gpt2; if the kept set has fewer than T tokens, do NOT pad with off-domain text, just return the kept set (it will be cycled); if more than T, keep the highest-scoring ones up to T. (6) Return the kept indices in a random order seeded from CURATE_SEED.",
+   "outcome": "dev 1.9556 against 1.9599 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.23422759999999998,
+ "status": "running"
+}

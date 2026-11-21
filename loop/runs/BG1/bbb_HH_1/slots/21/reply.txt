@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+ELEMS = [6, 7, 8, 9, 15, 16, 17, 35, 53]
+
+
+def propagate_feats(mols):
+    dim = len(ELEMS) + 6  # element one-hot + "other" slot + 5 atom properties
+    out = []
+    for m in mols:
+        n = m.GetNumAtoms()
+        if n == 0:
+            out.append(np.zeros(8 * dim, dtype=np.float32))
+            continue
+        X = np.zeros((n, dim))
+        for i, a in enumerate(m.GetAtoms()):
+            z = a.GetAtomicNum()
+            X[i, ELEMS.index(z) if z in ELEMS else len(ELEMS)] = 1.0
+            X[i, len(ELEMS) + 1:] = [float(a.GetDegree()), float(a.GetFormalCharge()),
+                                     float(a.GetIsAromatic()), float(a.GetTotalNumHs()),
+                                     float(a.IsInRing())]
+        A = Chem.GetAdjacencyMatrix(m).astype(float) + np.eye(n)
+        P = A / A.sum(1, keepdims=True)
+        H = X
+        parts = []
+        for _ in range(4):
+            parts.append(H.sum(0))
+            parts.append(H.mean(0))
+            H = P @ H
+        out.append(np.concatenate(parts))
+    return np.array(out, dtype=np.float32)
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.hstack([fp, desc.astype(np.float32)])
+=======
+    prop = propagate_feats(mols)
+    return np.hstack([fp, desc.astype(np.float32), prop])
+>>>>>>> REPLACE
+-----

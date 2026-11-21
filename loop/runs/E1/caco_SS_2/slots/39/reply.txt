@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.ensemble import GradientBoostingRegressor
+from rdkit.Chem import Crippen, rdMolDescriptors, Lipinski
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64))
+=======
+        charges = [a.GetFormalCharge() for a in m.GetAtoms()]
+        rows.append(np.array([
+            Crippen.MolLogP(m), rdMolDescriptors.CalcTPSA(m), Descriptors.MolWt(m),
+            Lipinski.NumHDonors(m), Lipinski.NumHAcceptors(m), Lipinski.NumRotatableBonds(m),
+            rdMolDescriptors.CalcFractionCSP3(m), rdMolDescriptors.CalcNumAromaticRings(m),
+            sum(abs(c) for c in charges), sum(c != 0 for c in charges), sum(charges),
+            rdMolDescriptors.CalcLabuteASA(m)], dtype=np.float64))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                          colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model = GradientBoostingRegressor(loss='huber', n_estimators=400, learning_rate=0.03, max_depth=3,
+                                      subsample=0.8, min_samples_leaf=5, random_state=seed)
+    model.fit(Xtr, y)
+    return model.predict(Xte)
+>>>>>>> REPLACE
+-----

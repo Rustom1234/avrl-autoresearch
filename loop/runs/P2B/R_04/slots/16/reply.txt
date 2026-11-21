@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+=======
+    # Layer-wise Gaussian-shape regularizer: penalize excess kurtosis, stronger for early layers
+    n_l = len(model.transformer.h)
+    gauss_pen = 0.0
+    for li, blk in enumerate(model.transformer.h):
+        w = blk.mlp.c_fc.weight.float()
+        z = (w - w.mean()) / (w.std() + 1e-8)
+        gauss_pen = gauss_pen + ((n_l - li) / n_l) * (z.pow(4).mean() - 3.0) ** 2
+    (1e-4 * gauss_pen).backward()
+
+    # Progress and schedules
+    progress = min(total_training_time / TIME_BUDGET, 1.0)
+>>>>>>> REPLACE
+-----

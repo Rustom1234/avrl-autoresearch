@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+def _template():
+=======
+def _subset_relax(c, r, rng, cycles=3, steps=150, lr_c=0.05, lr_r=0.01):
+    """Block coordinate relaxation: each step moves only an 8-circle subset, others held fixed."""
+    n = r.shape[0]
+    eye = np.eye(n)
+    for _cyc in range(cycles):
+        perm = rng.permutation(n)
+        for b in range(0, n, 8):
+            idx = perm[b:b + 8]
+            mask = np.zeros(n)
+            mask[idx] = 1.0
+            for k in range(steps):
+                decay = 1.0 - 0.9 * k / max(steps - 1, 1)
+                diff = c[:, None, :] - c[None, :, :]
+                d = np.sqrt(np.sum(diff ** 2, axis=-1) + eye)
+                gap = d - (r[:, None] + r[None, :])
+                np.fill_diagonal(gap, np.inf)
+                ov = np.maximum(-gap, 0.0)
+                unit = diff / d[:, :, None]
+                f = np.sum(ov[:, :, None] * unit, axis=1)
+                gl = c[:, 0] - r
+                gr = 1.0 - c[:, 0] - r
+                gb = c[:, 1] - r
+                gt = 1.0 - c[:, 1] - r
+                f[:, 0] += np.maximum(-gl, 0.0) - np.maximum(-gr, 0.0)
+                f[:, 1] += np.maximum(-gb, 0.0) - np.maximum(-gt, 0.0)
+                c = np.clip(c + lr_c * decay * f * mask[:, None], 0.0, 1.0)
+                g = np.minimum(np.minimum.reduce([gl, gr, gb, gt]), gap.min(axis=1))
+                r = np.maximum(r + lr_r * decay * g * mask, 0.0)
+    return c, r
+
+
+def _template():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _relax(c0.copy(), np.full(_N, 0.005), 600, 0.05, 0.01, 0.5, c0)
+=======
+        c, r = _relax(c0.copy(), np.full(_N, 0.005), 600, 0.05, 0.01, 0.5, c0)
+        c, r = _subset_relax(c, r, rng)
+>>>>>>> REPLACE
+-----

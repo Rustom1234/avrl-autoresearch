@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+=======
+        if targets is not None:
+            if reduction == 'mean' and self.training:
+                tok_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                           ignore_index=-1, reduction='none')
+                k = tok_loss.numel() // 4
+                with torch.no_grad():
+                    thresh = torch.topk(tok_loss.detach(), k).values[-1]
+                    weight = torch.where(tok_loss.detach() >= thresh, 1.5, 1.0)
+                loss = (tok_loss * weight).sum() / (targets.view(-1) != -1).sum().clamp_min(1)
+                return loss
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+>>>>>>> REPLACE
+-----

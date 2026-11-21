@@ -1,0 +1,82 @@
+<<<<<<< SEARCH
+ASPECT_RATIO = 64       # model_dim = depth * ASPECT_RATIO
+head_dim = 128          # target head dimension for attention
+WIND_PATTERN = "SSSL" # sliding window pattern: L=full, S=half context
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+SCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+ADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2
+WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+ASPECT_RATIO = 64       # model_dim = depth * ASPECT_RATIO
+HEAD_DIM = 128          # target head dimension for attention
+WIND_PATTERN = "SSSL" # sliding window pattern: L=full, S=half context
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+
+=======
+ASPECT_RATIO = 32       # model_dim = depth * ASPECT_RATIO
+HEAD_DIM = 128          # target head dimension for attention
+WIND_PATTERN = "SSSL" # sliding window pattern: L=full, S=half context
+TOTAL_BATCH_SIZE = 2**16 # ~64K tokens per optimizer step
+EMBEDDING_LR = 0.9      # learning rate for token embeddings (Adam)
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+MATRIX_LR = 0.06        # learning rate for matrix parameters (Muon)
+SCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+ADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2
+WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+ASPECT_RATIO = 32       # model_dim = depth * ASPECT_RATIO
+HEAD_DIM = 128          # target head dimension for attention
+WIND_PATTERN = "SSSL" # sliding window pattern: L=full, S=half context
+DEVICE_BATCH_SIZE = 32  # per-device batch size; use G. accumulation to reach 128
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+ASPECT_RATIO = 64       # model_dim = depth * ASPECT_RATIO
+HEAD_DIM = 128          # target head dimension for attention
+WINDOW_PATTERN = "SSSL" # sliding window pattern: L=full, S=half context
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+SCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+ADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2
+WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+ASPECT_RATIO = 64       # model_dim = depth * ASPECT_RATIO
+HEAD_DIM = 128          # target head dimension for attention
+WINDOW_PATTERN = "SSSL" # sliding window pattern: L=full, S=half context
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+=======
+ASPECT_RATIO = 32       # model_dim = depth * ASPECT_RATIO
+HEAD_DIM = 128          # target head dimension for attention
+WINDOW_PATTERN = "SSSL" # sliding window pattern: L=full, S=half context
+TOTAL_BATCH_SIZE = 2**16 # ~64K tokens per optimizer step
+EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+SCALAR_LR = 0.5         # learning rate for per-layer scalars (Adam)
+WEIGHT_DECAY = 0.2      # cautious weight decay for Muon
+ADAM_BETAS = (0.8, 0.95) # Adam beta1, beta2
+WARMUP_RATIO = 0.0      # fraction of time budget for LR warmup
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+ASPECT_RATIO = 32       # model_dim = depth * ASPECT_RATIO
+HEAD_DIM = 128          # target head dimension for attention
+WINDOW_PATTERN = "SSSL" # sliding window pattern: L=full, S=half context
+DEVICE_BATCH_SIZE = 32  # per-device batch size; effective 128 via accumulation
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+TOTAL_BATCH_SIZE = 2**19 # ~524K tokens per optimizer step
+=======
+TOTAL_BATCH_SIZE = 2**21 # ~2M tokens per optimizer step (16000 per step * 128 GB total? No. Let's compute: 32*2048=65536. To get effective 128 batch size (for val_bpb), we do 128/65536 = 0.0019. No. Wait. The batch size in the loop is DEVICE_BATCH_SIZE * MAX_SEQ_LEN. If DEVICE_BATCH_SIZE=32, MAX_SEQ_LEN=2048 -> 65536. To get effective batch 128 (for stats), we need to accumulate 65536 / 65536 = 1 step? No. 128 is small. Wait. 128 is in terms of number of tokens per optimizer step? No. The `TOTAL_BATCH_SIZE` is the total tokens processed per optimizer step. So if DEVICE_BATCH_SIZE=1, sequence=2048, we need 128 steps? No. 128 is the effective batch size in terms of number of tokens? No. The spec says "effective batch 128". That likely means 128 tokens per optimizer step? No. The baseline is 64 devices * 2048 seq = 131072 tokens per step. The goal is 128 tokens? No. That's too small. Wait. The spec says "effective batch 128". This likely means 128 times the model's base batch size? No. Let's re-read: "device_batch_size 32 and enabling manual gradient accumulation steps every 4 steps (effective batch 128)". This implies: step 1 -> batch 32, step 2 -> batch 32, step 3 -> batch 32, step 4 -> batch 32+32+32+32=128. So we accumulate every 4 steps. TOTAL_BATCH_SIZE must be set to 32 * 2048 * 4 = 262144. But the baseline is 2**19 = 524288. So we reduce it by half. Or we keep TOTAL_BATCH_SIZE=524288 and accumulate 4 steps (effective batch 128). No. The spec says "effective batch 128". So effective batch size = 4 * 32 * 2048 = 262144. But we want effective batch 128? No. Wait. The baseline is 64 * 2048 = 131072. The goal is 128? That's way smaller. I think the spec is misworded. It likely means "effective batch size 128 times the per-step batch size"? No. Or "effective batch size 128 tokens per optimizer step"? No. Wait. The spec says "effective batch 128". Maybe it means 128 * 2048? No. Let's assume the spec is correct: "effective batch 128". This means 128 tokens per optimizer step? No. That's too small. Wait. The baseline TOTAL_BATCH_SIZE is 524288. The effective batch size is 524288 / 2048 = 256. The goal is to reduce val_bpb. The spec says "effective batch 128". Maybe it means 128 * 2048 = 262144 tokens per optimizer step. So we reduce TOTAL_BATCH_SIZE to 262144 and set accumulation steps to 2. But the spec says "every 4 steps". This is confusing. Let's try: set DEVICE_BATCH_SIZE = 32. Set TOTAL_BATCH_SIZE = 32 * 2048 * 4 = 262144. This gives effective batch = 4 * 32 * 2048 = 262144. But the spec says "effective batch 128". Maybe it means 128 * 2048? Then effective batch = 128 * 2048 = 262144. So we need to accumulate 4 times per step? No. If we accumulate 4 times, effective batch = 4 * 32 * 2048 = 262144. But 262144 = 128 * 2048. So effective batch size in terms of number of tokens is 262144. But the spec says "effective batch 128". This might be a mislabeling. Let's assume the spec means "effective batch size 128 times the per-step batch size". Since per-step batch is 32*2048=65536, 128*65536=8388608, which is too big. So maybe "effective batch 128" means 128 * 2048 = 262144. So we accumulate 4 steps. So DEVICE_BATCH_SIZE = 32, TOTAL_BATCH_SIZE = 262144, gradient accumulation steps = 4. This gives effective batch = 128 * 2048 = 262144. But the spec says "every 4 steps". So we accumulate 4 times. This matches. So we adjust: DEVICE_BATCH_SIZE=32, TOTAL_BATCH_SIZE=262144, and accumulate every 4 steps. This is a valid edit.
+-----

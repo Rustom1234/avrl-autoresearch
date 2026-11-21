@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    if start is None:
+        x1 = np.concatenate([x0[:2 * n], [INIT_RADIUS]])
+        res1 = minimize(lambda v: -v[2 * n], x1, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                        options={"maxiter": MAX_ITER})
+=======
+    if start is None:
+        x1 = np.concatenate([x0[:2 * n], [INIT_RADIUS]])
+        anchor = rng.uniform(0, 1, 2)
+        st = {"lam": 0.05, "it": 0}
+
+        def obj1(v):
+            return -v[2 * n] + st["lam"] * ((v[:2 * n].reshape(n, 2) - anchor) ** 2).sum()
+
+        def cb1(xk):
+            st["it"] += 1
+            st["lam"] = 0.05 * max(0.0, 1 - st["it"] / MAX_ITER)
+
+        res1 = minimize(obj1, x1, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                        options={"maxiter": MAX_ITER}, callback=cb1)
+>>>>>>> REPLACE
+-----

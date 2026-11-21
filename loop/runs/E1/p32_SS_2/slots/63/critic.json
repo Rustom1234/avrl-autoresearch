@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The candidate does not read files, use the network or paste coordinates, and it uses the seeded rng for all randomness. Every returned packing goes through clip and _repair, so the harness's validity check still holds.",
+  "Timing risk, not a veto: _polish runs after the 0.6*time_limit loop and nothing limits its time. That is two SLSQP calls with maxiter=600, 96 variables and about 656 constraints with a dense Jacobian. If they run long, a call could go past 45 s and void the job. This run evidently stayed within the limit, but a guard such as a time-based maxiter or skipping the polish when time is short would be safer.",
+  "Small inefficiency: the sort key calls _repair again on every raw restart result. It is cheap, but it duplicates work the loop has already done.",
+  "Odd but not a bug: the incumbent mean is 2.9375, well above the starting script's 2.9253 and slightly above the 'about 2.9370' published value from the card. The incumbent shown in the diff context looks like plain restarts. The number may be legitimate (the best known value for n=32 is about 2.9379), but the incumbent baseline is worth checking.",
+  "Recomputed z: the candidate (-2.9375, 1 run) and the incumbent (-2.9375, 1 run) differ by 0. With sd \u2248 0.0034 per job, z = 0 / (0.0034*sqrt(2)) = 0.000, which matches the harness. With one run on each side the test has little power, so rejecting is the right call."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0
+ }
+}

@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _relax(n, rng, steps=300):
+    """Fresh start: centres relaxed by L-BFGS-B on a penalty energy with fixed radius, so SLSQP starts near feasible."""
+    iu = np.triu_indices(n, 1)
+    rr = 0.08
+
+    def energy(x):
+        c = x.reshape(n, 2)
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        ov = np.maximum(0, 2 * rr - d)
+        lo = np.maximum(0, rr - c)
+        hi = np.maximum(0, c - (1 - rr))
+        e = (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum()
+        coef = (2 * ov / d)[:, None] * diff
+        g = np.zeros((n, 2))
+        np.add.at(g, iu[0], -coef)
+        np.add.at(g, iu[1], coef)
+        g += -2 * lo + 2 * hi
+        return e, g.ravel()
+
+    x = minimize(energy, rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), jac=True, method="L-BFGS-B",
+                 options={"maxiter": steps}).x
+    return np.concatenate([np.clip(x, 0, 1), np.full(n, INIT_RADIUS)])
+
+
+def _solve_once(n, rng, x0=None, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+        c, r = _solve_once(n, rng, x0)
+        c = np.clip(c, 0, 1)
+=======
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else _relax(n, rng)
+        c, r = _solve_once(n, rng, x0, 100)
+        if best is not None and r.sum() > best[1].sum() - 0.01:
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]), 200)
+        c = np.clip(c, 0, 1)
+>>>>>>> REPLACE
+-----

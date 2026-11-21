@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linprog, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _relocate(c, r, rng, trials=30):
+=======
+def _lp_radii(c, r):
+    """Maximise the sum of radii for fixed centres with a linear program, then repair for safety."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+    m = len(iu[0])
+    d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+    A = np.zeros((m, n))
+    A[np.arange(m), iu[0]] = 1
+    A[np.arange(m), iu[1]] = 1
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    res = linprog(-np.ones(n), A_ub=np.vstack([A, np.eye(n)]), b_ub=np.concatenate([d, wall]),
+                  bounds=(0, None), method="highs")
+    if res.status != 0:
+        return _repair(c, r)
+    return _repair(c, np.maximum(res.x - SHRINK, 0))
+
+
+def _relocate(c, r, rng, trials=30):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+=======
+        r = _lp_radii(c, r)
+        if r.sum() > best[1].sum():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+=======
+    bc, br = best
+    pr = _lp_radii(bc, br)
+    if pr.sum() > br.sum():
+        best = (bc, pr)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _smallest_kick(c, r, rng):
+    """Move 1-3 of the 6 smallest circles to the emptiest of 200 random points (clearance to the other circles and walls)."""
+    n = len(r)
+    move = rng.choice(np.argsort(r)[:6], rng.integers(1, 4), replace=False)
+    keep = np.ones(n, bool)
+    keep[move] = False
+    for i in move:
+        cand = rng.uniform(0, 1, (200, 2))
+        d = np.sqrt(((cand[:, None] - c[keep][None]) ** 2).sum(-1)) - r[keep]
+        score = np.minimum(d.min(1), np.minimum(cand, 1 - cand).min(1))
+        c[i] = cand[np.argmax(score)]
+        r[i] = 0
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+=======
+        else:              # local kick, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            if rng.uniform() < 0.5:   # disc kick: re-randomise the centres in a disc
+                p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+                m = np.hypot(*(c - p).T) < R
+                k = m.sum()
+                ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+                c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+                r[m] = 0
+            else:                     # remove-and-reinsert the smallest circles
+                c, r = _smallest_kick(c, r, rng)
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+>>>>>>> REPLACE
+-----

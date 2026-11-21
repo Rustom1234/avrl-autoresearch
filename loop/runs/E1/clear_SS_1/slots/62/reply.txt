@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    rng = np.random.RandomState(seed)
+    yz = (y - y.mean()) / (y.std() + 1e-9)
+    p_svr = np.zeros(len(Xte))
+    for _ in range(6):
+        cols = rng.rand(Xtr.shape[1]) < 0.7
+        a, b = Xtr[:, cols], Xte[:, cols]
+        svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+        svr.fit(tanimoto(a, a), yz)
+        p_svr += rankdata(svr.predict(tanimoto(b, a))) / len(b) / 6
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def topology(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rings = [set(r) for r in m.GetRingInfo().AtomRings()]
+        systems = []  # list of (atom set, ring count); rings sharing atoms are merged
+        for r in rings:
+            new, cnt = set(r), 1
+            for sy in [sy for sy in systems if sy[0] & r]:
+                new |= sy[0]
+                cnt += sy[1]
+                systems.remove(sy)
+            systems.append((new, cnt))
+        ring_atoms = set().union(*rings) if rings else set()
+        n_arom = sum(m.GetAtomWithIdx(i).GetIsAromatic() for i in ring_atoms)
+        scaf = MurckoScaffold.GetScaffoldForMol(m)
+        n_generic = 0.0
+        if scaf.GetNumAtoms() > 0:
+            MurckoScaffold.MakeScaffoldGeneric(scaf)
+            n_generic = 1.0
+        rows.append([
+            len(systems),
+            max([c for _, c in systems], default=0),
+            n_generic,
+            n_arom,
+            len(ring_atoms) / max(m.GetNumHeavyAtoms(), 1),
+        ])
+    return np.array(rows, dtype=np.float64)
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Dt = descriptors(test_smiles)
+    keep = D.std(axis=0) > 1e-9
+=======
+    Dt = descriptors(test_smiles)
+    D = np.hstack([D, topology(train_smiles)])
+    Dt = np.hstack([Dt, topology(test_smiles)])
+    keep = D.std(axis=0) > 1e-9
+>>>>>>> REPLACE
+-----

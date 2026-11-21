@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+    n = _N
+=======
+def _polish(c, r, lam=0.0):
+    n = _N
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def obj(x):
+        return -x[2 * n:].sum()
+=======
+    def obj(x):
+        R = x[2 * n:]
+        return -R.sum() + lam * ((R - R.mean()) ** 2).sum()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        g = np.zeros(3 * n)
+        g[2 * n:] = -1
+        return g
+=======
+        g = np.zeros(3 * n)
+        R = x[2 * n:]
+        g[2 * n:] = -1 + 2 * lam * (R - R.mean())
+        return g
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    cands = []
+    while time.time() - t0 < 110:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+=======
+        cands.append((s, c2, r2))
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    cands.sort(key=lambda t: -t[0])
+    for s0, cc, rr in cands[:5]:
+        if time.time() - t0 > 225:
+            break
+        try:
+            c3, r3 = cc, rr
+            for lam in (0.5, 0.2, 0.05, 0.0):
+                c3 = np.clip(_polish(c3, r3, lam), 0, 1)
+                r3 = _lp_radii(c3)
+            if r3.sum() > best_s:
+                best_s, best = r3.sum(), (c3, r3)
+        except Exception:
+            continue
+    c, r = best
+>>>>>>> REPLACE
+-----

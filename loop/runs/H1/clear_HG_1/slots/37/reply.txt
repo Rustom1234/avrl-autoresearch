@@ -1,0 +1,78 @@
+<<<<<<< SEARCH
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_test, X_train)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+=======
+    y_train_transformed = np.log1p(y_train) if np.all(y_train >= 0) else y_train
+    
+    # Feature-subspace bagging: 15 models on random 60% bit subsets
+    n_models = 15
+    subset_size = int(N_BITS * 0.6)
+    ensemble_preds = np.zeros(len(test_smiles))
+    
+    rng = np.random.default_rng(seed)
+    for _ in range(n_models):
+        indices = rng.sample(n_models, subset_size, replace=False)
+        
+        X_train_sub = X_train[:, indices]
+        X_test_sub = X_test[:, indices]
+        
+        K_train_sub = tanimoto_kernel(X_train_sub, X_train_sub)
+        K_test_sub = tanimoto_kernel(X_test_sub, X_train_sub)
+        
+        model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+        model.fit(K_train_sub, y_train_transformed)
+        ensemble_preds += model.predict(K_test_sub)
+
+    return np.expm1(ensemble_preds / n_models) if np.all(y_train >= 0) else ensemble_preds / n_models
+-----
+<<<<<<< SEARCH
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_test, X_train)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+=======
+    is_log = np.all(y_train >= 0)
+    y_train_transformed = np.log1p(y_train) if is_log else y_train
+
+    n_models = 15
+    subset_size = int(N_BITS * 0.6)
+    ensemble_preds = np.zeros(len(test_smiles))
+    
+    rng = np.random.default_rng(seed)
+    for _ in range(n_models):
+        indices = rng.choice(N_BITS, subset_size, replace=False)
+        
+        X_train_sub = X_train[:, indices]
+        X_test_sub = X_test[:, indices]
+        
+        K_train_sub = tanimoto_kernel(X_train_sub, X_train_sub)
+        K_test_sub = tanimoto_kernel(X_test_sub, X_train_sub)
+        
+        model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+        model.fit(K_train_sub, y_train_transformed)
+        ensemble_preds += model.predict(K_test_sub)
+
+    avg_preds = ensemble_preds / n_models
+    return np.expm1(avg_preds) if is_log else avg_preds
+>>>>>>> REPLACE
+-----

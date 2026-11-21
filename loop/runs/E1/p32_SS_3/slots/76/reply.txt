@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+        keep = d0 < 0.15
+        iu = (iu[0][keep], iu[1][keep])
+=======
+        keep = d0 < 0.08
+        full = iu
+        iu = (full[0][keep], full[1][keep])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+                   options={"maxiter": MAX_ITER})
+    if start is not None:
+        cc, rr = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+        dd = np.sqrt(((cc[full[0]] - cc[full[1]]) ** 2).sum(1)) - rr[full[0]] - rr[full[1]]
+        bad = (dd < -1e-9) & ~keep
+        if bad.any():
+            keep = keep | bad
+            iu = (full[0][keep], full[1][keep])
+            res = minimize(lambda v: -v[2 * n:].sum(), res.x, method="SLSQP",
+                           constraints={"type": "ineq", "fun": cons}, options={"maxiter": 30})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

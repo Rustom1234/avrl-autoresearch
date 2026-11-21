@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+=======
+    I, J = np.triu_indices(n, 1)
+    m = len(I)
+    out = np.empty(m + 5 * n)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        x, y = c[:, 0], c[:, 1]
+        out[:m] = np.hypot(x[I] - x[J], y[I] - y[J]) - r[I] - r[J]
+        out[m:m + n] = x - r
+        out[m + n:m + 2 * n] = y - r
+        out[m + 2 * n:m + 3 * n] = 1 - x - r
+        out[m + 3 * n:m + 4 * n] = 1 - y - r
+        out[m + 4 * n:] = r
+        return out.copy()
+>>>>>>> REPLACE
+-----

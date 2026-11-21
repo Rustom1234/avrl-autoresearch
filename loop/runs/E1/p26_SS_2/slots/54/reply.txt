@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None, sd=0.0):
+    if start is None:
+=======
+def _solve_once(n, rng, start=None, sd=0.0, exact=False):
+    if exact:
+        x0 = np.concatenate([start[0].ravel(), start[1]])
+    elif start is None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": 300, "ftol": 1e-15} if exact else {"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+=======
+    while time.process_time() - t0 < 0.9 * TIME_FRACTION * time_limit:   # random restarts until the time is used
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    if TIME_FRACTION * time_limit - (time.process_time() - t0) > 1.5:
+        c, r = _solve_once(n, rng, best, exact=True)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

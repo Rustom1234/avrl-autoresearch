@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _rot_lattice_start(rng):
+    """Seeded rotated square-lattice start: 26 lattice points nearest the centre, jittered."""
+    n = 26
+    theta = rng.uniform(0.0, np.pi / 4)
+    ct, st = np.cos(theta), np.sin(theta)
+    g = np.arange(-8, 9)
+    gx, gy = np.meshgrid(g, g)
+    gx = gx.ravel().astype(float)
+    gy = gy.ravel().astype(float)
+    s = 0.157
+    # largest spacing for which at least 26 lattice points fall inside [0.1, 0.9]^2
+    for cand in np.linspace(0.2, 0.12, 33):
+        px = 0.5 + cand * (gx * ct - gy * st)
+        py = 0.5 + cand * (gx * st + gy * ct)
+        if np.sum((px >= 0.1) & (px <= 0.9) & (py >= 0.1) & (py <= 0.9)) >= n:
+            s = cand
+            break
+    px = 0.5 + s * (gx * ct - gy * st)
+    py = 0.5 + s * (gx * st + gy * ct)
+    order = np.argsort((px - 0.5) ** 2 + (py - 0.5) ** 2)[:n]
+    c0 = np.column_stack([px[order], py[order]])
+    c0 = np.clip(c0 + rng.normal(0.0, 0.01, size=(n, 2)), 0.02, 0.98)
+    r0 = np.full(n, 0.5 * s)
+    return c0, r0
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+        r0 = np.full(n, 0.07)
+        r0[:k] = 0.12
+        r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+=======
+        if start % 3 == 2:
+            c0, r0 = _rot_lattice_start(rng)
+        else:
+            c0 = rng.uniform(0.05, 0.95, size=(n, 2))
+            r0 = np.full(n, 0.07)
+            r0[:k] = 0.12
+            r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+>>>>>>> REPLACE
+-----

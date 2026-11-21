@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    res = meta.predict(oof) - y
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    pred = meta.predict(base_te)
+    # kNN residual correction: similarity-weighted mean OOF residual of up to 10 neighbours with Tanimoto > 0.4.
+    S = tanimoto(Fte, Ftr)
+    idx = np.argsort(-S, axis=1)[:, :10]
+    sims = np.take_along_axis(S, idx, axis=1)
+    w = sims * (sims > 0.4)
+    corr = (w * res[idx]).sum(axis=1) / np.maximum(w.sum(axis=1), 1e-9)
+    return pred + 0.5 * corr
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+=======
+DEVICE_BATCH_SIZE = 64  # per-device batch size (reduce if OOM); 128 overflows A100 40GB
+SEQ_CURRICULUM_FRAC = 0.3  # first fraction of time budget trains on half-length sequences
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+x, y, epoch = next(train_loader)  # prefetch first batch
+=======
+x, y, epoch = next(train_loader)  # prefetch first batch
+
+# Pre-compile both sequence shapes (outside the timed loop) so the curriculum switch costs no budget
+for xs, ys in [(x, y), (x.reshape(-1, MAX_SEQ_LEN // 2), y.reshape(-1, MAX_SEQ_LEN // 2))]:
+    with autocast_ctx:
+        model(xs, ys).backward()
+model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+=======
+    # Sequence-length curriculum: half-length sequences (double batch, same tokens) early on
+    short_seq = total_training_time < SEQ_CURRICULUM_FRAC * TIME_BUDGET
+    for micro_step in range(grad_accum_steps):
+        if short_seq:
+            xs, ys = x.reshape(-1, MAX_SEQ_LEN // 2), y.reshape(-1, MAX_SEQ_LEN // 2)
+        else:
+            xs, ys = x, y
+        with autocast_ctx:
+            loss = model(xs, ys)
+>>>>>>> REPLACE
+-----

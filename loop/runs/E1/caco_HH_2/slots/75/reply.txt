@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+HB_PATS = [Chem.MolFromSmarts(s) for s in [
+    "[NX3;!H0]-[#6]=O",
+    "[NX3;!H0]-[#6]-[#6]=O",
+    "[NX3;!H0]-[#6]=[#6]-[#7,#8]",
+    "[OX2H]-c:c-[CX3]=O",
+    "[OX2H]-c:c-[#7]",
+]]
+
+
+def hb_counts(m):
+    counts = []
+    masked = set()
+    for p in HB_PATS:
+        matches = m.GetSubstructMatches(p)
+        counts.append(len(matches))
+        for t in matches:
+            masked.update(t)
+    polar = [a.GetIdx() for a in m.GetAtoms() if a.GetSymbol() in ('N', 'O')]
+    counts.append(sum(1 for i in polar if i not in masked))
+    return np.array(counts, dtype=np.float32)
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([fp, desc]))
+=======
+        rows.append(np.concatenate([fp, desc, hb_counts(m)]))
+>>>>>>> REPLACE
+-----

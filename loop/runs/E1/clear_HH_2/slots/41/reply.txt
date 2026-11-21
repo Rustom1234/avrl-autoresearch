@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+W_DESC = 0.6  # weight of the descriptor-based LightGBM rank; fingerprint ExtraTrees gets 1 - W_DESC
+=======
+W_DESC = 0.6  # weight of the descriptor-based LightGBM rank; fingerprint ExtraTrees gets 1 - W_DESC
+FP_CONFIGS = [(1, 1024), (2, 2048), (3, 4096)]  # (Morgan radius, bit size) candidates for the GP kernel
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def bit_fingerprints(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+=======
+def bit_fingerprints(smiles, radius=RADIUS, n_bits=N_BITS):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=n_bits)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best_s2
+=======
+    return best_score, best_s2
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+=======
+    best_score, p_fp = -np.inf, None
+    for radius, n_bits in FP_CONFIGS:
+        X_tr, X_te = bit_fingerprints(train_smiles, radius, n_bits), bit_fingerprints(test_smiles, radius, n_bits)
+        K_tr = tanimoto(X_tr, X_tr)
+        score, s2 = choose_sigma2(K_tr, y, train_smiles)
+        if score > best_score:
+            best_score, p_fp = score, gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    # AdamW Lookahead step
+    for group in optimizer.param_groups:
+        group['step'] += 1
+        if group['step'] % 5 == 0:  # every 5 steps
+            idx = group['step'] % len(group['params'])
+            p = group['params'][idx]
+            # Update parameter with momentum buffer
+            state = optimizer.state[p]
+            if 'step_size' not in state:
+                state['step_size'] = torch.randn_like(p) * p.std()
+            p.add_(state['step_size'] * 0.1)
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+-----

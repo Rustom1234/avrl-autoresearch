@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, w=0.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+=======
+    def obj(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        g = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        return -r.sum() - w * np.log(np.maximum(g, 1e-6)).sum()
+
+    res = minimize(obj, x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+=======
+    k = 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng, 0.01 if k % 3 == 2 else 0.0)
+        k += 1
+>>>>>>> REPLACE
+-----

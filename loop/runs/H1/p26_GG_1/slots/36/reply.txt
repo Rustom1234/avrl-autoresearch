@@ -1,0 +1,100 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    # Use the first 70% of time for random restarts
+    while time.process_time() - t0 < 0.7 * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    
+    # Use the remaining 30% of time for simulated annealing/polishing
+    curr_c, curr_r = best
+    temp = 1.0
+    while time.process_time() - t0 < time_limit:
+        # Shake the best solution
+        perturb = rng.normal(0, 0.02, (n, 2))
+        next_c = np.clip(curr_c + perturb, 0, 1)
+        next_r = curr_r * rng.uniform(0.95, 1.05, n)
+        next_r = np.minimum(next_r, np.minimum(next_c[:, 0], next_c[:, 1]), 
+                               np.minimum(1 - next_c[:, 0], 1 - next_c[:, 1]))
+        next_r = np.maximum(next_r, 0)
+        
+        # Quick repair
+        for _ in range(20):
+            d = np.sqrt(((next_c[:, None] - next_c[None]) ** 2).sum(-1))
+            over = next_r[:, None] + next_r[None] - d
+            np.fill_diagonal(over, -1)
+            i, j = np.unravel_index(np.argmax(over), over.shape)
+            if over[i, j] <= 0: break
+            s = d[i, j] / (next_r[i] + next_r[j])
+            next_r[i], next_r[j] = next_r[i] * s, next_r[j] * s
+            
+        if next_r.sum() > curr_r.sum() or rng.random() < np.exp((next_r.sum() - curr_r.sum()) / temp):
+            curr_c, curr_r = next_c, next_r
+            if curr_r.sum() > best[1].sum():
+                best = (curr_c, curr_r)
+        temp *= 0.99
+    return best
+-----
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+    if best is None: return None
+    curr_c, curr_r = best
+    temp = 0.1
+    while time.process_time() - t0 < time_limit:
+        # Perturb
+        perturb = rng.normal(0, 0.005, (n, 2))
+        next_c = np.clip(curr_c + perturb, 0, 1)
+        next_r = curr_r * rng.uniform(0.98, 1.02, n)
+        next_r = np.minimum(next_r, np.minimum(next_c[:, 0], next_c[:, 1]), 
+                               np.minimum(1 - next_c[:, 0], 1 - next_c[:, 1]))
+        next_r = np.maximum(next_r, 0)
+        
+        # Repair
+        for _ in range(10):
+            d = np.sqrt(((next_c[:, None] - next_c[None]) ** 2).sum(-1))
+            over = next_r[:, None] + next_r[None] - d
+            np.fill_diagonal(over, -1)
+            i, j = np.unravel_index(np.argmax(over), over.shape)
+            if over[i, j] <= 0: break
+            s = d[i, j] / (next_r[i] + next_r[j])
+            next_r[i], next_r[j] = next_r[i] * s, next_r[j] * s
+        
+        diff = next_r.sum() - curr_r.sum()
+        if diff > 0 or rng.random() < np.exp(diff / (temp + 1e-9)):
+            curr_c, curr_r = next_c, next_r
+            if curr_r.sum() > best[1].sum():
+                best = (curr_c, curr_r)
+        temp *= 0.999
+    return best
+-----

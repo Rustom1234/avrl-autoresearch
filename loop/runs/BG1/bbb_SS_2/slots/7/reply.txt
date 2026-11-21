@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def morgan_counts(smiles, n_bits=1024):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=n_bits)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gb = lgb.LGBMClassifier(n_estimators=300, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                            colsample_bytree=0.5, random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(Dtr, y)
+    preds.append(gb.predict_proba(Dte)[:, 1])
+=======
+    Gtr = np.hstack([Dtr, morgan_counts(train_smiles)])
+    Gte = np.hstack([Dte, morgan_counts(test_smiles)])
+    gb = lgb.LGBMClassifier(n_estimators=400, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                            colsample_bytree=0.3, random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(Gtr, y)
+    preds.append(gb.predict_proba(Gte)[:, 1])
+>>>>>>> REPLACE
+-----

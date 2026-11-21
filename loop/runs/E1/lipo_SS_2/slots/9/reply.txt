@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import ExtraTreesRegressor
+=======
+from sklearn.ensemble import ExtraTreesRegressor
+from lightgbm import LGBMRegressor
+from catboost import CatBoostRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64) - crippen(train_smiles))
+    return model.predict(featurize(test_smiles)) + crippen(test_smiles)
+=======
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64) - crippen(train_smiles)
+    lgb = LGBMRegressor(n_estimators=600, learning_rate=0.03, num_leaves=31, colsample_bytree=0.3,
+                        subsample=0.8, subsample_freq=1, min_child_samples=10, objective="l1",
+                        n_jobs=8, random_state=seed, verbose=-1)
+    cat = CatBoostRegressor(iterations=500, learning_rate=0.06, depth=6, loss_function="MAE",
+                            rsm=0.2, border_count=32, thread_count=8, random_seed=seed, verbose=False)
+    preds = []
+    for m in (model, lgb, cat):
+        m.fit(Xtr, y)
+        preds.append(np.asarray(m.predict(Xte), dtype=np.float64))
+    return np.mean(preds, axis=0) + crippen(test_smiles)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def path_fingerprints(smiles):
+    gen = rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=5, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float64)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    s2 = choose_sigma2(K_tr, r, train_smiles)
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+=======
+    s2 = choose_sigma2(K_tr, r, train_smiles)
+    p_morgan = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+
+    P_tr, P_te = path_fingerprints(train_smiles), path_fingerprints(test_smiles)
+    K_p = tanimoto(P_tr, P_tr)
+    p_path = gp_mean(K_p, r, tanimoto(P_te, P_tr), choose_sigma2(K_p, r, train_smiles)) + base_te
+    p_fp = 0.5 * (rankdata(p_morgan) + rankdata(p_path))
+>>>>>>> REPLACE
+-----

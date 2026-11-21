@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+def _old_construct_packing():
+=======
+def _dual_step(c, step=0.01):
+    """LP-dual sensitivity move: step centers along dual-weighted pair gradients; keep only if the LP sum improves."""
+    n = c.shape[0]
+    iu, ju = np.triu_indices(n, 1)
+    m = iu.shape[0]
+    d = np.sqrt(np.sum((c[iu] - c[ju]) ** 2, axis=1))
+    A = np.zeros((m, n))
+    A[np.arange(m), iu] = 1.0
+    A[np.arange(m), ju] = 1.0
+    x, y = c[:, 0], c[:, 1]
+    ub = np.maximum(np.minimum.reduce([x, y, 1.0 - x, 1.0 - y]), 0.0)
+    bounds = np.column_stack([np.zeros(n), ub])
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=bounds, method="highs")
+    if res.status != 0 or res.x is None:
+        return c
+    lam = np.maximum(-np.asarray(res.ineqlin.marginals, dtype=float), 0.0)
+    unit = (c[iu] - c[ju]) / np.maximum(d, 1e-12)[:, None]
+    g = np.zeros((n, 2))
+    np.add.at(g, iu, lam[:, None] * unit)
+    np.add.at(g, ju, -lam[:, None] * unit)
+    gm = float(np.max(np.abs(g)))
+    if gm < 1e-12:
+        return c
+    c_new = np.clip(c + step * g / gm, 0.0, 1.0)
+    _, s0 = _score(c)
+    _, s1 = _score(c_new)
+    return c_new if s1 > s0 else c
+
+
+def _old_construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c = cur_c.copy()
+        if rng.rand() < 0.5:
+=======
+        c = cur_c.copy()
+        u = rng.rand()
+        if u < 0.3:
+            c = _dual_step(c)
+        elif u < 0.65:
+>>>>>>> REPLACE
+-----

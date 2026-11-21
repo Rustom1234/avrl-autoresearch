@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+    for _k in range(100000):
+        if time.time() - t0 > 200.0 and best is not None:
+            break
+=======
+    rng = np.random.default_rng(12345)
+    best = None
+    pool = []
+    t0 = time.time()
+    for _k in range(100000):
+        if time.time() - t0 > 140.0 and best is not None:
+            break
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = float(np.sum(r))
+        if best is None or s > best[0]:
+            centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            best = (s, centers, r)
+    if best is None:
+=======
+        s = float(np.sum(r))
+        centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+        pool.append((s, centers, r))
+        if best is None or s > best[0]:
+            best = (s, centers, r)
+    # top-3 distinct packings by LP score
+    pool.sort(key=lambda t: -t[0])
+    top = []
+    for cand in pool:
+        if all(abs(cand[0] - t[0]) > 1e-9 for t in top):
+            top.append(cand)
+        if len(top) == 3:
+            break
+    # last ~60s: perturb-and-relax from the top 3 with large regional moves
+    while top and time.time() - t0 < 200.0:
+        k_pick = int(rng.integers(len(top)))
+        s_cur, c_cur, r_cur = top[k_pick]
+        q = rng.uniform(0.0, 1.0, size=2)
+        m = int(rng.integers(3, 6))
+        d_q = np.sqrt(((c_cur - q) ** 2).sum(axis=1))
+        idx = np.argsort(d_q)[:m]
+        ang = rng.uniform(0.0, 2 * np.pi, size=m)
+        rho = 0.15 * np.sqrt(rng.uniform(0.0, 1.0, size=m))
+        newc = q + np.column_stack([rho * np.cos(ang), rho * np.sin(ang)])
+        newc = np.clip(newc, 0.02, 0.98)
+        cc = c_cur.copy()
+        cc[idx] = newc
+        rcur = r_cur.copy()
+        rcur[idx] = 0.03
+        x, y = _optimize(cc[:, 0].copy(), cc[:, 1].copy(), rcur)
+        r_new = _lp_radii(x, y)
+        if r_new is None:
+            continue
+        s_new = float(np.sum(r_new))
+        if s_new > s_cur + 1e-9:
+            c_new = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            top[k_pick] = (s_new, c_new, r_new)
+    if top:
+        best = max(top, key=lambda t: t[0])
+    if best is None:
+>>>>>>> REPLACE
+-----

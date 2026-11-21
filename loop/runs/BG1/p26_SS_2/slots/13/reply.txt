@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and time.process_time() - t0 > 0.3 * time_limit:
+            c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    cur, fails = None, 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        hop = best is not None and time.process_time() - t0 > 0.3 * time_limit
+        if hop:
+            if cur is None:
+                cur = best
+            c, r = _solve_once(n, rng, cur, rng.choice([0.01, 0.02, 0.05]))
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best, fails = (c, r), 0
+            if hop:
+                cur = best
+        elif hop:
+            fails += 1
+            if fails % 10 == 0:
+                cur = best
+        if hop and cur is not best and r.sum() > cur[1].sum() - 0.003:
+            cur = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

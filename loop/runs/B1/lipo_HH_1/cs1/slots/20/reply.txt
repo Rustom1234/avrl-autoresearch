@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+        rows.append(np.concatenate([ecfp.GetFingerprintAsNumPy(mol), fcfp.GetFingerprintAsNumPy(mol)]))
+    return np.array(rows, dtype=np.float32)
+=======
+        rows.append(np.minimum(np.concatenate([ecfp.GetCountFingerprintAsNumPy(mol),
+                                               fcfp.GetCountFingerprintAsNumPy(mol)]), 255))
+    return np.array(rows, dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    dot = A @ B.T
+    na = (A * A).sum(axis=1)[:, None]
+    nb = (B * B).sum(axis=1)[None, :]
+    return dot / np.maximum(na + nb - dot, 1e-9)
+=======
+    # MinMax kernel on counts capped at 8: sum(min) = sum_t (A>=t) @ (B>=t).T
+    A, B = np.minimum(A, 8), np.minimum(B, 8)
+    smin = np.zeros((len(A), len(B)))
+    for t in range(1, 9):
+        smin += (A >= t).astype(np.float32) @ (B >= t).astype(np.float32).T
+    sa = A.sum(axis=1)[:, None]
+    sb = B.sum(axis=1)[None, :]
+    return smin / np.maximum(sa + sb - smin, 1e-9)
+>>>>>>> REPLACE
+-----

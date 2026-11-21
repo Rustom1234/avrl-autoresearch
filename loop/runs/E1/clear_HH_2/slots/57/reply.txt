@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+from sklearn.linear_model import RidgeCV
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def gnn_features(smiles, seed, rounds=3):
+    d = 11
+    rng = np.random.default_rng(seed)
+    Ws = [rng.normal(0.0, 1.0, size=(d, d)) / np.sqrt(d) for _ in range(rounds)]
+    bucket_of = {'C': 0, 'N': 1, 'O': 2, 'S': 3, 'F': 4, 'Cl': 4, 'Br': 4, 'I': 4}
+    out = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        n = m.GetNumAtoms()
+        h = np.zeros((n, d))
+        A = np.zeros((n, n))
+        for a in m.GetAtoms():
+            i = a.GetIdx()
+            h[i, bucket_of.get(a.GetSymbol(), 5)] = 1.0
+            h[i, 6] = float(a.GetIsAromatic())
+            h[i, 7] = a.GetDegree()
+            h[i, 8] = a.GetTotalNumHs()
+            h[i, 9] = float(a.GetFormalCharge() != 0)
+            h[i, 10] = float(a.IsInRing())
+        for b in m.GetBonds():
+            i, j = b.GetBeginAtomIdx(), b.GetEndAtomIdx()
+            A[i, j] = A[j, i] = 1.0
+        deg = np.maximum(A.sum(1, keepdims=True), 1.0)
+        pooled = []
+        for W in Ws:
+            h = np.tanh(h + (A @ (h @ W)) / deg)
+            pooled.append(h.sum(0))
+        out.append(np.concatenate(pooled))
+    return np.array(out)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    G_tr, G_te = gnn_features(train_smiles, seed), gnn_features(test_smiles, seed)
+    g_mu, g_sd = G_tr.mean(0), G_tr.std(0) + 1e-9
+    ridge = RidgeCV(alphas=np.logspace(0, 3, 20)).fit((G_tr - g_mu) / g_sd, r)
+    p_gnn = ridge.predict((G_te - g_mu) / g_sd) + base_te
+
+    n = len(p_desc)
+    return 0.8 * (W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n) + 0.2 * rankdata(p_gnn) / n
+>>>>>>> REPLACE
+-----

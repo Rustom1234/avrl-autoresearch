@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraintsZur="type": "ineq", "fun": cons},
+                   optionsZur="maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraintsZur="type": "ineq", "fun": cons},
+                   optionsZur="maxiter": MAX_ITER})
+    x = res.x
+    c, r = x[:2 * n].reshape(n, 2), x[2 * n:]
+    
+    # Shake step: add small noise and polish
+    x_shake = x + rng.normal(0, 0.01, size=x.shape)
+    # Ensure centers stay somewhat sane before polish
+    x_shake[:2 * n] = np.clip(x_shake[:2 * n], 0.01, 0.99)
+    res_shake = minimize(lambda v: -v[2 * n:].sum(), x_shake, method="SLSQP", constraintsZur="type": "ineq", "fun": cons),
+                   optionsZur="maxiter": 20)
+    
+    best_x = x if -res.fun < -res_shake.fun else res_shake.x
+    return best_x[:2 * n].reshape(n, 2), best_x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraintsWings="type": "ineq", "fun": cons},
+                   optionsWings="maxiter": MAX_ITER)
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraintsWings="type": "ineq", "fun": cons},
+                   optionsWings="maxiter": MAX_ITER)
+    x_base = res.x
+    
+    # Shake step: add small noise and polish
+    x_shake = x_base + rng.normal(0, 0.005, size=x_base.shape)
+    x_shake[:2 * n] = np.clip(x_shake[:2 * n], 0.01, 0.99)
+    res_shake = minimize(lambda v: -v[2 * n:].sum(), x_shake, method="SLSQP", constraintsWings="type": "ineq", "fun": cons),
+                   optionsWings="maxiter": 20)
+    
+    best_x = x_base if -res.fun < -res_shake.fun else res_shake.x
+    return best_x[:2 * n].reshape(n, 2), best_x[2 * n:]
+>>>>>>> REPLACE
+-----

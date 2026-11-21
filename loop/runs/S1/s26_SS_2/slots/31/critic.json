@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of gaming the measurement. The diff adds no file or network access, no hardcoded coordinates and no use of labels. It only adds a final SLSQP polish of the best state found (bw), which is the kind of change the card asks for.",
+  "Possible validity risk: the polish keeps only pair constraints with d < r_i + r_j + 0.05, plus the 4n boundary rows. Pairs left out could end up overlapping after the polish. The result is still meaningful only if finalize() repairs or checks every pair (for example by shrinking the radii against the full set). Finalize is not in the diff, so I can't confirm this. If it doesn't, the likely outcome is a crash, not a fake score.",
+  "The index layout m + np.arange(4*n) assumes cons() returns the m pair constraints first and then 4n boundary constraints. That ordering is not visible in the diff and should be checked.",
+  "Timing: the polish runs after the 200 s search loop. Two SLSQP solves with maxiter=1000 on 78 variables should fit before the 300 s hard stop, but the margin is smaller than the card's roughly 4 minute target.",
+  "Numbers: candidate -2.636 against incumbent -2.6360, each from one run. The difference is zero at the precision shown, and a single run per side gives no variance estimate, so z can't be recomputed reliably. The reported z = -0.001 is consistent with no real difference, and rejecting is reasonable. A sum of about 2.636 is in line with the best known value of about 2.6358, so the claim is plausible."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

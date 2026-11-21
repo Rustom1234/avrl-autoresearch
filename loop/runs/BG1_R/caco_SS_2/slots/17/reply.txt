@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors, AllChem, rdMolDescriptors as rdd
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64))
+=======
+_SHAPE = {}
+
+
+def shape_feats(s, m):
+    if s not in _SHAPE:
+        out = [np.nan] * 7
+        try:
+            mh = Chem.AddHs(m)
+            p = AllChem.ETKDGv3()
+            p.randomSeed = 0
+            if AllChem.EmbedMolecule(mh, p) == 0:
+                out = [rdd.CalcPMI1(mh), rdd.CalcPMI2(mh), rdd.CalcPMI3(mh), rdd.CalcNPR1(mh),
+                       rdd.CalcNPR2(mh), rdd.CalcRadiusOfGyration(mh), rdd.CalcAsphericity(mh)]
+        except Exception:
+            pass
+        _SHAPE[s] = out
+    return _SHAPE[s]
+
+
+def featurize(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.array([f(m) for _, f in Descriptors.descList] + shape_feats(s, m), dtype=np.float64))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    budget = TIME_FRACTION * time_limit
+    cur = best = None
+    while time.process_time() - t0 < budget:
+        if cur is None:
+            c, r = _solve_once(n, rng)
+        else:
+            frac = (time.process_time() - t0) / budget
+            T = 0.01 * (1e-4 / 0.01) ** frac
+            c0 = np.clip(cur[0] + rng.normal(0, 0.05, (n, 2)), 0, 1)
+            c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), cur[1]]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if cur is None or r.sum() >= cur[1].sum() or np.exp((r.sum() - cur[1].sum()) / T) > rng.uniform():
+            cur = (c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    budget = TIME_FRACTION * time_limit
+    best = None
+    while time.process_time() - t0 < budget:
+        if best is None or rng.uniform() < 0.2:
+            c, r = _solve_once(n, rng)
+        else:
+            c0 = np.clip(best[0] + rng.normal(0, 0.03, (n, 2)), 0, 1)
+            r0 = best[1] * rng.uniform(0.8, 1.0, n)
+            c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _reinsert(c, r, rng, m=3000):
+    """Move each rattler (circle with no contact) to the sampled point of largest clearance; returns (centres, radii)."""
+    n = len(r)
+    c, r = c.copy(), r.copy()
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    np.fill_diagonal(d, np.inf)
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])) - r
+    gap = np.minimum((d - r[:, None] - r[None]).min(1), wall)
+    for k in np.where(gap > 1e-6)[0]:
+        others = np.arange(n) != k
+        p = rng.uniform(0, 1, (m, 2))
+        dist = np.sqrt(((p[:, None] - c[others][None]) ** 2).sum(-1)) - r[others][None]
+        clear = np.minimum(dist.min(1), np.minimum(np.minimum(p[:, 0], p[:, 1]), np.minimum(1 - p[:, 0], 1 - p[:, 1])))
+        i = np.argmax(clear)
+        c[k], r[k] = p[i], max(clear[i], 0)
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if r.sum() > best[1].sum():
+            best = (c, r)
+        c2, r2 = _reinsert(c, r, rng)
+        if not np.array_equal(c2, c):
+            c3, r3 = _solve_once(n, c2.ravel())
+            c3 = np.clip(c3, 0, 1)
+            r3 = _repair(c3, r3)
+            if r3.sum() > best[1].sum():
+                best = (c3, r3)
+    return best
+>>>>>>> REPLACE
+-----

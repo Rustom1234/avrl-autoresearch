@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+    models = [
+        RandomForestRegressor(n_estimators=300, max_features=0.2, n_jobs=8, random_state=seed),
+        LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+                      subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                      random_state=seed, verbose=-1),
+        CatBoostRegressor(iterations=500, learning_rate=0.05, depth=6, rsm=0.2, thread_count=8,
+                          random_seed=seed, verbose=0),
+    ]
+    preds = []
+    for m in models:
+        m.fit(Xtr, y)
+        p = m.predict(Xte)
+        preds.append(rankdata(p) / len(p))
+    from sklearn.linear_model import Ridge
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+    pr = r.predict(np.log1p(Xte[:, -N_BITS:]))
+=======
+    Dtr, Dte = Xtr[:, :-N_BITS], Xte[:, :-N_BITS]
+    preds = []
+    for s in (seed, seed + 1, seed + 2):
+        models = [
+            (RandomForestRegressor(n_estimators=300, max_features=0.2, n_jobs=8, random_state=s), False),
+            (LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+                           subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                           random_state=s, verbose=-1), True),
+            (CatBoostRegressor(iterations=300, learning_rate=0.05, depth=6, rsm=0.2, thread_count=8,
+                               random_seed=s, verbose=0), True),
+        ]
+        for m, desc_only in models:
+            if desc_only:
+                m.fit(Dtr, y)
+                p = m.predict(Dte)
+            else:
+                m.fit(Xtr, y)
+                p = m.predict(Xte)
+            preds.append(rankdata(p) / len(p))
+    from sklearn.linear_model import Ridge
+    mu = Dtr.mean(0)
+    sd = Dtr.std(0)
+    sd = np.where(sd < 1e-8, 1.0, sd)
+    Ztr = np.clip((Dtr - mu) / sd, -5, 5)
+    Zte = np.clip((Dte - mu) / sd, -5, 5)
+    Rtr = np.hstack([np.log1p(Xtr[:, -N_BITS:]), Ztr])
+    Rte = np.hstack([np.log1p(Xte[:, -N_BITS:]), Zte])
+    r = Ridge(alpha=10.0).fit(Rtr, y)
+    pr = r.predict(Rte)
+>>>>>>> REPLACE
+-----

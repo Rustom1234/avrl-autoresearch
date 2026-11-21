@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    lg = lgb.LGBMRegressor(objective="l1", n_estimators=N_ESTIMATORS, learning_rate=LEARNING_RATE,
+                           n_jobs=8, random_state=seed, verbose=-1)
+    lg.fit(Xtr, ytr)
+=======
+    rng = np.random.RandomState(seed)
+    idx = rng.permutation(len(ytr))
+    nv = len(ytr) // 10
+    va_i, tr_i = idx[:nv], idx[nv:]
+    params = dict(objective="l1", metric="l1", learning_rate=0.03, n_jobs=8, random_state=seed, verbose=-1)
+    es = lgb.LGBMRegressor(n_estimators=3000, **params)
+    es.fit(Xtr[tr_i], ytr[tr_i], eval_set=[(Xtr[va_i], ytr[va_i])], eval_metric="l1",
+           callbacks=[lgb.early_stopping(100, verbose=False)])
+    lg = lgb.LGBMRegressor(n_estimators=max(1, int(es.best_iteration_ * 1.1)), **params)
+    lg.fit(Xtr, ytr)
+>>>>>>> REPLACE
+-----

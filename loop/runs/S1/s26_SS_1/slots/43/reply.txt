@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _rothex(rng):
+    n = _N
+    s = rng.uniform(0.16, 0.2)
+    th = np.deg2rad(rng.uniform(0, 30))
+    R = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
+    off = rng.uniform(0, s, 2)
+    pts = []
+    for a in range(-12, 13):
+        for b in range(-12, 13):
+            p = np.array([s * (b + 0.5 * (a % 2)), s * np.sqrt(3) / 2 * a])
+            q = R @ p + 0.5 + off - s / 2
+            if 0.04 <= q[0] <= 0.96 and 0.04 <= q[1] <= 0.96:
+                pts.append(q)
+    c = np.array(pts, float).reshape(-1, 2)
+    while len(c) > n:
+        d = np.linalg.norm(c - 0.5, axis=1)
+        if rng.random() < 0.5:
+            k = int(np.argmin(d))
+        else:
+            k = int(np.argmax(np.maximum(abs(c[:, 0] - 0.5), abs(c[:, 1] - 0.5))))
+        c = np.delete(c, k, 0)
+    while len(c) < n:
+        d2 = ((_GRID[:, None, :] - c[None, :, :]) ** 2).sum(2).min(1)
+        wall = np.minimum(np.minimum(_GRID[:, 0], _GRID[:, 1]),
+                          np.minimum(1 - _GRID[:, 0], 1 - _GRID[:, 1]))
+        sc = np.minimum(np.sqrt(d2) / 2, wall)
+        c = np.vstack([c, _GRID[int(np.argmax(sc))]])
+    v = c - 0.5
+    rr = np.linalg.norm(v, axis=1, keepdims=True) + 1e-9
+    g = rng.uniform(0.0, 0.5)
+    rmax = 0.7
+    newr = rr * (1 + g * (rr / rmax) ** 2 * 0.5)
+    c = 0.5 + v / rr * newr
+    c = c + rng.normal(0, 0.005, c.shape)
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            c = _rothex(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+>>>>>>> REPLACE
+-----

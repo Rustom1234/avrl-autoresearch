@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, init=None, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+=======
+    if init is not None:
+        x0 = init
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < 0.55 * time_limit:   # random restarts
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # remove-and-regrow
+        c, r = best[0].copy(), best[1].copy()
+        idx = rng.choice(n, int(rng.integers(1, 4)), replace=False)
+        active = np.ones(n, bool)
+        active[idx] = False
+        for i in idx:
+            g = rng.random((2000, 2))
+            d = np.sqrt(((g[:, None] - c[None]) ** 2).sum(-1)) - r[None]
+            d = np.where(active[None], d, np.inf).min(1)
+            d = np.minimum(d, np.minimum(np.minimum(g[:, 0], g[:, 1]), np.minimum(1 - g[:, 0], 1 - g[:, 1])))
+            a = int(np.argmax(d))
+            c[i], r[i] = g[a], max(0.5 * d[a], 1e-3)
+            active[i] = True
+        c2, r2 = _solve_once(n, rng, np.concatenate([c.ravel(), r]), 150)
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > best[1].sum():
+            best = (c2, r2)
+    return best
+>>>>>>> REPLACE
+-----

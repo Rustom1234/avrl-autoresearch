@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+        if rng.rand() < 0.5:
+            i0 = rng.randint(_N)
+=======
+        lns = rng.rand() < 0.25
+        if lns:
+            p = rng.uniform(0.1, 0.9, size=2)
+            k = rng.randint(5, 8)
+            idx = np.argsort(np.sum((c - p) ** 2, axis=1))[:k]
+            keep = np.delete(c, idx, axis=0)
+            g = np.linspace(0.0, 1.0, 41)
+            G = np.array(np.meshgrid(g, g)).reshape(2, -1).T
+            wall = np.minimum(np.minimum(G[:, 0], G[:, 1]), np.minimum(1 - G[:, 0], 1 - G[:, 1]))
+            for i0 in idx:
+                dd = np.sqrt(((G[:, None, :] - keep[None, :, :]) ** 2).sum(-1)).min(axis=1)
+                hole = np.minimum(dd, 2.0 * wall)
+                newp = np.clip(G[np.argmax(hole)] + rng.normal(0.0, 0.004, size=2), 0.0, 1.0)
+                c[i0] = newp
+                keep = np.vstack([keep, newp[None, :]])
+        elif rng.rand() < 0.5:
+            i0 = rng.randint(_N)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, rr = _relax(c, np.full(_N, 0.005), 200, 0.05, 0.01, 0.5, cur_c)
+        c, rr = _slsqp_refine(c, rr, 80)
+=======
+        ns, mi = (150, 60) if lns else (200, 80)
+        c, rr = _relax(c, np.full(_N, 0.005), ns, 0.05, 0.01, 0.5, cur_c)
+        c, rr = _slsqp_refine(c, rr, mi)
+>>>>>>> REPLACE
+-----

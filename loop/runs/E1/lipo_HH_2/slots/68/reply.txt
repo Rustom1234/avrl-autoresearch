@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Crippen
+=======
+from rdkit.Chem import Crippen
+from rdkit.Chem import rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+def crippen_atoms(smiles):
+    # per-molecule list of (logP, MR) contributions for each heavy atom; the pair identifies the Crippen atom type
+    return [rdMolDescriptors._CalcCrippenContribs(Chem.MolFromSmiles(s)) for s in smiles]
+
+
+def crippen_block(atoms_tr, atoms_te):
+    def keys(atoms):
+        return [(round(a, 3), round(b, 3)) for a, b in atoms]
+    vocab = sorted({k for at in atoms_tr for k in keys(at)})
+    idx = {k: i for i, k in enumerate(vocab)}
+
+    def counts(atoms):
+        C = np.zeros((len(atoms), len(vocab) + 1), dtype=np.float32)
+        for r, at in enumerate(atoms):
+            for k in keys(at):
+                if k in idx:
+                    C[r, idx[k]] += 1
+            C[r, -1] = sum(b for _, b in at)
+        return C
+    return counts(atoms_tr), counts(atoms_te)
+
+
+_DESC_CACHE = {}
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xte = featurize(test_smiles)
+    Dtr = desc_matrix(train_smiles)
+=======
+    Xte = featurize(test_smiles)
+    Ctr, Cte = crippen_block(crippen_atoms(train_smiles), crippen_atoms(test_smiles))
+    X = np.hstack([X, Ctr])
+    Xte = np.hstack([Xte, Cte])
+    Dtr = desc_matrix(train_smiles)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem.Pharm2D import Gobbi_Pharm2D, Generate
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def pharm(smiles, n_bins=4096):
+    out = np.zeros((len(smiles), n_bins), dtype=np.float64)
+    for i, s in enumerate(smiles):
+        fp = Generate.Gen2DFingerprint(Chem.MolFromSmiles(s), Gobbi_Pharm2D.factory)
+        for b in fp.GetOnBits():
+            out[i, b % n_bins] = 1.0
+    return out
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    P = pharm(train_smiles)
+    Pt = pharm(test_smiles)
+    K_train = (tanimoto(X, X) + rbf(D, D, gamma) + tanimoto(P, P)) / 3.0
+    K_test = (tanimoto(Xt, X) + rbf(Dt, D, gamma) + tanimoto(Pt, P)) / 3.0
+>>>>>>> REPLACE
+-----

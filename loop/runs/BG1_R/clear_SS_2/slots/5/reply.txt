@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    from sklearn.kernel_ridge import KernelRidge
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    model = KernelRidge(alpha=1.0, kernel="precomputed")
+    model.fit(minmax_kernel(Xtr, Xtr), y - y.mean())
+    return model.predict(minmax_kernel(Xte, Xtr)) + y.mean()
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    global N_BITS
+    N_BITS = 1024
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr = np.hstack([descriptors(train_smiles), featurize(train_smiles)])
+    Xte = np.hstack([descriptors(test_smiles), featurize(test_smiles)])
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=0.2,
+                                  min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=8, random_state=seed)
+    model.fit(Xtr, y)
+    return model.predict(Xte)
+>>>>>>> REPLACE
+-----

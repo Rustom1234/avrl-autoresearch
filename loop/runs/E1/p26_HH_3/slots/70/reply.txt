@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def _optimise(n, x0):
+=======
+def _optimise(n, x0, rng=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    w, stages = np.zeros(2), [0.0]
+    if rng is not None:   # decaying random linear tilt breaks symmetric traps; final stage is untilted
+        w = rng.normal(size=2)
+        w /= np.linalg.norm(w)
+        stages = [0.02, 0.0]
+    x = x0
+    for eps in stages:
+        x = minimize(lambda v, eps=eps: -v[2 * n:].sum() + eps * (v[:2 * n].reshape(n, 2) @ w).sum(), x,
+                     method="SLSQP", constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER}).x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return _optimise(n, x0)
+=======
+    return _optimise(n, x0, rng)
+>>>>>>> REPLACE
+-----

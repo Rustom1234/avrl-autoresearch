@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def run(x, it):
+        return minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                        options={"maxiter": it})
+
+    if start is not None:
+        res = run(x0, MAX_ITER)
+        return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+    res = run(x0, 80)
+    x1 = res.x.copy()
+    small = x1[2 * n:] < np.median(x1[2 * n:])
+    cj = x1[:2 * n].reshape(n, 2)
+    cj[small] = np.clip(cj[small] + rng.normal(0, 0.005, (int(small.sum()), 2)), 0.01, 0.99)
+    res2 = run(x1, 120)
+    best = None
+    for rr in (res, res2):
+        c = np.clip(rr.x[:2 * n].reshape(n, 2), 0, 1)
+        r = rr.x[2 * n:].copy()
+        s = _repair(c, r.copy()).sum()
+        if best is None or s > best[0]:
+            best = (s, c, r)
+    return best[1], best[2]
+>>>>>>> REPLACE
+-----

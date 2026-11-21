@@ -1,0 +1,962 @@
+[
+ {
+  "id": "b001",
+  "title": "Add count-based Morgan features with smaller size",
+  "spec": "Replace the 2048-bit binary Morgan fingerprint with a count-based Morgan fingerprint (GetCountFingerprintAsNumPy, radius 2, fpSize 1024). Keep the descriptors and the rest of the ensemble unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8416513204574585,
+  "sim_tried_bge": 0.8416513204574585,
+  "sim_hist_mini": 0.6958942413330078,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "RF with min_samples_leaf 3 and balanced class weight",
+  "spec": "Set MIN_SAMPLES_LEAF=3, class_weight='balanced_subsample', and N_TREES=500 in the random forest to give smoother probabilities and better ranking.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8461124897003174,
+  "sim_tried_bge": 0.7516183853149414,
+  "sim_hist_mini": 0.7330703735351562,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Retuned LightGBM with slower learning rate and row subsampling",
+  "spec": "Change the LGBMClassifier call to learning_rate=0.02, n_estimators=800, num_leaves=31, min_child_samples=10, subsample=0.8, subsample_freq=1, colsample_bytree=0.3, reg_lambda=1.0. Keep random_state=seed. Slower shrinkage with more trees and row bagging usually improves generalization on small datasets. Verify the job still fits inside the time limit; if fit time is high, keep n_estimators=800 and set n_jobs=8.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8556329011917114,
+  "sim_tried_bge": 0.8556329011917114,
+  "sim_hist_mini": 0.7075939178466797,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Bag each model over several seeds",
+  "spec": "Variance from a single fit is a real part of the loss on 1624 molecules. Wrap both the RF and the LGBM in a loop over 3 derived seeds (seed, seed+1000, seed+2000), rank-transform each model's test probabilities, and average all 6 rank vectors equally for the final prediction. Reduce N_TREES to 200 per RF fit so the total runtime stays near the current budget. Nothing else changes; this is a pure variance-reduction change and should give a small but reliable improvement.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8279796242713928,
+  "sim_tried_bge": 0.8001573085784912,
+  "sim_hist_mini": 0.652884840965271,
+  "sources": [
+   [
+    "opus",
+    "f",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Stereochemistry and bond-type count features",
+  "spec": "Append a small set of counts per molecule: number of chiral centres (Chem.FindMolChiralCenters with includeUnassigned=True), number of stereo double bonds (bonds with stereo not STEREONONE), number of triple bonds, number of amide bonds (C(=O)N pattern via Chem.MolFromSmarts), number of ester bonds, number of sulfonyl groups, and number of halogen atoms. Concatenate these after the existing descriptor block, clip to training 1st/99th percentiles, and leave the RF and LightGBM blend and their hyperparameters unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.7811057567596436,
+  "sim_tried_bge": 0.7714419364929199,
+  "sim_hist_mini": 0.571073591709137,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Retune the random forest: more trees, sqrt feature draw",
+  "spec": "Change the RandomForestClassifier to n_estimators=1000 and max_features='sqrt' (keep min_samples_leaf=1, n_jobs=-1, random_state=seed). With roughly 2250 columns, max_features=0.3 means each split considers about 675 correlated features, which makes the trees nearly deterministic and highly correlated with each other; 'sqrt' gives about 47, decorrelating the ensemble, and the larger forest absorbs the extra variance that introduces. The baseline job takes ~33 s and the incumbent is well inside the 10-minute cap, so 1000 trees is affordable. Leave the LightGBM member and the equal-weight rank blend exactly as they are.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8338410258293152,
+  "sim_tried_bge": 0.8259137868881226,
+  "sim_hist_mini": 0.6407017707824707,
+  "sources": [
+   [
+    "opus",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Tune LightGBM for the small, wide, scaffold-split regime",
+  "spec": "The current LGBM settings (300 trees, lr 0.05, 15 leaves, colsample 0.3) are untuned. Replace with a configuration regularised for ~1300 training rows and ~2300 columns: n_estimators=900, learning_rate=0.02, num_leaves=7, min_child_samples=10, colsample_bytree=0.15, subsample=0.8, subsample_freq=1, reg_lambda=5.0, max_bin=127, random_state=seed, n_jobs=8, verbose=-1. Keep the RF and the rank averaging unchanged. More, smaller, more heavily feature-subsampled trees usually transfer better to held-out scaffolds than fewer deeper ones.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8381797075271606,
+  "sim_tried_bge": 0.8381797075271606,
+  "sim_hist_mini": 0.6978759169578552,
+  "sources": [
+   [
+    "opus",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "RF max_features tuning with depth cap",
+  "spec": "Change the RF to MAX_FEATURES=0.15 and max_depth=20, with min_samples_leaf=2. The aim is a more decorrelated forest on the larger descriptor-augmented feature set.",
+  "family": "regularization",
+  "sim_hist_bge": 0.7661975622177124,
+  "sim_tried_bge": 0.7165050506591797,
+  "sim_hist_mini": 0.5450297594070435,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Add MACCS keys to the feature matrix",
+  "spec": "In featurize(), append the 167-bit MACCS keys fingerprint to each row: rdMolDescriptors.GetMACCSKeysFingerprint(mol) converted with np.array(list(fp), dtype=np.float32) (or via DataStructs.ConvertToNumpyArray). Concatenate it after the Morgan bits and before the descriptors. MACCS keys encode hand-curated pharmacophore and functional-group patterns that are informative for membrane permeation and generalize across scaffolds. Everything else stays the same.",
+  "family": "data",
+  "sim_hist_bge": 0.8840651512145996,
+  "sim_tried_bge": 0.8840651512145996,
+  "sim_hist_mini": 0.6193438172340393,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Feature-Morgan union of radius 2 and 3 plus pharmacophore-style FCFP",
+  "spec": "Replace the single Morgan generator with three generators built once at module level: Morgan radius 2 (2048 bits, standard invariants), Morgan radius 3 (2048 bits, standard invariants), and a feature-based Morgan (FCFP-like) radius 2 with 1024 bits created via rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=1024, atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen()). Concatenate all three bit vectors with the 11 hand descriptors in featurize. FCFP abstracts atoms into donor/acceptor/aromatic/halogen roles, which generalises better across unseen scaffolds than exact atom identity. No model changes.",
+  "family": "data",
+  "sim_hist_bge": 0.921477198600769,
+  "sim_tried_bge": 0.921477198600769,
+  "sim_hist_mini": 0.8348814249038696,
+  "sources": [
+   [
+    "opus",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Fold-wise LightGBM bagging on descriptor subsets",
+  "spec": "Replace the single LightGBM member with three LightGBM classifiers, each trained on a different random 60% column subset of the full feature matrix (sampled with a seed-derived RandomState and fixed per member), using the same learning rate, leaves and tree count as now. Average their predict_proba values on the test rows before the rank transform. This is a simple feature-bagging ensemble on the existing feature matrix, with no new features and no change to the RF member.",
+  "family": "batch",
+  "sim_hist_bge": 0.8272508382797241,
+  "sim_tried_bge": 0.8272508382797241,
+  "sim_hist_mini": 0.756075382232666,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Standardise and de-salt SMILES before featurising",
+  "spec": "Blood-brain-barrier datasets contain salts, mixtures and charged forms that make otherwise identical molecules look different. In featurize and full_descriptors, pre-process each SMILES: parse, keep only the largest fragment by heavy atom count (split on '.' or use rdkit.Chem.rdmolops.GetMolFrags with asMols=True), run Chem.rdMolStandardize.Uncharger on it, and then compute fingerprints and descriptors on the cleaned molecule. Cache the cleaned molecule by input SMILES so the work is done once. If parsing or standardisation fails, fall back to the original molecule, and if that also fails emit a zero vector. No model changes.",
+  "family": "data",
+  "sim_hist_bge": 0.8213348388671875,
+  "sim_tried_bge": 0.8213348388671875,
+  "sim_hist_mini": 0.6387256979942322,
+  "sources": [
+   [
+    "opus",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Stronger LGBM regularization",
+  "spec": "Change the LGBM to n_estimators=600, learning_rate=0.02, num_leaves=8, min_child_samples=20, subsample=0.8 with subsample_freq=1, colsample_bytree=0.2, reg_lambda=5. Aim for smoother generalization to unseen scaffolds.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8370249271392822,
+  "sim_tried_bge": 0.8370249271392822,
+  "sim_hist_mini": 0.6845173835754395,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Blend weight chosen by inner scaffold CV",
+  "spec": "Replace the fixed 0.5 and 0.5 rank-average with a weight w chosen from {0.2, 0.35, 0.5, 0.65, 0.8} for the RF member (1 minus w for LightGBM). Choose w inside fit_predict with a 3-fold GroupKFold over Murcko scaffolds computed from train_smiles, maximising the mean ROC AUC of the weighted rank blend on the held-out inner folds. Use the seed for any randomness and fit the final RF and LightGBM on all training rows with the chosen w. Keep the member models and their settings unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.8927748203277588,
+  "sim_tried_bge": 0.8353906869888306,
+  "sim_hist_mini": 0.8094100952148438,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "Per-fold univariate filter on fingerprint bits",
+  "spec": "Inside fit_predict, after featurizing, keep only the Morgan bit columns (the first N_BITS columns) whose training-fold prevalence is between 1% and 99% and whose chi-square association with train_y is in the top 256 among those bits. Always keep all descriptor columns. Apply the same column selection to test features before calling the RF and LightGBM members. Compute the selection from training data only so there is no leakage across folds. Cap the number of bits used to 256 and leave the blend and hyperparameters unchanged.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8293560743331909,
+  "sim_tried_bge": 0.8293560743331909,
+  "sim_hist_mini": 0.701225757598877,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Add ExtraTrees to ensemble",
+  "spec": "Add an ExtraTreesClassifier (500 trees, max_features 0.3, n_jobs=-1, random_state=seed) trained on the same features, and include its scaled rank prediction in the average with the RF and LGBM predictions (equal weights).",
+  "family": "architecture",
+  "sim_hist_bge": 0.8202486634254456,
+  "sim_tried_bge": 0.8202486634254456,
+  "sim_hist_mini": 0.7669239044189453,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Ring-system and chain-shape descriptors",
+  "spec": "Add a small helper that returns eight graph-shape scalars per molecule using RDKit ring info and the molecular graph: size of the largest fused ring system (atoms in rings sharing at least one bond, merged transitively), number of fused ring systems, number of spiro atoms (rdMolDescriptors.CalcNumSpiroAtoms), number of bridgehead atoms (rdMolDescriptors.CalcNumBridgeheadAtoms), length of the longest acyclic carbon chain (via Chem.GetDistanceMatrix restricted to non-ring atoms, or a simple DFS), number of branch points (heavy atoms with degree >= 3 outside rings), molecular diameter from the topological distance matrix, and fraction of heavy atoms that are in rings. Append these to the existing descriptor block, clip to training 1st/99th percentiles, and leave the rest of fit_predict unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.7688252925872803,
+  "sim_tried_bge": 0.7672059535980225,
+  "sim_hist_mini": 0.5852590799331665,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Count-based Morgan fingerprints",
+  "spec": "Replace the binary Morgan bit vector in featurize() with a count vector: use gen.GetCountFingerprintAsNumPy(mol) instead of GetFingerprintAsNumPy(mol), keeping radius 2 and 2048 bits. Counts of each substructure carry more information than presence/absence, and the random forest and LightGBM can split on them directly. Leave the descriptors, clipping and the two-model rank average unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.9137120842933655,
+  "sim_tried_bge": 0.9137120842933655,
+  "sim_hist_mini": 0.7499064207077026,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Seed-bagged ensemble with feature selection",
+  "spec": "Drop near-constant columns (variance under 1e-6 on train) and fingerprint bits that are on in fewer than 10 train molecules. Then train the RF and LGBM with 3 different seeds (seed, seed+1, seed+2) and average the ranks. This cuts noise and variance.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8174458742141724,
+  "sim_tried_bge": 0.7947397828102112,
+  "sim_hist_mini": 0.6383117437362671,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "BBB-domain pharmacophore count features",
+  "spec": "Add a small block of hand-written SMARTS count features computed per molecule and appended to the feature matrix: carboxylic acid [CX3](=O)[OX2H1,OX1-], other acidic groups (tetrazole, sulfonic acid, phosphate), primary and secondary/tertiary aliphatic amines ([NX3;!$(N-C=[O,N,S]);!$(N-a)]), quaternary ammonium [N+;!$(N=*);!$(N-[O-])], amide C(=O)N, hydroxyl [OX2H], halogens, nitro, and sulfonamide. Also add ratios TPSA/MolWt, (HBD+HBA)/HeavyAtoms and a count of formally charged atoms. Compute each with Chem.MolFromSmarts and len(mol.GetSubstructMatches(patt)). These encode the acid, base and polarity rules known to govern blood-brain barrier passage.",
+  "family": "other",
+  "sim_hist_bge": 0.8264634013175964,
+  "sim_tried_bge": 0.8264634013175964,
+  "sim_hist_mini": 0.4754672348499298,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b021",
+  "title": "Logistic regression on fingerprints as a linear ensemble member",
+  "spec": "Add a linear model that sees the raw sparse fingerprint signal: train sklearn.linear_model.LogisticRegression(C=1.0, max_iter=3000, solver='liblinear') on the fingerprint+hand-descriptor block standardised with StandardScaler (fit on train only) and append its scaled_rank predictions to the ensemble. Final prediction is the mean of scaled_rank of RF, LGBM and the logistic model with weights 0.4, 0.4, 0.2. Linear models on high-dimensional binary fingerprints make errors that are decorrelated from trees, so even a weaker member can lower the rank-averaged loss.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8327692747116089,
+  "sim_tried_bge": 0.8327692747116089,
+  "sim_hist_mini": 0.7092394232749939,
+  "sources": [
+   [
+    "opus",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b022",
+  "title": "Add physicochemical BBB-relevant derived descriptors",
+  "spec": "Augment the hand descriptor list in `descriptors` with quantities known to drive passive brain penetration, computed from values already available: logP minus TPSA/25 (a crude CNS MPO-like term), TPSA divided by molecular weight, number of hydrogen bond donors plus acceptors, Crippen molar refractivity (Crippen.MolMR), Descriptors.NumAromaticHeterocycles, Descriptors.NHOHCount, Descriptors.NOCount, the count of basic nitrogens (aliphatic N not in an amide or aromatic ring) and a binary flag for any formal charge. Append these after the existing 11 values. Keep the fingerprints, the full descriptor block and both models unchanged; the goal is to give the trees a few strong, low-noise axes to split on early.",
+  "family": "data",
+  "sim_hist_bge": 0.8374292254447937,
+  "sim_tried_bge": 0.8374292254447937,
+  "sim_hist_mini": 0.6604644060134888,
+  "sources": [
+   [
+    "opus",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b023",
+  "title": "Average calibrated probabilities instead of ranks",
+  "spec": "Replace the scaled_rank combination with a plain average of the two members' predicted probabilities: return 0.5 * (rf.predict_proba(X_test)[:, 1] + gb.predict_proba(X_test)[:, 1]), deleting the scaled_rank helper if nothing else uses it. Rank-averaging discards the members' confidence, flattening every fold's predictions to a uniform spread, which loses information whenever one model is sharply confident on a subset and near-chance elsewhere; AUROC is computed from the ordering of the averaged score, and a probability average can order borderline molecules differently from a rank average. This is a small, clean change that tests whether the rank step adopted early on is actually helping now that the feature set has changed substantially.",
+  "family": "other",
+  "sim_hist_bge": 0.7940739989280701,
+  "sim_tried_bge": 0.7940739989280701,
+  "sim_hist_mini": 0.5843093991279602,
+  "sources": [
+   [
+    "opus",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b024",
+  "title": "Drop Morgan bits, use descriptors only",
+  "spec": "In fit_predict, remove the Morgan fingerprint columns from X_train/X_test and use only the full RDKit descriptor matrix (clipped). BBB penetration is largely driven by physchem properties (TPSA, HBD, logP, charge), and with scaffold-split folds fingerprint bits may add noise. Keep the RF + LGBM rank ensemble.",
+  "family": "data",
+  "sim_hist_bge": 0.8113052845001221,
+  "sim_tried_bge": 0.8113052845001221,
+  "sim_hist_mini": 0.6501470804214478,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b025",
+  "title": "Choose the blend weight by out-of-fold scaffold CV",
+  "spec": "Inside fit_predict, before producing the final predictions, run a 3-fold GroupKFold over the training molecules grouped by Murcko scaffold (rdkit.Chem.Scaffolds.MurckoScaffold.MurckoScaffoldSmiles on each training SMILES, falling back to the SMILES itself if it returns an empty string). Collect out-of-fold scaled-rank predictions for both members, then pick the weight w from a small grid, e.g. 0.0 to 1.0 in steps of 0.1, that maximises roc_auc_score on the out-of-fold scores of w * rank_rf + (1 - w) * rank_gb. Refit both members on the whole training fold and combine the test ranks with the chosen w. This lets the blend adapt per fold rather than assuming 0.5 is right everywhere, and the inner split mirrors the scaffold-disjoint evaluation. Keep the inner CV to 3 folds and reuse the same seed so the job stays within the time budget.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8633598685264587,
+  "sim_tried_bge": 0.8227501511573792,
+  "sim_hist_mini": 0.7028628587722778,
+  "sources": [
+   [
+    "opus",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b026",
+  "title": "Out-of-fold stacking blend weights instead of a fixed 50/50",
+  "spec": "Instead of hard-coding equal weights, learn the blend inside fit_predict. Run a StratifiedKFold(n_splits=5, shuffle=True, random_state=seed) over the training set, collect out-of-fold probabilities for the RF and the LGBM, rank-transform each OOF column, then fit a small LogisticRegression on those two columns against y. Refit both base models on the full training set, rank-transform their test predictions, and apply the learned logistic weights to produce the final probability. Guard against a degenerate fit by falling back to the 0.5/0.5 average if the learned coefficients are not both positive. Keep total runtime under control by using N_TREES=200 inside the OOF loop.",
+  "family": "other",
+  "sim_hist_bge": 0.8577189445495605,
+  "sim_tried_bge": 0.8577189445495605,
+  "sim_hist_mini": 0.6444756984710693,
+  "sources": [
+   [
+    "opus",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b027",
+  "title": "Add MACCS keys and Estate features",
+  "spec": "Append MACCS keys (rdkit.Chem.MACCSkeys.GenMACCSKeys converted to a numpy array) to the feature matrix, as a compact substructure representation that generalizes across scaffolds. Keep everything else the same.",
+  "family": "data",
+  "sim_hist_bge": 0.8442633152008057,
+  "sim_tried_bge": 0.8442633152008057,
+  "sim_hist_mini": 0.621730387210846,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b028",
+  "title": "Slower, longer, row-subsampled LightGBM",
+  "spec": "Replace the LightGBM member's hyperparameters with a slower and longer schedule: n_estimators=1500, learning_rate=0.02, num_leaves=15, colsample_bytree=0.2, subsample=0.8, subsample_freq=1, min_child_samples=20, keeping random_state=seed, n_jobs=8, verbose=-1. The current 300 rounds at lr 0.05 with no row subsampling is a fairly aggressive fit for 1300 training molecules; trading step size for rounds and adding per-iteration bagging is the standard way to buy a small amount of accuracy on tabular data of this size. Check that the job still fits the 10-minute budget for all 15 fits. The random forest member and the rank-average blend are unchanged.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8399029970169067,
+  "sim_tried_bge": 0.8399029970169067,
+  "sim_hist_mini": 0.7072689533233643,
+  "sources": [
+   [
+    "opus",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b029",
+  "title": "Prune rare and constant features",
+  "spec": "After building X_train, compute the number of training molecules where each column is non-zero (for fingerprint bits) or where the value differs from the column median (for descriptors). Keep only columns present in at least 3 training molecules (fingerprint bits) and drop descriptor columns with zero variance on the training fold. Apply the same column mask to X_test. This removes sparse noise features that dilute the random forest's feature subsampling and speeds up both fits, which matters because the job has a 10-minute cap for 15 fits.",
+  "family": "data",
+  "sim_hist_bge": 0.8493853807449341,
+  "sim_tried_bge": 0.8338998556137085,
+  "sim_hist_mini": 0.7168716192245483,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b030",
+  "title": "Regularized logistic regression member",
+  "spec": "Add a linear member: standardize the non-fingerprint feature columns (the 11 descriptors and the full RDKit descriptor block, after the existing percentile clipping) with StandardScaler fitted on the training fold, leave the binary fingerprint bits as is, and fit LogisticRegression(C=0.1, penalty='l2', max_iter=2000, solver='liblinear', random_state=seed). Rank-average its test probabilities with the RF and LightGBM ranks, each at weight one-third. Linear models on physicochemical descriptors are a strong baseline for BBB permeability and add diversity to the tree ensemble.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8453043699264526,
+  "sim_tried_bge": 0.8453043699264526,
+  "sim_hist_mini": 0.6857021450996399,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b031",
+  "title": "Balanced class weights",
+  "spec": "Pass class_weight='balanced_subsample' to the RandomForestClassifier and is_unbalance=True or class_weight='balanced' to the LGBMClassifier. Leave everything else unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.8922586441040039,
+  "sim_tried_bge": 0.7200179100036621,
+  "sim_hist_mini": 0.6230700612068176,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b032",
+  "title": "Logistic regression on scaled descriptors in ensemble",
+  "spec": "Add a pipeline of QuantileTransformer (normal output) then LogisticRegression (C=0.1, max_iter=2000) on the clipped full descriptors only, and add its scaled rank prediction with weight 1/3 alongside the RF and LGBM. This adds a smooth, low-variance linear model.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8387846946716309,
+  "sim_tried_bge": 0.8387846946716309,
+  "sim_hist_mini": 0.6928553581237793,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b033",
+  "title": "Replicate the incumbent unchanged",
+  "spec": "Make no functional change to train.py and run it as-is to obtain a third independent measurement of the current incumbent (RF + LightGBM rank-average on Morgan bits, 11 physchem descriptors and the clipped full descList). The two existing incumbent runs differ by about 0.01, roughly twice the stated fold-noise sd, so the baseline against which every candidate is judged is itself uncertain. A third run tightens that estimate and makes all future single-run deltas interpretable. If an edit is required for the slot to be valid, change only a comment line or re-assert an existing constant to its current value (for example restate N_TREES = 300) so that behaviour is bit-identical.",
+  "family": "other",
+  "sim_hist_bge": 0.7205084562301636,
+  "sim_tried_bge": 0.6950417757034302,
+  "sim_hist_mini": 0.5808194875717163,
+  "sources": [
+   [
+    "opus",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b034",
+  "title": "Canonical non-isomeric SMILES label lookup",
+  "spec": "Before fitting, compute a non-isomeric canonical SMILES for every training and test molecule with Chem.MolToSmiles(mol, isomericSmiles=False) after Chem.MolFromSmiles. For each test molecule whose key appears among training keys, replace its model score with a blended value: 0.5 times the model rank score plus 0.5 times the mean training label for that key, both on the [0, 1] scale. Test molecules with no match keep the pure blended score. This handles stereoisomer and salt-free duplicates that the scaffold split may place in the same fold. Keep the models unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.7688220143318176,
+  "sim_tried_bge": 0.7596254348754883,
+  "sim_hist_mini": 0.6032271385192871,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b035",
+  "title": "Add CatBoost model to ensemble",
+  "spec": "Train a CatBoostClassifier (iterations 500, depth 6, learning_rate 0.05, random_seed=seed, thread_count=8, verbose=0) on the descriptor + fingerprint features and add its scaled rank to the average of RF and LGBM.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8684089183807373,
+  "sim_tried_bge": 0.8684089183807373,
+  "sim_hist_mini": 0.7337316274642944,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b036",
+  "title": "Add a second, differently tuned LightGBM to the blend",
+  "spec": "Keep the random forest and the existing LightGBM, and add a third rank-averaged member: a second LGBMClassifier with deliberately different capacity and feature sampling, e.g. n_estimators=600, learning_rate=0.03, num_leaves=63, min_child_samples=10, colsample_bytree=0.7, subsample=0.7, subsample_freq=1, random_state=seed + 1, n_jobs=8, verbose=-1, fitted on the same full matrix. Return the equal-weight mean of the three scaled_rank vectors. Previous third members failed because they were weak or structurally unlike the winners (logistic regression, MLP, kNN); here the new member is from the family that already works, and the gain, if any, comes from decorrelating two boosters that disagree about depth and feature fraction.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8321407437324524,
+  "sim_tried_bge": 0.8321407437324524,
+  "sim_hist_mini": 0.7550662755966187,
+  "sources": [
+   [
+    "opus",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b037",
+  "title": "Class-balanced weighting for the tree models",
+  "spec": "Address class imbalance in the loss: pass class_weight='balanced_subsample' to RandomForestClassifier, and for LightGBM set scale_pos_weight to (number of negatives / number of positives) computed from train_y. Leave the rest of the pipeline unchanged. AUROC depends only on ranking, but reweighting changes which splits the trees favour and can help the minority class's ordering, which is often the weaker part of the ranking.",
+  "family": "other",
+  "sim_hist_bge": 0.9332053661346436,
+  "sim_tried_bge": 0.744026780128479,
+  "sim_hist_mini": 0.8251996040344238,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b038",
+  "title": "Drop rare Morgan bits",
+  "spec": "Inside fit_predict, compute the column sums of the Morgan bit block (the first 2048 columns) on X_train. Keep only the bits that are on in at least 10 training molecules. Apply the same column mask to X_test, and keep all the descriptor columns. Fit RF and LightGBM on the reduced matrix.",
+  "family": "regularization",
+  "sim_hist_bge": 0.7881284952163696,
+  "sim_tried_bge": 0.7881284952163696,
+  "sim_hist_mini": 0.6475663781166077,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b039",
+  "title": "CatBoost as a third gradient-boosting member",
+  "spec": "Add a CatBoostClassifier(iterations=500, learning_rate=0.05, depth=6, l2_leaf_reg=3, rsm=0.3, random_seed=seed, thread_count=8, verbose=0) trained on the same X_train/X_test matrix as the other models. Rank-average its test probabilities with the RF and LightGBM ranks (equal weights, one-third each). CatBoost's ordered boosting and symmetric trees usually give a well-calibrated, low-variance ranker on small tabular data and differ from LightGBM's leaf-wise growth. Watch the time budget.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8277781009674072,
+  "sim_tried_bge": 0.8277781009674072,
+  "sim_hist_mini": 0.6982027888298035,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b040",
+  "title": "Largest-fragment salt stripping before featurization",
+  "spec": "In fit_predict, before any featurization or descriptor computation, map every SMILES (train and test) to its largest fragment by heavy-atom count: mol = Chem.MolFromSmiles(s); frags = Chem.GetMolFrags(mol, asMols=True); keep max(frags, key=lambda m: m.GetNumHeavyAtoms()). Optionally neutralize charges with rdMolStandardize.Uncharger. Use the cleaned molecules for the Morgan features, the 11 hand-picked descriptors, the full RDKit descriptor list and the _DESC_CACHE key (key on the cleaned SMILES). Keep everything else unchanged. Counter-ions and salts in BBBP otherwise distort MolWt, TPSA and the charge count.",
+  "family": "data",
+  "sim_hist_bge": 0.8339775204658508,
+  "sim_tried_bge": 0.8339775204658508,
+  "sim_hist_mini": 0.6251915693283081,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b041",
+  "title": "Add RDKit and MACCS fingerprints alongside Morgan",
+  "spec": "Broaden the substructure representation by concatenating two extra fingerprint blocks in featurize: the RDKit topological fingerprint from rdFingerprintGenerator.GetRDKitFPGenerator(maxPath=6, fpSize=1024) and the 167-bit MACCS keys from rdMolDescriptors.GetMACCSKeysFingerprint (convert with np.array of the ToBitString or use DataStructs.ConvertToNumpyArray). The final per-molecule vector becomes Morgan(2048) + RDKitFP(1024) + MACCS(167) + the 11 hand descriptors, and the full descriptor block is still appended in fit_predict. Build the generators once at module level so they are not recreated per call. Leave the RF and LGBM hyperparameters unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8635811805725098,
+  "sim_tried_bge": 0.8635811805725098,
+  "sim_hist_mini": 0.6889979243278503,
+  "sources": [
+   [
+    "opus",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b042",
+  "title": "Count-based Morgan features with log1p scaling",
+  "spec": "Switch the Morgan block from binary bits to counts: use gen.GetCountFingerprintAsNumPy(mol) instead of GetFingerprintAsNumPy, then apply np.log1p to that block so that large counts do not dominate the distance-free tree splits. Keep radius 2 and 2048 bits, keep everything else (hand descriptors, full descriptor clipping, RF and LGBM settings, rank averaging) identical. Counts carry multiplicity information that binary bits discard and often help gradient boosting more than random forests, so report the per-model behaviour if easy.",
+  "family": "data",
+  "sim_hist_bge": 0.8243392705917358,
+  "sim_tried_bge": 0.8243392705917358,
+  "sim_hist_mini": 0.6109347939491272,
+  "sources": [
+   [
+    "opus",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b043",
+  "title": "Signed log transform of the descriptor block",
+  "spec": "The full descList includes columns with extreme ranges and heavy right tails (molecular weight, Kappa and Chi indices, Ipc, charge sums), currently handled only by 1st/99th percentile clipping fitted on the training fold. After the existing clip, additionally apply a signed log transform, np.sign(v) * np.log1p(np.abs(v)), to the clipped descriptor columns before they are hstacked, for both train and test. Trees are invariant to monotone transforms of a single feature, but this compresses outlying rows so that percentile clipping is no longer the only thing preventing a handful of molecules from dominating split thresholds, and it makes the 11 hand descriptors and the descList block live on comparable scales. Apply the same transform to the 11 physchem descriptors appended in featurize.",
+  "family": "data",
+  "sim_hist_bge": 0.7940348386764526,
+  "sim_tried_bge": 0.7823262810707092,
+  "sim_hist_mini": 0.6808703541755676,
+  "sources": [
+   [
+    "opus",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b044",
+  "title": "Weighted blend favouring the stronger member",
+  "spec": "Replace the equal 0.5/0.5 rank average with a 0.4 RF / 0.6 LightGBM weighting. Change nothing else, so this tests the blend weight.",
+  "family": "other",
+  "sim_hist_bge": 0.7578366994857788,
+  "sim_tried_bge": 0.7492697238922119,
+  "sim_hist_mini": 0.515723466873169,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b045",
+  "title": "Unequal rank-blend weight for RF and LightGBM",
+  "spec": "Keep both members and the scaled-rank combination, but replace the fixed 0.5/0.5 average with a weighted one controlled by a single module-level constant, e.g. W_RF = 0.6, returning W_RF * scaled_rank(rf_prob) + (1 - W_RF) * scaled_rank(gb_prob). Use 0.6 in favour of the random forest, since the forest handles the wide, heavily correlated descList block more stably than a 300-round LightGBM with colsample 0.3 on the same matrix. This is a one-line change that costs no extra runtime and exposes a knob that can be moved later. Nothing else in featurization, hyperparameters or seeding changes.",
+  "family": "other",
+  "sim_hist_bge": 0.8381913900375366,
+  "sim_tried_bge": 0.8381913900375366,
+  "sim_hist_mini": 0.7057774066925049,
+  "sources": [
+   [
+    "opus",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b046",
+  "title": "Test-time descriptor-only RF member",
+  "spec": "Add a third rank-averaged member: a RandomForest (300 trees, max_features=0.5, min_samples_leaf=2) trained only on the clipped full RDKit descriptor columns, with no fingerprint bits. Give it a blend weight of 1/3.",
+  "family": "architecture",
+  "sim_hist_bge": 0.7985895872116089,
+  "sim_tried_bge": 0.7985895872116089,
+  "sim_hist_mini": 0.6424990892410278,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b047",
+  "title": "Add atom-pair and topological torsion count features",
+  "spec": "Append hashed count fingerprints from rdFingerprintGenerator.GetAtomPairGenerator (fpSize 1024) to the features, in addition to Morgan. This adds distance-aware information that may transfer better across scaffolds.",
+  "family": "data",
+  "sim_hist_bge": 0.9037234783172607,
+  "sim_tried_bge": 0.9037234783172607,
+  "sim_hist_mini": 0.8286405205726624,
+  "sources": [
+   [
+    "sonnet",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b048",
+  "title": "Sample weights by inverse scaffold frequency",
+  "spec": "Compute the Murcko scaffold SMILES of each training molecule with MurckoScaffold.MurckoScaffoldSmiles. Set the sample weight to 1/sqrt(count of that scaffold in the training set). Normalise the weights to mean 1 and pass them to the RF and LightGBM fit calls through sample_weight. This reduces the dominance of large congeneric series.",
+  "family": "data",
+  "sim_hist_bge": 0.9287682771682739,
+  "sim_tried_bge": 0.8208045959472656,
+  "sim_hist_mini": 0.7739746570587158,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b049",
+  "title": "Radius-1 Morgan with 512 bits",
+  "spec": "Set RADIUS=1 and N_BITS=512 so the descriptors dominate the feature matrix and the fingerprint block gets smaller. Leave the models unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8579443097114563,
+  "sim_tried_bge": 0.7855837345123291,
+  "sim_hist_mini": 0.7015343308448792,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b050",
+  "title": "Random forest hyperparameter sweep with inner group CV",
+  "spec": "Inside fit_predict, try a small grid for the RandomForestClassifier only: max_features in {sqrt(n_features), 0.15, 0.3} and min_samples_leaf in {1, 3, 5}. Score each pair with a 3-fold GroupKFold over Murcko scaffold ids of train_smiles, using mean ROC AUC on the held-out inner folds, and fit the final forest with the best pair on all training rows with n_estimators=N_TREES and random_state=seed. Keep LightGBM and the rank-average blend as they are. Set n_jobs=8 to stay within the time limit.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8439521789550781,
+  "sim_tried_bge": 0.8022907376289368,
+  "sim_hist_mini": 0.7069390416145325,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b051",
+  "title": "LightGBM lower learning rate, more trees",
+  "spec": "Change the LGBMClassifier to n_estimators=800, learning_rate=0.02, num_leaves=8, min_child_samples=15, subsample=0.8 with subsample_freq=1, colsample_bytree=0.2. Leave the RF unchanged.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8397563695907593,
+  "sim_tried_bge": 0.8291341662406921,
+  "sim_hist_mini": 0.7048729658126831,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b052",
+  "title": "Multi-seed RF averaging",
+  "spec": "In fit_predict, replace the single RandomForestClassifier with an average of 3 forests of 300 trees each, using seeds seed, seed+1 and seed+2. Average their predict_proba outputs before rank scaling. Keep the LightGBM member unchanged. This is meant to cut the variance of the forest member.",
+  "family": "batch",
+  "sim_hist_bge": 0.9558410048484802,
+  "sim_tried_bge": 0.8493319749832153,
+  "sim_hist_mini": 0.8075646758079529,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b053",
+  "title": "Gasteiger partial-charge descriptors",
+  "spec": "In featurize or a new helper, compute Gasteiger partial charges per molecule with rdkit.Chem.rdPartialCharges.ComputeGasteigerCharges(mol), reading each atom's '_GasteigerCharge' property (replace NaN and inf with 0). Append six scalars per molecule: maximum partial charge, minimum partial charge, the sum of positive charges, the sum of absolute negative charges, the charge range (max minus min), and the number of heavy atoms with |charge| > 0.2. Concatenate these to the existing descriptor block, apply the same 1st/99th-percentile clipping fit on the training fold, and keep the RF and LightGBM blend unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.7853357791900635,
+  "sim_tried_bge": 0.7853357791900635,
+  "sim_hist_mini": 0.6389219760894775,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b054",
+  "title": "Drop near-duplicate descriptor columns",
+  "spec": "Inside fit_predict, after building the clipped descriptor matrix from the training fold, remove redundant columns: first drop any column with zero variance on the training fold, then compute the correlation matrix of the remainder and, scanning columns in order, drop any column whose absolute Pearson correlation with an already-kept column exceeds 0.95. Apply the identical kept-column index set to the test matrix. The descList contains many near-duplicates (several molecular-weight variants, nested Chi and Kappa families, counts that are linear in heavy-atom count); pruning them raises the share of informative columns in each random max_features or colsample draw without discarding any real signal. Fit the selection on training-fold data only, never on test.",
+  "family": "regularization",
+  "sim_hist_bge": 0.807157576084137,
+  "sim_tried_bge": 0.807157576084137,
+  "sim_hist_mini": 0.6004142761230469,
+  "sources": [
+   [
+    "opus",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b055",
+  "title": "Tanimoto kNN ensemble member",
+  "spec": "Add a third model: a similarity-weighted k-nearest-neighbour classifier on binary Morgan fingerprints (radius 2, 2048 bits). For each test molecule compute Tanimoto similarity to all training molecules with DataStructs.BulkTanimotoSimilarity, take the k=10 most similar training molecules, and predict the sum of similarity-weighted labels divided by the sum of similarities (fall back to the training mean if all similarities are zero). Rank-average this prediction with the RF and LightGBM ranks using equal weights (one-third each). Nearest-neighbour similarity is a different inductive bias from trees and is robust to unseen scaffolds.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9365440607070923,
+  "sim_tried_bge": 0.9365440607070923,
+  "sim_hist_mini": 0.8565597534179688,
+  "sources": [
+   [
+    "haiku",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b056",
+  "title": "Larger RF min_samples_leaf",
+  "spec": "Set MIN_SAMPLES_LEAF to 3 in the RandomForest so its probabilities are smoother. Leave everything else unchanged. The rank blend should gain from less noisy forest scores.",
+  "family": "regularization",
+  "sim_hist_bge": 0.914466917514801,
+  "sim_tried_bge": 0.7838469743728638,
+  "sim_hist_mini": 0.7445487976074219,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b057",
+  "title": "CatBoost as a third ensemble member",
+  "spec": "Keep the existing RF and LGBM models and their feature matrix exactly as they are, and add a third model: CatBoostClassifier(iterations=600, learning_rate=0.05, depth=6, rsm=0.2, l2_leaf_reg=3, random_seed=seed, thread_count=8, verbose=0, allow_writing_files=False) fitted on the same X_train, y. Change the final return to the equal-weight mean of scaled_rank applied to each of the three predicted probabilities. CatBoost on 2048+ dense float columns may be slow, so if the job approaches the 10 minute limit reduce iterations to 300 and set border_count=64. Rank averaging keeps the scales comparable, so no other change is needed.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8121005296707153,
+  "sim_tried_bge": 0.8121005296707153,
+  "sim_hist_mini": 0.5990394353866577,
+  "sources": [
+   [
+    "opus",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b058",
+  "title": "Smaller Morgan fold with the full descriptor set",
+  "spec": "Keep featurize and the full descriptor block as they are, but change the Morgan generator to fpSize=512 bits at radius 2 (set N_BITS = 512). Leave the RF and LightGBM hyperparameters unchanged so the only change is the fingerprint width. The intent is that the descriptors carry most of the signal and fewer, less sparse Morgan columns reduce noise on unseen scaffolds.",
+  "family": "data",
+  "sim_hist_bge": 0.891444206237793,
+  "sim_tried_bge": 0.7902358174324036,
+  "sim_hist_mini": 0.7779190540313721,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b059",
+  "title": "Derived ratio descriptors",
+  "spec": "Append about eight dimensionless ratios computed from the existing descriptors and a few atom counts: TPSA divided by MolWt, TPSA divided by heavy-atom count, (HBD + HBA) divided by heavy-atom count, Crippen LogP divided by heavy-atom count, fraction of heavy atoms that are heteroatoms (N, O, S, halogens), fraction of heavy atoms that are aromatic, fraction of heavy atoms that are nitrogen, and rotatable bonds divided by heavy-atom count. Use a divide-by-max(denominator, 1) guard. Stack them after the clipped descriptor block, clip them to training 1st/99th percentiles, and keep the RF and LightGBM members as they are.",
+  "family": "data",
+  "sim_hist_bge": 0.7945241928100586,
+  "sim_tried_bge": 0.7945241928100586,
+  "sim_hist_mini": 0.6783410310745239,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b060",
+  "title": "Shrink the Morgan block to 512 bits",
+  "spec": "Change N_BITS from 2048 to 512, leaving radius 2, both models, the 11 physchem descriptors and the clipped descList untouched. Evidence so far says the descriptors, not the fingerprint, carry the signal: every fingerprint swap or addition tested has been neutral or worse, while descriptor blocks produced both accepted gains. A 2048-bit sparse block diluting a ~210-column descriptor block means both the forest's max_features=0.3 draw and LightGBM's colsample_bytree=0.3 draw mostly sample near-empty bit columns. Folding the same structural information into 512 bins raises the chance that each tree split candidate set contains an informative descriptor, and it also cuts fit time.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8579731583595276,
+  "sim_tried_bge": 0.8487660884857178,
+  "sim_hist_mini": 0.6948733925819397,
+  "sources": [
+   [
+    "opus",
+    "c",
+    2
+   ]
+  ]
+ }
+]

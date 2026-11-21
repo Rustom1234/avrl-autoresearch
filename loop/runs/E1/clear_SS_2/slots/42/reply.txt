@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    from sklearn.linear_model import Ridge
+=======
+    from rdkit.Chem import rdFingerprintGenerator as rfg
+    g = rfg.GetRDKitFPGenerator(maxPath=6, fpSize=2048)
+    def rdk(smis):
+        return np.array([g.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smis], dtype=np.float32)
+    Atr = np.hstack([Xtr[:, :-N_BITS], rdk(train_smiles)])
+    Ate = np.hstack([Xte[:, :-N_BITS], rdk(test_smiles)])
+    rf2 = RandomForestRegressor(n_estimators=500, max_features=0.2, n_jobs=8, random_state=seed + 7)
+    rf2.fit(Atr, y)
+    p2 = rf2.predict(Ate)
+    preds.append(rankdata(p2) / len(p2))
+    from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+-----

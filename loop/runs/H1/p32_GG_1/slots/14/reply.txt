@@ -1,0 +1,203 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Use a physics-based elastic band step to resolve overlaps and boundary violations."""
+    n = len(r)
+    c = c.copy()
+    r = r.copy()
+    for _ in range(100):
+        # Overlap forces
+        dist_mat = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        # Avoid division by zero
+        dist_mat[dist_mat == 0] = 1e-9
+        
+        overlap_sum = np.zeros(n)
+        for i in range(n):
+            # Overlap with other circles
+            diff = (r[i] + r) - dist_mat[i]
+            mask = diff > 0
+            # Force magnitude (proportional to overlap depth)
+            force = diff[mask] * 0.5
+            # Directional unit vectors
+            dirs = (c[mask] - c[i]) / dist_mat[i, mask]
+            # Update centers
+            c[mask] += dirs * force
+            # Update radii (share the reduction)
+            r[mask] -= force * 0.5
+            # Accumulate for boundary checks
+            overlap_sum[i] += np.sum(force)
+            
+        # Boundary constraints
+        for i in range(n):
+            # Push inside [0, 1] x [0, 1]
+            dist_to_left = c[i, 0] - r[i]
+            dist_to_right = (1 - c[i, 0]) - r[i]
+            dist_to_bottom = c[i, 1] - r[i]
+            dist_to_top = (1 - c[i, 1]) - r[i]
+            
+            min_d = min(dist_to_left, dist_to_right, dist_to_bottom, dist_to_top)
+            if min_d < 0:
+                c[i] += np.array([-1, -1]) * (min_d * 0.5)
+                r[i] *= 0.99
+                
+        r = np.maximum(r, 0)
+        if np.all(dist_mat >= (r[:, None] + r[None]) - 1e-9): # Check valid
+            break
+            
+    return np.maximum(r - SHRINK, 0)
+-----
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Use a physics-based elastic band step to resolve overlaps and boundary violations."""
+    n = len(r)
+    c = c.copy()
+    r = r.copy()
+    for _ in range(100):
+        # Overlap forces between circles
+        dist_mat = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        dist_mat[dist_mat == 0] = 1e-9
+        
+        for i in range(n):
+            diff = (r[i] + r) - dist_mat[i]
+            mask = diff > 0
+            # Push circles apart: move centers and shrink radii slightly
+            force = diff[mask] * 0.1
+            dirs = (c[mask] - c[i]) / dist_mat[i, mask]
+            c[mask] += dirs * force
+            r[mask] -= force * 0.05
+            
+            # Boundary constraints
+            d_left = c[i, 0] - r[i]
+            d_right = (1 - c[i, 0]) - r[i]
+            d_bottom = c[i, 1] - r[i]
+            d_top = (1 - c[i, 1]) - r[i]
+            
+            min_d = min(d_left, d_right, d_bottom, d_top)
+            if min_d < 0:
+                # Push toward center and shrink
+                c[i] += np.array([0.1, 0.1]) * abs(min_d)
+                r[i] *= 0.99
+
+        r = np.maximum(r, 0)
+        # Check if valid
+        is_valid = True
+        for i in range(n):
+            if c[i, 0] - r[i] < 0 or c[i, 0] + r[i] > 1 or 
+               c[i, 1] - r[i] < 0 or c[i, 1] + r[i] > 1:
+                is_valid = False
+                break
+        if is_valid:
+            # Final check for overlaps
+            over_any = False
+            for i in range(n):
+                for j in range(i+1, n):
+                    if np.sqrt(np.sum((c[i]-c[j])**2)) < r[i] + r[j] - 1e-9:
+                        over_any = True
+                        break
+                if over_any: break
+            if not over_any: break
+
+    return np.maximum(r - SHRINK, 0)
+-----
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Use a physics-based elastic band step to resolve overlaps and boundary violations."""
+    n = len(r)
+    c = c.copy()
+    r = r.copy()
+    for _ in range(150):
+        dist_mat = np.linalg.norm(c[:, None] - c[None], axis=2)
+        # Overlap between every pair
+        over_mat = (r[:, None] + r[None]) - dist_mat
+        
+        for i in range(n):
+            # Overlap with other circles
+            overlap_indices = np.where(over_mat[i] > 0)[0]
+            for j in overlap_indices:
+                if i == j: continue
+                diff = over_mat[i, j]
+                # Move circles apart based on overlap
+                direction = c[j] - c[i]
+                dist = dist_mat[i, j]
+                if dist > 1e-9:
+                    move_mag = diff * 0.2
+                    c[i] -= (move_mag / dist) * 0.5
+                    c[j] += (move_mag / dist) * 0.5
+            
+            # Boundary constraints
+            for dim in range(2):
+                if c[i, dim] - r[i] < 0:
+                    c[i, dim] += (r[i] - c[i, dim]) * 0.5
+                elif c[i, dim] + r[i] > 1:
+                    c[i, dim] -= (c[i, dim] + r[i] - 1) * 0.5
+
+            # Keep radius sane
+            r[i] = np.clip(r[i], 1e-7, 0.5)
+
+        # Check validity
+        is_valid = True
+        for i in range(n):
+            if c[i, 0] - r[i] < 0 or c[i, 0] + r[i] > 1 or 
+               c[i, 1] - r[i] < 0 or c[i, 1] + r[i] > 1:
+                is_valid = False
+                break
+        if is_valid:
+            # Check overlaps
+            overlap_any = False
+            for i in range(n):
+                for j in range(i+1, n):
+                    if dist_mat[i, j] < (r[i] + r[j] - 1e-9):
+                        overlap_any = True
+                        break
+                if overlap_any: break
+            if not overlap_any: break
+
+    return np.maximum(r - SHRINK, 0)
+-----

@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+def _old_construct_packing():
+=======
+def _penalty_lbfgs(c, r, stages=6):
+    """Penalty continuation: L-BFGS-B on -sum(r) + mu*(squared overlaps + squared wall violations)."""
+    n = c.shape[0]
+    iu, ju = np.triu_indices(n, 1)
+
+    def fg(z, mu):
+        cc = z[:2 * n].reshape(n, 2)
+        rr = z[2 * n:]
+        dx = cc[iu] - cc[ju]
+        d = np.sqrt(np.sum(dx ** 2, axis=1) + 1e-18)
+        ov = np.maximum(rr[iu] + rr[ju] - d, 0.0)
+        f = -rr.sum() + mu * np.sum(ov ** 2)
+        gc = np.zeros((n, 2))
+        gr = -np.ones(n)
+        coef = (-2.0 * mu * ov / d)[:, None] * dx
+        np.add.at(gc, iu, coef)
+        np.add.at(gc, ju, -coef)
+        np.add.at(gr, iu, 2.0 * mu * ov)
+        np.add.at(gr, ju, 2.0 * mu * ov)
+        x, y = cc[:, 0], cc[:, 1]
+        vL = np.maximum(rr - x, 0.0)
+        vR = np.maximum(rr + x - 1.0, 0.0)
+        vB = np.maximum(rr - y, 0.0)
+        vT = np.maximum(rr + y - 1.0, 0.0)
+        f += mu * np.sum(vL ** 2 + vR ** 2 + vB ** 2 + vT ** 2)
+        gc[:, 0] += mu * (-2.0 * vL + 2.0 * vR)
+        gc[:, 1] += mu * (-2.0 * vB + 2.0 * vT)
+        gr += mu * 2.0 * (vL + vR + vB + vT)
+        return f, np.concatenate([gc.ravel(), gr])
+
+    z = np.concatenate([c.ravel(), np.maximum(r, 0.0)])
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    mu = 10.0
+    for _ in range(stages):
+        res = _minimize(fg, z, args=(mu,), jac=True, method="L-BFGS-B",
+                        bounds=bounds, options={"maxiter": 300})
+        z = res.x
+        mu *= 10.0
+    return np.clip(z[:2 * n].reshape(n, 2), 0.0, 1.0)
+
+
+def _old_construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best_c, _make_valid(best_c, best_r)
+=======
+    try:
+        pc = _penalty_lbfgs(best_c, best_r)
+        rv, s = _score(pc)
+        if rv is not None and s > best_s:
+            best_c, best_r, best_s = pc, rv, s
+    except Exception:
+        pass
+    return best_c, _make_valid(best_c, best_r)
+>>>>>>> REPLACE
+-----

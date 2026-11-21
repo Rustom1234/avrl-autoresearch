@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _template(rng):
+    a, b = 0.13, 0.11
+    pts = [[a, a], [1 - a, a], [a, 1 - a], [1 - a, 1 - a]]
+    v = int(rng.integers(3))
+    if v == 0:
+        pts += [[0.5, b], [0.5, 1 - b], [b, 0.33], [b, 0.67], [1 - b, 0.33], [1 - b, 0.67]]
+    elif v == 1:
+        pts += [[0.33, b], [0.67, b], [0.33, 1 - b], [0.67, 1 - b], [b, 0.5], [1 - b, 0.5]]
+    else:
+        pts += [[0.5, b], [0.5, 1 - b], [b, 0.5], [1 - b, 0.5], [0.3, b], [0.7, 1 - b]]
+    lo, hi = 0.25, 0.75
+    for k in range(4):
+        y = lo + (hi - lo) * k / 3
+        off = 0.06 * (1 if k % 2 else -1)
+        for j in range(4):
+            x = lo + (hi - lo) * j / 3 + off * 0.5
+            pts.append([x, y])
+    c = np.array(pts, float)
+    if rng.random() < 0.5:
+        c = c[:, ::-1].copy()
+    c = c + rng.normal(0, rng.uniform(0.005, 0.03), c.shape)
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            u = rng.random()
+            if rng.random() < 0.25:
+                c = _template(rng)
+            else:
+                c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+>>>>>>> REPLACE
+-----

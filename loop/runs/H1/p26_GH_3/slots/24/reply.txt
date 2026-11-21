@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+
+
+class _Stop(Exception):
+    pass
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    hist = []
+
+    def cb(v):
+        hist.append(v.copy())
+        if len(hist) > 10 and abs(v[2 * n:].sum() - hist[-11][2 * n:].sum()) < 1e-7:
+            raise _Stop
+
+    try:
+        v = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                     options={"maxiter": MAX_ITER}, callback=cb).x
+    except _Stop:
+        v = hist[-1]
+    return v[:2 * n].reshape(n, 2), v[2 * n:]
+>>>>>>> REPLACE
+-----

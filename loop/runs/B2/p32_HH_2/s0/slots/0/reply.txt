@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, centers0, radii0=None, maxiter=MAX_ITER, ftol=1e-6):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS) if radii0 is None else radii0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter, "ftol": ftol})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    budget = TIME_FRACTION * time_limit
+=======
+    budget = TIME_FRACTION * time_limit - 1.5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    c, r = _solve_once(n, best[0], 0.999 * best[1], 500, 1e-13)   # final tight polish, once
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    for _ in range(50):
+=======
+    for _ in range(20):   # first let the overlapping centres move apart, in place
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        u = (c[i] - c[j]) / max(d[i, j], 1e-12)
+        c[i] += u * over[i, j] / 4
+        c[j] -= u * over[i, j] / 4
+        np.clip(c, r[:, None], 1 - r[:, None], out=c)
+    for _ in range(50):
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,86 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([centers.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+from scipy.optimize import linprog
+
+def _repair(c, r):
+    """Maximize the sum of radii for the given centers using linear programming."""
+    n = len(r)
+    # Constraints: 
+    # 1. r_i + r_j <= dist(c_i, c_j)
+    # 2. r_i <= min(c_i_x, c_i_y, 1-c_i_x, 1-c_i_y)
+    
+    # Objective: minimize -sum(r_i)
+    obj = -np.ones(n)
+    
+    # Inequality constraints: A @ r <= b
+    # Distance constraints (n*(n-1)/2 pairs)
+    # Boundary constraints (4*n)
+    
+    A = []
+    b = []
+    
+    # Pairwise overlaps
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = np.linalg.norm(c[i] - c[j])
+            row = np.zeros(n)
+            row[i] = 1
+            row[j] = 1
+            A.append(row)
+            b.append(d - 1e-10)
+            
+    # Boundary constraints
+    for i in range(n):
+        # r_i <= c_i_x 
+        row = np.zeros(n)
+        row[i] = 1
+        A.append(row)
+        b.append(c[i, 0] - 1e-10)
+        # r_i <= c_i_y
+        row = np.zeros(n)
+        row[i] = 1
+        A.append(row)
+        b.append(c[i, 1] - 1e-10)
+        # r_i <= 1 - c_i_x
+        row = np.zeros(n)
+        row[i] = 1
+        A.append(row)
+        b.append(1 - c[i, 0] - 1e-10)
+        # r_i <= 1 - c_i_y
+        row = np.zeros(n)
+        row[i] = 1
+        A.append(row)
+        b.append(1 - c[i, 1] - 1e-10)
+
+    res = linprog(obj, A_ub=np.array(A), b_ub=np.array(b), bounds=(0, None), method='highs')
+    if res.success:
+        return res.x
+    return r
+>>>>>>> REPLACE
+-----

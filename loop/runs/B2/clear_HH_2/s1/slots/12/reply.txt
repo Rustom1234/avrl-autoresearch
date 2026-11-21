@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+def gp_mean(K_tr, y, K_te, sigma2):
+=======
+DESC_SUBSET = ["MolWt", "MolLogP", "TPSA", "NumHAcceptors", "NumHDonors", "NumRotatableBonds", "FractionCSP3",
+               "RingCount"]
+
+
+def small_desc(smiles):
+    names = [n for n, _ in Descriptors.descList]
+    idx = [names.index(n) for n in DESC_SUBSET]
+    return desc_features(smiles)[:, idx]
+
+
+def sq_dist(A, B):
+    return np.maximum((A * A).sum(1)[:, None] + (B * B).sum(1)[None, :] - 2 * A @ B.T, 0)
+
+
+def gp_mean(K_tr, y, K_te, sigma2):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best_s2
+=======
+    return best_s2, best_score
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+=======
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tan_tr, K_tan_te = tanimoto(X_tr, X_tr), tanimoto(X_te, X_tr)
+    Z_tr, Z_te = small_desc(train_smiles), small_desc(test_smiles)
+    mu, sd = Z_tr.mean(0), Z_tr.std(0) + 1e-9
+    Z_tr = np.clip((Z_tr - mu) / sd, -5, 5)
+    Z_te = np.clip((Z_te - mu) / sd, -5, 5)
+    D_tr, D_te = sq_dist(Z_tr, Z_tr), sq_dist(Z_te, Z_tr)
+    best = None
+    for gamma in (0.25, 1.0):
+        K_tr = K_tan_tr * (0.5 + 0.5 * np.exp(-gamma * D_tr / len(DESC_SUBSET)))
+        s2, score = choose_sigma2(K_tr, y, train_smiles)
+        if best is None or score > best[0]:
+            best = (score, gamma, s2)
+    _, gamma, s2 = best
+    K_tr = K_tan_tr * (0.5 + 0.5 * np.exp(-gamma * D_tr / len(DESC_SUBSET)))
+    K_te = K_tan_te * (0.5 + 0.5 * np.exp(-gamma * D_te / len(DESC_SUBSET)))
+    p_fp = gp_mean(K_tr, y, K_te, s2)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import StandardScaler
+=======
+from sklearn.preprocessing import QuantileTransformer, StandardScaler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.float64)
+=======
+    yraw = np.asarray(train_y, dtype=np.float64)
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(yraw)),
+                             random_state=seed).fit(yraw.reshape(-1, 1))
+    y = qt.transform(yraw.reshape(-1, 1)).ravel()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    pred = np.clip(base_te + stage2.predict(Xte), y.min(), y.max())
+    return qt.inverse_transform(pred.reshape(-1, 1)).ravel()
+>>>>>>> REPLACE
+-----

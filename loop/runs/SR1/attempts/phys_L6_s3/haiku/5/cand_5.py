@@ -1,0 +1,4 @@
+import numpy as np
+def equation(t, x, v, params):
+    F = params[0]*np.exp(-params[8]*t)*np.cos(params[1]*t+params[2]) + params[7]
+    return F - params[3]*v - params[4]*x - params[5]*x**3 - params[6]*v*np.abs(v)

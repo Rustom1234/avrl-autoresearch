@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    keep = X_train.var(axis=0) >= 1e-6
+    keep[:N_BITS] &= (X_train[:, :N_BITS] > 0).sum(axis=0) >= 10
+    X_train = X_train[:, keep]
+    X_test = X_test[:, keep]
+    ranks = []
+    for s in (seed, seed + 1, seed + 2):
+        rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES,
+                                    min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=s)
+        rf.fit(X_train, y)
+        gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                            random_state=s, n_jobs=8, verbose=-1)
+        gb.fit(X_train, y)
+        ranks.append(scaled_rank(rf.predict_proba(X_test)[:, 1]))
+        ranks.append(scaled_rank(gb.predict_proba(X_test)[:, 1]))
+    return np.mean(ranks, axis=0)
+>>>>>>> REPLACE
+-----

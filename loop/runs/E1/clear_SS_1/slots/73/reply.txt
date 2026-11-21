@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+import xgboost as xgb
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+=======
+    n_rounds = 600
+    params = dict(max_depth=4, subsample=0.7, colsample_bytree=0.3, min_child_weight=3, reg_lambda=5,
+                  nthread=8, seed=int(seed), objective="reg:squarederror")
+    lr_sched = [0.005 + 0.5 * (0.06 - 0.005) * (1 + np.cos(np.pi * i / (n_rounds - 1))) for i in range(n_rounds)]
+    booster = xgb.train(params, xgb.DMatrix(xgb_features(train_smiles), label=y), num_boost_round=n_rounds,
+                        callbacks=[xgb.callback.LearningRateScheduler(lambda i: lr_sched[i])])
+    p_rf = booster.predict(xgb.DMatrix(xgb_features(test_smiles)))
+>>>>>>> REPLACE
+-----

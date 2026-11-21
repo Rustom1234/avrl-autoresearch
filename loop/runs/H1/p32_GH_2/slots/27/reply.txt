@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+SWAP_P = 0.3
+GRID = np.linspace(0, 1, 101)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _swap(c, r):
+    """Move the smallest circle to the grid point with the largest clearance from the other circles and walls."""
+    i = np.argmin(r)
+    others = np.delete(np.arange(len(r)), i)
+    pts = np.stack(np.meshgrid(GRID, GRID), -1).reshape(-1, 2)
+    gap = np.sqrt(((pts[:, None] - c[others][None]) ** 2).sum(-1)) - r[others][None]
+    wall = np.minimum(np.minimum(pts[:, 0], pts[:, 1]), np.minimum(1 - pts[:, 0], 1 - pts[:, 1]))
+    clear = np.minimum(gap.min(1), wall)
+    c = c.copy()
+    c[i] = pts[np.argmax(clear)]
+    return c
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        start = best[0] if rng.random() < 0.5 else None   # reuse the best centres half of the time
+=======
+        worse = r.sum() < best[1].sum()
+        start = _swap(c, r) if rng.random() < SWAP_P and worse else (best[0] if rng.random() < 0.5 else None)
+>>>>>>> REPLACE
+-----

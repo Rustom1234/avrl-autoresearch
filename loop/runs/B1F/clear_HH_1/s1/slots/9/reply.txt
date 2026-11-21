@@ -1,0 +1,71 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata, spearmanr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+K_CHOICES = (20, 50, 100, None)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def _top_cols(D, y, k):
+    if k is None:
+        return np.arange(D.shape[1])
+    R = np.column_stack([rankdata(D[:, j]) for j in range(D.shape[1])])
+    R = R - R.mean(axis=0)
+    ry = rankdata(y)
+    ry = ry - ry.mean()
+    r = (R * ry[:, None]).sum(axis=0) / (np.sqrt((R ** 2).sum(axis=0) * (ry ** 2).sum()) + 1e-12)
+    return np.argsort(-np.abs(r))[:k]
+
+
+def _svr_predict(T_tr, D_tr, y_tr, T_te, D_te):
+    gamma = 1.0 / D_tr.shape[1]
+    K_tr = 0.5 * (T_tr + rbf(D_tr, D_tr, gamma))
+    K_te = 0.5 * (T_te + rbf(D_te, D_tr, gamma))
+    mu, sd = y_tr.mean(), y_tr.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_tr, (y_tr - mu) / sd)
+    return model.predict(K_te)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gamma = 1.0 / D.shape[1]
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    T, Tt = tanimoto(X, X), tanimoto(Xt, X)
+    best_k, best_s = None, -np.inf
+    for k in K_CHOICES:
+        oof = np.zeros(len(y))
+        for tr, te in KFold(5, shuffle=True, random_state=seed).split(D):
+            cols = _top_cols(D[tr], y[tr], k)
+            oof[te] = _svr_predict(T[np.ix_(tr, tr)], D[np.ix_(tr, cols)], y[tr],
+                                   T[np.ix_(te, tr)], D[np.ix_(te, cols)])
+        s = spearmanr(oof, y).correlation
+        if s > best_s:
+            best_k, best_s = k, s
+    cols = _top_cols(D, y, best_k)
+    return _svr_predict(T, D[:, cols], y, Tt, Dt[:, cols])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+LR = 0.05
+
+
+def featurize(smiles):
+=======
+LR = 0.05
+
+ACID = Chem.MolFromSmarts('C(=O)[OX2H1,OX1-]')
+BASIC_N = Chem.MolFromSmarts('[NX3;!$(N-C=[O,S,N]);!$(N-a);!$(N-S);!$(N=*);!$(N#*);!$(N-N);!$(N-O)]')
+QUAT_N = Chem.MolFromSmarts('[N+,n+;!$([N+]-[O-]);!$([n+]-[O-]);!$([N+]=O)]')
+
+
+def hand_feats(m):
+    return [rdMolDescriptors.CalcTPSA(m), Descriptors.MolWt(m), Crippen.MolLogP(m),
+            Lipinski.NumHDonors(m), Lipinski.NumHAcceptors(m), Lipinski.NumRotatableBonds(m),
+            rdMolDescriptors.CalcNumRings(m), rdMolDescriptors.CalcNumAromaticRings(m),
+            rdMolDescriptors.CalcFractionCSP3(m), m.GetNumHeavyAtoms(), Chem.GetFormalCharge(m),
+            len(m.GetSubstructMatches(ACID)), len(m.GetSubstructMatches(BASIC_N)),
+            len(m.GetSubstructMatches(QUAT_N))]
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from rdkit.Chem import AllChem, Descriptors
+=======
+from rdkit.Chem import AllChem, Crippen, Descriptors, Lipinski, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([fp, desc]))
+=======
+        hand = np.array(hand_feats(m), dtype=np.float32)
+        rows.append(np.concatenate([fp, desc, hand]))
+>>>>>>> REPLACE
+-----

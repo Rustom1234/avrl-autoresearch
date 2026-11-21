@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The diff reads no files and uses no network. It contains no pasted answers. test_smiles only goes through featurize and the fitted transforms, and test labels are never used. QuantileTransformer and StandardScaler are fitted on the training fold only.",
+  "No bug that makes the result meaningless. The SVC decision_function output is rank-transformed and added to the ensemble's rank sum, then min-max scaled. That keeps the ordering valid for AUROC.",
+  "Minor point that does not affect the result: featurize(train_smiles) and featurize(test_smiles) are now each computed a second time, although the loop above already computes them. This only wastes time. Reusing x_tr and x_te would be cleaner, if they hold the same features.",
+  "Minor point: the SVC is deterministic and does not use the seed. That is fine. It counts as one ensemble member, so its weight in the average is 1/(n_models+1).",
+  "The numbers check out. The difference is 0.0906 - 0.0864 = 0.0042, and the standard error is 0.0049 * sqrt(1/1 + 1/2) \u2248 0.0060, so z \u2248 0.70. That matches the harness value of 0.698. With one candidate run, a z of 0.70 is not significant, so the provisional reject holds. A replicate run could be justified because the point estimate looks promising."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.7
+ }
+}

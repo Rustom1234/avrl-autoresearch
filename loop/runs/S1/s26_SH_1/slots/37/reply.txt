@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _biased_seed(rng):
+    # radii from prescribed bands, sorted largest first
+    R = np.sort(np.concatenate([rng.uniform(0.12, 0.16, 4),
+                                rng.uniform(0.08, 0.11, 8),
+                                rng.uniform(0.04, 0.08, 14)]))[::-1]
+    pts = []
+    rads = []
+    for rad in R:
+        placed = False
+        for _t in range(300):
+            p = rng.uniform(rad, 1.0 - rad, size=2)
+            if all(np.hypot(*(p - q)) >= rad + rq for q, rq in zip(pts, rads)):
+                placed = True
+                break
+        if not placed:
+            p = rng.uniform(0.05, 0.95, size=2)
+        pts.append(p)
+        rads.append(rad)
+    P = np.array(pts)
+    return P[:, 0].copy(), P[:, 1].copy(), 0.8 * np.array(rads)
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+        r0 = np.full(_N, 0.05)
+=======
+        if _k % 2 == 0:
+            x0, y0, r0 = _biased_seed(rng)
+        else:
+            P = rng.uniform(0.05, 0.95, size=(_N, 2))
+            x0 = P[:, 0].copy()
+            y0 = P[:, 1].copy()
+            r0 = np.full(_N, 0.05)
+>>>>>>> REPLACE
+-----

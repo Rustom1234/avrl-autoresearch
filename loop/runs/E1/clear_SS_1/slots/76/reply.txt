@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+=======
+def kernel_views(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    gens = [rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=N_BITS),
+            rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=N_BITS),
+            rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=N_BITS,
+                                                      atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen())]
+    return [np.array([g.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32) for g in gens]
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Vtr, Vte = kernel_views(train_smiles), kernel_views(test_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    Ktr = sum(tanimoto(a, a) for a in Vtr) / len(Vtr)
+    Kte = sum(tanimoto(b, a) for a, b in zip(Vtr, Vte)) / len(Vtr)
+    svr.fit(Ktr, (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(Kte)
+>>>>>>> REPLACE
+-----

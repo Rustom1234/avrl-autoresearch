@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _polish(c, r, maxiter=300):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": 300, "ftol": 1e-12})
+=======
+                   options={"maxiter": maxiter, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+=======
+    best_s, best = -1, None
+    cands = []
+    while time.time() - t0 < 100:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            r = _lp_radii(c)
+            c2 = np.clip(_polish(c, r, 40), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        cands.append((s, c2, r2))
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    cands.sort(key=lambda t: -t[0])
+    k = max(1, int(0.15 * len(cands)))
+    for s0, c0, r0 in cands[:k]:
+        if time.time() - t0 > 150:
+            break
+        try:
+            c2 = np.clip(_polish(c0, r0, 300), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+>>>>>>> REPLACE
+-----

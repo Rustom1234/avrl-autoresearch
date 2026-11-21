@@ -1,0 +1,81 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    from scipy.optimize import linprog
+    rs = np.random.default_rng(1)
+    rpats = [[5, 5, 6, 5, 5], [6, 5, 4, 5, 6], [5, 6, 5, 6, 4], [6, 5, 5, 5, 5],
+             [4, 5, 5, 5, 4, 3], [4, 5, 4, 5, 4, 4], [3, 5, 5, 5, 5, 3],
+             [5, 4, 5, 4, 5, 3], [4, 4, 5, 4, 5, 4]]
+    Aub_p = np.zeros((m, n))
+    Aub_p[ar, iu] = 1.0
+    Aub_p[ar, ju] = 1.0
+
+    def row_centers(p, pat):
+        k = len(pat)
+        rr_ = np.abs(p[:k]) + 0.02
+        st = np.clip(p[k], -1.0, 1.0)
+        ys = np.cumsum(rr_) * 2 - rr_
+        ys = 0.04 + (ys - ys[0]) / max(ys[-1] - ys[0], 1e-9) * 0.92
+        pts = []
+        for ri, mm in enumerate(pat):
+            sh = st * (0.5 / mm) * (1 if ri % 2 else -1)
+            for jj in range(mm):
+                pts.append([(jj + 0.5) / mm + sh, ys[ri]])
+        return np.clip(np.array(pts), 0.03, 0.97)
+
+    def lp_fit(c):
+        d = np.sqrt(((c[iu] - c[ju]) ** 2).sum(1))
+        wl = np.minimum.reduce([c[:, 0], c[:, 1], 1 - c[:, 0], 1 - c[:, 1]])
+        try:
+            rl = linprog(-np.ones(n), A_ub=Aub_p, b_ub=d,
+                         bounds=list(zip(np.zeros(n), wl)), method="highs")
+        except Exception:
+            return None
+        if rl.status != 0:
+            return None
+        return rl.x
+
+    seed_list = []
+    ts = time.time()
+    for q in range(20):
+        if time.time() - ts > 0.12 * time_budget:
+            break
+        pat = list(rpats[rs.integers(len(rpats))])
+        if rs.random() < 0.5:
+            pat = pat[::-1]
+        k = len(pat)
+        p0 = np.concatenate([0.05 + rs.random(k) * 0.05, [rs.random() * 0.6]])
+
+        def f(p, pat=pat):
+            rr_ = lp_fit(row_centers(p, pat))
+            return 0.0 if rr_ is None else -rr_.sum()
+
+        try:
+            rn = minimize(f, p0, method="Nelder-Mead",
+                          options={"maxiter": 120, "xatol": 1e-4, "fatol": 1e-6})
+        except Exception:
+            continue
+        cc_ = row_centers(rn.x, pat)
+        rr_ = lp_fit(cc_)
+        if rr_ is None:
+            continue
+        seed_list.append((rr_.sum(), cc_, rr_))
+    seed_list.sort(key=lambda s: -s[0])
+    seed_list = seed_list[:5]
+
+    best = None
+    best_val = -1.0
+    it = 0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if seed_list:
+            _, sc, sr = seed_list.pop(0)
+            c0 = sc.copy()
+            r0 = np.maximum(sr * 0.98, 0.01)
+>>>>>>> REPLACE
+-----

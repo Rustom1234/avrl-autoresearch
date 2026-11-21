@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+HOP_SD = 0.04
+=======
+HOP_SD = 0.04
+SWEEPS = 300
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+=======
+def _compress(n, rng):
+    """Monte Carlo compression: random moves accepted only if overlap-free, radii grown to fit; returns centres."""
+    r0 = 0.5 / np.sqrt(n)
+    c = rng.uniform(r0, 1 - r0, (n, 2))
+    r = np.full(n, 0.5 * r0)
+    for s in range(SWEEPS):
+        step = 0.2 * r0 * (1 - s / SWEEPS) + 1e-4
+        for i in rng.permutation(n):
+            q = np.clip(c[i] + rng.normal(0, step, 2), r[i], 1 - r[i])
+            d = np.sqrt(((c - q) ** 2).sum(1))
+            d[i] = np.inf
+            if np.all(d >= r + r[i]):
+                c[i] = q
+        for i in range(n):
+            d = np.sqrt(((c - c[i]) ** 2).sum(1))
+            d[i] = np.inf
+            r[i] = min(c[i].min(), (1 - c[i]).min(), (d - r).min())
+    return c
+
+
+def _solve_once(n, centers0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        pool = sorted((_relax(rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), n) for _ in range(POOL)), key=lambda t: t[0])
+        for _, p in pool[:KEEP]:
+=======
+        for p in [_compress(n, rng) for _ in range(KEEP)]:
+>>>>>>> REPLACE
+-----

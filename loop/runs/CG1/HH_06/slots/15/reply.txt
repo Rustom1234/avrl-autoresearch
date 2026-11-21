@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+        # Apply updates in a single fused operation when possible
+        if do_norm_scaling:
+            # Scale gradients first
+            torch._foreach_mul_(filter_params_with_grad, scale_factors)
+            # Then apply the orthogonalized updates
+            torch._foreach_add_(
+                filter_params_with_grad,
+                final_orthogonalized_grads,
+                alpha=-group["lr"])
+        else:
+            # Apply optimizer step directly
+            torch._foreach_add_(
+                filter_params_with_grad,
+                final_orthogonalized_grads,
+                alpha=-group["lr"])
+=======
+        if do_norm_scaling:
+            torch._foreach_mul_(filter_params_with_grad, scale_factors)
+        # Per-parameter lr, so each ConvGroup can have its own multiplier
+        lr_of = {id(p): g_["lr"] for g_ in self.param_groups for p in g_["params"]}
+        for p, u in zip(filter_params_with_grad, final_orthogonalized_grads):
+            p.add_(u, alpha=-lr_of[id(p)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer2 = Muon(
+        filter_params,
+=======
+    block_lr_mults = [0.6, 1.0, 1.4]
+    muon_groups = [
+        dict(params=[p for p in blk.parameters() if len(p.shape) == 4 and p.requires_grad], lr=MUON_LR * m)
+        for blk, m in zip(model.layers[1:4], block_lr_mults)
+    ]
+    optimizer2 = Muon(
+        muon_groups,
+>>>>>>> REPLACE
+-----

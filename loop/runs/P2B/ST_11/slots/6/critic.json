@@ -1,0 +1,14 @@
+{
+ "ok": false,
+ "issues": [
+  "(1) Measurement integrity: the diff changes only one line. It adds mode='max-autotune-no-cudagraphs' to torch.compile. It does not touch val_bpb, the data, the tokenizer, the prepare.py import line, the two seed lines, the evaluation call or the final summary printing. I found no attempt to change how the score is measured.",
+  "(2) Bugs: none that would make a result meaningless. Autotuning only picks different matmul kernels. These can change floating-point results slightly but do not change the model's maths.",
+  "The harness rejected the run for integrity flags but gave no detail. The most likely cause is the 450 s limit on startup plus training. max-autotune benchmarks many kernel candidates during compile, which can add minutes. The other possibility is that the harness counts any change to how the evaluated model is compiled as an altered evaluation path, since evaluation probably runs through the compiled model.",
+  "(3) Claims: the run produced no val_bpb or variance figures, so z cannot be recomputed and no improvement can be confirmed. The result cannot be accepted as it stands.",
+  "Recommendation: drop this change, or limit the cost of autotuning so startup plus training stays well under 450 s. Expected gains in a 300 s run are small either way. The extra compile option is weak on the simplicity criterion and should not be retried without a reason to expect a gain."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

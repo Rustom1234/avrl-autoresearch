@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+    best = None
+    bs = -1
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+=======
+    def sub_solve(v, k, iters):
+        act = np.concatenate([np.arange(k), n + np.arange(k), 2 * n + np.arange(k)])
+        rows = np.concatenate([np.flatnonzero((I < k) & (J < k))] +
+                              [m + q * n + np.arange(k) for q in range(4)])
+
+        def full(z):
+            w = v.copy(); w[act] = z
+            return w
+        res = minimize(lambda z: -z[2 * k:].sum(), v[act],
+                       jac=lambda z: np.concatenate([np.zeros(2 * k), -np.ones(k)]),
+                       method="SLSQP", bounds=[(0, 1)] * (2 * k) + [(0, 0.5)] * k,
+                       constraints=[{"type": "ineq",
+                                     "fun": lambda z: cons(full(z))[rows],
+                                     "jac": lambda z: cjac(full(z))[rows][:, act]}],
+                       options={"maxiter": iters, "ftol": 1e-12})
+        return full(res.x)
+
+    def staged():
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        k0 = 22
+        v[2 * n + k0:] = 0
+        v = sub_solve(v, k0, 200)
+        for k in range(k0, n):
+            P = rng.uniform(0, 1, (2000, 2))
+            dd = np.hypot(P[:, None, 0] - v[None, :k], P[:, None, 1] - v[None, n:n + k]) - v[None, 2 * n:2 * n + k]
+            sc = np.minimum(dd.min(1), np.minimum(np.minimum(P[:, 0], P[:, 1]),
+                                                  np.minimum(1 - P[:, 0], 1 - P[:, 1])))
+            p = P[np.argmax(sc)]
+            v[k] = p[0]; v[n + k] = p[1]; v[2 * n + k] = 1e-3
+            v = sub_solve(v, k + 1, 150)
+        return v
+
+    best = None
+    bs = -1
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+=======
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        stg = False
+        if rng.random() < 0.5:
+            try:
+                v = np.clip(staged(), 0, 1); stg = True
+            except Exception:
+                stg = False
+        for mu in (() if stg else (10, 100, 1e3, 1e4, 1e5)):
+>>>>>>> REPLACE
+-----

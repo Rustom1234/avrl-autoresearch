@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    z0 = np.concatenate([centers0[:, 0], centers0[:, 1], radii0])
+=======
+    cx, cy = centers0[:, 0], centers0[:, 1]
+    wall = np.minimum(np.minimum(cx, cy), np.minimum(1 - cx, 1 - cy))
+    dmat = np.hypot(cx[:, None] - cx[None, :], cy[:, None] - cy[None, :])
+    np.fill_diagonal(dmat, np.inf)
+    rr = np.maximum(np.asarray(radii0, dtype=float), 0.0)
+    ub = np.minimum(wall, np.min(dmat - 0.5 * rr[None, :], axis=1))
+    ub = np.clip(ub, 1e-6, 0.5)
+    z0 = np.concatenate([centers0[:, 0], centers0[:, 1], np.minimum(rr, ub)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+=======
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, float(u)) for u in ub]
+>>>>>>> REPLACE
+-----

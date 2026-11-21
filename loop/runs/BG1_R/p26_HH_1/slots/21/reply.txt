@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    # Phase 2: release the radii and run the full free-radius SLSQP
+    res = minimize(lambda v: -v[2 * n:].sum(), x2, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    # Phase 2: release the radii; a random linear tilt, decayed in stages to 0, first rearranges large-scale structure
+    a, b = rng.normal(size=n), rng.normal(size=n)
+    a, b = a / np.linalg.norm(a), b / np.linalg.norm(b)
+    x = x2
+    for eps in (0.05, 0.015, 0.0045, 0.0):
+        res = minimize(lambda v, e=eps: -v[2 * n:].sum() - e * (v[0:2 * n:2] @ a + v[1:2 * n:2] @ b), x,
+                       method="SLSQP", constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+        x = res.x
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

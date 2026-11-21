@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    stage1 = XGBRegressor(objective='reg:squarederror', n_estimators=200, **params)
+    stage1.fit(Xtr, y - base_tr)
+    stage2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400, **params)
+    stage2.fit(Xtr, y - base_tr, xgb_model=stage1.get_booster())
+    return base_te + stage2.predict(Xte)
+=======
+    r = y - base_tr
+
+    def two_stage(X, t):
+        s1 = XGBRegressor(objective='reg:squarederror', n_estimators=200, **params)
+        s1.fit(X, t)
+        s2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400, **params)
+        s2.fit(X, t, xgb_model=s1.get_booster())
+        return s2
+
+    m = two_stage(Xtr, r)
+    err = np.abs(r - m.predict(Xtr))
+    keep = err <= np.quantile(err, 0.95)
+    m = two_stage(Xtr[keep], r[keep])
+    return base_te + m.predict(Xte)
+>>>>>>> REPLACE
+-----

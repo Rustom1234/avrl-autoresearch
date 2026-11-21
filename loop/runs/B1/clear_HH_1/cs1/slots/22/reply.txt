@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    S_test = tanimoto(Xt, X)
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (S_test + rbf(Dt, D, gamma))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return model.predict(K_test)
+=======
+    svr_pred = model.predict(K_test)
+    k = 15
+    idx = np.argsort(-S_test, axis=1)[:, :k]
+    w = np.take_along_axis(S_test, idx, axis=1) ** 3
+    knn = (w * y[idx]).sum(axis=1) + 1e-3 * y.mean()
+    knn = knn / (w.sum(axis=1) + 1e-3)
+    n = len(svr_pred)
+    r1 = (rankdata(svr_pred) - 0.5) / n
+    r2 = (rankdata(knn) - 0.5) / n
+    return 0.75 * r1 + 0.25 * r2
+>>>>>>> REPLACE
+-----

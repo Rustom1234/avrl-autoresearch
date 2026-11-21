@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+        final_orthogonalized_grads = _zeropower_via_newtonschulz5(
+            nesterov_grads,
+            filter_meta_for_current_step,
+            self.max_D,
+            self.max_K,
+            self.step_count,
+            self.total_train_steps,
+        )
+=======
+        # Orthogonalise each spatial tap (out, in) of a 3x3 filter separately
+        tap_grads = []
+        tap_meta = []
+        for g in nesterov_grads:
+            out_c, in_c = g.shape[0], g.shape[1]
+            for t in g.permute(2, 3, 0, 1).reshape(9, out_c, in_c).unbind(0):
+                tap_meta.append(((out_c, in_c), out_c, in_c, len(tap_grads)))
+                tap_grads.append(t)
+        max_tap_D = max(m[1] for m in tap_meta)
+        max_tap_K = max(m[2] for m in tap_meta)
+        tap_orth = _zeropower_via_newtonschulz5(
+            tap_grads,
+            tap_meta,
+            max_tap_D,
+            max_tap_K,
+            self.step_count,
+            self.total_train_steps,
+        )
+        final_orthogonalized_grads = [
+            torch.stack(tap_orth[9 * i : 9 * i + 9])
+            .reshape(3, 3, g.shape[0], g.shape[1])
+            .permute(2, 3, 0, 1)
+            .contiguous()
+            for i, g in enumerate(nesterov_grads)
+        ]
+>>>>>>> REPLACE
+-----

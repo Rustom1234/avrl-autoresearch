@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+        def cons_eq(v):
+            c, r = v[:2 * n].reshape(n, 2), v[-1]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * r
+            return np.concatenate([d, (c - r).ravel(), (1 - c - r).ravel()])
+
+        y0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), [INIT_RADIUS]])
+        y = minimize(lambda v: -v[-1], y0, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                     options={"maxiter": 50}).x
+        x0 = np.concatenate([np.clip(y[:2 * n], 0.01, 0.99), np.full(n, max(y[-1], 0.01))])
+=======
+        nb = min(8, n)
+        t = np.array([0.13] * nb + [0.08] * (n - nb))
+        pts = np.zeros((n, 2))
+        for i in range(n):
+            cand = rng.uniform(t[i], 1 - t[i], (100, 2))
+            if i:
+                dd = np.sqrt(((cand[:, None] - pts[None, :i]) ** 2).sum(-1)) - 0.8 * (t[i] + t[:i])
+                cand_pick = cand[np.argmax(dd.min(1))]
+            else:
+                cand_pick = cand[0]
+            pts[i] = cand_pick
+        x0 = np.concatenate([np.clip(pts, 0.01, 0.99).ravel(), 0.8 * t])
+>>>>>>> REPLACE
+-----

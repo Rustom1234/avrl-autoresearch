@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    return np.column_stack([p_rf, p_lgb, p_krr])
+=======
+    Pa = Ta * Ra
+    best_err_p, best_lam_p = np.inf, 0.5
+    for lam in (0.1, 0.5, 2.0):
+        err = 0.0
+        for itr, iva in GroupKFold(n_splits=4).split(Pa, ya, ga):
+            w_in = np.linalg.solve(Pa[np.ix_(itr, itr)] + lam * np.eye(len(itr)), ya[itr] - mu)
+            pv = Pa[np.ix_(iva, itr)] @ w_in + mu
+            err += np.abs(pv - ya[iva]).sum()
+        if err < best_err_p:
+            best_err_p, best_lam_p = err, lam
+    wp = np.linalg.solve(Pa + best_lam_p * np.eye(len(ya)), ya - mu)
+    p_prod = (tanimoto(Fb, Fa) * rbf(Zb, Za)) @ wp + mu
+    return np.column_stack([p_rf, p_lgb, p_krr, p_prod])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    oof = np.zeros((len(y), 4))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,114 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+import time
+from scipy.optimize import minimize
+
+
+def _repair(centers, radii):
+    """Shrink radii so every circle is inside the square and no pair overlaps."""
+    n = centers.shape[0]
+    x = centers[:, 0]
+    y = centers[:, 1]
+    r = np.minimum.reduce([radii, x, 1 - x, y, 1 - y])
+    r = np.maximum(r, 0.0)
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = np.hypot(x[i] - x[j], y[i] - y[j])
+            s = r[i] + r[j]
+            if s > d and s > 0:
+                f = d / s
+                r[i] *= f
+                r[j] *= f
+    return r * (1 - 1e-9)
+
+
+def _pack_once(seed):
+    """Mirror-symmetric random start, then unconstrained-symmetry SLSQP polish."""
+    n = 26
+    rng = np.random.default_rng(seed)
+    half = rng.uniform([0.05, 0.05], [0.45, 0.95], size=(13, 2))
+    mirr = np.column_stack([1.0 - half[:, 0], half[:, 1]])
+    pts = np.vstack([half, mirr])
+    iu, ju = np.triu_indices(n, 1)
+    m = iu.size
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.01)])
+    k = np.arange(n)
+
+    def obj(z):
+        return -np.sum(z[2 * n:])
+
+    def obj_jac(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        return g
+
+    def cons(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        rs = r[iu] + r[ju]
+        pair = dx * dx + dy * dy - rs * rs
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    def cons_jac(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        J = np.zeros((m + 4 * n, 3 * n))
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        rs = r[iu] + r[ju]
+        rows = np.arange(m)
+        J[rows, iu] = 2 * dx
+        J[rows, ju] = -2 * dx
+        J[rows, n + iu] = 2 * dy
+        J[rows, n + ju] = -2 * dy
+        J[rows, 2 * n + iu] = -2 * rs
+        J[rows, 2 * n + ju] = -2 * rs
+        b = m
+        J[b + k, k] = 1.0
+        J[b + k, 2 * n + k] = -1.0
+        J[b + n + k, k] = -1.0
+        J[b + n + k, 2 * n + k] = -1.0
+        J[b + 2 * n + k, n + k] = 1.0
+        J[b + 2 * n + k, 2 * n + k] = -1.0
+        J[b + 3 * n + k, n + k] = -1.0
+        J[b + 3 * n + k, 2 * n + k] = -1.0
+        return J
+
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    try:
+        res = minimize(obj, z0, jac=obj_jac, method="SLSQP", bounds=bounds,
+                       constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                       options={"maxiter": 500, "ftol": 1e-12})
+        z = res.x
+    except Exception:
+        z = z0
+    centers = np.column_stack([np.clip(z[:n], 0.0, 1.0), np.clip(z[n:2 * n], 0.0, 1.0)])
+    radii = _repair(centers, np.maximum(z[2 * n:], 0.0))
+    return centers, radii
+
+
+def construct_packing():
+    """Multi-start mirror-symmetric init + SLSQP; returns best (centers, radii)."""
+    t0 = time.perf_counter()
+    best = None
+    best_sum = -1.0
+    for seed in range(12):
+        if seed > 0 and time.perf_counter() - t0 > 150.0:
+            break
+        c, r = _pack_once(seed)
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum = s
+            best = (c, r)
+    return best
+
+
+def _old_construct_packing():
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _relocate(pool, rng):
+    c, r = pool[0][0].copy(), pool[0][1].copy()
+    k = np.argmin(r)
+    o = np.arange(len(r)) != k
+    p = rng.uniform(0, 1, (2000, 2))
+    d = np.sqrt(((p[:, None] - c[o][None]) ** 2).sum(-1)) - r[o][None]
+    h = np.minimum(d.min(1), np.minimum(np.minimum(p[:, 0], p[:, 1]), np.minimum(1 - p[:, 0], 1 - p[:, 1])))
+    i = np.argmax(h)
+    c[k], r[k] = p[i], max(h[i], 1e-3)
+    return np.concatenate([c.ravel(), r])
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+        if pool and rng.random() < 0.3:
+            x0 = _relocate(pool, rng)
+        else:
+            x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+>>>>>>> REPLACE
+-----

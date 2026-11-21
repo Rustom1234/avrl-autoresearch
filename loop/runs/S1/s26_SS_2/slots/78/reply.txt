@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 200:
+=======
+    while time.time() - t0 < 185:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+
+
+# EVOLVE-BLOCK-END
+=======
+    try:
+        from scipy.optimize import linprog
+        c0, r0 = best
+        v = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), v,
+                           jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                           method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                           options={"maxiter": 1000, "ftol": 1e-15})
+            c1, r1 = finalize(res.x)
+            if r1.sum() > bs:
+                bs = r1.sum(); best = (c1, r1)
+        except Exception:
+            pass
+        c2 = best[0]
+        d = np.hypot(c2[I, 0] - c2[J, 0], c2[I, 1] - c2[J, 1])
+        A = np.zeros((m, n))
+        k = np.arange(m)
+        A[k, I] = 1; A[k, J] = 1
+        wall = np.minimum(np.minimum(c2[:, 0], c2[:, 1]),
+                          np.minimum(1 - c2[:, 0], 1 - c2[:, 1]))
+        lp = linprog(-np.ones(n), A_ub=A, b_ub=d - 1e-13,
+                     bounds=[(0, max(w, 0)) for w in wall], method="highs")
+        if lp.status == 0:
+            v2 = np.concatenate([c2[:, 0], c2[:, 1], lp.x])
+            c3, r3 = finalize(v2)
+            if r3.sum() > bs:
+                bs = r3.sum(); best = (c3, r3)
+    except Exception:
+        pass
+    return best
+
+
+# EVOLVE-BLOCK-END
+>>>>>>> REPLACE
+-----

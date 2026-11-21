@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    yz = (y - y.mean()) / (y.std() + 1e-9)
+    p_svr = np.zeros(len(test_smiles))
+    for k in range(10):
+        cols = np.random.default_rng(seed + k).choice(Xtr.shape[1], size=Xtr.shape[1] // 2, replace=False)
+        svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+        svr.fit(tanimoto(Xtr[:, cols], Xtr[:, cols]), yz)
+        p_svr += rankdata(svr.predict(tanimoto(Xte[:, cols], Xtr[:, cols]))) / len(test_smiles) / 10
+>>>>>>> REPLACE
+-----

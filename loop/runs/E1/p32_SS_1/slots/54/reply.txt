@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _relax(n, rng, R=0.09):
+    """Relax random centres with L-BFGS-B on a quadratic overlap/wall penalty (all radii R)."""
+    def f(v):
+        c = v.reshape(n, 2)
+        D = c[:, None] - c[None]
+        d = np.sqrt((D ** 2).sum(-1)) + np.eye(n)
+        o = np.clip(2 * R - d, 0, None)
+        np.fill_diagonal(o, 0)
+        lo, hi = np.clip(R - c, 0, None), np.clip(c + R - 1, 0, None)
+        e = 0.5 * (o ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum()
+        g = (-2 * o[:, :, None] * D / d[:, :, None]).sum(1) - 2 * lo + 2 * hi
+        return e, g.ravel()
+
+    res = minimize(f, rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), jac=True, method="L-BFGS-B",
+                   options={"maxiter": 100})
+    return np.concatenate([np.clip(res.x, 0.02, 0.98), np.full(n, INIT_RADIUS)])
+
+
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = _relax(n, rng)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pool = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+=======
+    pool = []
+    budget = TIME_FRACTION * time_limit
+    last_imp, fresh_until = 0.0, 0.0
+    while time.process_time() - t0 < budget:   # restarts until the time is used
+        el = time.process_time() - t0
+        if el - last_imp > 0.25 * el and el >= fresh_until and el > 0.1 * budget:
+            pool = pool[:1]
+            fresh_until = el + 0.2 * budget
+            last_imp = fresh_until
+        fresh = el < fresh_until
+        x0 = _cross(pool, n, rng) if not fresh and len(pool) >= 2 and rng.random() < 0.7 else None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+        if best is None or r.sum() > best[1].sum() + 1e-9:
+            best = (c, r)
+            last_imp = time.process_time() - t0
+>>>>>>> REPLACE
+-----

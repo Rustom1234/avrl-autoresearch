@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+=======
+        if targets is not None:
+            if reduction == 'mean':
+                # Position-dependent weights: linear 0.5 -> 1.0, renormalized to mean 1 over the sequence
+                per_tok = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                          ignore_index=-1, reduction='none').view(B, T)
+                pos_w = torch.linspace(0.5, 1.0, T, device=idx.device)
+                pos_w = pos_w / pos_w.mean()
+                valid = (targets != -1).float()
+                loss = (per_tok * pos_w).sum() / valid.sum().clamp_min(1.0)
+                return loss
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+>>>>>>> REPLACE
+-----

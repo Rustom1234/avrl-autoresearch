@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+        if time.time() - t0 > 200.0 and best is not None:
+=======
+        if time.time() - t0 > 170.0 and best is not None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _reinsert(centers, radii, rounds=8):
+    """Remove-and-reinsert the smallest circle at the largest-clearance grid point."""
+    best_c = np.array(centers, dtype=float)
+    best_r = np.array(radii, dtype=float)
+    best_s = float(np.sum(best_r))
+    g = np.linspace(0.0, 1.0, 81)
+    GX, GY = np.meshgrid(g, g)
+    G = np.column_stack([GX.ravel(), GY.ravel()])
+    border_clear = np.min(np.column_stack([G, 1 - G]), axis=1)
+    t0 = time.time()
+    for _ in range(rounds):
+        if time.time() - t0 > 40.0:
+            break
+        k = int(np.argmin(best_r))
+        others = np.delete(np.arange(_N), k)
+        P = best_c[others]
+        Rr = best_r[others]
+        D = np.sqrt(((G[:, None, :] - P[None, :, :]) ** 2).sum(-1)) - Rr[None, :]
+        clear = np.minimum(D.min(axis=1), border_clear)
+        j = int(np.argmax(clear))
+        cand = best_c.copy()
+        cand[k] = G[j]
+        x, y = _optimize(cand[:, 0].copy(), cand[:, 1].copy(),
+                         np.full(_N, 0.05))
+        r = _lp_radii(x, y)
+        if r is None:
+            continue
+        s = float(np.sum(r))
+        if s > best_s + 1e-9:
+            best_s = s
+            best_c = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            best_r = r
+    return best_c, best_r
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best[1], best[2]
+=======
+    c, r = _reinsert(best[1], best[2])
+    return c, r
+>>>>>>> REPLACE
+-----

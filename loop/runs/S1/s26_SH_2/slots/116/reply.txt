@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+    iu, ju = np.triu_indices(n, 1)
+    m = iu.size
+    pts = _relax(pts, rng)
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.05)])
+=======
+    iu, ju = np.triu_indices(n, 1)
+    m = iu.size
+    two_class = (seed % 4 == 2)
+    if two_class:
+        corners = np.array([[0.14, 0.14], [0.86, 0.14], [0.14, 0.86], [0.86, 0.86]])
+        small = []
+        tries = 0
+        while len(small) < 22 and tries < 20000:
+            tries += 1
+            q = rng.uniform(0.08, 0.92, size=2)
+            allp = np.vstack([corners] + ([np.array(small)] if small else []))
+            if np.min(np.hypot(allp[:, 0] - q[0], allp[:, 1] - q[1])) >= 0.16:
+                small.append(q.tolist())
+        while len(small) < 22:
+            small.append(rng.uniform(0.1, 0.9, size=2).tolist())
+        pts = np.vstack([corners, np.array(small)])
+        rad0 = np.concatenate([np.full(4, 0.14), np.full(22, 0.09)])
+    else:
+        pts = _relax(pts, rng)
+        rad0 = np.full(n, 0.05)
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], rad0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for lvl, mu in enumerate((10.0, 1e2, 1e3, 1e4, 1e5)):
+=======
+        mus = (1e2, 1e3, 1e4, 1e5) if two_class else (10.0, 1e2, 1e3, 1e4, 1e5)
+        for lvl, mu in enumerate(mus):
+>>>>>>> REPLACE
+-----

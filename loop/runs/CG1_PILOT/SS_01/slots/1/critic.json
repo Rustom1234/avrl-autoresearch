@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of gaming the measurement. last_epoch is set from total_train_steps and len(train_loader) for each loader built inside train(). Nothing carries over between runs, nothing is seeded, the test images are not used for training and nothing touches files.",
+  "What it does: the final epoch trains on un-augmented images (no translation and no colour jitter). The alternating flip still runs because the code drops into the elif branch. This is a legitimate, simple change.",
+  "Correctness depends on when self.epoch is incremented relative to batch generation. If epoch is advanced before the batches are made, the off-by-one could put the clean pass on the wrong epoch or skip it. That would make the change less effective but would not make the result meaningless. Worth confirming in the loader code.",
+  "The test loader keeps last_epoch = -1, so predict() is unaffected (assuming epoch never equals -1 there).",
+  "The evidence is weak. There are only 2 candidate runs, they differ a lot (-0.0243 and -0.0526), and their mean is -0.0385. Using the stated noise sd of 0.026 with 15 incumbent runs gives z \u2248 0.0385 / (0.026 \u00d7 sqrt(1/2 + 1/15)) \u2248 1.97. That matches the harness's 1.981 within rounding or sd choice, so accept is a borderline call. Treating the incumbent as known exactly would give z \u2248 2.09."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 1.97
+ }
+}

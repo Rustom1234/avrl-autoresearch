@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+=======
+def _lloyd_sweeps(c, r, sweeps=30):
+    """Power-diagram Lloyd sweeps: assign a 200x200 grid to centers with weights r^2, move centers to cell centroids, re-solve radii by LP."""
+    g = (np.arange(200) + 0.5) / 200.0
+    P = np.array(np.meshgrid(g, g)).reshape(2, -1).T
+    n = c.shape[0]
+    rv, s = _score(c)
+    if rv is not None:
+        r = rv
+    best_c, best_r, best_s = c.copy(), np.asarray(r, dtype=float).copy(), s
+    for _ in range(sweeps):
+        D = np.sum((P[:, None, :] - c[None, :, :]) ** 2, axis=-1) - (r[None, :] ** 2)
+        lab = np.argmin(D, axis=1)
+        newc = c.copy()
+        for i in range(n):
+            m = lab == i
+            if np.any(m):
+                newc[i] = P[m].mean(axis=0)
+        c = newc
+        rv, s = _score(c)
+        if rv is None:
+            break
+        r = rv
+        if s > best_s:
+            best_c, best_r, best_s = c.copy(), rv.copy(), s
+    return best_c, best_r
+
+
+def _lloyd_multistart(seed_c, nstart=4):
+    rng = np.random.RandomState(99)
+    best_c, best_r, best_s = None, None, -1.0
+    starts = [seed_c] + [rng.uniform(0.1, 0.9, size=(_N, 2)) for _ in range(nstart)]
+    for c0 in starts:
+        c, r = _lloyd_sweeps(np.asarray(c0, dtype=float).copy(), np.full(_N, 0.01))
+        rv, s = _score(c)
+        if rv is not None and s > best_s:
+            best_c, best_r, best_s = c.copy(), rv, s
+    return best_c, best_r
+
+
+def construct_packing():
+    T0 = _time.time()
+    centers, radii = _two_phase()
+    lc, lr = _lloyd_multistart(centers)
+    if lc is not None and lr is not None and float(np.sum(lr)) > float(np.sum(radii)):
+        centers, radii = lc, lr
+>>>>>>> REPLACE
+-----

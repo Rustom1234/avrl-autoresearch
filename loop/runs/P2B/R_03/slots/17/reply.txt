@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    all_params = [p for p in model.parameters()]
+    acc_grads = None
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        # Per-microbatch gradient clipping before accumulation
+        torch.nn.utils.clip_grad_norm_(all_params, 1.0 / grad_accum_steps ** 0.5)
+        if acc_grads is None:
+            acc_grads = [p.grad.clone() for p in all_params]
+        else:
+            torch._foreach_add_(acc_grads, [p.grad for p in all_params])
+        model.zero_grad(set_to_none=True)
+        x, y, epoch = next(train_loader)
+    for p, g in zip(all_params, acc_grads):
+        p.grad = g
+>>>>>>> REPLACE
+-----

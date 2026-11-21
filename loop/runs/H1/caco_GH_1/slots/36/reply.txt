@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from sklearn.decomposition import PCA
+from sklearn.ensemble import RandomForestRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    X_test = featurize(test_smiles)
+    per_tree = np.stack([tree.predict(X_test) for tree in model.estimators_])
+    return np.median(per_tree, axis=0)
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    pca = PCA(n_components=512, random_state=seed).fit(X_train[:, :N_BITS])
+    X_train = np.hstack([pca.transform(X_train[:, :N_BITS]), X_train[:, N_BITS:]])
+    X_test = np.hstack([pca.transform(X_test[:, :N_BITS]), X_test[:, N_BITS:]])
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(X_train, np.asarray(train_y, dtype=np.float64))
+    per_tree = np.stack([tree.predict(X_test) for tree in model.estimators_])
+    return np.median(per_tree, axis=0)
+>>>>>>> REPLACE
+-----

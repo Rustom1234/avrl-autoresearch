@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def morgan_bits(smiles):
+    from rdkit import DataStructs
+    out = np.zeros((len(smiles), N_BITS), dtype=np.float64)
+    for i, s in enumerate(smiles):
+        fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(s), RADIUS, nBits=N_BITS)
+=======
+def morgan_bits(smiles, radius=RADIUS, ap=False):
+    from rdkit import DataStructs
+    out = np.zeros((len(smiles), N_BITS), dtype=np.float64)
+    for i, s in enumerate(smiles):
+        m = Chem.MolFromSmiles(s)
+        if ap:
+            fp = rdMolDescriptors.GetHashedAtomPairFingerprintAsBitVect(m, nBits=N_BITS)
+        else:
+            fp = rdMolDescriptors.GetMorganFingerprintAsBitVect(m, radius, nBits=N_BITS)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def knn_predict(train_smiles, y, test_smiles, k=7):
+    A = morgan_bits(test_smiles)
+    B = morgan_bits(train_smiles)
+=======
+def knn_predict(train_smiles, y, test_smiles, k=7):
+    views = [dict(radius=2), dict(radius=1), dict(ap=True)]
+    return np.mean([knn_view(train_smiles, y, test_smiles, k, **v) for v in views], axis=0)
+
+
+def knn_view(train_smiles, y, test_smiles, k, **kw):
+    A = morgan_bits(test_smiles, **kw)
+    B = morgan_bits(train_smiles, **kw)
+>>>>>>> REPLACE
+-----

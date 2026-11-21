@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from scipy import sparse
+from sklearn.feature_extraction.text import CountVectorizer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+    train_smi = list(train_smiles)
+    test_smi = list(test_smiles)
+    vec = CountVectorizer(analyzer="char", ngram_range=(2, 6), min_df=5, lowercase=False, max_features=1000)
+    X_train = sparse.hstack([sparse.csr_matrix(featurize(train_smi)), vec.fit_transform(train_smi)]).tocsr()
+    X_test = sparse.hstack([sparse.csr_matrix(featurize(test_smi)), vec.transform(test_smi)]).tocsr()
+    model.fit(X_train, np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(X_test)[:, 1]
+>>>>>>> REPLACE
+-----

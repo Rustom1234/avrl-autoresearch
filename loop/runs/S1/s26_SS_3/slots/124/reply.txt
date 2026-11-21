@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+        c, r = best
+        k = rng.choice(np.argsort(r)[:4])
+        keep = np.arange(n) != k
+        cc = c[keep]
+        rr = r[keep]
+        P = rng.random((3000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:10]
+        p = P[rng.choice(top)]
+        c0 = np.vstack([cc, p[None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, [0.03]])
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        from scipy.optimize import linprog
+        c, r = best
+        dxv = c[iu, 0] - c[ju, 0]
+        dyv = c[iu, 1] - c[ju, 1]
+        dist = np.sqrt(dxv ** 2 + dyv ** 2) + 1e-15
+        sel = np.where(dist - r[iu] - r[ju] < 0.05)[0]
+        ux = dxv[sel] / dist[sel]
+        uy = dyv[sel] / dist[sel]
+        ms = len(sel)
+        A = np.zeros((ms + 4 * n, N3 - n + 1 - n + n))
+        A = np.zeros((ms + 4 * n, 2 * n + 1))
+        b = np.zeros(ms + 4 * n)
+        rows = np.arange(ms)
+        A[rows, iu[sel]] = -ux
+        A[rows, ju[sel]] = ux
+        A[rows, n + iu[sel]] = -uy
+        A[rows, n + ju[sel]] = uy
+        A[rows, 2 * n] = 1.0
+        b[:ms] = dist[sel] - r[iu[sel]] - r[ju[sel]]
+        for q in range(n):
+            A[ms + q, q] = -1.0
+            b[ms + q] = c[q, 0] - r[q]
+            A[ms + n + q, q] = 1.0
+            b[ms + n + q] = 1 - c[q, 0] - r[q]
+            A[ms + 2 * n + q, n + q] = -1.0
+            b[ms + 2 * n + q] = c[q, 1] - r[q]
+            A[ms + 3 * n + q, n + q] = 1.0
+            b[ms + 3 * n + q] = 1 - c[q, 1] - r[q]
+        A[ms:, 2 * n] = 1.0
+        cost = np.zeros(2 * n + 1)
+        cost[2 * n] = -1.0
+        lpb = [(-0.01, 0.01)] * (2 * n) + [(0, 0.01)]
+        try:
+            lp = linprog(cost, A_ub=A, b_ub=b, bounds=lpb, method="highs")
+        except Exception:
+            continue
+        if lp.x is None:
+            continue
+        dlt = lp.x[:2 * n]
+        scale = 1.0 if rng.random() < 0.5 else rng.random()
+        c0 = np.clip(c + scale * np.stack([dlt[:n], dlt[n:]], axis=1)
+                     + rng.normal(0, 0.0005, c.shape), 0.01, 0.99)
+        r0 = r * 0.98
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+>>>>>>> REPLACE
+-----

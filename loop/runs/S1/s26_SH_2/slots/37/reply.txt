@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+    def pen(z, mu):
+=======
+    def pen(z, mu, p):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        f = -np.sum(r) + mu * (np.sum(ov * ov) + np.sum(bl * bl + br * br + bb * bb + bt * bt))
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+=======
+        rc = np.maximum(r, 1e-6)
+        f = -np.sum(rc ** p) + mu * (np.sum(ov * ov) + np.sum(bl * bl + br * br + bb * bb + bt * bt))
+        g = np.zeros_like(z)
+        g[2 * n:] = -p * rc ** (p - 1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for lvl, mu in enumerate((10.0, 1e2, 1e3, 1e4, 1e5)):
+            sig = 0.004 / np.sqrt(lvl + 1)
+            zp[:2 * n] = np.clip(zp[:2 * n] + rng.normal(0.0, sig, size=2 * n), 0.0, 1.0)
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+=======
+        for lvl, mu in enumerate((10.0, 1e2, 1e3, 1e4, 1e5)):
+            p = 0.7 + 0.075 * lvl
+            sig = 0.004 / np.sqrt(lvl + 1)
+            zp[:2 * n] = np.clip(zp[:2 * n] + rng.normal(0.0, sig, size=2 * n), 0.0, 1.0)
+            rp = minimize(pen, zp, args=(mu, p), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+            rp = minimize(pen, zp, args=(mu, p), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+>>>>>>> REPLACE
+-----

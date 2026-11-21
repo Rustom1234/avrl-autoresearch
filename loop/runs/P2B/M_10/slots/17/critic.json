@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine. The diff does not touch the seed lines, the prepare.py import, the data, the evaluation call or the final summary printing.",
+  "There are no numbers yet because no GPU run has happened. There is nothing to check claims against, so z cannot be recomputed.",
+  "Risk to check: the MTP flag is set once per step, before the step runs. The eval only stays correct if use_mtp is False when evaluation starts. That holds while WARMDOWN_RATIO > 0, because training ends after the warmdown starts and the flag is off by then. If WARMDOWN_RATIO is ever 0, the flag stays True at eval. With reduction='none', loss is B*T long and loss2 is B*(T-1) long, so the eval would crash on the shape mismatch or be corrupted. A guard such as `raw_model.use_mtp = False` before eval, outside the eval code, would be safer. Flagged, not vetoed.",
+  "Turning use_mtp on and off on a model compiled with dynamic=False triggers at least one recompile at the start of the warmdown. That recompile happens inside the timed loop and uses some of the 300 s budget. It is a small cost, not a validity problem.",
+  "mtp_adapter is an n_embd x n_embd matrix in the lm_head AdamW group. It is counted in the parameter and FLOP reporting but is not used once the auxiliary loss turns off in the warmdown. This is a minor cosmetic point.",
+  "The auxiliary loss shares lm_head, so loss2 also sends gradients into the main head. That is intended. Whether 0.1 is a good weight is an empirical question, not a bug."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

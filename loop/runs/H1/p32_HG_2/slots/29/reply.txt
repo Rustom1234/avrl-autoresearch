@@ -1,0 +1,170 @@
+<<<<<<< SEARCH
+            x_coords = np.linspace(0, 1, rows)
+            y_coords = np.linspace(0, 1, int(np.ceil(n / rows)))
+            c = np.array([[x + (j % 2) * (dx / 2), y] for y in y_coords for x in x_coords]).reshape(-1, 2)
+            c = c[:n]
+            c = (c - c.min(axis=0)) / (c.max(axis=0) - c.min(axis=0) + 1e-9)
+            c = np.clip(c, 0, 1)
+            c += rng.normal(0, 0.02, (n, 2))
+            c = np.clip(c, 0, 1)
+        else:
+            # Perturbed hexagonal lattice
+            rows = rng.integers(int(np.sqrt(n * 0.8)), int(np.sqrt(n * 1.2)) + 1)
+            dx = 1.0 / rows
+            dy = dx * (2 / np.sqrt(3))
+            x_coords = np.linspace(0, 1, rows)
+            y_coords = np.linspace(0, 1, int(np.ceil(n / rows)))
+            c = np.array([[x + (j % 2) * (dx / 2), y] for y in y_coords for x in x_coords]).reshape(-1, 2)
+            c = c[:n]
+            c = (c - c.min(axis=0)) / (c.max(axis=0) - c.min(axis=0) + 1e-9)
+            c = np.clip(c, 0, 1)
+            c += rng.normal(0, 0.02, (n, 2))
+            c = np.clip(c, 0, 1)
+        
+        # Estimate radii based on nearest neighbor distance
+        if n > 1:
+            # Sample a few random pairs to estimate d_min quickly
+            idx = rng.choice(n, min(n, 10), replace=False)
+            d_min = np.min(np.linalg.norm(c[idx[1:]] - c[idx[:-1]], axis=1))
+        else:
+            d_min = 0.1
+        r = np.full(n, d_min * 0.4 * rng.random() * (1.0 - 0.8 + 1.0))
+        x0 = np.concatenate([c.ravel(), r])
+    else:
+        c = x0[:2 * n].reshape(n, 2)
+        r = x0[2 * n:]
+        x0 = x0
+    
+    iu = np.triu_indices(n, 1)
+    
+    def cons(v):
+        c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw={
+-----
+<<<<<<< SEARCH
+        else:
+            # Perturbed hexagonal lattice
+            rows = rng.integers(int(np.sqrt(n * 0.8)), int(np.sqrt(n * 1.2)) + 1)
+            dx = 1.0 / rows
+            dy = dx * (2 / np.sqrt(3))
+            x_coords = np.linspace(0, 1, rows)
+            y_coords = np.linspace(0, 1, int(np.ceil(n / rows)))
+            c = np.array([[x + (j % 2) * (dx / 2), y] for y in y_coords for x in x_coords]).reshape(-1, 2)
+            c = c[:n]
+            c = (c - c.min(axis=0)) / (c.max(axis=0) - c.min(axis=0) + 1e-9)
+            c = np.clip(c, 0, 1)
+            c += rng.normal(0, 0.02, (n, 2))
+            c = np.clip(c, 0, 1)
+            
+            # Estimate radii based on nearest neighbor distance
+            if n > 1:
+                # Sample a few random pairs to estimate d_min quickly
+                idx = rng.choice(n, min(n, 10), replace=False)
+                d_min = np.min(np.linalg.norm(c[idx[1:]] - c[idx[:-1]], axis=1))
+            else:
+                d_min = 0.1
+            r = np.full(n, d_min * 0.4 * rng.random() * (1.0 - 0.8 + 1.0))
+            x0 = np.concatenate([c.ravel(), r])
+        else:
+            c = x0[:2 * n].reshape(n, 2)
+            r = x0[2 * n:]
+            x0 = x0
+            
+            iu = np.triu_indices(n, 1)
+            
+            def cons(v):
+                c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+                d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+                return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+            
+            res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw={
+>>>>>>> REPLACE
+<<<<<<<<< SEARCH
+        else:
+            # Perturbed hexagonal lattice
+            rows = rng.integers(int(np.sqrt(n * 0.8)), int(np.sqrt(n * 1.2)) + 1)
+            dx = 1.0 / rows
+            dy = dx * (2 / np.sqrt(3))
+            x_coords = np.linspace(0, 1, rows)
+            y_coords = np.linspace(0, 1, int(np.ceil(n / rows)))
+            c = np.array([[x + (j % 2) * (dx / 2), y] for y in y_coords for x in x_coords]).reshape(-1, 2)
+            c = c[:n]
+            c = (c - c.min(axis=0)) / (c.max(axis=0) - c.min(axis=0) + 1e-9)
+            c = np.clip(c, 0, 1)
+            c += rng.normal(0, 0.02, (n, 2))
+            c = np.clip(c, 0, 1)
+            
+            # Estimate radii based on nearest neighbor distance
+            if n > 1:
+                # Sample a few random pairs to estimate d_min quickly
+                idx = rng.choice(n, min(n, 10), replace=False)
+                d_min = np.min(np.linalg.norm(c[idx[1:]] - c[idx[:-1]], axis=1))
+            else:
+                d_min = 0.1
+            r = np.full(n, d_min * 0.4 * rng.random() * (1.0 - 0.8 + 1.0))
+            x0 = np.concatenate([c.ravel(), r])
+        else:
+            c = x0[:2 * n].reshape(n, 2)
+            r = x0[2 * n:]
+            x0 = x0
+            
+            iu = np.triu_indices(n, 1)
+            
+            def cons(v):
+                c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+                d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+                return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+            
+            res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw={
+ tour back
+<<<<<<<<< SEARCH
+        else:
+            # Perturbed hexagonal lattice
+            rows = rng.integers(int(np.sqrt(n * 0.8)), int(np.sqrt(n * 1.2)) + 1)
+            dx = 1.0 / rows
+            dy = dx * (2 / np.sqrt(3))
+            x_coords = np.linspace(0, 1, rows)
+            y_coords = np.linspace(0, 1, int(np.ceil(n / rows)))
+            c = np.array([[x + (j % 2) * (dx / 2), y] for y in y_coords for x in x_coords]).reshape(-1, 2)
+            c = c[:n]
+            c = (c - c.min(axis=0)) / (c.max(axis=0) - c.min(axis=0) + 1e-9)
+            c = np.clip(c, 0, 1)
+            c += rng.normal(0, 0.02, (n, 2))
+            c = np.clip(c, 0, 1)
+            
+            # Estimate radii based on nearest neighbor distance
+            if n > 1:
+                # Sample a few random pairs to estimate d_min quickly
+                idx = rng.choice(n, min(n, 10), replace=False)
+                d_min = np.min(np.linalg.norm(c[idx[1:]] - c[idx[:-1]], axis=1))
+            else:
+                d_min = 0.1
+            r = np.full(n, d_min * 0.4 * rng.random() * (1.0 - 0.8 + 1.0))
+            x0 = np.concatenate([c.ravel(), r])
+        else:
+            c = x0[:2 * n].reshape(n, 2)
+            r = x0[2 * n:]
+            x0 = x0
+            
+            iu = np.triu_indices(n, 1)
+            
+            def cons(v):
+                c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+                d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+                return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+            
+            res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw={
+ tour back
+thought{thought}```json:train.py [SEARCH/REPLACE] (Block 1)  ... wait, I'll just provide the final fix. I noticed the prompt had a truncated 
+-----
+<<<<<<< SEARCH
+            c = np.array([[x + (j % 2) * (dx / 2), y] for y in y_coords for x in x_coords]).reshape(-1, 2)
+            c = c[:n]
+=======
+            c = np.array([[x + (j % 2) * (dx / 2), y] for j, y in enumerate(y_coords) for x in x_coords]).reshape(-1, 2)
+            c = c[:n]
+>>>>>>> REPLACE
+-----

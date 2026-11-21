@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+    n = _N
+=======
+def _polish(c, r, p=1.0, maxiter=300):
+    n = _N
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def obj(x):
+        return -x[2 * n:].sum()
+
+    def objg(x):
+        g = np.zeros(3 * n)
+        g[2 * n:] = -1
+        return g
+=======
+    def obj(x):
+        if p == 1.0:
+            return -x[2 * n:].sum()
+        return -(np.maximum(x[2 * n:], 1e-6) ** p).sum()
+
+    def objg(x):
+        g = np.zeros(3 * n)
+        if p == 1.0:
+            g[2 * n:] = -1
+        else:
+            g[2 * n:] = -p * np.maximum(x[2 * n:], 1e-6) ** (p - 1)
+        return g
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": 300, "ftol": 1e-12})
+=======
+                   options={"maxiter": maxiter, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+=======
+            r2 = _lp_radii(c2)
+            s0 = r2.sum()
+            hist.append(s0)
+            if len(hist) >= 10 and s0 >= np.quantile(hist, 0.7):
+                cc, rr = c2, r2
+                for p in (0.5, 0.75, 1.0):
+                    cc = np.clip(_polish(cc, rr, p, 100), 0, 1)
+                    rr = _lp_radii(cc)
+                if rr.sum() > s0:
+                    c2, r2 = cc, rr
+        except Exception:
+            continue
+        s = r2.sum()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+=======
+    best_s, best = -1, None
+    hist = []
+    while time.time() - t0 < 150:
+>>>>>>> REPLACE
+-----

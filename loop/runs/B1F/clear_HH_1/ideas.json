@@ -1,0 +1,322 @@
+[
+ {
+  "id": "b001",
+  "title": "Gaussian process regression with the existing mixed kernel",
+  "spec": "Swap the SVR head in train.py for exact Gaussian process regression on the same 0.5 Tanimoto / 0.5 descriptor-RBF precomputed kernel, which gives a smooth posterior mean rather than a sparse epsilon-insensitive fit. Implement it directly with numpy rather than sklearn's GaussianProcessRegressor: solve (K_train + lam * I) alpha = y_centered with scipy.linalg.cho_factor / cho_solve, then predict K_test @ alpha + y_mean, where y is the current rank-normalized, mean-centred, sd-scaled target. Choose the noise level lam by maximizing the log marginal likelihood -0.5 * y' alpha - 0.5 * logdet(K + lam I) - 0.5 n log(2 pi) over lam in a log grid np.logspace(-3, 0, 13); the Cholesky factor gives logdet from the diagonal, so all 13 candidates cost one 970x970 factorization each and the whole fit stays well under a second. Keep featurization, descriptors and the kernel mix exactly as they are.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8288973569869995,
+  "sim_tried_bge": 0.8288973569869995,
+  "sim_hist_mini": 0.6324392557144165,
+  "sources": [
+   [
+    "fable",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Gaussian process regression instead of SVR on the same kernel",
+  "spec": "Replace the SVR with kernel ridge regression / GP-style regression in dual form on the same precomputed combined kernel. Concretely, solve alpha = solve(K_train + lam*I, y_centered) with lam tuned over {0.01, 0.03, 0.1, 0.3, 1.0} by an inner 5-fold KFold(shuffle=True, random_state=seed) scored on Spearman of out-of-fold predictions, then predict K_test @ alpha. Use sklearn.kernel_ridge.KernelRidge(kernel='precomputed', alpha=lam) for clarity. Keep the kernel construction and the rank target transform exactly as they are. This tests whether the epsilon-insensitive loss of SVR is costing accuracy relative to a smooth squared-error fit.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8571857810020447,
+  "sim_tried_bge": 0.8291024565696716,
+  "sim_hist_mini": 0.6363900899887085,
+  "sources": [
+   [
+    "fable",
+    "f",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Joint inner-CV of descriptor gamma and kernel mixing weight",
+  "spec": "In the current train.py the two kernels are combined with fixed weights (0.5 * tanimoto + 0.5 * rbf) and the RBF bandwidth is fixed at gamma = 1/n_descriptors. Replace both constants with a small joint inner search. Precompute the Tanimoto kernel once and the squared-distance matrix of the standardized descriptors once (train-train and test-train), then form rbf = exp(-g * sq) for g in {0.1, 0.3, 1.0, 3.0} times the base 1/n_descriptors, and mixing weight w in {0.3, 0.5, 0.7} so K = (1-w)*tanimoto + w*rbf. Evaluate each of the 12 (g, w) pairs by 4-fold KFold(shuffle=True, random_state=seed) inner CV on the training rows, slicing the precomputed kernels with np.ix_, scoring out-of-fold Spearman with the current SVR settings (C=5.0, epsilon=0.05). Refit on the full training kernel with the winning pair and predict. Reusing the cached squared-distance matrix is what keeps this fast; do not recompute descriptors or fingerprints inside the loop.",
+  "family": "other",
+  "sim_hist_bge": 0.8702144622802734,
+  "sim_tried_bge": 0.8702144622802734,
+  "sim_hist_mini": 0.7569544315338135,
+  "sources": [
+   [
+    "fable",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Inner-CV selection of SVR C and kernel mixing weight",
+  "spec": "Inside fit_predict, compute the Tanimoto kernel Kt and the descriptor RBF kernel Kd separately for train/train and test/train. Then run an inner 5-fold KFold(shuffle=True, random_state=seed) over a small grid: mixing weight w in {0.3, 0.5, 0.7} for K = w*Kt + (1-w)*Kd, and C in {1.0, 5.0, 20.0}, epsilon fixed at 0.05. Because the kernels are precomputed, each inner fit only slices K[np.ix_(tr,tr)] and K[np.ix_(va,tr)], so the whole grid is cheap. Score each config by the Spearman correlation of pooled out-of-fold predictions against the transformed target, pick the best, refit on all training data, and predict the test set with that configuration.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9021126627922058,
+  "sim_tried_bge": 0.8435218334197998,
+  "sim_hist_mini": 0.7565997242927551,
+  "sources": [
+   [
+    "fable",
+    "f",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Average SVR with a LightGBM model on descriptors plus fingerprints",
+  "spec": "Keep the current kernel SVR exactly as it is, and add a second model: a LightGBM regressor (lgb.LGBMRegressor, n_estimators=600, learning_rate=0.03, num_leaves=15, min_child_samples=10, subsample=0.8, subsample_freq=1, colsample_bytree=0.5, reg_lambda=1.0, random_state=seed, n_jobs=8, verbose=-1) trained on the horizontal concatenation of the binary Morgan bits and the standardized descriptor matrix, with the same rank-transformed target. Convert each model's test predictions to ranks with scipy.stats.rankdata, scale to [0,1] by dividing by the number of test molecules, and return the simple average of the two rank vectors. Rank averaging is safe here because the loss is Spearman-based.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8549981117248535,
+  "sim_tried_bge": 0.8549981117248535,
+  "sim_hist_mini": 0.6227909922599792,
+  "sources": [
+   [
+    "fable",
+    "f",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Seed-bagged ensemble of subsampled SVR fits",
+  "spec": "Wrap the existing pipeline in a bagging loop: build the combined K_train and K_test once, then fit 15 SVR models, each on a bootstrap resample (or a random 80% subsample) of the training rows drawn with np.random.default_rng(seed + i), slicing the precomputed kernel accordingly. Average the test predictions across the 15 models after converting each to ranks. Because the kernel is computed once and each fit is on a smaller matrix, the extra cost is modest. This should reduce variance from the SVR support-vector selection, which matters because the final loss is a correlation over a few hundred test molecules.",
+  "family": "batch",
+  "sim_hist_bge": 0.9017072916030884,
+  "sim_tried_bge": 0.840240478515625,
+  "sim_hist_mini": 0.806934118270874,
+  "sources": [
+   [
+    "fable",
+    "f",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Per-block descriptor RBF with tuned gamma",
+  "spec": "The descriptor RBF currently uses a single fixed gamma = 1/n_features on all ~210 standardized RDKit descriptors, which may be badly scaled. Replace this with a gamma chosen by the median heuristic: compute the median of the pairwise squared Euclidean distances among training descriptor rows (subsample up to 400 rows for speed) and set gamma = 1.0 / median_sq_dist, then additionally sweep a multiplier in {0.25, 0.5, 1.0, 2.0, 4.0} using an inner 5-fold KFold(shuffle=True, random_state=seed) scored by Spearman, keeping the 0.5/0.5 kernel mix and SVR settings fixed. Use the selected gamma for both K_train and K_test.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8886276483535767,
+  "sim_tried_bge": 0.8644840717315674,
+  "sim_hist_mini": 0.7412377595901489,
+  "sources": [
+   [
+    "fable",
+    "f",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Scaffold-aware inner validation for hyperparameter choice",
+  "spec": "The harness splits folds by Murcko scaffold, so a random inner KFold is optimistic and may select hyperparameters that do not transfer. Add an inner validation that groups training molecules by their Murcko scaffold (rdkit.Chem.Scaffolds.MurckoScaffold.MurckoScaffoldSmiles, falling back to the SMILES itself on failure) and uses sklearn.model_selection.GroupKFold(n_splits=5) over those groups to choose SVR C from {1.0, 5.0, 20.0} and the kernel mixing weight from {0.3, 0.5, 0.7}, scoring by Spearman of pooled out-of-fold predictions. Refit on all training data with the winning pair and predict the test set. Keep the featurization and rank target unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.8441503047943115,
+  "sim_tried_bge": 0.8225263953208923,
+  "sim_hist_mini": 0.7183636426925659,
+  "sources": [
+   [
+    "fable",
+    "f",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Log-transformed target in place of rank transform",
+  "spec": "Hepatocyte clearance values are strongly right-skewed, and the current code discards all magnitude information by replacing y with its uniform ranks. Replace the rank transform with y = np.log10(np.clip(y, a_min=small_positive, a_max=None)) where small_positive is half the smallest positive training value, then standardize to zero mean and unit variance before fitting. Keep the kernel construction and SVR(C=5.0, epsilon=0.05) unchanged and return the raw decision values (Spearman is invariant to the monotone back-transform, so no inversion is needed). This tests whether magnitude information helps the SVR place its support vectors better than pure ranks.",
+  "family": "data",
+  "sim_hist_bge": 0.7762024998664856,
+  "sim_tried_bge": 0.7734752893447876,
+  "sim_hist_mini": 0.5832240581512451,
+  "sources": [
+   [
+    "fable",
+    "f",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Similarity-weighted kNN residual correction",
+  "spec": "Add a local correction on top of the existing kernel SVR in train.py. First fit the current model exactly as it is now and get test predictions. Then compute leave-one-out-style training residuals cheaply: fit the same SVR under 5-fold KFold(shuffle=True, random_state=seed) on the training kernel (slicing with np.ix_) to obtain out-of-fold predictions, and set r_i = y_transformed_i - oof_pred_i. For each test molecule, find its k = 10 most similar training molecules by the combined kernel row K_test (already computed), form weights w = max(K_test_values - 0, 0) ** 2 normalized to sum to one over those k, and compute a weighted mean residual r_hat. Return svr_prediction + 0.3 * r_hat. The idea is that the global kernel model is smooth and systematically misses locally, so a shrunken nearest-neighbour residual term can recover some rank information. Keep the shrinkage at 0.3 and k at 10; do not tune anything else.",
+  "family": "other",
+  "sim_hist_bge": 0.9268737435340881,
+  "sim_tried_bge": 0.8324739336967468,
+  "sim_hist_mini": 0.8113957047462463,
+  "sources": [
+   [
+    "fable",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Bagged SVRs on 70% subsamples with rank averaging",
+  "spec": "Replace the single SVR fit in train.py with a bag of 15 SVRs, each trained on a random 70% subsample of the training molecules, and average their test predictions after converting each member's predictions to ranks. Use np.random.default_rng(seed) to draw the subsamples (without replacement, so each member sees about 679 of 970 molecules), slice the precomputed combined training kernel with np.ix_ for the member's rows and columns, slice K_test columns to the same training subset, and keep C=5.0, epsilon=0.05 and the rank-normalized z-scored target as they are (recompute the target mean/sd within each subsample). Convert each member's test predictions with scipy.stats.rankdata, divide by the number of test molecules, and return the mean across the 15 members. Because the loss is 1 minus Spearman, rank averaging rather than value averaging is the right pooling rule, and bagging decorrelates the errors of a model whose kernel is dominated by a few high-similarity pairs.",
+  "family": "batch",
+  "sim_hist_bge": 0.9261229038238525,
+  "sim_tried_bge": 0.805752158164978,
+  "sim_hist_mini": 0.7989808917045593,
+  "sources": [
+   [
+    "fable",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Reduced-invariant Morgan kernel added to the mix",
+  "spec": "The Morgan fingerprint in train.py uses RDKit's default atom invariants, which encode element, degree, charge, isotope, attached hydrogens and ring membership, so two metabolically similar fragments that differ in one of those slots hash to different bits and the Tanimoto kernel misses the resemblance. Add a second, coarser Morgan kernel: build radius-2 2048-bit fingerprints with rdFingerprintGenerator.GetMorganGenerator using atomInvariantsGenerator=rdFingerprintGenerator.GetMorganAtomInvGen(includeRingMembership=False) (if that argument combination is unavailable, pass explicit per-atom invariants that encode only atomic number and heavy-atom degree), form its Tanimoto kernel, and average it with the existing default-invariant Tanimoto kernel and the descriptor RBF kernel with weights 0.25 / 0.25 / 0.5, so the structural half of the mix is split between the fine and coarse views. Keep the target transform and SVR settings unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8944740891456604,
+  "sim_tried_bge": 0.873206377029419,
+  "sim_hist_mini": 0.8270714282989502,
+  "sources": [
+   [
+    "fable",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Combine the Gobbi pharmacophore kernel with a physchem ridge prior",
+  "spec": "Two earlier changes each gave a borderline gain on their own and may be complementary because one adds pharmacophore information and the other removes a global physicochemical trend. Apply both in one job. (a) Build a Gobbi 2D pharmacophore fingerprint for every molecule using rdkit.Chem.Pharm2D.Generate.Gen2DFingerprint with the Gobbi_Pharm2D.factory, hash the on-bits into 4096 bins with a modulo, form a Tanimoto kernel from those bit matrices, and average it equally with the existing Morgan-Tanimoto and descriptor-RBF kernels so each contributes 1/3. (b) Before fitting the SVR, fit Ridge(alpha=10) on seven standardized physchem descriptors (MolLogP, MolWt, TPSA, NumHDonors, NumHAcceptors, NumRotatableBonds, FractionCSP3) to the rank-normalized target, subtract the ridge fit from the target, train the SVR on the residual, and add the ridge prediction back to the test molecules at the end. Keep SVR C=5.0 and epsilon=0.05.",
+  "family": "data",
+  "sim_hist_bge": 0.9335950016975403,
+  "sim_tried_bge": 0.9335950016975403,
+  "sim_hist_mini": 0.8224735260009766,
+  "sources": [
+   [
+    "fable",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Count Morgan fingerprints with MinMax kernel",
+  "spec": "Replace the binary Morgan fingerprint in featurize() with count fingerprints (GetCountFingerprintAsNumPy, radius 2, 2048 bits). Replace tanimoto() with the generalized MinMax kernel for count vectors: K(a,b) = sum(min(a,b)) / sum(max(a,b)). Compute it with scipy.spatial.distance.cdist(A, B, 'cityblock'), using sum(min) = 0.5*(l1_a + l1_b - L1dist) and sum(max) = l1_a + l1_b - sum(min); guard the denominator with np.maximum(..., 1e-9). Keep everything else unchanged: the descriptor RBF kernel, the 0.5/0.5 kernel average, the rank target transform, and SVR(C=5.0, epsilon=0.05).",
+  "family": "data",
+  "sim_hist_bge": 0.8823713660240173,
+  "sim_tried_bge": 0.8823713660240173,
+  "sim_hist_mini": 0.6798645257949829,
+  "sources": [
+   [
+    "fable",
+    "f",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "Inner-CV grid for SVR C and epsilon",
+  "spec": "train.py currently fits SVR(kernel='precomputed', C=5.0, epsilon=0.05) on a 0.5/0.5 mix of a Morgan-Tanimoto kernel and an RDKit-descriptor RBF kernel, with a rank-normalized then z-scored target. Keep everything the same but choose C and epsilon by inner cross-validation inside fit_predict instead of hard-coding them. After building K_train and the transformed target, run a 4-fold KFold(shuffle=True, random_state=seed) over the training rows, slicing the precomputed kernel with np.ix_ for each split, and score each candidate by Spearman correlation (scipy.stats.spearmanr) of out-of-fold predictions against the fold's target. Grid: C in {1, 2, 5, 10, 20, 50} crossed with epsilon in {0.01, 0.05, 0.1, 0.2}. Pick the pair with the best mean inner Spearman (ties broken by smaller C), refit a single SVR on the full training kernel with it, and predict the test kernel. This is 24 cheap fits of a 970x970 precomputed-kernel SVR per fold, so keep the grid exactly this size to stay inside the 10-minute budget; do not add any other change.",
+  "family": "regularization",
+  "sim_hist_bge": 0.9113572239875793,
+  "sim_tried_bge": 0.7932108044624329,
+  "sim_hist_mini": 0.7505461573600769,
+  "sources": [
+   [
+    "fable",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Largest-fragment, salt-stripped canonicalization before featurization",
+  "spec": "train.py calls Chem.MolFromSmiles on the raw SMILES in both featurize and descriptors, so salts, counter-ions and solvent fragments contribute bits and distort whole-molecule descriptors such as MolWt, TPSA and the Crippen terms, which then corrupt the descriptor RBF kernel. Add one shared helper, e.g. def to_mol(s), that parses the SMILES, splits it with Chem.GetMolFrags(mol, asMols=True, sanitizeFrags=True), keeps the fragment with the most heavy atoms (ties broken by larger molecular weight), and returns that fragment; fall back to the parsed molecule if fragmenting fails and to None-safe behaviour if parsing fails (in which case substitute a single-carbon molecule so array shapes stay right). Use this helper in both featurize and descriptors so the fingerprint and the descriptors describe the same stripped parent structure. Everything else, including the kernel mix and SVR settings, stays unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8401570916175842,
+  "sim_tried_bge": 0.7536069750785828,
+  "sim_hist_mini": 0.6594860553741455,
+  "sources": [
+   [
+    "fable",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Third kernel from atom-pair and torsion fingerprints",
+  "spec": "Add a featurizer that concatenates RDKit atom-pair counts (rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048), GetCountFingerprintAsNumPy) and topological-torsion counts (GetTopologicalTorsionGenerator(fpSize=2048)). Build a MinMax kernel on it (sum(min)/sum(max) via cityblock cdist as in the standard identity). Change the combined kernel to the equal-weight mean of three kernels: the existing binary Morgan Tanimoto, the existing descriptor RBF, and this new atom-pair/torsion MinMax kernel, applied identically to K_train and K_test. Leave the SVR hyperparameters and target transform unchanged.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8331519365310669,
+  "sim_tried_bge": 0.8331519365310669,
+  "sim_hist_mini": 0.6546958684921265,
+  "sources": [
+   [
+    "fable",
+    "f",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Prune redundant descriptors by pairwise correlation",
+  "spec": "The descriptor RBF kernel in train.py uses all ~210 RDKit 2D descriptors after a std>0 filter, but many are near-duplicates (several Chi and Kappa connectivity indices, MolWt vs HeavyAtomMolWt vs ExactMolWt, the whole EState family), so the Euclidean distance that drives the RBF kernel is dominated by whichever property happens to be represented most often. After the existing std filter and before standardizing, compute the absolute Pearson correlation matrix of the training descriptor columns with np.corrcoef (nan_to_num it), then greedily walk columns in their original order and drop any column whose absolute correlation with an already-kept column exceeds 0.95. Apply the same kept-column mask to the test descriptors, then continue with the existing z-score-and-clip step and set gamma = 1/n_kept so the bandwidth tracks the reduced dimension. Fingerprints, the kernel mix and the SVR settings stay exactly as they are.",
+  "family": "data",
+  "sim_hist_bge": 0.9169163107872009,
+  "sim_tried_bge": 0.8895457983016968,
+  "sim_hist_mini": 0.7805042862892151,
+  "sources": [
+   [
+    "fable",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Sharpen the Tanimoto kernel with a power transform",
+  "spec": "The Morgan-Tanimoto kernel in train.py has most of its off-diagonal mass in a narrow band of low similarities, so the kernel is nearly flat and the SVR sees little structural contrast. Raise the Tanimoto kernel element-wise to a power p before mixing: replace tanimoto(X, X) with tanimoto(X, X) ** p and tanimoto(Xt, X) with tanimoto(Xt, X) ** p, keeping the 0.5/0.5 average with the descriptor RBF kernel and all SVR settings unchanged. Element-wise powers of a Tanimoto Gram matrix stay positive semi-definite for positive integer p, so use p = 2 as the main setting. If it is cheap to do in the same job, also evaluate p = 3 by choosing p from {1, 2, 3} with a 4-fold inner CV on the training kernel (Spearman of out-of-fold predictions, folds from KFold(shuffle=True, random_state=seed), kernel sliced with np.ix_) and refitting with the winner; otherwise just hard-code p = 2. No other change.",
+  "family": "other",
+  "sim_hist_bge": 0.8879265785217285,
+  "sim_tried_bge": 0.8387315273284912,
+  "sim_hist_mini": 0.7733423709869385,
+  "sources": [
+   [
+    "fable",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Feature-selected descriptor subset by rank correlation",
+  "spec": "Before building the descriptor RBF kernel, reduce the descriptor block to the most informative columns: on the training fold only, compute the absolute Spearman correlation between each standardized descriptor column and the rank-transformed target, and keep the top K columns with K chosen from {20, 50, 100, all} by an inner 5-fold KFold(shuffle=True, random_state=seed) scored by Spearman of out-of-fold predictions. Apply the same column mask to the test descriptors, recompute gamma as 1/K_kept, and otherwise leave the Tanimoto kernel, the 0.5/0.5 mix, the rank target, and the SVR unchanged. Make sure the selection uses only training-fold data so there is no leakage.",
+  "family": "regularization",
+  "sim_hist_bge": 0.9109824895858765,
+  "sim_tried_bge": 0.9109824895858765,
+  "sim_hist_mini": 0.8332565426826477,
+  "sources": [
+   [
+    "fable",
+    "f",
+    6
+   ]
+  ]
+ }
+]

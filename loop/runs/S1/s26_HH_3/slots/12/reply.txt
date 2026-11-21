@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _grow(centers, radii, epochs=80):
+    """Lubachevsky-Stillinger style soft-sphere growth: radii grow each epoch while
+    gradient steps reduce the overlap energy; growth rate halves when energy is high;
+    stops when growth stalls; final exact pairwise scaling."""
+    n = len(radii)
+    c = np.clip(np.asarray(centers, dtype=float).copy(), 0.0, 1.0)
+    r = np.full(n, 0.02)
+    growth = 1.03
+    t0 = time.time()
+    iu, ju = np.triu_indices(n, 1)
+    for _ in range(epochs):
+        if time.time() - t0 > 15 or growth - 1.0 < 1e-4:
+            break
+        r = np.minimum(r * growth, 0.5)
+        energy = 0.0
+        for _ in range(40):
+            dv = c[iu] - c[ju]
+            d = np.sqrt(np.sum(dv * dv, axis=1)) + 1e-12
+            ov = np.maximum(r[iu] + r[ju] - d, 0.0)
+            energy = float(np.sum(ov * ov))
+            g = (-2.0 * ov / d)[:, None] * dv
+            grad = np.zeros_like(c)
+            np.add.at(grad, iu, g)
+            np.add.at(grad, ju, -g)
+            step = 0.1 / (1.0 + float(np.max(np.abs(grad))))
+            c = np.clip(c - step * grad, r[:, None], 1.0 - r[:, None])
+        if energy > 1e-6:
+            growth = 1.0 + (growth - 1.0) * 0.5
+    b = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    r = np.maximum(np.minimum(r, b), 0.0)
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = np.hypot(c[i, 0] - c[j, 0], c[i, 1] - c[j, 1])
+            s = r[i] + r[j]
+            if s > d and s > 0:
+                f = d / s
+                r[i] *= f
+                r[j] *= f
+    return c, r
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                c0, r0 = _relax(c0, r0)
+=======
+                c0, r0 = _grow(c0, r0)
+>>>>>>> REPLACE
+-----

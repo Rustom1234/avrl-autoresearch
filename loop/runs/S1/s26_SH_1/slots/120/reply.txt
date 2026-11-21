@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    # staged radius growth: cap radii at 0.08, 0.10, 0.12, then uncapped,
+    # warm-starting each SLSQP stage from the previous solution
+    for cap in (0.08, 0.10, 0.12, None):
+        hi = None if cap is None else cap
+        bnds = [(None, None)] * (2 * _N) + [(0.0, hi)] * _N
+=======
+    # staged radius growth with per-circle caps: circles starting within 0.15
+    # of the border are capped lower than interior circles, then uncapped
+    edge = np.minimum(np.minimum(x0, 1 - x0), np.minimum(y0, 1 - y0)) < 0.15
+    for caps in ((0.10, 0.14), (0.12, 0.16), None):
+        if caps is None:
+            rb = [(0.0, None)] * _N
+        else:
+            rb = [(0.0, caps[0] if edge[k] else caps[1]) for k in range(_N)]
+        bnds = [(None, None)] * (2 * _N) + rb
+>>>>>>> REPLACE
+-----

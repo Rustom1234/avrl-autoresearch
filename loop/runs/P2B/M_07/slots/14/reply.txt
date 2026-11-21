@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+=======
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+SEQ_CURRICULUM_FRAC = 0.3  # fraction of time budget trained on half-length sequences
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+=======
+    t0 = time.time()
+    short_seq = min(total_training_time / TIME_BUDGET, 1.0) < SEQ_CURRICULUM_FRAC
+    for micro_step in range(grad_accum_steps):
+        # Sequence length curriculum: early on, split each batch into 2x half-length sequences (same tokens per step)
+        xi, yi = (x.view(-1, MAX_SEQ_LEN // 2), y.view(-1, MAX_SEQ_LEN // 2)) if short_seq else (x, y)
+        with autocast_ctx:
+            loss = model(xi, yi)
+>>>>>>> REPLACE
+-----

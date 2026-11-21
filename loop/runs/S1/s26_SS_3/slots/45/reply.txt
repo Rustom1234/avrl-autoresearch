@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if it % 3 == 0:
+            for pw in (0.5, 0.8):
+                def obj_p(z, pw=pw):
+                    return -np.sum(np.maximum(z[2 * n:], 1e-3) ** pw)
+
+                def grad_p(z, pw=pw):
+                    gg = np.zeros(N3)
+                    gg[2 * n:] = -pw * np.maximum(z[2 * n:], 1e-3) ** (pw - 1)
+                    return gg
+                try:
+                    rs = minimize(obj_p, z0, jac=grad_p, method="SLSQP", bounds=bounds,
+                                  constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                                  options={"maxiter": 100, "ftol": 1e-9})
+                    if np.all(np.isfinite(rs.x)):
+                        z0 = rs.x
+                except Exception:
+                    pass
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+=======
+def _solve_once(n, rng, init=None, q=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    cons_d = {"type": "ineq", "fun": cons}
+    x = x0
+    if q is not None:
+        # temporary repulsion from the random point q for the first 30 iterations
+        pot = lambda v: -v[2 * n:].sum() + 0.02 * np.exp(-((v[:2 * n].reshape(n, 2) - q) ** 2).sum(1) / 0.05).sum()
+        x = minimize(pot, x0, method="SLSQP", constraints=cons_d, options={"maxiter": 30}).x
+    res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", constraints=cons_d,
+                   options={"maxiter": MAX_ITER - (30 if q is not None else 0)})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        q = None if guided else rng.uniform(0, 1, 2)
+        c, r = _solve_once(n, rng, best[0] if guided else None, q)
+>>>>>>> REPLACE
+-----

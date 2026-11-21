@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+=======
+ACID_SMARTS = ["[CX3](=O)[OX2H1,OX1-]", "c1nnn[nH]1", "c1nn[nH]n1", "S(=O)(=O)[OX2H1,OX1-]",
+               "C(=O)[NH]S(=O)(=O)"]
+BASE_SMARTS = ["[NX3;H0;!$(N-[a,C,S]=[O,N,S]);!$(N-a);!$(N-S)]([CX4])([CX4])[CX4]",
+               "[NX3;H1;!$(N-[a,C,S]=[O,N,S]);!$(N-a);!$(N-S)]([CX4])[CX4]",
+               "[NX3;H2;!$(N-[a,C,S]=[O,N,S]);!$(N-a);!$(N-S)][CX4]"]
+ACID_PATS = [Chem.MolFromSmarts(s) for s in ACID_SMARTS]
+BASE_PATS = [Chem.MolFromSmarts(s) for s in BASE_SMARTS]
+
+
+def rule_feats(m):
+    tpsa = Descriptors.TPSA(m)
+    mw = Descriptors.MolWt(m)
+    hbd = Descriptors.NumHDonors(m)
+    out = [len(m.GetSubstructMatches(p)) for p in ACID_PATS]
+    out += [len(m.GetSubstructMatches(p)) for p in BASE_PATS]
+    out += [hbd, tpsa, mw, tpsa / max(mw, 1.0), float(hbd <= 3), float(tpsa < 90), float(mw < 450)]
+    return out
+
+
+def featurize(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    R = np.array([rule_feats(m) for m in mols], dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.hstack([X, np.array([pharm_fp(m) for m in mols])])
+=======
+    return np.hstack([X, R, np.array([pharm_fp(m) for m in mols])])
+>>>>>>> REPLACE
+-----

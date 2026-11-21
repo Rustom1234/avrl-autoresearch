@@ -1,0 +1,13 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    x = x0
+    for p in np.linspace(0.5, 1.0, 3):   # exponent homotopy: smooth objective first, then the true sum of radii
+        res = minimize(lambda v: -((np.maximum(v[2 * n:], 0) + 1e-3) ** p).sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

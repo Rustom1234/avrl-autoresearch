@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.metrics.pairwise import rbf_kernel
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    sv = SVR(kernel="precomputed", C=5.0, epsilon=0.1).fit(tanimoto(Ftr, Ftr), ytr)
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr))])
+=======
+    qt = QuantileTransformer(output_distribution="normal", n_quantiles=200, random_state=seed).fit(Xtr[:, N_BITS:])
+    Ztr, Zte = qt.transform(Xtr[:, N_BITS:]), qt.transform(Xte[:, N_BITS:])
+    g = 1.0 / Ztr.shape[1]
+    Ktr = 0.5 * (tanimoto(Ftr, Ftr) + rbf_kernel(Ztr, Ztr, gamma=g))
+    Kte = 0.5 * (tanimoto(Fte, Ftr) + rbf_kernel(Zte, Ztr, gamma=g))
+    sv = SVR(kernel="precomputed", C=5.0, epsilon=0.1).fit(Ktr, ytr)
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(Kte)])
+>>>>>>> REPLACE
+-----

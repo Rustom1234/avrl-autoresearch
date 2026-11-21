@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if it % 4 == 0:
+            LL = 1.06
+
+            def consL(z, LL=LL):
+                c_ = cons(z)
+                c_[m + n:m + 2 * n] += LL - 1
+                c_[m + 3 * n:m + 4 * n] += LL - 1
+                return c_
+            try:
+                resL = minimize(obj, z0 * LL, jac=grad, method="SLSQP",
+                                bounds=[(0, LL)] * (2 * n) + [(0, 0.5 * LL)] * n,
+                                constraints=[{"type": "ineq", "fun": consL, "jac": jac}],
+                                options={"maxiter": 200, "ftol": 1e-9})
+                zs = resL.x / LL
+                if np.all(np.isfinite(zs)):
+                    z0 = np.clip(zs, 0.0, 1.0)
+            except Exception:
+                pass
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def morgan_counts(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.log1p(np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float64))
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    Ftr, Fte = morgan_counts(train_smiles), morgan_counts(test_smiles)
+    mu, sd = Ftr.mean(axis=0), Ftr.std(axis=0)
+    sd[sd == 0] = 1.0
+    fsvr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit((Ftr - mu) / sd, y)
+    p_fp = fsvr.predict((Fte - mu) / sd)
+    return 0.4 * p_lgb + 0.4 * svr.predict(Ste) + 0.2 * p_fp
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def scaled_rank(p):
+=======
+def knn_scores(train_smiles, train_y, test_smiles, k=10):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fp = lambda s: gen.GetFingerprint(Chem.MolFromSmiles(s))
+    tr = [fp(s) for s in train_smiles]
+    y = np.asarray(train_y, dtype=np.float64)
+    out = []
+    for s in test_smiles:
+        sims = np.array(DataStructs.BulkTanimotoSimilarity(fp(s), tr))
+        idx = np.argsort(-sims)[:k]
+        w = sims[idx] ** 3
+        out.append((w * y[idx]).sum() / w.sum() if w.sum() > 0 else y.mean())
+    return np.array(out)
+
+
+def scaled_rank(p):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from rdkit import Chem
+=======
+from rdkit import Chem, DataStructs
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    kn = knn_scores(train_smiles, y, test_smiles)
+    return (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1])
+            + scaled_rank(kn)) / 3
+>>>>>>> REPLACE
+-----

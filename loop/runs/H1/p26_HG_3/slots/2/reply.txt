@@ -1,0 +1,147 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def objective_log_barrier(v, mu):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        # Basic sum of radii* 
+        obj = -np.sum(r)
+        
+        # Slacks
+        d_ij = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        s_ij = d_ij - (r[iu[0]] + r[iu[1]])
+        s_wall = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        
+        # Log barrier terms
+        # We use a small epsilon to avoid log(0) during the gradient steps
+        eps = 1e-12
+        barrier = mu * (np.sum(np.log(s_ij + eps)) + np.sum(np.log(s_wall + eps)))
+        return obj + barrier
+
+    # Gradient of the objective
+    def grad_log_barrier(v, mu):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        
+        grad = np.zeros_like(v)
+        grad[2 * n:] = -1.0
+        
+        d_ij = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        s_ij = d_ij - (r[iu[0]] + r[iu[1]])
+        s_wall = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        
+        eps = 1e-12
+        
+        # Gradient of -sum(r) + mu * sum(log(s_ij))
+        # d/dr_i (mu * log(d_ij - r_i - r_j)) = -mu / (d_ij - r_i - r_j)
+        grad[2 * n:] += mu * (np.sum(1 / (s_ij + eps), axis=0) * 2) # simplified for both i and j
+        # Actually, let's do it properly per index to avoid double counting errors
+        # (This is complex to do perfectly in one line, so we'll stick to simpler grad)
+        
+        # Re-doing more carefully:
+        grad = np.zeros_like(v)
+        grad[2 * n:] = -1.0
+        
+        # Indices for radii in r[iu[0]] and r[iu[1]]
+        # Let's just use the property that d/dr_i is -mu / (s_ij)
+        # For each pair (i, j), both r_i and r_j contribute -mu / s_ij
+        # Since they appear in one s_ij each, we add -mu/s_ij to both grad indices
+        for k in range(len(iu[0])):
+            idx_i = iu[0][k]
+            idx_j = iu[1][k]
+            val = mu / (s_ij[k] + eps)
+            grad[2 * n + idx_i] += val
+            grad[2 * n + idx_j] += val
+            
+        # Gradient for walls
+        # c_x - r_x, c_y - r_y, 1 - c_x - r_x, 1 - c_y - r_y
+        # d/dc_x = mu / (c_x - r_x) for first term, -mu / (1 - c_x - r_x) for third
+        # d/dr_x = -mu / (c_x - r_x) for first term, -mu / (1 - c_x - r_x) for third
+        
+        for i in range(n):
+            # c_x - r_x
+            grad[i*2] += mu / (c[i,0] - r[i] + eps)
+            grad[2*n + i] += mu / (c[i,0] - r[i] + eps)
+            # c_y - r_y
+            grad[i*2 + 1] += mu / (c[i,1] - r[i] + eps)
+            grad[2*n + i] += mu / (c[i,1] - r[i] + eps)
+            # 1 - c_x - r_x
+            grad[i*2] -= mu / (1 - c[i,0] - r[i] + eps)
+            grad[2*n + i] -= mu / (1 - c[i,0] - r[i] + eps)
+            # 1 - c_y - r_y
+            grad[i*2 + 1] -= mu / (1 - c[i,1] - r[i] + eps)
+            grad[2*n + i] -= mu / (1 - c[i,1] - r[i] + eps)
+            
+        return grad
+
+    # Run a short L-BFGS-B polish
+    best_v = x0
+    mu = 1e-2
+    for _ in range(4):
+        res = minimize(objective_log_barrier, best_v, args=(mu,), method="L-BFGS-B",
+                       options={"maxiter": 100, "gtol": 1e-4})\n            best_v = res.x
+            mu *= 0.1
+
+    return best_v[:2 * n].reshape(n, 2), best_v[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def obj_and_grad(v, mu):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        grad = np.zeros_like(v)
+        grad[2 * n:] = -1.0
+        
+        d_ij = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        s_ij = d_ij - (r[iu[0]] + r[iu[1]])
+        s_wall = np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+        
+        eps = 1e-12
+        for k in range(len(iu[0])):
+            idx_i, idx_j = iu[0][k], iu[1][k]
+            val = mu / (s_ij[k] + eps)
+            grad[2 * n + idx_i] += val
+            grad[2 * n + idx_j] += val
+            
+        for i in range(n):
+            # c_x - r_x
+            grad[i*2] += mu / (c[i,0] - r[i] + eps)
+            grad[2*n + i] += mu / (c[i,0] - r[i] + eps)
+            # c_y - r_y
+            grad[i*2+1] += mu / (c[i,1] - r[i] + eps)
+            grad[2*n + i] += mu / (c[i,1] - r[i] + eps)
+            # 1 - c_x - r_x
+            grad[i*2] += -mu / (1 - c[i,0] - r[i] + eps)
+            grad[2*n + i] += -mu / (1 - c[i,0] - r[i] + eps)
+            # 1 - c_y - r_y
+            grad[i*2+1] += -mu / (1 - c[i,1] - r[i] + eps)
+            grad[2*n + i] += -mu / (1 - c[i,1] - r[i] + eps)
+            
+        return -np.sum(r) + mu * (np.sum(np.log(s_ij + eps)) + np.sum(np.log(s_wall + eps))), grad
+
+    v = x0.copy()
+    mu = 1e-1
+    for _ in range(10):
+        res = minimize(lambda v_in: obj_and_grad(v_in, mu)[0], v, method='L-BFGS-B', jac=lambda v_in: obj_and_grad(v_in, mu)[1], 
+                        options={'maxiter': 100, 'ftol': 1e-4})
+        v = res.x
+        mu *= 0.1
+    return v[:2 * n].reshape(n, 2), v[2 * n:]
+>>>>>>> REPLACE
+-----

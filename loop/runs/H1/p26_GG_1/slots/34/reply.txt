@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})\n    v = res.x\n    # Local polish: 5 quick gradient-like steps on the most violated/tight constraints\n    for _ in range(5):\n        c_vals = v[:2 * n].reshape(n, 2)\n        r_vals = v[2 * n:]\n        d_mat = np.sqrt(((c_vals[:, None] - c_vals[None]) ** 2).sum(-1))\n        over = r_vals[:, None] + r_vals[None] - d_mat\n        np.fill_diagonal(over, -1)\n        if np.any(over > 0):\n            i, j = np.unravel_index(np.argmax(over), over.shape)\n            dist = d_mat[i, j]\n            sum_r = r_vals[i] + r_vals[j]\n            if sum_r > 0:\n                factor = dist / sum_r\n                v[2 * n + i] *= factor\n                v[2 * n + j] *= factor\n    return v[:2 * n].reshape(n, 2), v[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    v = res.x
+    # Local polish: small gradient steps on tightest constraints
+    for _ in range(5):
+        c_all = v[:2 * n].reshape(n, 2)
+        r_all = v[2 * n:]
+        iu = np.triu_indices(n, 1)
+        dist_vec = np.sqrt(((c_all[iu[0]] - c_all[iu[1]]) ** 2).sum(1))
+        gaps = dist_vec - r_all[iu[0]] - r_all[iu[1]]
+        # Focus on smallest non-negative gaps
+        tight_idx = np.where(gaps < 0.01)[0]
+        if len(tight_idx) == 0: break
+        min_idx = tight_idx[np.argmin(gaps[tight_idx])]
+        i, j = iu[0][min_idx], iu[1][min_idx]
+        # Simple push-away step for the two circles involved in the tightest constraint
+        diff = c_all[i] - c_all[j]
+        norm = np.linalg.norm(diff)
+        if norm > 1e-9:
+            push = (diff / norm) * (0.001 * (-(dist_vec[min_idx] - r_all[i] - r_all[j])))
+            v[i*2 : i*2+2] += push
+            v[j*2 : j*2+2] -= push
+    return v[:2 * n].reshape(n, 2), v[2 * n:]
+-----

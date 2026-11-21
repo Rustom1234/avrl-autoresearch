@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([centers.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    # Generate target radii: sum of radii approx 2.6 (based on problem context)
+    # We use a distribution to create a variety of sizes
+    target_r = rng.beta(2, 2, n) * (2.6 / target_r.sum())
+    # Sort indices by target radius descending
+    idx = np.argsort(-target_r)
+    
+    centers = np.zeros((n, 2))
+    # Place the 4 largest circles in corners with small random insets
+    for i in range(min(4, n)):
+        c_idx = idx[i]
+        centers[c_idx] = rng.uniform(0.05, 0.95, 2)
+        # Ensure they are actually in corners
+        if i == 0: centers[c_idx] = [0.1, 0.1]
+        elif i == 1: centers[c_idx] = [0.9, 0.1]
+        elif i == 2: centers[c_idx] = [0.1, 0.9]
+        else: centers[c_idx] = [0.9, 0.9]
+
+    # Place remaining circles by largest-clearance rule
+    for i in range(4, n):
+        c_idx = idx[i]
+        best_pos = np.zeros(2)
+        max_clearance = -1
+        # Sample a few candidate positions to speed up
+        for _ in range(50):
+            cand = rng.uniform(0, 1, 2)
+            dists = np.linalg.norm(centers[:i] - cand, axis=1)
+            # Clearance = distance to nearest center - sum of radii
+            # Since radii aren't final, use a proxy of 0.05
+            clearance = np.min(dists) - 0.05
+            if clearance > max_clearance:
+                max_clearance = clearance
+                best_pos = cand
+        centers[c_idx] = best_pos
+
+    # Reorder centers and target_r to original order for the solver
+    centers = centers[np.argsort(idx)]
+    target_r = target_r[np.argsort(idx)]
+
+    x0 = np.concatenate([centers.flatten(), target_r])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

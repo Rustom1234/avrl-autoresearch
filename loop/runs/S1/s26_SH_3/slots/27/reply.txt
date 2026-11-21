@@ -1,0 +1,78 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best_val = -1.0
+    best_c = None
+    best_r = None
+    for start in range(4):
+        if start > 0 and time.time() - t0 > 150:
+            break
+        c0 = hex_jitter(rng)
+        c0 = sa_centers(c0, rng, t0)
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+        # shrink-and-grow cycles
+        for cyc in range(8):
+            if time.time() - t0 > 180:
+                break
+            zs = cur.copy()
+            zs[2 * n:] *= 0.9
+            zs[:2 * n] = np.clip(zs[:2 * n] + rng.normal(0, 0.02, 2 * n), 0.0, 1.0)
+            zn = optimize(zs)
+            v = np.sum(zn[2 * n:])
+            if v > cur_val:
+                cur, cur_val = zn, v
+        if cur_val > best_val:
+            best_val = cur_val
+            best_c = np.stack([cur[:n], cur[n:2 * n]], axis=1)
+            best_r = cur[2 * n:].copy()
+=======
+    rng = np.random.default_rng(12345)
+    # population: 12 short SA chains from hex-jitter inits, ranked by LP sum
+    pop = []
+    for _ in range(12):
+        if time.time() - t0 > 60:
+            break
+        c0 = hex_jitter(rng)
+        cs = sa_centers(c0, rng, time.time(), steps=400)
+        pop.append((float(np.sum(lp_radii(cs))), cs))
+    pop.sort(key=lambda p: -p[0])
+    best_val = -1.0
+    best_c = None
+    best_r = None
+    # SLSQP + shrink-and-grow only on the top 3
+    for rank, (_, c0) in enumerate(pop[:3]):
+        if rank > 0 and time.time() - t0 > 150:
+            break
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+        cur = optimize(z)
+        cur_val = np.sum(cur[2 * n:])
+        for cyc in range(8):
+            if time.time() - t0 > 180:
+                break
+            zs = cur.copy()
+            zs[2 * n:] *= 0.9
+            zs[:2 * n] = np.clip(zs[:2 * n] + rng.normal(0, 0.02, 2 * n), 0.0, 1.0)
+            zn = optimize(zs)
+            v = np.sum(zn[2 * n:])
+            if v > cur_val:
+                cur, cur_val = zn, v
+        if cur_val > best_val:
+            best_val = cur_val
+            best_c = np.stack([cur[:n], cur[n:2 * n]], axis=1)
+            best_r = cur[2 * n:].copy()
+    # leftover time: extra shrink-and-grow on the best with random sigma
+    while best_c is not None and time.time() - t0 < 170:
+        sig = [0.01, 0.02, 0.04][int(rng.integers(3))]
+        cur = np.concatenate([best_c[:, 0], best_c[:, 1], best_r])
+        zs = cur.copy()
+        zs[2 * n:] *= 0.9
+        zs[:2 * n] = np.clip(zs[:2 * n] + rng.normal(0, sig, 2 * n), 0.0, 1.0)
+        zn = optimize(zs)
+        v = np.sum(zn[2 * n:])
+        if v > best_val:
+            best_val = v
+            best_c = np.stack([zn[:n], zn[n:2 * n]], axis=1)
+            best_r = zn[2 * n:].copy()
+>>>>>>> REPLACE
+-----

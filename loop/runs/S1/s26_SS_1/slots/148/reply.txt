@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    c, r = best
+    try:
+        rs = np.random.default_rng(2024)
+        ts = time.time()
+        dur = 60.0
+        cur = c.copy()
+        Ecur = -r.sum()
+        bc, bE = cur.copy(), Ecur
+        T0, T1 = 0.005, 1e-5
+        while True:
+            frac = (time.time() - ts) / dur
+            if frac >= 1:
+                break
+            T = T0 * (T1 / T0) ** frac
+            sig = 0.02 * (T / T0) ** 0.5 + 0.0005
+            cand = cur.copy()
+            k = rs.integers(1, 3)
+            idx = rs.choice(_N, k, replace=False)
+            cand[idx] += rs.normal(0, sig, (k, 2))
+            cand = np.clip(cand, 0.01, 0.99)
+            E = -_lp_radii(cand).sum()
+            if E < Ecur or rs.random() < np.exp(-(E - Ecur) / T):
+                cur, Ecur = cand, E
+                if E < bE:
+                    bc, bE = cand.copy(), E
+        c3 = np.clip(_polish(bc, _lp_radii(bc)), 0, 1)
+        r3 = _lp_radii(c3)
+        if r3.sum() > r.sum():
+            c, r = c3, r3
+    except Exception:
+        pass
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

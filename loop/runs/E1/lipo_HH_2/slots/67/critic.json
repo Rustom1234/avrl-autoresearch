@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. The new shape features come only from SMILES, using RDKit ETKDG conformers with a fixed seed. The cache stores descriptors keyed by SMILES and holds no labels. The clip bounds come only from the training-fold percentiles. Test labels are never used.",
+  "Nothing that invalidates the result. If embedding fails, or a descriptor comes out NaN or inf, that molecule gets zeros, which is acceptable. The fixed conformer seed of 42 means these features ignore the seed argument. That is deterministic, not leakage, but it goes against the program card's rule to use the seed for all randomness.",
+  "Two changes are mixed in one edit. Besides adding the 3D shape descriptors, the diff removes the out-of-fold stacking meta-learner (a positive-weight LinearRegression fit on 5-fold OOF predictions) and replaces it with a simple mean of the 3 base models. So the 0.0199 loss is worse and can't be pinned on the shape features alone. Dropping the stacker may be causing most of it.",
+  "The KFold and LinearRegression imports may now be unused, which leaves dead code.",
+  "Recomputed z: (0.4882 - 0.5081) / (0.0042 * sqrt(2)) = -0.0199 / 0.00594 = -3.35. This matches the harness's -3.347 and supports rejecting the candidate. Both sides have only one run, so 0.0042 * sqrt(2) is the right noise for the difference."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -3.35
+ }
+}

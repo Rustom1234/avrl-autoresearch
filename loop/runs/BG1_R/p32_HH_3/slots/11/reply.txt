@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _shrink_start(n, rng):
+    """Solve n+1 circles, drop the smallest one, and return the remaining n circles as a start vector."""
+    c, r = _solve_once(n + 1, rng)
+    k = np.argmin(r)
+    c, r = np.delete(c, k, axis=0), np.delete(r, k)
+    return np.concatenate([np.clip(c, 0, 1).ravel(), np.maximum(r, 0)])
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        if rng.random() < 0.5:
+            x0 = _shrink_start(n, rng)
+        else:
+            bc, br = best
+            c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+            r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+            x0 = np.concatenate([c0.ravel(), r0])
+        c, r = _solve_once(n, rng, x0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+from xgboost import XGBRegressor
+=======
+from sklearn.svm import SVR
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+N_BITS = 1024
+=======
+N_BITS = 2048
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        cnt = gen.GetCountFingerprintAsNumPy(m).astype(np.float64)
+        desc = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        rows.append(np.concatenate([desc, cnt]))
+    X = np.nan_to_num(np.array(rows), nan=0.0, posinf=1e6, neginf=-1e6)
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+=======
+        rows.append(gen.GetCountFingerprintAsNumPy(m).astype(np.float32))
+    return np.array(rows)
+
+
+def minmax_kernel(A, B):
+    K = np.zeros((len(A), len(B)))
+    for j, b in enumerate(B):
+        K[:, j] = np.minimum(A, b).sum(1) / np.maximum(np.maximum(A, b).sum(1), 1e-9)
+    return K
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = XGBRegressor(n_estimators=600, max_depth=4, learning_rate=0.03, subsample=0.8,
+                         colsample_bytree=0.4, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    model = SVR(kernel='precomputed', C=5)
+    model.fit(minmax_kernel(Xtr, Xtr), np.asarray(train_y, dtype=np.float64))
+    return model.predict(minmax_kernel(Xte, Xtr).T if False else minmax_kernel(Xtr, Xte).T)
+>>>>>>> REPLACE
+-----

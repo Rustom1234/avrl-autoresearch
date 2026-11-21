@@ -1,0 +1,14 @@
+{
+ "ok": false,
+ "issues": [
+  "The z-loss is added inside the model's own loss calculation, which runs whenever targets are given, so it also applies during evaluation. Every per-token loss (reduction='none') gets an extra 1e-4*mean(logsumexp^2) term, so val_bpb no longer measures pure cross-entropy. This alters the evaluation path and is the likely cause of the integrity flag.",
+  "With reduction='none', a single batch-wide average is added to every token's loss, which makes the per-token values wrong.",
+  "Fix: add the z-loss only during training (e.g. guard with `self.training and reduction == 'mean'`), or compute it in the training loop outside the model's loss calculation.",
+  "Running logsumexp over the full vocabulary adds memory and compute cost inside the fixed 300 s budget.",
+  "The harness rejected the run and gave no numbers, so z cannot be recomputed."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

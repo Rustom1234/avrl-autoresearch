@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def _optimize(x0, y0, r0):
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+=======
+def _obj_w(z, wk):
+    return -np.sum(wk * z[2 * _N:])
+
+
+def _obj_grad_w(z, wk):
+    g = np.zeros(3 * _N)
+    g[2 * _N:] = -wk
+    return g
+
+
+def _optimize(x0, y0, r0, w=None):
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    if w is None:
+        w = np.ones(_N)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for cap in (0.08, 0.10, 0.12, None):
+        hi = None if cap is None else cap
+=======
+    for k, cap in enumerate((0.08, 0.10, 0.12, None)):
+        hi = None if cap is None else cap
+        wk = w ** (1.0 - k / 3.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            res = minimize(_obj, z_prev, jac=_obj_grad, constraints=cons,
+                           bounds=bnds, method="SLSQP",
+                           options={"maxiter": 300, "ftol": 1e-12})
+=======
+            res = minimize(_obj_w, z_prev, args=(wk,), jac=_obj_grad_w,
+                           constraints=cons,
+                           bounds=bnds, method="SLSQP",
+                           options={"maxiter": 300, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x, y = _optimize(x0, y0, r0)
+=======
+        w = np.exp(0.3 * rng.standard_normal(_N))
+        x, y = _optimize(x0, y0, r0, w)
+>>>>>>> REPLACE
+-----

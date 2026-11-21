@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _reinsert(n, c, r, rng):
+    """Delete the 1 or 2 smallest circles and reinsert each at the largest empty spot among random candidates."""
+    c, r = c.copy(), r.copy()
+    idx = np.argsort(r)[:rng.integers(1, 3)]
+    keep = np.setdiff1d(np.arange(n), idx)
+    for i in idx:
+        cand = rng.uniform(0, 1, (2000, 2))
+        wall = np.minimum(np.minimum(cand[:, 0], cand[:, 1]), np.minimum(1 - cand[:, 0], 1 - cand[:, 1]))
+        gap = np.sqrt(((cand[:, None] - c[keep][None]) ** 2).sum(-1)) - r[keep][None]
+        clear = np.minimum(wall, gap.min(1))
+        j = np.argmax(clear)
+        c[i], r[i] = cand[j], max(clear[j], 0)
+        keep = np.append(keep, i)
+    return c, r
+
+
+def _polish(n, c, r):
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c_, r_ = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_[iu[0]] - c_[iu[1]]) ** 2).sum(1)) - r_[iu[0]] - r_[iu[1]]
+        return np.concatenate([d, c_[:, 0] - r_, c_[:, 1] - r_, 1 - c_[:, 0] - r_, 1 - c_[:, 1] - r_, r_])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), np.concatenate([c.ravel(), r]), method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < 0.3 * budget:   # random restarts to seed the search
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    while time.process_time() - t0 < budget:   # remove-and-reinsert moves from the incumbent
+        c, r = _reinsert(n, best[0], best[1], rng)
+        c, r = _polish(n, np.clip(c, 0, 1), r)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

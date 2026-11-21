@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+def _cross(pool, n, rng):
+    a, b = rng.choice(len(pool), 2, replace=False)
+=======
+def _fresh(n, rng, R=0.09):
+    iu = np.triu_indices(n, 1)
+
+    def f(z):
+        c = z.reshape(n, 2)
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1) + 1e-12)
+        ov = np.maximum(2 * R - d, 0)
+        lo, hi = np.maximum(R - c, 0), np.maximum(c - (1 - R), 0)
+        g = np.zeros_like(c)
+        gp = (-2 * ov / d)[:, None] * diff
+        np.add.at(g, iu[0], gp)
+        np.add.at(g, iu[1], -gp)
+        g += -2 * lo + 2 * hi
+        return (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum(), g.ravel()
+
+    z0 = rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n)
+    z = minimize(f, z0, jac=True, method="L-BFGS-B", options={"maxiter": 100}).x
+    return np.concatenate([np.clip(z, 0, 1), np.full(n, INIT_RADIUS)])
+
+
+def _cross(pool, n, rng, p=None):
+    a, b = rng.choice(len(pool), 2, replace=False, p=p)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pool = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+        c, r = _solve_once(n, rng, x0)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((c, r))
+=======
+    pool = []
+    succ, fail = np.zeros(3), np.zeros(3)
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        k = 2
+        if len(pool) >= 2:
+            s = np.array([q[1].sum() for q in pool])
+            p = np.exp((s - s.max()) / 0.005)
+            p /= p.sum()
+            k = int(np.argmax(rng.beta(1 + succ, 1 + fail)))
+        if k == 0:
+            x0 = _cross(pool, n, rng, p)
+        elif k == 1:
+            pc, pr = pool[rng.choice(len(pool), p=p)]
+            x0 = np.concatenate([(pc + rng.normal(0, 0.02, pc.shape)).ravel(), pr * 0.8])
+        else:
+            x0 = _fresh(n, rng)
+        c, r = _solve_once(n, rng, x0)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if len(pool) >= 2:
+            if len(pool) < 5 or r.sum() > pool[-1][1].sum():
+                succ[k] += 1
+            else:
+                fail[k] += 1
+        pool.append((c, r))
+>>>>>>> REPLACE
+-----

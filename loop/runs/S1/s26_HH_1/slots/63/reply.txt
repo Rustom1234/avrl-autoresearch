@@ -1,0 +1,77 @@
+<<<<<<< SEARCH
+def _sig(u):
+    return 0.5 * (1.0 + np.tanh(0.5 * u))
+=======
+def _near_pairs(c, thr=0.35):
+    # Cell-list style pruning: keep only pairs whose centres are within thr of each other.
+    n = c.shape[0]
+    I, J = np.triu_indices(n, 1)
+    d = np.sqrt(np.sum((c[I] - c[J]) ** 2, axis=1))
+    m = d < thr
+    return I[m], J[m]
+
+
+def _sig(u):
+    return 0.5 * (1.0 + np.tanh(0.5 * u))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    s0 = 0.01
+=======
+    n = 26
+    I, J = _near_pairs(c0)
+    s0 = 0.01
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    z = np.concatenate([np.clip(c0[:, 0], 0.0, 1.0), np.clip(c0[:, 1], 0.0, 1.0), _lp_radii(c0)])
+=======
+    n = 26
+    I, J = _near_pairs(c0)
+    z = np.concatenate([np.clip(c0[:, 0], 0.0, 1.0), np.clip(c0[:, 1], 0.0, 1.0), _lp_radii(c0)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c0 = _equal_opt(c0)
+    n = 26
+    I, J = np.triu_indices(n, 1)
+    r0 = _lp_radii(c0)
+=======
+    c0 = _equal_opt(c0)
+    n = 26
+    I, J = _near_pairs(c0)
+    r0 = _lp_radii(c0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        k += 1
+    if best_c is not None:
+=======
+        k += 1
+    print("restarts completed:", k, file=__import__("sys").stderr)
+    if best_c is not None:
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    print("restarts completed:", k, file=__import__("sys").stderr)
+=======
+    import sys
+    print("restarts completed:", k, file=sys.stderr)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    z = np.concatenate([np.clip(c0[:, 0], 0.0, 1.0), np.clip(c0[:, 1], 0.0, 1.0), _lp_radii(c0)])
+=======
+    rng = np.random.default_rng(2024)
+    alpha = rng.uniform(0.3, 0.8)
+    targets = np.arange(1, n + 1, dtype=float) ** (-alpha)
+    targets = 0.2 * targets / targets[0]
+    targets = rng.permutation(targets)
+    targets = np.sort(targets)[::-1]
+    dc = np.sqrt((c0[:, 0] - 0.5) ** 2 + (c0[:, 1] - 0.5) ** 2)
+    order = np.argsort(dc)
+    r_init = np.empty(n)
+    r_init[order] = targets
+    z = np.concatenate([np.clip(c0[:, 0], 0.0, 1.0), np.clip(c0[:, 1], 0.0, 1.0), r_init])
+>>>>>>> REPLACE
+-----

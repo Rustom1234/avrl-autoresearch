@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    c, r = best
+    try:
+        c, r = _barrier(c, r)
+    except Exception:
+        c, r = best
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def optimized_packing():
+=======
+def _barrier(c, r):
+    n = _N
+    i, j = _IU
+    v = np.concatenate([c[:, 0], c[:, 1], r * (1 - 1e-5) - 1e-9])
+
+    def slacks(v):
+        X, Y, R = v[:n], v[n:2 * n], v[2 * n:]
+        dx = X[i] - X[j]
+        dy = Y[i] - Y[j]
+        d = np.sqrt(dx * dx + dy * dy) + 1e-300
+        s = np.concatenate([d - R[i] - R[j], X - R, 1 - X - R, Y - R, 1 - Y - R])
+        return s, dx, dy, d
+
+    s0, _, _, _ = slacks(v)
+    if s0.min() <= 0:
+        return c, r
+
+    def f(v, t):
+        s, dx, dy, d = slacks(v)
+        if s.min() <= 0:
+            return 1e30, np.zeros(3 * n)
+        X, Y, R = v[:n], v[n:2 * n], v[2 * n:]
+        val = -R.sum() - t * np.log(s).sum()
+        m = len(i)
+        w = -t / s
+        wp = w[:m]
+        g = np.zeros(3 * n)
+        gx = wp * dx / d
+        gy = wp * dy / d
+        np.add.at(g, i, gx)
+        np.add.at(g, j, -gx)
+        np.add.at(g, n + i, gy)
+        np.add.at(g, n + j, -gy)
+        np.add.at(g, 2 * n + i, -wp)
+        np.add.at(g, 2 * n + j, -wp)
+        a, b, cc, dd = w[m:m + n], w[m + n:m + 2 * n], w[m + 2 * n:m + 3 * n], w[m + 3 * n:]
+        g[:n] += a - b
+        g[n:2 * n] += cc - dd
+        g[2 * n:] += -1 - a - b - cc - dd
+        return val, g
+
+    for t in [1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]:
+        res = minimize(f, v, args=(t,), jac=True, method="L-BFGS-B",
+                       options={"maxiter": 500, "maxfun": 2000})
+        if slacks(res.x)[0].min() > 0:
+            v = res.x
+    c2 = np.clip(np.stack([v[:n], v[n:2 * n]], 1), 0, 1)
+    r2 = _lp_radii(c2)
+    if r2.sum() > r.sum():
+        return c2, r2
+    return c, r
+
+
+def optimized_packing():
+>>>>>>> REPLACE
+-----

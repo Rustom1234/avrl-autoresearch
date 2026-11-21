@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+def _ring_init(n, rng):
+    """Centres on k concentric square rings near the walls, split in proportion to ring perimeter."""
+    k = rng.integers(2, 4)
+    insets = np.linspace(0.05, 0.4, k)
+    perim = 4 * (1 - 2 * insets)
+    counts = np.round(n * perim / perim.sum()).astype(int)
+    counts[np.argmax(counts)] += n - counts.sum()
+    pts = []
+    for m, cnt in zip(insets, counts):
+        w = 1 - 2 * m
+        s = 4 * ((np.arange(cnt) / cnt + rng.random()) % 1.0)
+        side, f = np.floor(s).astype(int), s - np.floor(s)
+        x = np.select([side == 0, side == 1, side == 2], [m + f * w, np.full(cnt, 1 - m), 1 - m - f * w], default=np.full(cnt, m))
+        y = np.select([side == 0, side == 1, side == 2], [np.full(cnt, m), m + f * w, np.full(cnt, 1 - m)], default=1 - m - f * w)
+        pts.append(np.stack([x, y], 1))
+    return np.clip(np.vstack(pts) + rng.normal(0, 0.01, (n, 2)), 0, 1)
+
+
+def _solve_once(n, rng, init=None):
+    if init is None and rng.random() < 0.5:
+        base = _ring_init(n, rng)
+    elif init is None:
+        base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    else:
+        base = np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+-----

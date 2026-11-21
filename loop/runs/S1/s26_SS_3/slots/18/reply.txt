@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+        c0 = rng.random((n, 2)) * 0.9 + 0.05
+=======
+        c0 = rng.random((n, 2)) * 0.9 + 0.05
+        if it % 2 == 0:
+            gs = (np.arange(100) + 0.5) / 100
+            G = np.stack(np.meshgrid(gs, gs), -1).reshape(-1, 2)
+            for _ in range(5):
+                lab = ((G[:, None, :] - c0[None]) ** 2).sum(2).argmin(1)
+                for q in range(n):
+                    msk = lab == q
+                    if msk.any():
+                        c0[q] = G[msk].mean(0)
+            c0 = np.clip(c0 + rng.normal(0, 0.005, c0.shape), 0.03, 0.97)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 2 == 0:
+            D = np.sqrt(((c0[:, None, :] - c0[None]) ** 2).sum(2)) + np.eye(n) * 9
+            r0 = np.minimum(D.min(1) / 2, np.minimum(c0.min(1), (1 - c0).min(1)))
+            r0 = np.maximum(r0 * 0.9, 0.01)
+>>>>>>> REPLACE
+-----

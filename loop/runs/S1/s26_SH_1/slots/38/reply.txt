@@ -1,0 +1,59 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+=======
+def _soft_relax(x0, y0, rng):
+    # soft-repulsion pre-relaxation: squared overlap energy against random
+    # target radii (mean 0.1), minimized by L-BFGS-B with analytic gradient
+    I, J = _I, _J
+    rt = rng.uniform(0.5, 1.5, size=_N)
+    rt = rt / rt.mean() * 0.1
+
+    def energy(p):
+        x = p[:_N]
+        y = p[_N:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        d = np.sqrt(dx * dx + dy * dy) + 1e-12
+        ov = np.maximum(0.0, rt[I] + rt[J] - d)
+        E = float(np.sum(ov * ov))
+        c = -2.0 * ov
+        gx = np.zeros(_N)
+        gy = np.zeros(_N)
+        np.add.at(gx, I, c * dx / d)
+        np.add.at(gx, J, -c * dx / d)
+        np.add.at(gy, I, c * dy / d)
+        np.add.at(gy, J, -c * dy / d)
+        lo_x = np.maximum(0.0, rt - x)
+        hi_x = np.maximum(0.0, x + rt - 1.0)
+        lo_y = np.maximum(0.0, rt - y)
+        hi_y = np.maximum(0.0, y + rt - 1.0)
+        E += float(np.sum(lo_x ** 2 + hi_x ** 2 + lo_y ** 2 + hi_y ** 2))
+        gx += -2.0 * lo_x + 2.0 * hi_x
+        gy += -2.0 * lo_y + 2.0 * hi_y
+        return E, np.concatenate([gx, gy])
+
+    p0 = np.concatenate([x0, y0])
+    try:
+        res = minimize(energy, p0, jac=True, method="L-BFGS-B",
+                       options={"maxiter": 100})
+        p = res.x if np.all(np.isfinite(res.x)) else p0
+    except Exception:
+        p = p0
+    return p[:_N].copy(), p[_N:].copy()
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+        r0 = np.full(_N, 0.05)
+=======
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0, y0 = _soft_relax(P[:, 0].copy(), P[:, 1].copy(), rng)
+        r0 = np.full(_N, 0.05)
+>>>>>>> REPLACE
+-----

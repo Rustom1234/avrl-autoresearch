@@ -1,0 +1,103 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _sym_diag(rng):
+    """Diagonal-mirror SLSQP: circle (x, y) has partner (y, x) with equal radius; m circles on y = x."""
+    m = (0, 2, 4, 6)[int(rng.integers(0, 4))]
+    k = (26 - m) // 2
+    n = 2 * k + m
+    nv = 3 * k + 2 * m
+    A = np.zeros((3 * n, nv))
+    b = np.zeros(3 * n)
+    for i in range(k):
+        A[i, i] = 1.0
+        A[k + i, k + i] = 1.0
+        A[n + i, k + i] = 1.0
+        A[n + k + i, i] = 1.0
+        A[2 * n + i, 2 * k + i] = 1.0
+        A[2 * n + k + i, 2 * k + i] = 1.0
+    for a in range(m):
+        A[2 * k + a, 3 * k + a] = 1.0
+        A[n + 2 * k + a, 3 * k + a] = 1.0
+        A[2 * n + 2 * k + a, 3 * k + m + a] = 1.0
+    v0 = np.concatenate([rng.uniform(0.05, 0.95, size=k), rng.uniform(0.05, 0.95, size=k),
+                         rng.uniform(0.06, 0.1, size=k), rng.uniform(0.1, 0.9, size=m),
+                         rng.uniform(0.06, 0.1, size=m)])
+    iu, ju = np.triu_indices(n, 1)
+    mp = len(iu)
+    idx = np.arange(n)
+
+    def expand(v):
+        return A @ v + b
+
+    def obj(v):
+        return -np.sum(expand(v)[2 * n:])
+
+    def obj_grad(v):
+        return -A[2 * n:].sum(axis=0)
+
+    def cons(v):
+        z = expand(v)
+        x, y, r = z[:n], z[n:2 * n], z[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        pair = dx * dx + dy * dy - (r[iu] + r[ju]) ** 2
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    def cons_jac(v):
+        z = expand(v)
+        x, y, r = z[:n], z[n:2 * n], z[2 * n:]
+        J = np.zeros((mp + 4 * n, 3 * n))
+        rows = np.arange(mp)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        s = r[iu] + r[ju]
+        J[rows, iu] = 2 * dx
+        J[rows, ju] = -2 * dx
+        J[rows, n + iu] = 2 * dy
+        J[rows, n + ju] = -2 * dy
+        J[rows, 2 * n + iu] = -2 * s
+        J[rows, 2 * n + ju] = -2 * s
+        J[mp + idx, idx] = 1
+        J[mp + idx, 2 * n + idx] = -1
+        J[mp + n + idx, idx] = -1
+        J[mp + n + idx, 2 * n + idx] = -1
+        J[mp + 2 * n + idx, n + idx] = 1
+        J[mp + 2 * n + idx, 2 * n + idx] = -1
+        J[mp + 3 * n + idx, n + idx] = -1
+        J[mp + 3 * n + idx, 2 * n + idx] = -1
+        return J @ A
+
+    bounds = [(0.0, 1.0)] * (2 * k) + [(0.0, 0.5)] * k + [(0.0, 1.0)] * m + [(0.0, 0.5)] * m
+    res = minimize(obj, v0, jac=obj_grad, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                   bounds=bounds, options={"maxiter": 300, "ftol": 1e-12})
+    z = expand(res.x)
+    centers = np.column_stack([z[:n], z[n:2 * n]])
+    radii = np.maximum(z[2 * n:], 0.0)
+    return np.clip(centers, 0.0, 1.0), radii
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for start in range(12):
+=======
+    drng = np.random.default_rng(777)
+    t1 = time.time()
+    for _ in range(5):
+        if time.time() - t1 > 60:
+            break
+        try:
+            c, r = _sym_diag(drng)
+            c, r = _optimize(c, r)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    for start in range(12):
+>>>>>>> REPLACE
+-----

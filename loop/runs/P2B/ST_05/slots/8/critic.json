@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: no problems found. The diff changes only hyperparameters (DEPTH 8->7 and a TOTAL_BATCH_SIZE assignment). It does not touch the val_bpb computation, the data, the prepare.py import line, the seed lines, the evaluation call or the final summary printing.",
+  "Comment mismatch: the new line says '~524K tokens per optimizer step', but 2**18 is 262,144 tokens. ~524K would be 2**19. So the real change is a halved total batch, assuming the incumbent uses 2**19, and the comment is misleading.",
+  "Probable duplicate definition: the standard train.py already sets TOTAL_BATCH_SIZE in the hyperparameters section above 'Model size'. This new assignment overrides it later in the file. That works as long as the variable is first used after line ~451, but it leaves dead or confusing code. The original line should be edited instead of adding a second one.",
+  "Divisibility check: with DEVICE_BATCH_SIZE 64 and a sequence length of 2048, 2**18 gives 2 gradient-accumulation steps, so the batch divides cleanly. Please confirm the run did not hit the grad-accum assert, and confirm the actual sequence length.",
+  "Size of gain: candidate mean 1.07585 vs incumbent mean 1.1145, a drop of about 0.0387 bpb (~3.5%). That is large but plausible: a smaller batch and a shallower model give more optimizer steps in a fixed 300 s. The two replicates agree to within 0.0045.",
+  "z not recomputed: the incumbent's standard deviation (or per-run values) is not given, so z cannot be checked independently. The reported z = 9.425 implies a pooled SE of about 0.0041, which is consistent with the spread between the replicates."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

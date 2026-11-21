@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _gap(ca, cb):
+    """Mean over circles of ca of the distance to the nearest centre in cb."""
+    d = np.sqrt(((ca[:, None] - cb[None]) ** 2).sum(-1))
+    return d.min(1).mean()
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((c, r))
+        pool.sort(key=lambda p: -p[1].sum())
+        pool = pool[:5]
+=======
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        gaps = [_gap(p[0], c) for p in pool]
+        if gaps and min(gaps) < 0.02:
+            k = int(np.argmin(gaps))
+            if r.sum() > pool[k][1].sum():
+                pool[k] = (c, r)
+        else:
+            pool.append((c, r))
+        pool.sort(key=lambda p: -p[1].sum())
+        pool = pool[:8]
+>>>>>>> REPLACE
+-----

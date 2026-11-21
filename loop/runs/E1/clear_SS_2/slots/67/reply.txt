@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    preds = []
+    for m in models:
+        m.fit(Xtr, y)
+=======
+    from rdkit.Chem.Scaffolds import MurckoScaffold
+    groups = {}
+    for i, s in enumerate(train_smiles):
+        try:
+            sc = MurckoScaffold.MurckoScaffoldSmiles(smiles=s)
+        except Exception:
+            sc = s
+        groups.setdefault(sc, []).append(i)
+    glist = list(groups.values())
+    preds = []
+    for k, m in enumerate(models):
+        rng = np.random.RandomState(seed * 10 + k)
+        idx, cnt = [], 0
+        while cnt < len(y):
+            g = glist[rng.randint(len(glist))]
+            idx.extend(g)
+            cnt += len(g)
+        idx = np.array(idx)
+        m.fit(Xtr[idx], y[idx])
+>>>>>>> REPLACE
+-----

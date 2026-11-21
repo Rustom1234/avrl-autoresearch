@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Crippen
+=======
+from rdkit.Chem import Crippen
+from rdkit.Chem import rdDistGeom, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+_SHAPE_CACHE = {}
+
+
+def shape_matrix(smiles):
+    # 3D shape descriptors from one ETKDG conformer (fixed seed 42); zeros if embedding fails; cached per SMILES
+    missing = [s for s in set(smiles) if s not in _SHAPE_CACHE]
+    for s in missing:
+        m = Chem.AddHs(Chem.MolFromSmiles(s))
+        ps = rdDistGeom.ETKDGv3()
+        ps.randomSeed = 42
+        v = np.zeros(9)
+        if rdDistGeom.EmbedMolecule(m, ps) >= 0:
+            try:
+                v = np.array([rdMolDescriptors.CalcPMI1(m), rdMolDescriptors.CalcPMI2(m),
+                              rdMolDescriptors.CalcPMI3(m), rdMolDescriptors.CalcNPR1(m),
+                              rdMolDescriptors.CalcNPR2(m), rdMolDescriptors.CalcRadiusOfGyration(m),
+                              rdMolDescriptors.CalcAsphericity(m), rdMolDescriptors.CalcSpherocityIndex(m),
+                              rdMolDescriptors.CalcPBF(m)], dtype=np.float64)
+            except Exception:
+                v = np.zeros(9)
+        _SHAPE_CACHE[s] = np.nan_to_num(v, nan=0.0, posinf=0.0, neginf=0.0)
+    return np.array([_SHAPE_CACHE[s] for s in smiles])
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = np.hstack([X, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Xte, np.clip(Dte, lo, hi).astype(np.float32)])
+=======
+    X = np.hstack([X, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Xte, np.clip(Dte, lo, hi).astype(np.float32)])
+    Str = shape_matrix(train_smiles)
+    Ste = shape_matrix(test_smiles)
+    slo, shi = np.percentile(Str, 1, axis=0), np.percentile(Str, 99, axis=0)
+    X = np.hstack([X, np.clip(Str, slo, shi).astype(np.float32)])
+    Xte = np.hstack([Xte, np.clip(Ste, slo, shi).astype(np.float32)])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+    r0 = _lp_radii(c0)
+    z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+
+    def obj(z):
+        return -np.sum(z[2 * n:])
+
+    def obj_grad(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        return g
+
+    def cons(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        rs = r[I] + r[J]
+        pair = dx * dx + dy * dy - rs * rs
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    candidates = [c0.copy(), c_orig, _adam_soft(c_orig)]
+    try:
+        res = minimize(obj, z0, jac=obj_grad, method="SLSQP", bounds=bounds,
+                       constraints=[{"type": "ineq", "fun": cons}],
+                       options={"maxiter": 300, "ftol": 1e-12})
+        z = res.x
+        candidates.append(np.clip(np.stack([z[:n], z[n:2 * n]], axis=1), 0.0, 1.0))
+=======
+    s_sc = 0.1
+    r0 = _lp_radii(c0)
+    z0 = np.concatenate([c0[:, 0] / s_sc, c0[:, 1] / s_sc, r0 / s_sc])
+
+    def unscale(z):
+        return s_sc * z[:2 * n], s_sc * z[2 * n:]
+
+    def obj(z):
+        return -s_sc * np.sum(z[2 * n:])
+
+    def obj_grad(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -s_sc
+        return g
+
+    def cons(z):
+        xy, r = unscale(z)
+        x = xy[:n]
+        y = xy[n:]
+        dx = x[I] - x[J]
+        dy = y[I] - y[J]
+        rs = r[I] + r[J]
+        pair = dx * dx + dy * dy - rs * rs
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    bounds = [(0.0, 1.0 / s_sc)] * (2 * n) + [(0.0, 0.5 / s_sc)] * n
+    candidates = [c0.copy(), c_orig, _adam_soft(c_orig)]
+    try:
+        res = minimize(obj, z0, jac=obj_grad, method="SLSQP", bounds=bounds,
+                       constraints=[{"type": "ineq", "fun": cons}],
+                       options={"maxiter": 500, "ftol": 1e-14})
+        z = res.x
+        xy_u, _ = unscale(z)
+        candidates.append(np.clip(np.stack([xy_u[:n], xy_u[n:]], axis=1), 0.0, 1.0))
+>>>>>>> REPLACE
+-----

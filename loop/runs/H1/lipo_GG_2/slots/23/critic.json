@@ -1,0 +1,15 @@
+{
+ "ok": false,
+ "issues": [
+  "The edit didn't do what it was meant to. It imports MACCSkeys and widens the zero vector for invalid SMILES from N_BITS+4 to N_BITS+166+4, but no shown hunk computes MACCS keys or adds them to the features. Valid molecules still get N_BITS+4 features, so the model is the same as the incumbent's. That fits the identical loss: 0.5968 vs 0.5968.",
+  "Hidden bug: if a SMILES fails to parse, its zero row (N_BITS+170) is longer than the rows for valid molecules (N_BITS+4). Building the feature array would then crash or give a ragged object array. It didn't matter here because the result equals the incumbent's, which suggests no SMILES failed to parse.",
+  "The size is also wrong. RDKit's MACCS fingerprint has 167 bits (bit 0 is unused), not 166. If MACCS features are added later, the zero vector should be N_BITS+167+4.",
+  "No sign of gaming the measurement: no file access, no pasted answers, and test labels aren't used.",
+  "The numbers are consistent: z = (0.5968-0.5968)/(0.0042*sqrt(1/1+1/1)) = 0.000, which matches the reported z = 0.000. The reject decision is correct.",
+  "Suggestion: if MACCS keys are worth testing, resubmit with the actual feature concatenation (MACCSkeys.GenMACCSKeys converted to a numpy array) and a zero vector of the matching size."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0
+ }
+}

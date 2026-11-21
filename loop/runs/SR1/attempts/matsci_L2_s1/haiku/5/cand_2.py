@@ -1,0 +1,3 @@
+def equation(eps, T, params):
+    a,b,c,d,e = params[0],params[1],params[2],params[3],params[4]
+    return -(a + b*np.power(eps, c)) * (1 + d*T + e*T**2)

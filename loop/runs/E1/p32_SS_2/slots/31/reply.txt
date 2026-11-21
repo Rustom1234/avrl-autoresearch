@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    R = int(rng.integers(5, 8))
+    m = int(np.ceil(n / R))
+    pts = np.array([((j + 0.5 + 0.5 * (i % 2)) / (m + 0.5), (i + 0.5) / R) for i in range(R) for j in range(m)])
+    pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.02, (n, 2))
+    pts = np.clip(pts, 0.03, 0.97)
+=======
+    a = np.sqrt(2 / (np.sqrt(3) * (n + 4)))
+    K = int(1.5 / a) + 2
+    ii, jj = np.meshgrid(np.arange(-K, K + 1), np.arange(-K, K + 1))
+    lat = np.stack([(ii + 0.5 * jj).ravel() * a, (jj * np.sqrt(3) / 2).ravel() * a], 1)
+    th = rng.uniform(0, np.pi / 3)
+    rot = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
+    pts = 0.5 + lat @ rot.T + rng.uniform(0, a, 2)
+    pts = pts[(pts >= 0.03).all(1) & (pts <= 0.97).all(1)]
+    pts = pts[rng.permutation(len(pts))[:n]]
+    if len(pts) < n:
+        pts = np.vstack([pts, rng.uniform(0.05, 0.95, (n - len(pts), 2))])
+    pts = np.clip(pts + rng.normal(0, 0.02, (n, 2)), 0.03, 0.97)
+>>>>>>> REPLACE
+-----

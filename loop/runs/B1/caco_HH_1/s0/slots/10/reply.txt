@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+def phys_one(smi):
+    m = Chem.MolFromSmiles(smi)
+    n = max(m.GetNumHeavyAtoms(), 1)
+    arom = sum(a.GetIsAromatic() for a in m.GetAtoms()) / n
+    vals = [f(m) for f in (Descriptors.TPSA, Descriptors.MolLogP, Descriptors.NumHDonors,
+                           Descriptors.NumHAcceptors, Descriptors.MolWt, Descriptors.NumRotatableBonds)]
+    return vals + [arom]
+=======
+ACID_PAT = Chem.MolFromSmarts('[CX3](=O)[OX2H1]')
+BASE_PAT = Chem.MolFromSmarts('[NX3;H2,H1;!$(N[#6]=[O,N,S])]')
+
+
+def phys_one(smi):
+    m = Chem.MolFromSmiles(smi)
+    n = max(m.GetNumHeavyAtoms(), 1)
+    arom = sum(a.GetIsAromatic() for a in m.GetAtoms()) / n
+    vals = [f(m) for f in (Descriptors.TPSA, Descriptors.MolLogP, Descriptors.NumHDonors,
+                           Descriptors.NumHAcceptors, Descriptors.MolWt, Descriptors.NumRotatableBonds)]
+    extra = [len(m.GetSubstructMatches(ACID_PAT)), len(m.GetSubstructMatches(BASE_PAT)),
+             Chem.GetFormalCharge(m), Descriptors.NumAromaticRings(m), Descriptors.FractionCSP3(m)]
+    return vals + [arom] + extra
+>>>>>>> REPLACE
+-----

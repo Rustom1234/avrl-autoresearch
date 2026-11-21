@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
+from rdkit.Chem import Descriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.array([np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float32) for m in mols])
+=======
+    return np.array([np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float32) for m in mols])
+
+
+DESC_NAMES = ["MolWt", "MolLogP", "TPSA", "NumHDonors", "NumHAcceptors", "NumRotatableBonds",
+              "NumAromaticRings", "FractionCSP3", "RingCount", "HeavyAtomCount", "NumAliphaticRings",
+              "NumSaturatedRings", "NumHeteroatoms", "LabuteASA", "MolMR", "NumValenceElectrons",
+              "BertzCT", "HallKierAlpha", "Kappa1", "Kappa2"]
+MONO = [1 if n == "MolLogP" else 0 for n in DESC_NAMES]
+
+
+def descriptors(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    X = np.array([[getattr(Descriptors, n)(m) for n in DESC_NAMES] for m in mols], dtype=np.float64)
+    return np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.mean(preds, axis=0)
+=======
+    hgb = HistGradientBoostingRegressor(max_iter=300, learning_rate=0.05, max_leaf_nodes=15,
+                                        l2_regularization=1.0, monotonic_cst=MONO, random_state=seed)
+    hgb.fit(descriptors(train_smiles), y)
+    return 0.5 * np.mean(preds, axis=0) + 0.5 * hgb.predict(descriptors(test_smiles))
+>>>>>>> REPLACE
+-----

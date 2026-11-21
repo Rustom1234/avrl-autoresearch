@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+=======
+def featurize(smiles, radius=RADIUS):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=radius, fpSize=N_BITS)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+=======
+    fs = [(featurize(train_smiles, r), featurize(test_smiles, r)) for r in (1, 3)]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    Ktr = np.mean([tanimoto(a, a) for a, _ in fs], axis=0)
+    Kte = np.mean([tanimoto(b, a) for a, b in fs], axis=0)
+    svr.fit(Ktr, (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(Kte)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.decomposition import PCA
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+=======
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+    pca = PCA(n_components=40, whiten=True, random_state=seed)
+    Ptr = pca.fit_transform(Str)
+    Pte = pca.transform(Ste)
+    model.fit(np.hstack([Xtr, Ptr]), y)
+    p_lgb = model.predict(np.hstack([Xte, Pte]))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Ptr, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Pte)
+>>>>>>> REPLACE
+-----

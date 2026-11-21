@@ -1,0 +1,253 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+Dos
+=======
+from sklearn.kernel_learning import 
+from sklearn.preprocessing import StandardScaler
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.model_selection import KFold
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+def tanimoto_kernel(X):
+    # X is (N, D) where the first D_fp bits are the Morgan fingerprint
+    # We focus the kernel on the fingerprint bits
+    # Simplified Tanimoto: sum(min(a,b)) / sum(max(a,b)) for bits
+    # Since they are binary (0 or 1), it is intersection / union
+    dot = np.dot(X, X.T)
+    sq_sums = np.sum(X**2, axis=1).reshape(-1, 1)
+    # Tanimoto = dot / (sum_a + sum_b - dot)
+    # For binary vectors, dot is intersection, sq_sums are counts of 1s
+    return dot / (sq_sums + sq_sums.T - dot + 1e-9)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    
+    # Standardize target
+    scaler_y = StandardScaler()
+    y_train_scaled = scaler_y.fit_transform(y_train_log.reshape(-1, 1)).flatten()
+    
+    # Inner CV to find best alpha
+    best_alpha = 0.1
+    best_score = float('inf')
+    kf = KFold(n_splits=3, shuffle=True, random_state=seed)
+    
+    for alpha in [0.01, 0.1, 1.0]:
+        scores = []
+        for t_idx, v_idx in kf.split(X_train):
+            X_t, X_v = X_train[t_idx], X_train[v_idx]
+            y_t, y_v = y_train_scaled[t_idx], y_train_scaled[v_idx]
+            # Use a subsample of features for kernel to keep it manageable
+            K = tanimoto_kernel(X_t)
+            rk = KernelRidge(alpha=alpha, kernel=' ') # Use custom kernel via matrix
+            rk.fit(K, y_t)
+            preds = rk.predict(t anim_kernel(X_v))
+            scores.append(np.mean(np.abs(preds - y_v)))
+        avg_score = np.mean(scores)
+        if avg_score < best_score:
+            best_score = avg_score
+            best_alpha = alpha
+
+    final_model = KernelRidge(alpha=best_alpha, kernel=' ')
+    K_final = tanimoto_kernel(X_train)
+    final_model.fit(K_final, y_train_scaled)
+    
+    X_test = featurize(test_smiles)
+    K_test = tanimoto_kernel(X_test)
+    K_full = np.hstack([K_final, K_test])
+    # This is a simplification; for true KRR, one needs to reconstruct the full K matrix
+    # but for small N, we can just predict using the formula: K_test @ inv(K_final + alpha*I) @ y
+    # However, for memory/simplicity, let's use the standard call:
+    # We need the projection of test points onto train points:
+    K_test_train = np.dot(X_test, X_train.T)
+    # We want to replicate rk.predict which is (K_test_train @ inv(K_train + alpha*I)) @ y
+    # Since we are in a restricted environment, let's just use the standard fit/predict
+    # with a custom kernel provided by a class or just use a very high dim feature vector.
+    # Reverting to a simpler approach for reliability: use the KRR with a built-in kernel 
+    # that approximates Tanimoto well, or keep the XGBoost but optimize its params.
+    
+    # Actually, the prompt asks for Kernel Ridge with Tanimoto. 
+    # Let's stick to the simplest way to implement that:
+    return final_model.predict(K_test)
+<<<<<<< SEARCH
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+=======
+    # Use a simpler approach: XGBoost is already much better than the base RF.
+    # To improve on 0.5090, let's use a more robust XGBoost config.
+    model = XGBRegressor(n_estimators=1000, max_depth=6, learning_rate=0.05, 
+                           subsample=0.8, colsample_bytree=0.8, 
+                           min_child_weight=2, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    y_train_log = np.log10(y_train + 1e-6)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(n_estimators=500, max_depth=5, learning_rate=0.03, 
+                           subsample=0.8, colsample_bytree=0.5, 
+                           min_child_weight=3, random_state=seed, 
+                           n_jobs=-1, tree_method='hist')
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    model.fit(X_train, y_train_log)
+    return model.predict(featurize(test_smiles))
+=======
+from sklearn.kernel_ridge import KernelRidge
+from sklearn.preprocessing import StandardScaler
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+def tanimoto_kernel(X):
+    # X is (N, D). We apply Tanimoto only to the Morgan bits (first N_BITS)
+    X_fp = X[:, :N_BITS]
+    dot = np.dot(X_fp, X_fp.T)
+    sq_sums = np.sum(X_fp**2, axis=1).reshape(-1, 1)
+    return dot / (sq_sums + sq_sums.T - dot + 1e-9)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    
+    # Target transform
+    eps = 1e-6
+    y_train_log = np.log10(y_train + eps)
+    
+    # Standardize target
+    scaler = StandardScaler()
+    y_train_scaled = scaler.fit_transform(y_train_log.reshape(-1, 1)).flatten()
+    
+    # Simple grid search for alpha
+    best_alpha = 1.0
+    best_score = float('inf')
+    
+    # Use first 80% for inner validation
+    split = int(len(y_train_scaled) * 0.8)
+    X_train_sub = X_train[:split]
+    y_train_sub = y_train_scaled[:split]
+    X_val_sub = X_train[split:]
+    y_val_sub = y_train_scaled[split:]
+    
+    for alpha in [0.01, 0.1, 1.0, 10.0]:
+        model = KernelRidge(alpha=alpha, kernel='precomputed')
+        K = tanimoto_kernel(X_train_sub)
+        model.fit(K, y_train_sub)
+        
+        # Predict on validation (needs kernel between X_train_sub and X_val_sub)
+        K_val = tanimoto_kernel(np.hstack([X_train_sub, X_val_sub]))
+        preds = model.predict(K_val[:, split:])
+        
+        # Score (simplified: just mean squared error here as proxy for complexity)
+        score = np.mean((preds - y_val_sub)**2)
+        if score < best_score:
+            best_score = score
+            best_alpha = alpha
+            
+    # Final model
+    final_model = KernelRidge(alpha=best_alpha, kernel='precomputed')
+    K_final = tanimoto_kernel(X_train)
+    final_model.fit(K_final, y_train_scaled)
+    
+    # Predict test
+    X_test = featurize(test_smiles)
+    K_test = tanimoto_kernel(np.hstack([X_train, X_test]))
+    return final_model.predict(K_test[:, len(train_smiles):])
+>>>>>>> REPLACE
+-----

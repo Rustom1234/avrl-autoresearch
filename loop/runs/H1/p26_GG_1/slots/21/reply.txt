@@ -1,0 +1,94 @@
+<<<<<<< SEARCH
+    return best
+=======
+    # Final polish of the best solution
+    if best is not None:
+        c_best, r_best = best
+        x_best = np.concatenate([c_best.flatten(), r_best])
+        
+        # Define constraints for the polish step
+        def cons_polish(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        
+        # High precision polish
+        res_polish = minimize(
+            lambda v: -v[2 * n:].sum(), 
+            x_best, 
+            method="SLSQP", 
+            constraints={"type": "ineq", "fun": cons_polish}, 
+            options={"maxiter": 1000, "ftol": 1e-12} 
+        )
+        if res_polish.success:
+            c_best = res_polish.x[:2 * n].reshape(n, 2)
+            r_best = res_polish.x[2 * n:]
+            # Ensure result is still valid after polish
+            best = (_repair(c_best, r_best), r_best.sum())
+            # Correct structure of best to (c, r) is handled by logic flow, 69
+            # Wait, the loop above returns (c, r), so best = (c, r)
+            best = (c_best, r_best)
+            
+    return best
+-----
+<<<<<<< SEARCH
+    return best
+=======
+    if best is not None:
+        c_best, r_best = best
+        x_best = np.concatenate([c_best.flatten(), r_best])
+        
+        def cons_polish(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+        res_polish = minimize(
+            lambda v: -v[2 * n:].sum(), 
+            x_best, 
+            method="SLSQP", 
+            constraints={"type": "ineq", "fun": cons_polish}, 
+            options={"maxiter": 1000, "ftol": 1e-12}
+        )
+        
+        if res_polish.success:
+            c_best = res_polish.x[:2 * n].reshape(n, 2)
+            r_best = res_polish.x[2 * n:]
+            # Repair to ensure validity after high-precision optimization
+            c_best, r_best = _repair(c_best, r_best)
+            best = (c_best, r_best)
+
+    return best
+-----
+<<<<<<< SEARCH
+    return best
+======
+    if best is not None:
+        c_best, r_best = best
+        x_best = np.concatenate([c_best.flatten(), r_best])
+        
+        def cons_polish(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            # Re-calculate indices for the polish step
+            iu = np.triu_indices(n, 1)
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+        res_polish = minimize(
+            lambda v: -v[2 * n:].sum(), 
+            x_best, 
+            method="SLSQP", 
+            constraints={"type": "ineq", "fun": cons_polish}, 
+            options={"maxiter": 1000, "ftol": 1e-12}
+        )
+        
+        if res_polish.success:
+            c_best = res_polish.x[:2 * n].reshape(n, 2)
+            r_best = res_polish.x[2 * n:]
+            # Repair to ensure validity after high-precision optimization
+            c_best, r_best = _repair(c_best, r_best)
+            best = (c_best, r_best)
+
+    return best
+>>>>>>> REPLACE
+-----

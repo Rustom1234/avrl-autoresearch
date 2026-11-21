@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+def minmax_feats(smiles):
+    # Count Morgan (r=3); stacking [count>=t] for t=1..4 makes binary Tanimoto equal to MinMax on counts capped at 4.
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        c = gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s))
+        rows.append(np.concatenate([(c >= t) for t in (1, 2, 3, 4)]))
+    return np.array(rows, dtype=np.float64)
+
+
+_DESC_CACHE = {}
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for lam in (0.1, 0.5, 2.0):
+        for wr in (0.5, 1.0, 2.0):
+=======
+    for lam in (0.03, 0.1, 0.3, 1.0):
+        for wr in (0.25, 0.5, 1.0, 2.0, 4.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ftr, Fte = Ftr[:, :N_BITS].astype(np.float64), Fte[:, :N_BITS].astype(np.float64)
+=======
+    Ftr, Fte = minmax_feats(train_smiles), minmax_feats(test_smiles)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMRegressor
+=======
+from lightgbm import LGBMRegressor, early_stopping
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                          colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    model.fit(np.hstack([Xtr, extra_feats(train_smiles)]), y)
+=======
+    def make(n):
+        return LGBMRegressor(n_estimators=n, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                             colsample_bytree=0.5, min_child_samples=10, verbose=-1, random_state=seed, n_jobs=8)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    Atr = np.hstack([Xtr, extra_feats(train_smiles)])
+    scaf = np.array([MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles])
+    uniq = np.unique(scaf)
+    rng = np.random.RandomState(seed)
+    vg = rng.choice(uniq, max(1, int(0.15 * len(uniq))), replace=False)
+    vm = np.isin(scaf, vg)
+    es = make(1500)
+    es.fit(Atr[~vm], y[~vm], eval_set=[(Atr[vm], y[vm])], eval_metric='l1',
+           callbacks=[early_stopping(50, first_metric_only=True, verbose=False)])
+    best = es.best_iteration_ or 500
+    model = make(max(50, int(best * 1.1)))
+    model.fit(Atr, y)
+>>>>>>> REPLACE
+-----

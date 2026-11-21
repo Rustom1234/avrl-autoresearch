@@ -1,0 +1,75 @@
+<<<<<<< SEARCH
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+=======
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+=======
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    # Re-repair to ensure the radii are as large as possible given the centers
+    r = _repair(c, r)
+    
+    # A simple local optimization of radii for fixed centers (gradient-like adjustment)
+    # to approximate the LP polish without needing linprog.
+    for _ in range(3): 
+        for i in range(n): 
+            r[i] = min(r[i], c[i,0], 1-c[i,0], c[i,1], 1-c[i,1])
+            for j in range(i+1, n): 
+                d = np.linalg.norm(c[i] - c[j])
+                new_r = min(r[i], r[j], (d - (r[i] + r[j])) / 2.0)
+                if new_r < r[i] and new_r < r[j]: 
+                    r[i] = new_r
+                    r[j] = new_r
+                    
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+=======
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    
+    # Local optimization of radii for fixed centers (greedy expansion)
+    for _ in range(5): 
+        for i in range(n): 
+            # Ensure inside boundary
+            r[i] = min(r[i], c[i,0], 1-c[i,0], c[i,1], 1-c[i,1])
+            for j in range(i+1, n): 
+                d = np.linalg.norm(c[i] - c[j])
+                # If they overlap, shrink both to just touch
+                if d < (r[i] + r[j]) - 1e-11: 
+                    s = d / (r[i] + r[j])
+                    r[i] *= s
+                    r[j] *= s
+
+    if best is None or r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+-----

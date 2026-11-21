@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+def choose_sigma2(K, y, smiles):
+=======
+def local_gp(K_tr, y, K_te, sigma2, k=150, batch=64):
+    out = np.zeros(K_te.shape[0])
+    for b in range(0, K_te.shape[0], batch):
+        Kb = K_te[b:b + batch]
+        for j, row in enumerate(Kb):
+            idx = np.argsort(-row)[:k]
+            out[b + j] = gp_mean(K_tr[np.ix_(idx, idx)], y[idx], row[idx][None, :], sigma2)[0]
+    return out
+
+
+def choose_sigma2(K, y, smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+=======
+    p_fp = local_gp(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+>>>>>>> REPLACE
+-----

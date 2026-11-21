@@ -1,0 +1,101 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng, x0=None):
+    iu = np.triu_indices(n, 1)
+
+    def cons_free(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def cons_equal(v):
+        c, r_val = v[:2 * n].reshape(n, 2), v[2 * n]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * r_val
+        return np.concatenate([d, c[:, 0] - r_val, c[:, 1] - r_val, 1 - c[:, 0] - r_val, 1 - c[:, 1] - r_val, r_val])
+
+    if x0 is None:
+        # Step 1: Find a good equal-radius packing
+        c0 = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+        x0_eq = np.concatenate([c0.ravel(), np.array([INIT_RADIUS])])
+        res_eq = minimize(lambda v: -v[2 * n], x0_eq, method="SLSQP", 
+                           constraints={"type": "ineq", "fun": cons_equal}, 
+                           options={"maxiter": MAX_ITER})\n        
+        # Step 2: Use those centers to initialize free radii
+        best_c = res_eq.x[:2 * n].reshape(n, 2)
+        best_r_val = res_eq.x[2 * n]
+        x0 = np.concatenate([best_c.ravel(), np.full(n, best_r_val)])
+    
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                   constraints={"type": "ineq", "fun": cons_free}, 
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng, x0=None):
+    iu = np.triu_indices(n, 1)
+
+    def cons_free(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def cons_equal(v):
+        c, r_val = v[:2 * n].reshape(n, 2), v[2 * n]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * r_val
+        return np.concatenate([d, c[:, 0] - r_val, c[:, 1] - r_val, 1 - c[:, 0] - r_val, 1 - c[:, 1] - r_val, r_val])
+
+    if x0 is None:
+        c0 = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+        x0_eq = np.concatenate([c0.ravel(), np.array([INIT_RADIUS])])
+        res_eq = minimize(lambda v: -v[2 * n], x0_eq, method="SLSQP", 
+                           constraints={"type": "ineq", "fun": cons_equal}, 
+                           options={"maxiter": MAX_ITER})
+        best_c = res_eq.x[:2 * n].reshape(n, 2)
+        best_r_val = res_eq.x[2 * n]
+        x0 = np.concatenate([best_c.ravel(), np.full(n, best_r_val)])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                   constraints={"type": "ineq", "fun": cons_free}, 
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

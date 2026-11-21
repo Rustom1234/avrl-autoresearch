@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/CC_01/cand/s02_0.py",
+ "inc_scores": {
+  "11": 1.92778998986114,
+  "12": 1.9246411969836223
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Prioritize documents in the pool that share the longest common substrings with the documents in `target_sample` (e.g., shared proper names, dates, or specific terminology) using a simple heuristic.",
+   "outcome": "dev 1.9720 against 1.9607 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Calculate the token length of each document in the pool using tiktoken and select a random subset of documents whose average token length is closest to the average token length of the target_sample documents, then return those indices in random order.",
+   "outcome": "dev 1.9278 against 1.9607 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 3,
+   "idea": "Calculate the average Jaccard similarity of the word sets (using `split()`) between each document in the pool and the set of all documents in `target_sample`, then select the top 1000 highest-scoring documents to form the selection pool before performing the token-length-based filtering.",
+   "outcome": "dev 2.0043 against 1.9278 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Calculate the average Jaccard similarity between each document in the pool and the collective word set of the target_sample, then select the top 20% of the pool sorted by this similarity score as the candidate set. From this candidate set, select the documents whose individual token lengths are closest to the average token length of the target_sample.",
+   "outcome": "dev 1.9487 against 1.9278 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Implement a simple TF-IDF-inspired weighting system: For each document in the pool, calculate its average Jaccard similarity to each document in the target_sample. Multiply this average similarity by a 'uniqueness' score (the inverse of the document's frequency in the pool). Select the top 20% of documents based on this score, then from that subset, select documents whose token lengths are closest to the target_sample average.",
+   "outcome": "dev 1.9492 against 1.9278 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Calculate the average Jaccard similarity of word sets between each pool document and the collective word set of the target_sample; use this similarity score as the primary ranking metric to select the top 50% of documents, and then from that subset, select documents whose token lengths are closest to the target_sample average.",
+   "outcome": "dev 1.9403 against 1.9278 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Use the 'target_sample' to build a vocabulary of 'high-value' keywords (words that appear in the target sample but rarely/not at all in the pool) and score each document in the pool based on the count of these keywords it contains. Select the top 40% of documents by this 'relevance score', and from that subset, select documents whose token lengths are closest to the average target length.",
+   "outcome": "dev 1.9303 against 1.9278 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Calculate the 'information density' of each pool document by computing the ratio of its token count to its raw character count, and select the top 40% of pool documents that have the highest similarity (measured by Jaccard similarity of word sets) to the target_sample, then refine this selection to those whose average token length is closest to the target_sample average.",
+   "outcome": "dev 1.9183 against 1.9278 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Calculate the average Jaccard similarity of word sets between each pool document and the collective word set of the target_sample. Rank the pool documents by this similarity score, then select the top 40% of documents as a candidate set. From this candidate set, perform a weighted selection where documents are chosen with a probability proportional to their proximity (1 - |len - avg_len|) to the average target token length.",
+   "outcome": "dev 1.9542 against 1.9278 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Calculate the Jaccard similarity of word sets between each pool document and the collective word set of the target_sample. Select the top 50% of the pool based on this similarity, then from that subset, select the documents whose token lengths are closest to the average token length of the target_sample, but use a Gaussian-like weight (exponential decay of the absolute difference) instead of a simple sort to ensure we keep a diverse variety of lengths near the target average.",
+   "outcome": "dev 1.9401 against 1.9278 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Identify the 200 documents in `target_sample` that represent the 'core' content (excluding very short/junk ones), build a global set of their unique tokens, and score every document in the pool by the count of these 'target-specific' tokens it contains. Select the top 50% of documents by this score as a candidate pool, then from that subset, select documents whose token lengths are closest to the average token length of the `target_sample`.",
+   "outcome": "dev 1.9645 against 1.9278 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Calculate the Jaccard similarity of word sets between each pool document and the collective word set of the target_sample to create a 'relevance score'. Calculate the 'information density' (token_count / char_count) of each pool document. Select the top 30% of documents by relevance score, then from that subset, select the documents whose 'information density' is closest to the average 'information density' of the target_sample.",
+   "outcome": "dev 1.9554 against 1.9278 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.013406699999999997,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0006369,
+   "dev": 1.972008786634955,
+   "inc": 1.960706278799534,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0006793499999999999,
+   "dev": 1.92778998986114,
+   "inc": 1.960706278799534,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.530180145663921,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0009627000000000001,
+   "dev": 2.0043467241350488,
+   "inc": 1.92778998986114,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.530180145663921,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00096765,
+   "dev": 1.948697321934882,
+   "inc": 1.92778998986114,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.530180145663921,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0010798499999999998,
+   "dev": 1.9491724684493588,
+   "inc": 1.92778998986114,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.530180145663921,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0009623999999999995,
+   "dev": 1.94030942348886,
+   "inc": 1.92778998986114,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.530180145663921,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0011771999999999998,
+   "dev": 1.9302615372642022,
+   "inc": 1.92778998986114,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.530180145663921,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.001642649999999999,
+   "dev": 1.918305164771191,
+   "inc": 1.92778998986114,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.530180145663921,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0018620999999999985,
+   "dev": 1.9541554924890785,
+   "inc": 1.92778998986114,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.530180145663921,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0011605499999999998,
+   "dev": 1.940090858048091,
+   "inc": 1.92778998986114,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.530180145663921,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0011481000000000009,
+   "dev": 1.9645054950251735,
+   "inc": 1.92778998986114,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 4.530180145663921,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0011272499999999998,
+   "dev": 1.9554087661214783,
+   "inc": 1.92778998986114,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.960706278799534,
+ "inc_slot": 2
+}

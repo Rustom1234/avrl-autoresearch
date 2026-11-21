@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+MAX_ITER = 200
+=======
+MAX_ITER = 300
+SCREEN_ITER = 40
+SCREEN_TOL = 0.03
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _solve_once(n, rng, x0=None, screen=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    def run(x, k):
+        return minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                        constraints={"type": "ineq", "fun": cons}, options={"maxiter": k})
+
+    res = run(x0, SCREEN_ITER)
+    s = res.x[2 * n:].sum()
+    if screen is not None:
+        if s < (1 - SCREEN_TOL) * screen[0]:
+            return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+        screen[0] = max(screen[0], s)
+    res = run(res.x, MAX_ITER - SCREEN_ITER)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pool = []
+=======
+    pool, screen = [], [0.0]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, x0)
+=======
+        c, r = _solve_once(n, rng, x0, screen)
+>>>>>>> REPLACE
+-----

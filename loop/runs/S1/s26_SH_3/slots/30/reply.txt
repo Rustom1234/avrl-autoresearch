@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def penalty_stage(c, r0):
+    """Penalty pre-stage: minimise -sum(r) + mu*(overlap^2 + wall^2) with L-BFGS-B, annealing mu."""
+    from scipy.optimize import minimize
+    n = c.shape[0]
+    I, Jp = np.triu_indices(n, 1)
+
+    def fg(z, mu):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[I] - x[Jp]
+        dy = y[I] - y[Jp]
+        d = np.sqrt(dx * dx + dy * dy) + 1e-12
+        vp = np.maximum(r[I] + r[Jp] - d, 0.0)
+        w1 = np.maximum(r - x, 0.0)
+        w2 = np.maximum(r + x - 1.0, 0.0)
+        w3 = np.maximum(r - y, 0.0)
+        w4 = np.maximum(r + y - 1.0, 0.0)
+        f = -np.sum(r) + mu * (np.sum(vp * vp) + np.sum(w1 * w1) + np.sum(w2 * w2)
+                               + np.sum(w3 * w3) + np.sum(w4 * w4))
+        px = np.bincount(I, weights=2 * vp * (-dx / d), minlength=n) \
+            + np.bincount(Jp, weights=2 * vp * (dx / d), minlength=n)
+        py = np.bincount(I, weights=2 * vp * (-dy / d), minlength=n) \
+            + np.bincount(Jp, weights=2 * vp * (dy / d), minlength=n)
+        gx = mu * (px - 2 * w1 + 2 * w2)
+        gy = mu * (py - 2 * w3 + 2 * w4)
+        gr = -1.0 + mu * (np.bincount(I, weights=2 * vp, minlength=n)
+                          + np.bincount(Jp, weights=2 * vp, minlength=n)
+                          + 2 * w1 + 2 * w2 + 2 * w3 + 2 * w4)
+        return f, np.concatenate([gx, gy, gr])
+
+    z = np.concatenate([c[:, 0], c[:, 1], r0])
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    for mu in (10.0, 100.0, 1e3, 1e4):
+        res = minimize(fg, z, args=(mu,), jac=True, method="L-BFGS-B",
+                       bounds=bounds, options={"maxiter": 300})
+        if np.all(np.isfinite(res.x)):
+            z = res.x
+    return z
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+=======
+        try:
+            z = penalty_stage(c0, lp_radii(c0))
+            if not np.all(np.isfinite(z)):
+                raise ValueError("non-finite penalty stage")
+        except Exception:
+            z = np.concatenate([c0[:, 0], c0[:, 1], lp_radii(c0)])
+>>>>>>> REPLACE
+-----

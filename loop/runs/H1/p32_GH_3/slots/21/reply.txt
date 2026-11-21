@@ -1,0 +1,24 @@
+<<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _lloyd_centers(n, rng, iters=10):
+    """Voronoi-based start: Lloyd relaxation of random centres over a grid of the square."""
+    c = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    g = np.stack(np.meshgrid(np.linspace(0, 1, 40), np.linspace(0, 1, 40)), -1).reshape(-1, 2)
+    for _ in range(iters):
+        lab = np.argmin(((g[:, None] - c[None]) ** 2).sum(-1), 1)
+        for k in range(n):
+            m = lab == k
+            if m.any():
+                c[k] = g[m].mean(0)
+    return np.clip(c, INIT_LOW, 1 - INIT_LOW)
+
+
+def _solve_once(n, rng, x0=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+        x0 = np.concatenate([_lloyd_centers(n, rng).ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+-----

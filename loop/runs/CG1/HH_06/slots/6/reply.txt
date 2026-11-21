@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    def forward_step(inputs, labels, whiten_bias_grad):
+        outputs = model(inputs, whiten_bias_grad=whiten_bias_grad)
+        loss = F.cross_entropy(outputs, labels, label_smoothing=LABEL_SMOOTHING, reduction="sum")
+        return loss
+=======
+    def forward_step(inputs, labels, whiten_bias_grad, smoothing):
+        outputs = model(inputs, whiten_bias_grad=whiten_bias_grad)
+        logp = F.log_softmax(outputs.float(), dim=1)
+        onehot = F.one_hot(labels, 10).float()
+        targets = onehot * (1 - smoothing) + smoothing / 10
+        loss = -(targets * logp).sum()
+        return loss
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+=======
+    smoothing = torch.zeros((), device="cuda")
+    ls_ramp_steps = max(1.0, 0.3 * total_train_steps)
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            loss = forward_step(inputs, labels, whiten_bias_grad)
+=======
+            smoothing.fill_(LABEL_SMOOTHING * min(1.0, step / ls_ramp_steps))
+            loss = forward_step(inputs, labels, whiten_bias_grad, smoothing)
+>>>>>>> REPLACE
+-----

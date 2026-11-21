@@ -1,0 +1,49 @@
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+def shape_features(mol):
+    ri = mol.GetRingInfo()
+    systems = []
+    for ring in ri.BondRings():
+        bs = set(ring)
+        merged = [s for s in systems if s[0] & bs]
+        for s in merged:
+            systems.remove(s)
+            bs |= s[0]
+        systems.append((bs, None))
+    sizes = []
+    for bs, _ in systems:
+        atoms = set()
+        for b in bs:
+            bond = mol.GetBondWithIdx(b)
+            atoms.update((bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()))
+        sizes.append(len(atoms))
+    n = mol.GetNumHeavyAtoms()
+    chain = {a.GetIdx() for a in mol.GetAtoms() if a.GetAtomicNum() == 6 and not a.IsInRing()}
+    longest = 0
+    for start in chain:
+        dist = {start: 1}
+        queue = [start]
+        for u in queue:
+            for nb in mol.GetAtomWithIdx(u).GetNeighbors():
+                v = nb.GetIdx()
+                if v in chain and v not in dist:
+                    dist[v] = dist[u] + 1
+                    queue.append(v)
+        longest = max(longest, max(dist.values()))
+    branch = sum(1 for a in mol.GetAtoms() if not a.IsInRing() and a.GetDegree() >= 3)
+    diameter = Chem.GetDistanceMatrix(mol).max() if n > 1 else 0
+    ring_atoms = sum(1 for a in mol.GetAtoms() if a.IsInRing())
+    return [max(sizes) if sizes else 0, len(sizes), rdMolDescriptors.CalcNumSpiroAtoms(mol),
+            rdMolDescriptors.CalcNumBridgeheadAtoms(mol), longest, branch, diameter,
+            ring_atoms / max(n, 1)]
+
+
+_DESC_CACHE = {}
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            _DESC_CACHE[s] = [f(mol) for _, f in Descriptors.descList]
+=======
+            _DESC_CACHE[s] = [f(mol) for _, f in Descriptors.descList] + shape_features(mol)
+>>>>>>> REPLACE
+-----

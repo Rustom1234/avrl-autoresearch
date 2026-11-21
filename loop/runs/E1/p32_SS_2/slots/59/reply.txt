@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    R = int(rng.integers(5, 8))
+    m = int(np.ceil(n / R))
+=======
+def _solve_once(n, rng, R):
+    m = int(np.ceil(n / R))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+=======
+    sums = {5: [], 6: [], 7: []}
+    k = 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if time.process_time() - t0 < 0.3 * TIME_FRACTION * time_limit or not all(sums.values()):
+            R = 5 + k % 3
+        else:
+            s = np.array([np.mean(sorted(sums[q])[-2:]) for q in (5, 6, 7)]) / 0.005
+            p = np.exp(s - s.max())
+            R = 5 + int(rng.choice(3, p=p / p.sum()))
+        k += 1
+        c, r = _solve_once(n, rng, R)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        sums[R].append(r.sum())
+>>>>>>> REPLACE
+-----

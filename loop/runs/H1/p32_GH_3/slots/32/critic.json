@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Measurement (1): nothing found. The diff only adds a greedy construction that places one circle at a time. Its randomness comes from the seed-based rng, it reads no files and contains no pasted coordinates, and the existing _repair step still runs on every restart.",
+  "Recomputed z: the candidate is 0.0021 better (-2.9356 vs -2.9335). The standard error is 0.0034 * sqrt(1/1 + 1/1) = 0.00481, so z = 0.0021 / 0.00481 = 0.44, matching the reported 0.435 up to rounding. This is far below a significance threshold, so the provisional reject is justified. Both arms have only one run each, so a replicate of each would be needed before claiming a gain.",
+  "Possible bug (2), not confirmed: the new code calls _solve_once(k, rng, x0) with a third argument. The diff does not show that _solve_once accepts a starting point. Since the job ran and returned a result, it apparently does.",
+  "Timing risk, not a veto: one sequential restart runs 32 SLSQP solves of growing size, and the time limit is only checked between restarts. One restart that starts late could push a call past the 45 s void limit. The job completed this time, but the margin is not guaranteed. Checking the time inside _sequential would make this safe.",
+  "Minor: building the arrays with np.vstack/np.append in a loop is fine at n=32."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.437
+ }
+}

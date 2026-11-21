@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles)[:, :nd], y)
+    et = model.predict(featurize(test_smiles)[:, :nd])
+    knn = knn_predict(train_smiles, y, test_smiles)
+    return 0.75 * et + 0.25 * knn
+=======
+    Xtr = featurize(train_smiles)[:, :nd]
+    Xte = featurize(test_smiles)[:, :nd]
+    model.fit(Xtr, y)
+    et = model.predict(Xte)
+    import xgboost as xgb
+    xm = xgb.XGBRegressor(objective='reg:absoluteerror', max_depth=3, learning_rate=0.03, n_estimators=600,
+                          subsample=0.7, colsample_bytree=0.3, min_child_weight=3, n_jobs=8,
+                          random_state=seed)
+    xm.fit(Xtr, y)
+    xp = xm.predict(Xte)
+    knn = knn_predict(train_smiles, y, test_smiles)
+    return 0.45 * et + 0.3 * xp + 0.25 * knn
+>>>>>>> REPLACE
+-----

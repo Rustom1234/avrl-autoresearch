@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMClassifier(objective="binary", n_estimators=400, learning_rate=0.05, num_leaves=31,
+                           colsample_bytree=0.3, subsample=0.8, subsample_freq=1, min_child_samples=10,
+                                  n_jobs=-1, random_state=seed)
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    names = [n for n, _ in Descriptors.descList]
+    decreasing = {"TPSA", "NumHDonors", "NumHAcceptors", "MolWt", "NumRotatableBonds"}
+    desc_signs = [-1 if n in decreasing else (1 if n == "MolLogP" else 0) for n in names]
+    constraints = [0] * N_BITS + desc_signs
+    model = LGBMClassifier(objective="binary", n_estimators=400, learning_rate=0.05, num_leaves=31,
+                           colsample_bytree=0.3, subsample=0.8, subsample_freq=1, min_child_samples=10,
+                           monotone_constraints=constraints, monotone_constraints_method="advanced",
+                           n_jobs=-1, random_state=seed)
+>>>>>>> REPLACE
+-----

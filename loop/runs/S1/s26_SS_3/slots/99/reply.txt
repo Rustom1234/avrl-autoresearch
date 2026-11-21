@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 10 in (0, 4, 8):
+            k = int(rng.integers(5, 7))
+            cnt = np.full(k, n // k)
+            for _ in range(n - cnt.sum()):
+                cnt[rng.integers(k)] += 1
+            for _ in range(3):
+                a, b = rng.integers(k, size=2)
+                if a != b and cnt[a] > 3 and cnt[b] < 7:
+                    cnt[a] -= 1
+                    cnt[b] += 1
+            rad = rng.uniform(0.06, 0.13, k)
+            ys = np.cumsum(2 * rad) - rad
+            ys = 0.03 + ys / (2 * rad.sum()) * 0.94
+            pts = []
+            rr0 = []
+            for ri in range(k):
+                mm = int(cnt[ri])
+                off = rng.uniform(-0.5, 0.5) / mm
+                for jj in range(mm):
+                    pts.append([(jj + 0.5) / mm + off, ys[ri]])
+                    rr0.append(min(rad[ri], 0.5 / mm))
+            c0 = np.clip(np.array(pts) + rng.normal(0, 0.01, (n, 2)), 0.03, 0.97)
+            r0 = np.array(rr0)
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+>>>>>>> REPLACE
+-----

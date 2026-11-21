@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    models = [
+        RandomForestRegressor(n_estimators=300, max_features=0.2, n_jobs=8, random_state=seed),
+=======
+    from sklearn.linear_model import Ridge
+    from sklearn.model_selection import KFold
+
+    def lgb():
+        return LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+                             subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                             random_state=seed, verbose=-1)
+
+    def ridge_in(X):
+        return np.log1p(X[:, -N_BITS:])
+
+    oof = np.zeros((len(y), 2))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(Xtr):
+        oof[va, 0] = lgb().fit(Xtr[tr], y[tr]).predict(Xtr[va])
+        oof[va, 1] = Ridge(alpha=10.0).fit(ridge_in(Xtr[tr]), y[tr]).predict(ridge_in(Xtr[va]))
+    te_st = np.column_stack([lgb().fit(Xtr, y).predict(Xte),
+                             Ridge(alpha=10.0).fit(ridge_in(Xtr), y).predict(ridge_in(Xte))])
+    Xtr_rf = np.hstack([Xtr, np.column_stack([rankdata(oof[:, j]) / len(y) for j in range(2)])])
+    Xte_rf = np.hstack([Xte, np.column_stack([rankdata(te_st[:, j]) / len(te_st) for j in range(2)])])
+    models = [
+        RandomForestRegressor(n_estimators=300, max_features=0.2, n_jobs=8, random_state=seed),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for m in models:
+        m.fit(Xtr, y)
+        p = m.predict(Xte)
+=======
+    for i, m in enumerate(models):
+        A, B = (Xtr_rf, Xte_rf) if i == 0 else (Xtr, Xte)
+        m.fit(A, y)
+        p = m.predict(B)
+>>>>>>> REPLACE
+-----

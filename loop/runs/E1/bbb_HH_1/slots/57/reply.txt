@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.covariance import MinCovDet
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lo, hi = np.percentile(D_train, [1, 99], axis=0)
+    X_train = np.hstack([X_train, np.clip(D_train, lo, hi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+=======
+    lo, hi = np.percentile(D_train, [1, 99], axis=0)
+    C_train = np.clip(D_train, lo, hi)
+    C_test = np.clip(D_test, lo, hi)
+    var_idx = np.argsort(C_train.std(axis=0))[-40:]
+    M_train = np.hstack([X_train[:, N_BITS:], C_train[:, var_idx]]).astype(np.float64)
+    M_test = np.hstack([X_test[:, N_BITS:], C_test[:, var_idx]]).astype(np.float64)
+    mu = M_train.mean(axis=0)
+    sd = M_train.std(axis=0) + 1e-9
+    Z_train = (M_train - mu) / sd
+    Z_test = (M_test - mu) / sd
+    try:
+        mcd = MinCovDet(random_state=seed).fit(Z_train)
+        ood_train = mcd.mahalanobis(Z_train)
+        ood_test = mcd.mahalanobis(Z_test)
+    except Exception:
+        ood_train = np.zeros(len(Z_train))
+        ood_test = np.zeros(len(Z_test))
+    X_train = np.hstack([X_train, C_train.astype(np.float32), ood_train[:, None].astype(np.float32)])
+    X_test = np.hstack([X_test, C_test.astype(np.float32), ood_test[:, None].astype(np.float32)])
+>>>>>>> REPLACE
+-----

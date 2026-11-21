@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+=======
+from rdkit import Chem
+from rdkit import DataStructs
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def max_similarity(train_smiles, test_smiles):
+    fp_tr = [AllChem.GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(s), RADIUS, nBits=N_BITS) for s in train_smiles]
+    out = []
+    for s in test_smiles:
+        fp = AllChem.GetMorganFingerprintAsBitVect(Chem.MolFromSmiles(s), RADIUS, nBits=N_BITS)
+        out.append(max(DataStructs.BulkTanimotoSimilarity(fp, fp_tr)))
+    return np.array(out)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    g = np.clip((max_similarity(train_smiles, test_smiles) - 0.25) / 0.25, 0.0, 1.0)
+    return g * model.predict(featurize(test_smiles)) + A_te @ coef
+>>>>>>> REPLACE
+-----

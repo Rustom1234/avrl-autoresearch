@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from xgboost import XGBClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+=======
+    xgb_total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        xgb_total += rankdata(model.predict_proba(x_te)[:, 1])
+    xgb_avg = xgb_total / len(train_sets)
+
+    rf = RandomForestClassifier(n_estimators=500, max_features=0.3, min_samples_leaf=1, random_state=seed, n_jobs=8)
+    rf.fit(featurize(train_smiles), y)
+    rf_rank = rankdata(rf.predict_proba(featurize(test_smiles))[:, 1])
+
+    # Max Tanimoto similarity of each test molecule to the training set (Morgan presence bits)
+    a = train_sets[0]
+    b = test_sets[0]
+    inter = b @ a.T
+    union = b.sum(axis=1)[:, None] + a.sum(axis=1)[None, :] - inter
+    sim_max = (inter / np.maximum(union, 1e-12)).max(axis=1)
+    g = np.clip((sim_max - 0.3) / 0.4, 0, 1)
+
+    total = g * xgb_avg + (1 - g) * rf_rank
+    total = (total - total.min()) / (total.max() - total.min() + 1e-12)
+    return total
+>>>>>>> REPLACE
+-----

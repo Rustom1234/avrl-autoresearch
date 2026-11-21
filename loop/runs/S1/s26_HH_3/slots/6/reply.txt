@@ -1,0 +1,84 @@
+<<<<<<< SEARCH
+def _optimize(centers0, radii0):
+    """Joint SLSQP over (x, y, r): maximize sum r subject to containment and non-overlap."""
+    n = len(radii0)
+=======
+def _optimize(centers0, radii0, w=None):
+    """Joint SLSQP over (x, y, r): maximize sum w*r subject to containment and non-overlap."""
+    n = len(radii0)
+    if w is None:
+        w = np.ones(n)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def obj(z):
+        return -np.sum(z[2 * n:])
+
+    def obj_grad(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        return g
+=======
+    def obj(z):
+        return -np.sum(w * z[2 * n:])
+
+    def obj_grad(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -w
+        return g
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_sum, best_c, best_r = -1.0, None, None
+    for k in (4, 6, 8, 10):
+        for _ in range(3):
+            if time.time() - t0 > 150:
+                break
+            c0 = rng.uniform(0.08, 0.92, size=(n, 2))
+            r0 = np.full(n, 0.07)
+            r0[:k] = 0.12
+            r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+            try:
+                c0, r0 = _relax(c0, r0)
+                c, r = _optimize(c0, r0)
+                r = _repair(c, r)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+    if best_c is None:
+=======
+    best_sum, best_c, best_r = -1.0, None, None
+    best_w, bw_c, bw_r = -1.0, None, None
+    for k in (4, 6, 8, 10):
+        for _ in range(3):
+            if time.time() - t0 > 120:
+                break
+            c0 = rng.uniform(0.08, 0.92, size=(n, 2))
+            r0 = np.full(n, 0.07)
+            r0[:k] = 0.12
+            r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+            w = rng.uniform(0.8, 1.2, size=n)
+            try:
+                c0, r0 = _relax(c0, r0)
+                c, r = _optimize(c0, r0, w)
+                r = _repair(c, r)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+            ws = float(np.dot(w, r))
+            if ws > best_w:
+                best_w, bw_c, bw_r = ws, c, r
+    if bw_c is not None:
+        try:
+            c, r = _optimize(bw_c, bw_r)
+            r = _repair(c, r)
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+        except Exception:
+            pass
+    if best_c is None:
+>>>>>>> REPLACE
+-----

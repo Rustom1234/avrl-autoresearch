@@ -1,0 +1,15 @@
+<<<<<<< SEARCH
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    model.fit(K_train, (y - mu) / sd)
+    svr_pred = model.predict(K_test)
+    # kNN prior: similarity-weighted mean of the 15 nearest training labels, shrunk to the training mean
+    S = tanimoto(Xt, X)
+    idx = np.argsort(-S, axis=1)[:, :15]
+    w = np.take_along_axis(S, idx, axis=1) ** 3
+    knn_pred = ((w * y[idx]).sum(axis=1) + 0.01 * mu) / (w.sum(axis=1) + 0.01)
+    n = len(svr_pred)
+    return 0.75 * rankdata(svr_pred) / n + 0.25 * rankdata(knn_pred) / n
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    best = None
+    bs = -1
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+=======
+    def ls_init(rng):
+        P = rng.uniform(0.05, 0.95, (n, 2))
+        r = np.full(n, 0.02)
+        eye = np.eye(n) * 10
+        for step in range(2000):
+            f = 1 - step / 2000
+            diff = P[:, None, :] - P[None, :, :]
+            D = np.sqrt((diff ** 2).sum(2)) + eye + 1e-12
+            wall = np.minimum(P.min(1), (1 - P).min(1))
+            gap = np.minimum((D - r[None, :]).min(1), 1e9) - r
+            g = np.minimum(gap, wall - r)
+            r = np.clip(r + 0.2 * f * g, 0.005, 0.5)
+            ov = np.maximum(r[:, None] + r[None, :] - D, 0)
+            force = ((ov / D)[:, :, None] * diff).sum(1)
+            P = np.clip(P + 0.5 * force + rng.normal(0, 0.002 * f, P.shape), 0, 1)
+        return np.concatenate([P[:, 0], P[:, 1], r])
+
+    best = None
+    bs = -1
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+=======
+        if rng.random() < 0.5:
+            v = ls_init(rng)
+        else:
+            v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+        k = rng.choice(np.argsort(r)[:4])
+        keep = np.arange(n) != k
+        cc = c[keep]
+        rr = r[keep]
+        P = rng.random((3000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:10]
+        p = P[rng.choice(top)]
+        c0 = np.vstack([cc, p[None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, [0.03]])
+=======
+        order = np.argsort(r)
+        k1 = order[0]
+        k2 = order[1]
+        for kk in order[1:]:
+            if np.hypot(*(c[k1] - c[kk])) > r[k1] + r[kk] + 1e-6:
+                k2 = kk
+                break
+        keep = (np.arange(n) != k1) & (np.arange(n) != k2)
+        cc = c[keep]
+        rr = r[keep]
+        P = rng.random((4000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        i1 = int(np.argmax(clear))
+        far = np.hypot(*(P - P[i1]).T) >= 0.1
+        clear2 = np.where(far, clear, -1e9)
+        i2 = int(np.argmax(clear2))
+        c0 = np.vstack([cc, P[i1][None], P[i2][None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.002, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.98, [0.02, 0.02]])
+>>>>>>> REPLACE
+-----

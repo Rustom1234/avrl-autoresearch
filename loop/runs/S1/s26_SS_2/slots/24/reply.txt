@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+        r = np.maximum(v[2 * n:] - 1e-10, 0)
+=======
+        r0 = v[2 * n:]
+        try:
+            from scipy.optimize import linprog
+            dd = np.hypot(c[I, 0] - c[J, 0], c[I, 1] - c[J, 1])
+            A = np.zeros((m, n))
+            kk = np.arange(m)
+            A[kk, I] = 1; A[kk, J] = 1
+            bd = np.minimum(np.minimum(c[:, 0], c[:, 1]),
+                            np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+            lp = linprog(-np.ones(n), A_ub=A, b_ub=dd,
+                         bounds=list(zip(np.zeros(n), bd)), method="highs")
+            if lp.status == 0 and lp.x.sum() >= 0:
+                r0 = lp.x
+        except Exception:
+            pass
+        r = np.maximum(r0 - 1e-10, 0)
+>>>>>>> REPLACE
+-----

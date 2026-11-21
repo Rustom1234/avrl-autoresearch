@@ -1,0 +1,211 @@
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.05
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def penalty_obj(v, weight):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Sum of radii
+        obj = -r.sum()
+        # Constraints
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        c_min = np.minimum(c[:, 0] - r, c[:, 1] - r)
+        c_max = np.minimum(1 - c[:, 0] - r, 1 - c[:, 1] - r)
+        
+        # Penalty for violations
+        penalty = weight * np.sum(np.maximum(0, -d)**2)
+        penalty += weight * np.sum(np.maximum(0, -c_min)**2)
+        penalty += weight * np.sum(np.maximum(0, -c_max)**2)
+        penalty += weight * np.sum(np.maximum(0, -r)**2)
+        return obj + penalty
+
+    def penalty_grad(v, weight):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        grad = np.zeros_like(v)
+        grad[2 * n:] = -1
+        
+        # Overlap constraints
+        # Gradient of -v[2*n:].sum() is -1 for each radius
+        # Gradient of weight * (r_i + r_j - d_ij)^2 where r_i + r_j - d_ij > 0
+        # is 2 * weight * (r_i + r_j - d_ij) * (grad_r_i + grad_r_j - grad_d_ij)
+        
+        # For simplicity, let's just use numerical approx for penalty_grad or 
+        # keep it simple. Since L-BFGS-B is fast, 
+        # let's stick to the penalty objective with a few steps.
+        return None # Placeholder
+
+    # Pre-solve with L-BFGS-B
+    current_x = x0
+    for weight in [10, 1e3, 1e5]:
+        res = minimize(penalty_obj, current_x, method="L-BFGS-B", options={"maxiter": 50})\n        current_x = res.x
+
+    # Refine with SLSQP
+    res = minimize(lambda v: -v[2 * n:].sum(), current_x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})\n    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints=
+ga{"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.05
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def penalty_obj(v, weight):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        obj = -r.sum()
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        c_min = np.minimum(c[:, 0] - r, c[:, 1] - r)
+        c_max = np.minimum(1 - c[:, 0] - r, 1 - c[:, 1] - r)
+        
+        p_overlap = np.sum(np.maximum(0, -d)**2)
+        p_min = np.sum(np.maximum(0, -c_min)**2)
+        p_max = np.sum(np.maximum(0, -c_max)**2)
+        p_r = np.sum(np.maximum(0, -r)**2)
+        
+        return obj + weight * (p_overlap + p_min + p_max + p_r)
+
+    # Penalty-method L-BFGS-B pre-solve
+    current_x = x0
+    for weight in [10, 1e3, 1e5]:
+        res_pre = minimize(penalty_obj, current_x, args=(weight,), method="L-BFGS-B", options={"maxiter":             50})
+        current_x = res_pre.x
+
+    # Refine with SLSQP
+    res = minimize(lambda v: -v[2 * n:].sum(), current_x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.05
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+
+
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def penalty_obj(v, weight):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        obj = -r.sum()
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        c_min = np.minimum(c[:, 0] - r, c[:, 1] - r)
+        c_max = np.minimum(1 - c[:, 0] - r, 1 - c[:, 1] - r)
+        
+        p_overlap = np.sum(np.maximum(0, -d)**2)
+        p_min = np.sum(np.maximum(0, -c_min)**2)
+        p_max = np.sum(np.maximum(0, -c_max)**2)
+        p_r = np.sum(np.maximum(0, -r)**2)
+        
+        return obj + weight * (p_overlap + p_min + p_max + p_r)
+
+    current_x = x0
+    for weight in [10, 1e3, 1e5]:
+        res_pre = minimize(penalty_obj, current_x, args=(weight,), method="L-BFGS-B", options={"maxiter": 50})
+        current_x = res_pre.x
+
+    res = minimize(lambda v: -v[2 * n:].sum(), current_x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

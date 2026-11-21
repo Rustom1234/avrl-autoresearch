@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from scipy.linalg import solve
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    Ktr, Kte = tanimoto(Xtr, Xtr), tanimoto(Xte, Xtr)
+    svr.fit(Ktr, (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(Kte)
+    alpha = solve(Ktr + 0.5 * np.eye(len(Ktr)), y - y.mean(), assume_a='pos')
+    p_gp = Kte @ alpha
+    n = len(p_rf)
+    return 0.4 * rankdata(p_rf) / n + 0.4 * rankdata(p_svr) / n + 0.2 * rankdata(p_gp) / n
+>>>>>>> REPLACE
+-----

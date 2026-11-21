@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER, "ftol": 1e-9})
+    best_v = res.x
+    c_curr = best_v[:2 * n].reshape(n, 2)
+    r_curr = best_v[2 * n:]
+
+    # Simple Basin Hopping
+    for _ in range(10):
+        # Perturb centers slightly
+        perturb = rng.standard_normal(2 * n) * 0.01 * 0.5
+        x_next = best_v + perturb
+        
+        # Quick local refinement
+        res_hop = minimize(lambda v: -v[2 * n:].sum(), x_next, method="SLSQP", 
+                            constraints={"type": "ineq", "fun": cons},
+                            options={"maxiter": 50, "ftol": 1e-7})\n        if res_hop.fun < res.fun:
+            best_v = res_hop.x
+            c_curr = best_v[:2 * n].reshape(n, 2)
+            r_curr = best_v[2 * n:]
+
+    return c_curr, r_curr
+>>>>>>> REPLACE
+-----

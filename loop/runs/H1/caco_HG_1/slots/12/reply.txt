@@ -1,0 +1,93 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    
+    # Compute Tanimoto kernel: K(i,j) = sum(min(Ii, Ij)) / sum(max(Ii, Ij))
+    # For binary fingerprints: K = sum(i & j) / sum(i | j)
+    # Note: sum(max) = sum(x1) + sum(x2) - sum(min)
+    dot_train = np.dot(X_train, X_train.T)
+    sum_train = np.sum(X_train, axis=1).reshape(-1, 1)
+    K_train = dot_train / (sum_train + sum_train.T - dot_train + 1e-9)
+    
+    dot_test = np.dot(X_train, X_test.T)
+    sum_test = np.sum(X_test, axis=1).reshape(1, -1)
+    K_test = dot_test / (sum_train + sum_test - dot_test + 1e-9)
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    
+    # sklearn SVR with precomputed kernel expects K(test, train)
+    return model.predict(K_test.T)
+=======
+from catboost import CatBoostRegressor
+from rdkit import DataStructs
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    # Filter out None
+    mols = [m for m in mols if m is not None]
+    smiles = [s for s, m in zip(smiles, mols) if m is not None]
+    
+    fps = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    # Morgan Count Fingerprint
+    fps_count = np.array([np.array(DataStructs.GetCountFingerprint(m)) for m in mols], dtype=np.float32)
+    
+    # Basic Physicochemical Descriptors
+    desc_list = []
+    for m in mols:
+        d = [
+            Descriptors.MolWt(m),
+            Descriptors.MolLogP(m),
+            Descriptors.NumHDonors(m),
+            Descriptors.NumHAcceptors(m),
+            Descriptors.HeavyAtomCount(m),
+            Descriptors.TPSA(m)
+        ]
+        desc_list.append(d)
+    
+    desc_array = np.array(desc_list, dtype=np.float32)
+    # Handle NaNs by replacing with 0
+    desc_array = np.nan_to_num(desc_array)
+    
+    # Concatenate Morgan Count + Descriptors
+    return np.hstack([fps_count, desc_array])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    
+    model = CatBoostRegressor(
+        iterations=1000,
+        learning_rate=0.05,
+        depth=6,
+        loss_function='MAE',
+        random_seed=seed,
+        verbose=0
+    )
+    
+    model.fit(X_train, np.asarray(train_y, dtype=np.float64))
+    return model.predict(X_test)
+>>>>>>> REPLACE
+-----

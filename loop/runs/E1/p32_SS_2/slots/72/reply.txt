@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+MAX_ITER = 200
+=======
+MAX_ITER = 100
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+=======
+TIME_FRACTION = 0.65
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, xs=None, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+=======
+    if xs is not None:
+        x0 = xs
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+                   options={"maxiter": maxiter})
+    return res.x
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    pool = []
+
+    def finish(x):
+        c = np.clip(x[:2 * n].reshape(n, 2), 0, 1)
+        return c, _repair(c, x[2 * n:].copy())
+
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # short random restarts
+        x = _solve_once(n, rng)
+        c, r = finish(x)
+        pool.append((r.sum(), x))
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    pool.sort(key=lambda p: -p[0])
+    for _, x in pool[:5]:
+        if time.process_time() - t0 > 0.95 * time_limit:
+            break
+        c, r = finish(_solve_once(n, rng, x, 300))
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

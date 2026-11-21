@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _mc_relax(c, r, rng, steps=200):
+    """Monte Carlo relaxation of a valid packing with radii fixed: accept only moves that keep it valid."""
+    c = c.copy()
+    for _ in range(steps):
+        i = rng.integers(len(r))
+        p = c[i] + rng.normal(0, 0.01 * r[i], 2)
+        if np.any(p - r[i] < 0) or np.any(p + r[i] > 1):
+            continue
+        d = np.sqrt(((c - p) ** 2).sum(1))
+        d[i] = np.inf
+        if np.any(d < r + r[i]):
+            continue
+        c[i] = p
+    return c
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        init = _mc_relax(best[0], best[1], rng) if guided else None
+        c, r = _solve_once(n, rng, init)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+from xgboost import XGBRegressor
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from sklearn.model_selection import GroupKFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def pick_rounds(X, r, smiles, params):
+    keys = {}
+    g = np.array([keys.setdefault(MurckoScaffold.MurckoScaffoldSmiles(smiles=s), len(keys)) for s in smiles])
+    tr_idx, va_idx = next(GroupKFold(n_splits=4).split(X, r, g))
+    m = XGBRegressor(objective='reg:squarederror', n_estimators=400, **params)
+    m.fit(X[tr_idx], r[tr_idx])
+    grid = list(range(100, 301, 50))
+    return min(grid, key=lambda k: np.abs(m.predict(X[va_idx], iteration_range=(0, k)) - r[va_idx]).mean())
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    stage1 = XGBRegressor(objective='reg:squarederror', n_estimators=200, **params)
+=======
+    n1 = pick_rounds(Xtr, y - base_tr, train_smiles, params)
+    stage1 = XGBRegressor(objective='reg:squarederror', n_estimators=n1, **params)
+>>>>>>> REPLACE
+-----

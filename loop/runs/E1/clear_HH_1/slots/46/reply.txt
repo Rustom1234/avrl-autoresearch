@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    svr_pred = model.predict(K_test)
+=======
+    ys = (y - mu) / sd
+    rng = np.random.RandomState(seed)
+    folds = np.array_split(rng.permutation(len(ys)), 3)
+    best, best_score = (5.0, 0.05), -np.inf
+    for C in (1.0, 5.0, 20.0):
+        for eps in (0.02, 0.05, 0.1):
+            scores = []
+            for k in range(3):
+                va = folds[k]
+                tr = np.concatenate([folds[j] for j in range(3) if j != k])
+                m = SVR(kernel="precomputed", C=C, epsilon=eps).fit(K_train[np.ix_(tr, tr)], ys[tr])
+                p = m.predict(K_train[np.ix_(va, tr)])
+                scores.append(np.corrcoef(rankdata(p), rankdata(y[va]))[0, 1])
+            if np.mean(scores) > best_score:
+                best, best_score = (C, eps), np.mean(scores)
+    model = SVR(kernel="precomputed", C=best[0], epsilon=best[1])
+    model.fit(K_train, ys)
+    svr_pred = model.predict(K_test)
+>>>>>>> REPLACE
+-----

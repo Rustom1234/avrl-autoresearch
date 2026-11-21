@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+    et = ExtraTreesRegressor(
+=======
+def base_preds(Xtr, ytr, Xte, seed, n_trees, keep):
+    Ftr, Fte = Xtr[:, :N_BITS], Xte[:, :N_BITS]
+    Xtr_k, Xte_k = Xtr[:, keep], Xte[:, keep]
+    et = ExtraTreesRegressor(
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                             n_jobs=-1, random_state=seed).fit(Xtr, ytr)
+=======
+                             n_jobs=-1, random_state=seed).fit(Xtr_k, ytr)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                           verbose=-1).fit(Xtr, ytr)
+    Ftr, Fte = Xtr[:, :N_BITS], Xte[:, :N_BITS]
+=======
+                           verbose=-1).fit(Xtr_k, ytr)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr))])
+=======
+    return np.column_stack([et.predict(Xte_k), gb.predict(Xte_k), sv.predict(tanimoto(Fte, Ftr))])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.float64) - ctr
+=======
+    y = np.asarray(train_y, dtype=np.float64) - ctr
+    keep = np.concatenate([Xtr[:, :N_BITS].sum(0) >= 3, np.ones(Xtr.shape[1] - N_BITS, dtype=bool)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        oof[va] = base_preds(Xtr[tr], y[tr], Xtr[va], seed, 200)
+=======
+        oof[va] = base_preds(Xtr[tr], y[tr], Xtr[va], seed, 200, keep)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES)) + cte
+=======
+    return meta.predict(base_preds(Xtr, y, Xte, seed, N_TREES, keep)) + cte
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+    et = ExtraTreesRegressor(n_estimators=n_trees, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                             n_jobs=-1, random_state=seed).fit(Xtr, ytr)
+=======
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+    keep = np.concatenate([Xtr[:, :N_BITS].sum(0) >= 3, np.ones(Xtr.shape[1] - N_BITS, dtype=bool)])
+    Xtr_k, Xte_k = Xtr[:, keep], Xte[:, keep]
+    et = ExtraTreesRegressor(n_estimators=n_trees, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                             n_jobs=-1, random_state=seed).fit(Xtr_k, ytr)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                           verbose=-1).fit(Xtr, ytr)
+=======
+                           verbose=-1).fit(Xtr_k, ytr)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr))])
+=======
+    return np.column_stack([et.predict(Xte_k), gb.predict(Xte_k), sv.predict(tanimoto(Fte, Ftr))])
+>>>>>>> REPLACE
+-----

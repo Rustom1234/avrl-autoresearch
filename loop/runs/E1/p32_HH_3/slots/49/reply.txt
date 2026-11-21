@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _archive_add(archive, seen, c, r):
+    """Store a packing in the archive if its fingerprint (sorted radii and contact counts) is new."""
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    contacts = (np.abs(d - r[:, None] - r[None]) < 1e-6).sum(1)
+    key = (tuple(np.round(np.sort(r), 2)), tuple(np.sort(contacts)))
+    if key not in seen:
+        seen.add(key)
+        archive.append((c, r, np.sort(r)))
+
+
+def _pick_novel(archive, rng):
+    """Choose an archive member with probability proportional to its distance to the nearest other member."""
+    S = np.array([a[2] for a in archive])
+    D = np.sqrt(((S[:, None] - S[None]) ** 2).sum(-1))
+    np.fill_diagonal(D, np.inf)
+    nov = D.min(1)
+    p = nov / nov.sum() if nov.sum() > 0 else None
+    k = rng.choice(len(archive), p=p)
+    return archive[k][0], archive[k][1]
+
+
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+    archive, seen = [], set()
+    _archive_add(archive, seen, *best)
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        if len(archive) > 1 and rng.random() < 0.3:   # sometimes perturb a novel archived optimum instead
+            bc, br = _pick_novel(archive, rng)
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        _archive_add(archive, seen, c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

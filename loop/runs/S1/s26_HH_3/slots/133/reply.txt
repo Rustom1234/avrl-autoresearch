@@ -1,0 +1,117 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _glide_layout(k, m, d):
+    """Affine map z = A @ v + b for a glide symmetry (x, y) -> (1 - x, y + d).
+    v = [x(k), y(k), r(k), xa(m), ya(m), ra(m)]; image of rep i is circle k+i,
+    m free circles follow. No wrap: containment constraints keep images inside."""
+    n = 2 * k + m
+    nv = 3 * k + 3 * m
+    A = np.zeros((3 * n, nv))
+    b = np.zeros(3 * n)
+    for i in range(k):
+        A[i, i] = 1.0
+        A[n + i, k + i] = 1.0
+        A[2 * n + i, 2 * k + i] = 1.0
+        j = k + i
+        A[j, i] = -1.0
+        b[j] = 1.0
+        A[n + j, k + i] = 1.0
+        b[n + j] = d
+        A[2 * n + j, 2 * k + i] = 1.0
+    for a in range(m):
+        j = 2 * k + a
+        A[j, 3 * k + a] = 1.0
+        A[n + j, 3 * k + m + a] = 1.0
+        A[2 * n + j, 3 * k + 2 * m + a] = 1.0
+    return A, b, n
+
+
+def _glide_search(rng, kp, d):
+    """Glide-symmetric SLSQP over reduced variables, expanded to 26 circles."""
+    m = 26 - 2 * kp
+    A, b, n = _glide_layout(kp, m, d)
+    cl = rng.uniform(0.05, 0.95, size=(kp, 2))
+    ca = rng.uniform(0.1, 0.9, size=(m, 2))
+    rl = rng.uniform(0.06, 0.1, size=kp)
+    ra = rng.uniform(0.06, 0.1, size=m)
+    v0 = np.concatenate([cl[:, 0], cl[:, 1], rl, ca[:, 0], ca[:, 1], ra])
+    iu, ju = np.triu_indices(n, 1)
+    mp = len(iu)
+    idx = np.arange(n)
+
+    def expand(v):
+        return A @ v + b
+
+    def obj(v):
+        return -np.sum(expand(v)[2 * n:])
+
+    def obj_grad(v):
+        return -A[2 * n:].sum(axis=0)
+
+    def cons(v):
+        z = expand(v)
+        x, y, r = z[:n], z[n:2 * n], z[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        pair = dx * dx + dy * dy - (r[iu] + r[ju]) ** 2
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    def cons_jac(v):
+        z = expand(v)
+        x, y, r = z[:n], z[n:2 * n], z[2 * n:]
+        J = np.zeros((mp + 4 * n, 3 * n))
+        rows = np.arange(mp)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        s = r[iu] + r[ju]
+        J[rows, iu] = 2 * dx
+        J[rows, ju] = -2 * dx
+        J[rows, n + iu] = 2 * dy
+        J[rows, n + ju] = -2 * dy
+        J[rows, 2 * n + iu] = -2 * s
+        J[rows, 2 * n + ju] = -2 * s
+        J[mp + idx, idx] = 1
+        J[mp + idx, 2 * n + idx] = -1
+        J[mp + n + idx, idx] = -1
+        J[mp + n + idx, 2 * n + idx] = -1
+        J[mp + 2 * n + idx, n + idx] = 1
+        J[mp + 2 * n + idx, 2 * n + idx] = -1
+        J[mp + 3 * n + idx, n + idx] = -1
+        J[mp + 3 * n + idx, 2 * n + idx] = -1
+        return J @ A
+
+    bounds = [(0.0, 1.0)] * (2 * kp) + [(0.0, 0.5)] * kp + [(0.0, 1.0)] * (2 * m) + [(0.0, 0.5)] * m
+    res = minimize(obj, v0, jac=obj_grad, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                   bounds=bounds, options={"maxiter": 300, "ftol": 1e-12})
+    z = expand(res.x)
+    centers = np.column_stack([z[:n], z[n:2 * n]])
+    radii = np.maximum(z[2 * n:], 0.0)
+    return np.clip(centers, 0.0, 1.0), radii
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for start in range(12):
+=======
+    # Glide-reflection phase: (x, y) -> (1 - x, y + 0.5/k), seeded, separate RNG.
+    gl_rng = np.random.default_rng(2024)
+    for kk in (5, 6, 7):
+        for kp in (11, 12):
+            if time.time() - t0 > 70:
+                break
+            try:
+                c, r = _glide_search(gl_rng, kp, 0.5 / kk)
+                c, r = _optimize(c, r)
+                r = _repair(c, r)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+    for start in range(12):
+>>>>>>> REPLACE
+-----

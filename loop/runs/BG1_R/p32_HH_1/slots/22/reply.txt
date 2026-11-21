@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+=======
+def _lsg_init(n, rng, steps=300, rate=0.002):
+    """Soft-disk growth: radii grow until a circle touches a neighbour or wall, overlaps are pushed apart."""
+    p = rng.uniform(0, 1, (n, 2))
+    v = rng.normal(0, 0.01, (n, 2))
+    r = np.zeros(n)
+    eye = np.eye(n)
+    for _ in range(steps):
+        p = p + v
+        v[(p < 0) | (p > 1)] *= -1
+        p = np.clip(p, 0, 1)
+        diff = p[:, None] - p[None]
+        dist = np.sqrt((diff ** 2).sum(-1)) + eye
+        over = np.maximum(r[:, None] + r[None] - dist, 0) * (1 - eye)
+        p = np.clip(p + 0.5 * ((over / dist)[..., None] * diff).sum(1), 0, 1)
+        gap = np.minimum(p, 1 - p).min(1)
+        touching = (over.max(1) > 0) | (gap <= r)
+        r = np.where(touching, r, r + rate)
+    return p, np.maximum(r, 0)
+
+
+def _solve_once(n, rng, init=None):
+    if init is None and rng.random() < 1 / 3:
+        base, rad = _lsg_init(n, rng)
+    else:
+        base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+        rad = np.full(n, INIT_RADIUS)
+    x0 = np.concatenate([base.ravel(), rad])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,68 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        features.append(np.concatenate([fp, desc]))
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+def featurize(smiles, mask=None):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Add basic descriptors: MW, LogP, TPSA
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.TPSA(mol)])
+        combined = np.concatenate([fp, desc])
+        if mask is not None:
+            # mask is applied to the first N_BITS
+            combined[:N_BITS] = combined[:N_BITS] * mask
+        features.append(combined)
+    return np.array(features, dtype=np.float32)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    x_train = featurize(train_smiles)
+    # Compute bit frequency mask
+    # x_train shape is (N, N_BITS + 3)
+    bit_counts = np.sum(x_train[:, :N_BITS] > 0, axis=0)
+    total = len(train_smiles)
+    mask = (bit_counts / total >= 0.05) & (bit_counts / total <= 0.95)
+    
+    # Ensure mask is only for the fingerprint bits
+    # We apply it to the training set too
+    x_train_masked = x_train * np.concatenate([mask, [1, 1, 1]])
+    
+    model = CatBoostClassifier(
+        iterations=800,
+        depth=6,
+        learning_rate=0.05,
+        l2_leaf_reg=3,
+        random_seed=seed,
+        verbose=False,
+        thread_count=8
+    )
+    model.fit(x_train_masked, np.asarray(train_y, dtype=np.int64))
+    
+    x_test = featurize(test_smiles, mask=np.concatenate([mask, [1, 1, 1]]))
+    return model.predict_proba(x_test)[:, 1]
+-----

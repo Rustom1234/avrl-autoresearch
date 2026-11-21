@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+STALL_ITER = 30
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+class _Stall(Exception):
+    pass
+
+
+def _slsqp(obj, x0, cons, n):
+    """SLSQP that stops early when the sum of radii has not improved for STALL_ITER iterations."""
+    st = {"best": -np.inf, "last": 0, "k": 0, "x": x0}
+
+    def cb(v):
+        st["k"] += 1
+        st["x"] = v.copy()
+        if v[2 * n:].sum() > st["best"] + 1e-6:
+            st["best"], st["last"] = v[2 * n:].sum(), st["k"]
+        if st["k"] - st["last"] > STALL_ITER:
+            raise _Stall
+
+    try:
+        return minimize(obj, x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                        callback=cb, options={"maxiter": MAX_ITER}).x
+    except _Stall:
+        return st["x"]
+
+
+def _solve_once(n, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(obj, x0, method="SLSQP", constraints={"type": "ineq", "fun": make_cons(s0)},
+                   options={"maxiter": MAX_ITER})
+    # round to true circles: re-solve with the real circle constraints, starting from the stretched solution
+    res = minimize(obj, res.x, method="SLSQP", constraints={"type": "ineq", "fun": make_cons(1.0)},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    x = _slsqp(obj, x0, make_cons(s0), n)
+    # round to true circles: re-solve with the real circle constraints, starting from the stretched solution
+    x = _slsqp(obj, x, make_cons(1.0), n)
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

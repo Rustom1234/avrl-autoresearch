@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+from sklearn.neural_network import MLPRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+W_DESC = 0.6  # weight of the descriptor-based LightGBM rank; fingerprint ExtraTrees gets 1 - W_DESC
+=======
+W_DESC = 0.6  # weight of the descriptor-based LightGBM rank; fingerprint ExtraTrees gets 1 - W_DESC
+W_MLP = 0.25  # weight of the MLP rank in the final blend
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+
+    D_tr = np.hstack([desc_features(train_smiles), count_features(train_smiles)])
+    D_te = np.hstack([desc_features(test_smiles), count_features(test_smiles)])
+    mu, sd = D_tr.mean(0), D_tr.std(0)
+    sd = np.where(sd > 0, sd, 1.0)
+    D_tr = np.clip((D_tr - mu) / sd, -10, 10)
+    D_te = np.clip((D_te - mu) / sd, -10, 10)
+    y_mu, y_sd = y.mean(), y.std()
+    mlp = MLPRegressor(hidden_layer_sizes=(256, 128), alpha=1e-3, early_stopping=True, validation_fraction=0.15,
+                       random_state=seed, max_iter=500)
+    mlp.fit(D_tr, (y - y_mu) / y_sd)
+    p_mlp = mlp.predict(D_te)
+
+    n = len(p_desc)
+    p_base = W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+    return (1 - W_MLP) * p_base + W_MLP * rankdata(p_mlp) / n
+>>>>>>> REPLACE
+-----

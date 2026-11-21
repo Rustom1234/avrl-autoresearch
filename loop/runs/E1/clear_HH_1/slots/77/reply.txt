@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    svr_pred = model.predict(K_test)
+=======
+    ys = (y - mu) / sd
+    n = len(ys)
+    lam, delta = 0.3, 0.2
+    w = np.ones(n)
+    for _ in range(10):
+        alpha = np.linalg.solve(w[:, None] * K_train + lam * np.eye(n), w * ys)
+        r = ys - K_train @ alpha
+        w = np.minimum(1.0, delta / np.maximum(np.abs(r), 1e-12))
+    svr_pred = K_test @ alpha
+>>>>>>> REPLACE
+-----

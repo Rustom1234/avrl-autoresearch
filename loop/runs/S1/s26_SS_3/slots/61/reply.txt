@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            d2 = (c0[iu, 0] - c0[ju, 0]) ** 2 + (c0[iu, 1] - c0[ju, 1]) ** 2
+            rows = np.concatenate([np.where(d2 < 0.16)[0], m + np.arange(4 * n)])
+            res0 = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                            constraints=[{"type": "ineq", "fun": lambda z: cons(z)[rows],
+                                          "jac": lambda z: jac(z)[rows]}],
+                            options={"maxiter": 150, "ftol": 1e-9})
+            res = minimize(obj, res0.x, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+>>>>>>> REPLACE
+-----

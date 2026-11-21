@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    if start is not None:
+        c0, r0 = start[0].copy(), start[1].copy()
+=======
+    if start is None and rng.random() < 0.5:
+        cand = rng.uniform(0.05, 0.95, (400, 2))
+        pts = [cand[rng.integers(400)]]
+        for _ in range(n - 1):
+            dmin = np.min(np.linalg.norm(cand[:, None] - np.array(pts)[None], axis=2), axis=1)
+            pts.append(cand[np.argmax(dmin)])
+        c0 = np.array(pts)
+        d = np.linalg.norm(c0[:, None] - c0[None], axis=2)
+        np.fill_diagonal(d, np.inf)
+        wall = np.min(np.minimum(c0, 1 - c0), axis=1)
+        x0 = np.concatenate([c0.ravel(), np.minimum(0.48 * d.min(1), wall)])
+    if start is not None:
+        c0, r0 = start[0].copy(), start[1].copy()
+>>>>>>> REPLACE
+-----

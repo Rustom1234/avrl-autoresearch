@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, s=0.01):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if rng.random() < 0.5:
+            idx = rng.choice(n, rng.integers(2, 5), replace=False)
+            c0[idx] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (len(idx), 2))
+            r0[idx] = INIT_RADIUS * 0.5
+        else:
+            c0 = c0 + rng.normal(0, 0.02, c0.shape)
+=======
+        c0 = c0 + rng.normal(0, s, c0.shape)
+        if rng.random() < 0.3:
+            idx = rng.choice(n, rng.integers(1, 4), replace=False)
+            c0[idx] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (len(idx), 2))
+            r0[idx] = INIT_RADIUS * 0.5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    s = 0.01
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, None if explore else best)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+        c, r = _solve_once(n, rng, None if explore else best, s)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        improved = best is None or r.sum() > best[1].sum()
+        if improved:
+            best = (c, r)
+        if not explore:
+            s = float(np.clip(s * (0.8 if improved else 1.2), 0.002, 0.05))
+>>>>>>> REPLACE
+-----

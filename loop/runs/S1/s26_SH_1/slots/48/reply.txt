@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+    for _k in range(100000):
+        if time.time() - t0 > 200.0 and best is not None:
+            break
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+        r0 = np.full(_N, 0.05)
+=======
+def _border_seed(rng):
+    # k circles on the perimeter ring at inset 0.07 (equal spacing, random phase,
+    # jitter 0.01); the remaining circles uniform in the interior [0.2, 0.8]
+    k = int(rng.integers(14, 19))
+    a, b = 0.07, 0.93
+    side = b - a
+    L = 4.0 * side
+    phase = rng.uniform(0.0, L / k)
+    t = (phase + np.arange(k) * L / k) % L
+    px = np.empty(k)
+    py = np.empty(k)
+    for i, s in enumerate(t):
+        q = int(s // side)
+        if q > 3:
+            q = 3
+        u = s - q * side
+        if q == 0:
+            px[i], py[i] = a + u, a
+        elif q == 1:
+            px[i], py[i] = b, a + u
+        elif q == 2:
+            px[i], py[i] = b - u, b
+        else:
+            px[i], py[i] = a, b - u
+    px = px + rng.uniform(-0.01, 0.01, size=k)
+    py = py + rng.uniform(-0.01, 0.01, size=k)
+    m = _N - k
+    interior = rng.uniform(0.2, 0.8, size=(m, 2))
+    x0 = np.clip(np.concatenate([px, interior[:, 0]]), 0.0, 1.0)
+    y0 = np.clip(np.concatenate([py, interior[:, 1]]), 0.0, 1.0)
+    r0 = np.concatenate([np.full(k, 0.09), np.full(m, 0.07)])
+    return x0, y0, r0
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    rng2 = np.random.default_rng(31337)
+    best = None
+    t0 = time.time()
+    for _k in range(100000):
+        if time.time() - t0 > 200.0 and best is not None:
+            break
+        if _k % 3 == 0:
+            x0, y0, r0 = _border_seed(rng2)
+        else:
+            P = rng.uniform(0.05, 0.95, size=(_N, 2))
+            x0 = P[:, 0].copy()
+            y0 = P[:, 1].copy()
+            r0 = np.full(_N, 0.05)
+>>>>>>> REPLACE
+-----

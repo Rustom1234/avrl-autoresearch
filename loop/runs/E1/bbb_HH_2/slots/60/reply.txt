@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def fingerprints(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    morgan = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    pair = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=N_BITS)
+    x_morgan = np.array([morgan.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    x_pair = np.array([pair.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    x_maccs = np.array([np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float32) for m in mols])
+    return [x_morgan, x_pair, x_maccs]
+=======
+def fingerprints(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    sets = []
+    for nbits in (512, 1024, 4096):
+        morgan = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=nbits)
+        pair = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=nbits)
+        sets.append(np.array([morgan.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32))
+        sets.append(np.array([pair.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32))
+    sets.append(np.array([np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float32) for m in mols]))
+    return sets
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+=======
+    # member order: morgan512, pair512, morgan1024, pair1024, morgan4096, pair4096, maccs
+    n_trees = [500, 500, 500, 500, 350, 350, 500]
+    for x_tr, x_te, n in zip(train_sets, test_sets, n_trees):
+        model = XGBClassifier(n_estimators=n, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+>>>>>>> REPLACE
+-----

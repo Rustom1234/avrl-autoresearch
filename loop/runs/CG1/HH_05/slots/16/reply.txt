@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+        self.shuffle = train
+=======
+        self.shuffle = train
+        self.sample_weights = None
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if self.shuffle:
+            torch.randperm(len(self._indices), out=self._indices)
+            indices = self._indices
+        else:
+            indices = torch.arange(len(self.images), device=self.images.device)
+        for i in range(len(self)):
+            idxs = indices[i * self.batch_size : (i + 1) * self.batch_size]
+            yield (images[idxs], self.labels[idxs])
+=======
+        if self.shuffle and self.sample_weights is not None:
+            indices = torch.multinomial(self.sample_weights, len(self._indices), replacement=True)
+        elif self.shuffle:
+            torch.randperm(len(self._indices), out=self._indices)
+            indices = self._indices
+        else:
+            indices = torch.arange(len(self.images), device=self.images.device)
+        for i in range(len(self)):
+            idxs = indices[i * self.batch_size : (i + 1) * self.batch_size]
+            yield (images[idxs], self.labels[idxs], idxs)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        loss = F.cross_entropy(outputs, labels, label_smoothing=LABEL_SMOOTHING, reduction="sum")
+=======
+        loss = F.cross_entropy(outputs, labels, label_smoothing=LABEL_SMOOTHING, reduction="none")
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+=======
+    loss_store = torch.ones(len(images), device=images.device, dtype=torch.float32)
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        model.train()
+        for inputs, labels in train_loader:
+=======
+        model.train()
+        train_loader.sample_weights = loss_store.pow(0.5)
+        for inputs, labels, idxs in train_loader:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            loss = forward_step(inputs, labels, whiten_bias_grad)
+            loss.backward()
+=======
+            losses = forward_step(inputs, labels, whiten_bias_grad)
+            losses.sum().backward()
+            loss_store[idxs] = losses.detach().float()
+>>>>>>> REPLACE
+-----

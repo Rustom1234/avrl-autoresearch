@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "The diff changes one line: it adds the torch.compile mode 'max-autotune-no-cudagraphs'. It does not touch the val_bpb measurement, the data or dataloader, the seed lines, the prepare.py import line, the evaluation call or the final summary printing. Nothing in the diff explains an integrity flag, so the flag looks like a false positive or a mislabeled rejection.",
+  "Most likely real cause: max-autotune benchmarks many kernel configurations, which can make compile much longer. Startup counts toward the 450 s limit, so a long compile could push the run over it. That would be a time rejection, not an integrity problem. The harness log should show whether the 450 s limit was hit.",
+  "Note: the incumbent already passes the model through torch.compile, so evaluation may use the compiled model. Changing the compile mode can only change kernel choice and floating-point rounding. It does not change what val_bpb measures. This is not a bug that makes the result meaningless.",
+  "There are no numbers: the run was rejected and produced no val_bpb or baseline statistics, so z cannot be computed. The candidate makes no performance claims to check.",
+  "Advice: the expected gain is small and compile-time risk is high under a 450 s limit that includes startup. Re-running this is probably not worth a slot unless compile time is measured first."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

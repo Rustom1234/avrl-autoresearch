@@ -1,0 +1,14 @@
+{
+ "ok": false,
+ "issues": [
+  "Bug: the cosine warmdown runs backwards. p = (1 - progress) / WARMDOWN_RATIO equals 1 when warmdown starts and 0 when it ends. 0.5*(1+cos(pi*p)) is therefore 0 at the start and 1 at the end. At the start of warmdown the LR multiplier drops from 1.0 straight to FINAL_LR_FRAC. It then climbs back to 1.0 by the end of training, so the model finishes at peak LR. The intended form is 0.5*(1 - cos(pi*p)), or the same expression with cos(pi*(1-p)).",
+  "This bug fully explains the large regression (1.1763 vs 1.1145, \u0394 = +0.0618). The run tests a broken schedule (a sudden drop, then a rise back to peak LR), not a cosine warmdown. It must not be taken as evidence that cosine warmdown is worse than linear.",
+  "No integrity problems: the diff only touches the LR schedule function. Evaluation, data, seed lines and the prepare import are unchanged.",
+  "z cannot be recomputed exactly because the incumbent standard deviation is not given. The reported z = -10.944 implies std \u2248 0.0618 / 10.944 \u2248 0.00565, which is plausible. The sign is consistent with the candidate being worse, and the reject decision stands.",
+  "Recommendation: veto this as a meaningless test of the hypothesis. Fix the sign and rerun if cosine warmdown is still worth a slot."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

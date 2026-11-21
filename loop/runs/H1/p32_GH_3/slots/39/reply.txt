@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def _jump(c, r, rng):
+=======
+def _score(c):
+    """Largest valid radii for fixed centres: wall distance and half the nearest-neighbour distance."""
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    np.fill_diagonal(d, np.inf)
+    return np.minimum(np.min(np.minimum(c, 1 - c), axis=1), 0.5 * d.min(1))
+
+
+def _anneal(n, rng, steps=150, T0=0.01):
+    """Short simulated annealing on the centres; returns a start vector for _solve_once."""
+    c = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    f = _score(c).sum()
+    for k in range(steps):
+        T = T0 * (1 - k / steps) + 1e-9
+        new = c.copy()
+        i = rng.integers(n)
+        new[i] = np.clip(c[i] + rng.normal(0, 0.1, 2), 0, 1)
+        fn = _score(new).sum()
+        if fn > f or rng.random() < np.exp((fn - f) / T):
+            c, f = new, fn
+    return np.concatenate([c.ravel(), _score(c)])
+
+
+def _jump(c, r, rng):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c, r = _solve_once(n, rng)            # random restart
+=======
+            c, r = _solve_once(n, rng, _anneal(n, rng))   # annealed random restart
+>>>>>>> REPLACE
+-----

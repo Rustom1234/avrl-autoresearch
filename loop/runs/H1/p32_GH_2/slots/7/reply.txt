@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+=======
+def _repair(c, r, rng):
+    """Shrink radii until the packing is valid; the overlapping pair to fix is chosen at random."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(500):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        if over.max() <= 0:
+            break
+        i, j = np.argwhere(over > 0)[rng.integers(np.sum(over > 0))]
+        s = d[i, j] / (r[i] + r[j])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+=======
+        c = np.clip(c, 0, 1)
+        for _ in range(4):   # several random repairs of the same centres; keep the best valid one
+            r2 = _repair(c, r, rng)
+            if best is None or r2.sum() > best[1].sum():
+                best = (c, r2)
+>>>>>>> REPLACE
+-----

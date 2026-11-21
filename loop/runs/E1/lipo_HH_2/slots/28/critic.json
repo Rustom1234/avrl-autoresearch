@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "No attempt to get around the measurement. The new knn_wmedian base learner uses only Xtr/ytr. In the inner out-of-fold loop it compares validation rows against training rows, so no row is matched to itself. At test time it uses only test features against training labels. No file access, no pasted values, no use of test labels.",
+  "No bug that would make the result meaningless. argpartition with k=10 needs more than 10 training rows, which always holds here. The weighted-median logic is correct: targets are sorted, cumulative weights are taken, and it picks the first position at or above half the total weight. The meta-learner's out-of-fold matrix grows from 3 to 4 columns, matching the new learner.",
+  "This is not a new problem with this diff: the inner stacking KFold is not grouped by scaffold. That makes the out-of-fold predictions optimistic, and a near-neighbour model like kNN gains the most from that, so the meta-learner may give it too much weight. That would hurt the outer score, not inflate it, so it is not a reason to veto.",
+  "Recomputed z: the candidate scored 0.4885 and the incumbent 0.4882, so the candidate is 0.0003 worse (lower is better). With sd 0.0042 per run and one run each, z = -0.0003/(0.0042*sqrt(2)) \u2248 -0.05. The harness reports -0.045, which fits once you allow for the 4-decimal rounding. The change is pure noise and it adds code, so the reject decision is correct."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -0.05
+ }
+}

@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+    x_centers = rng.uniform(r0, 1 - r0, (n, 2))
+    def cons_centers(v):
+        c = v.reshape(n, 2)
+        d = np.sqrt(((c[iu[0]] - c[iu[1]])**2).sum(1)) - 2 * r0
+        return np.concatenate([d, c[:, 0] - r0, c[:, 1] - r0, 1 - c[:, 0] - r0, 1 - c[:, 1] - r0, np.full(n, r0)])
+
+    res_c = minimize(lambda v: 0, x_centers, method="SLSQP", constraints={"type": "ineq", "fun": cons_centers},
+                       options={"maxiter": MAX_ITER // 2})
+    
+    # Phase 2: Release radii
+    x0 = np.concatenate([res_c.x.flatten(), np.full(n, r0)])
+    def cons_full(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]])**2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons_full},
+                     options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    x_centers = rng.uniform(r0, 1 - r0, (n, 2)).flatten()
+    def cons_centers(v):
+        c = v.reshape(n, 2)
+        d = np.sqrt(((c[iu[0]] - c[iu[1]])**2).sum(1)) - 2 * r0
+        return np.concatenate([d, c[:, 0] - r0, c[:, 1] - r0, 1 - c[:, 0] - r0, 1 - c[:, 1] - r0, np.full(n, r0)])
+
+    res_c = minimize(lambda v: 0, x_centers, method="SLSQP", constraints={"type": "ineq", "fun": cons_centers},
+                       options={"maxiter": MAX_ITER // 2})
+    
+    # Phase 2: Release radii
+    x0 = np.concatenate([res_c.x, np.full(n, r0)])
+    def cons_full(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]])**2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons_full},
+                     options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _relax(c0, n, r0=0.085):
+    def f(v):
+        c = v.reshape(n, 2)
+        diff = c[:, None] - c[None]
+        d = np.sqrt((diff ** 2).sum(-1) + 1e-12)
+        ov = np.maximum(2 * r0 - d, 0)
+        np.fill_diagonal(ov, 0)
+        lo, hi = np.maximum(r0 - c, 0), np.maximum(c - (1 - r0), 0)
+        e = 0.5 * (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum()
+        g = -2 * ((ov / d)[:, :, None] * diff).sum(1) - 2 * lo + 2 * hi
+        return e, g.ravel()
+
+    res = minimize(f, c0.ravel(), jac=True, method="L-BFGS-B", options={"maxiter": 200})
+    return np.clip(res.x.reshape(n, 2), INIT_LOW / 2, 1 - INIT_LOW / 2)
+
+
+def _fresh(n, rng):
+    if rng.random() < 0.5:
+        rows = int(rng.integers(5, 8))
+        c = []
+        for k, idx in enumerate(np.array_split(np.arange(n), rows)):
+            m = len(idx)
+            xs = (np.arange(m) + 0.25 + 0.5 * (k % 2)) / m
+            c.extend((x, (k + 0.5) / rows) for x in xs)
+        c = np.clip(np.array(c) + rng.normal(0, 0.03, (n, 2)), 0.05, 0.95)
+    else:
+        c = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    return np.concatenate([_relax(c, n).ravel(), np.full(n, INIT_RADIUS)])
+
+
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = _fresh(n, rng)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        pool.append((c, r))
+        pool.sort(key=lambda p: -p[1].sum())
+        pool = pool[:5]
+=======
+        rs = np.sort(r)
+        if all(np.linalg.norm(rs - np.sort(p[1])) > 1e-3 for p in pool):
+            pool.append((c, r))
+            pool.sort(key=lambda p: -p[1].sum())
+            pool = pool[:12]
+>>>>>>> REPLACE
+-----

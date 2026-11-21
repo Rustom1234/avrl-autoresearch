@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+=======
+def desc_model(seed):
+    return XGBClassifier(n_estimators=100, max_depth=3, learning_rate=0.1, eval_metric='logloss',
+                         random_state=seed, n_jobs=8)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.int64)
+    d_tr = featurize(train_smiles)
+    d_te = featurize(test_smiles)
+    # out-of-fold descriptor margins for training rows; full-fit descriptor margins for test rows
+    oof = np.zeros(len(y))
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(d_tr):
+        oof[b] = desc_model(seed).fit(d_tr[a], y[a]).predict(d_tr[b], output_margin=True)
+    te_margin = desc_model(seed).fit(d_tr, y).predict(d_te, output_margin=True)
+    train_sets = fingerprints(train_smiles)
+    test_sets = fingerprints(test_smiles)
+    total = np.zeros(len(test_smiles))
+    for x_tr, x_te in zip(train_sets, test_sets):
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+                              min_child_weight=2, eval_metric='logloss', random_state=seed, n_jobs=8)
+        model.fit(x_tr, y, base_margin=oof)
+        total += rankdata(model.predict(x_te, output_margin=True) + te_margin)
+>>>>>>> REPLACE
+-----

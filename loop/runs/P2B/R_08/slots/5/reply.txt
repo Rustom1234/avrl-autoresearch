@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+        return loss
+    return logits
+=======
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+        # Temporal frequency regularization: penalize rapid variance changes in predictions
+        T, C = logits.size()
+        variances = logits.var(dim=0, keepdim=True).square()  # variances per time step
+        freq_diff = (variances - variances.roll(1, dim=0).clamp(min=variances.min() * 0.5)).abs().mean()
+        loss += freq_diff * 0.0001  # small penalty to influence without dominating
+        return loss
+    return logits
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+=======
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            
+            # Temporal frequency regularization: penalize rapid variance changes in predictions
+            T, C = logits.size(0), logits.size(1)
+            variances = logits.var(dim=0, keepdim=True).square()  # variances per time step
+            freq_diff = (variances - variances.roll(1, dim=0).clamp(min=variances.mean() * 0.5)).abs().mean()
+            loss += freq_diff * 0.0005  # small penalty to influence without dominating
+            
+            return loss
+        return logits
+>>>>>>> REPLACE
+-----

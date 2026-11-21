@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors
+from catboost import CatBoostRegressor
+=======
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors
+from catboost import CatBoostRegressor
+from sklearn.kernel_approximation import Nystroem
+from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    A_tr = np.c_[np.ones(len(y)), base_features(train_smiles)]
+    A_te = np.c_[np.ones(len(test_smiles)), base_features(test_smiles)]
+    coef = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+def desc_features(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([f(m) for _, f in Descriptors.descList])
+    return np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    D_tr = desc_features(train_smiles)
+    D_te = desc_features(test_smiles)
+    keep = D_tr.std(axis=0) > 0
+    mu = D_tr[:, keep].mean(axis=0)
+    sd = D_tr[:, keep].std(axis=0)
+    Z_tr = (D_tr[:, keep] - mu) / sd
+    Z_te = (D_te[:, keep] - mu) / sd
+    nys = Nystroem(kernel='rbf', gamma=1.0 / Z_tr.shape[1], n_components=300, random_state=seed)
+    Phi_tr = nys.fit_transform(Z_tr)
+    Phi_te = nys.transform(Z_te)
+    ridge = Ridge(alpha=10.0).fit(Phi_tr, y)
+    r_tr = ridge.predict(Phi_tr)
+    r_te = ridge.predict(Phi_te)
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - r_tr)
+    return model.predict(featurize(test_smiles)) + r_te
+>>>>>>> REPLACE
+-----

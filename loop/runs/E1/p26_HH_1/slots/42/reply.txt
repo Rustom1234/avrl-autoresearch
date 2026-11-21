@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _soft_kick(n, c, r, rng):
+    """Move the centres along 1 to 3 of the softest nonzero modes of the active-contact Jacobian."""
+    iu = np.triu_indices(n, 1)
+    diff = c[iu[0]] - c[iu[1]]
+    d = np.sqrt((diff ** 2).sum(1))
+    act = np.where(d - r[iu[0]] - r[iu[1]] < 1e-7)[0]
+    u = diff[act] / d[act, None]
+    J = np.zeros((len(act), 2 * n))
+    k = np.arange(len(act))
+    for q in range(2):
+        J[k, 2 * iu[0][act] + q] = u[:, q]
+        J[k, 2 * iu[1][act] + q] = -u[:, q]
+    rows = [J]
+    for i in range(n):
+        for q in range(2):
+            if c[i, q] - r[i] < 1e-7:
+                e = np.zeros(2 * n)
+                e[2 * i + q] = 1
+                rows.append(e[None])
+            if 1 - c[i, q] - r[i] < 1e-7:
+                e = np.zeros(2 * n)
+                e[2 * i + q] = -1
+                rows.append(e[None])
+    J = np.vstack(rows)
+    w, V = np.linalg.eigh(J.T @ J)
+    soft = V[:, w > 1e-9][:, :6]
+    if soft.shape[1] == 0:
+        return c.copy()
+    m = rng.choice(soft.shape[1], size=rng.integers(1, 4), replace=False)
+    v = soft[:, m] @ rng.choice([-1.0, 1.0], len(m))
+    v *= rng.uniform(0.02, 0.05) / np.abs(v).max()
+    return np.clip(c + v.reshape(n, 2), 0, 1)
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        else:              # local kick: re-randomise the centres in a disc, then re-optimise everything
+            c, r = best[0].copy(), best[1].copy()
+            p, R = rng.uniform(0, 1, 2), rng.uniform(0.15, 0.35)
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+=======
+        else:              # local kick: soft-mode perturbation of the incumbent, then re-optimise everything
+            c = _soft_kick(n, best[0], best[1], rng)
+            r = best[1].copy()
+            c, r = _solve_once(n, rng, np.concatenate([c.ravel(), r]))
+>>>>>>> REPLACE
+-----

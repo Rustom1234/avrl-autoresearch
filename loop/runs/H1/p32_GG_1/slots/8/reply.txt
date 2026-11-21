@@ -1,0 +1,79 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def objective(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Penalty for overlaps and boundary violations
+        dist_sq = ((c[iu[0]] - c[iu[1]]) ** 2).sum(1)
+        r_sum = r[iu[0]] + r[iu[1]]
+        overlap = np.maximum(0, r_sum - np.sqrt(dist_sq))
+        
+        bound_violation = np.sum(np.maximum(0, r - c[:, 0]), axis=1) + 
+                             np.sum(np.maximum(0, r - c[:, 1]), axis=1) + 
+                             np.sum(np.maximum(0, c[:, 0] + r - 1), axis=1) + 
+                             np.sum(np.maximum(0, c[:, 1] + r - 1), axis=1)
+        
+        penalty = 1e4 * (np.sum(overlap) + np.sum(bound_violation))
+        return -r.sum() + penalty
+
+    res = minimize(objective, x0, method="SLSQP", options={"maxiter": MAX_ITER})\n    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def objective(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Penalty for overlaps and boundary violations
+        dist_sq = ((c[iu[0]] - c[iu[1]]) ** 2).sum(1)
+        r_sum = r[iu[0]] + r[iu[1]]
+        overlap = np.maximum(0, r_sum - np.sqrt(dist_sq))
+        
+        bound_violation = (np.maximum(0, r - c[:, 0])).sum(axis=1) + 
+                             np.maximum(0, r - c[:, 1]).sum(axis=1) + 
+                             np.maximum(0, c[:, 0] + r - 1).sum(axis=1) + 
+                             np.maximum(0, c[:, 1] + r - 1).sum(axis=1)
+        
+        penalty = 10000 * (overlap.sum() + bound_violation.sum())
+        return -r.sum() + penalty
+
+    res = minimize(objective, x0, method="SLSQP", options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

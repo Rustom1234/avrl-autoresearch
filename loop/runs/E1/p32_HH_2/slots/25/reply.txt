@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+HOP_SD = 0.04
+=======
+HOP_SD = 0.04
+K_HOPS = 4
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < budget:   # basin hopping from the best packing
+        c, r = best
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+        c, r = _solve_once(n, p)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < budget:   # basin hopping: best of K_HOPS perturbed copies per hop
+        cand = None
+        for _ in range(K_HOPS):
+            if time.process_time() - t0 >= budget:
+                break
+            p = (best[0] + rng.normal(0, HOP_SD, best[0].shape)).ravel()
+            c, r = _solve_once(n, p)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            if cand is None or r.sum() > cand[1].sum():
+                cand = (c, r)
+        if cand is not None and cand[1].sum() > best[1].sum():
+            best = cand
+    return best
+>>>>>>> REPLACE
+-----

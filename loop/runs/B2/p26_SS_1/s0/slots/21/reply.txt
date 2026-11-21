@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _maximin(n, rng, m=400):
+    cand = rng.uniform(0.1, 0.9, (m, 2))
+    chosen = [cand[rng.integers(m)]]
+    dmin = np.sqrt(((cand - chosen[0]) ** 2).sum(1))
+    for _ in range(n - 1):
+        k = np.argmax(dmin)
+        chosen.append(cand[k])
+        dmin = np.minimum(dmin, np.sqrt(((cand - cand[k]) ** 2).sum(1)))
+    return np.array(chosen)
+
+
+def _ring(n, rng):
+    k = min(12, n)
+    t = rng.uniform(0, 4, k)
+    side = np.floor(t).astype(int)
+    f = t - side
+    d = rng.uniform(0.03, 0.12, k)
+    x = np.select([side == 0, side == 1, side == 2, side == 3], [f, 1 - d, 1 - f, d])
+    y = np.select([side == 0, side == 1, side == 2, side == 3], [d, f, 1 - d, 1 - f])
+    return np.vstack([np.stack([x, y], 1), rng.uniform(0.2, 0.8, (n - k, 2))])
+
+
+def _solve_once(n, rng, start=None):
+    if start is None:
+        u = rng.random()
+        if u < 0.4:
+            cen = _maximin(n, rng)
+        elif u < 0.7:
+            cen = _ring(n, rng)
+        else:
+            cen = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+        x0 = np.concatenate([cen.ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction=reduction)
+        return loss
+=======
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction=reduction)
+        # Z-normalization loss to stabilize logit scale
+        lse = torch.logsumexp(logits.view(-1, logits.size(-1)), dim=-1)  # shape: (B*T,)
+        z_loss = torch.mean(lse.square())
+        loss = loss + 1e-4 * z_loss
+        return loss
+>>>>>>> REPLACE
+-----
+[PATCH_FREQ=v1]
+<<<<<<< SEARCH
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction=reduction)
+        return loss
+=======
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction=reduction)
+        
+        # Z-loss on logits to stabilize logit scale (light regularizer on unembedding)
+        lse = torch.logsumexp(logits.view(-1, logits.size(-1)), dim=-1)
+        z_loss = torch.mean(lse.square() * (1.0 + 0.1 * torch.sigmoid(logits.abs())))
+        loss = loss + 1e-4 * z_loss
+        
+        return loss
+>>>>>>> REPLACE
+         [PATCH_COUNT=1]
+-----
+<<<<<<<< SEARCH
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+        
+=======
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+
+            # Z-loss regularization to stabilize logit scale (light regularizer for low val_bpb)
+            z_loss_scale = 1e-4
+            lse = torch.logsumexp(logits.view(-1, logits.size(-1)), dim=-1)
+            z_loss = z_loss_scale * lse.square()
+            
+            return loss + z_loss
+        return logits
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+=======
+    while time.process_time() - t0 < budget:   # add a circle at the largest hole, optimise n+1, delete the smallest
+        pts = rng.uniform(0, 1, (300, 2))
+        edge = np.sqrt(((pts[:, None] - c[None]) ** 2).sum(-1)) - r[None]
+        score = np.minimum(edge.min(1), np.minimum(pts, 1 - pts).min(1))
+        c3 = np.vstack([c, pts[np.argmax(score)]])
+        r3 = np.append(r, 0)
+        c3, r3 = _optimise(n + 1, np.concatenate([c3.ravel(), r3]))
+        c3 = np.clip(c3, 0, 1)
+        r3 = _repair(c3, r3)
+        i = np.argmin(r3)
+        c2, r2 = _optimise(n, np.concatenate([np.delete(c3, i, 0).ravel(), np.delete(r3, i)]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+>>>>>>> REPLACE
+-----

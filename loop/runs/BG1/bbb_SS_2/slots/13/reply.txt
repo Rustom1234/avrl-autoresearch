@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+ACID = Chem.MolFromSmarts("[CX3](=O)[OX2H1,OX1-]")
+BASE = Chem.MolFromSmarts("[NX3;!$(N-[C,S]=[O,S,N]);!$(N-a);!$(N-[N,O])]")
+
+
+def physchem(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Descriptors.MolWt(m), Descriptors.MolLogP(m), Descriptors.TPSA(m), Descriptors.NumHDonors(m),
+                     Descriptors.NumHAcceptors(m), Descriptors.NumRotatableBonds(m), Descriptors.FractionCSP3(m),
+                     Descriptors.RingCount(m), Descriptors.NumAromaticRings(m), Chem.GetFormalCharge(m),
+                     len(m.GetSubstructMatches(ACID)), len(m.GetSubstructMatches(BASE))])
+    return np.array(rows, dtype=np.float32)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rf.fit(np.hstack([Dtr, Ftr]), y)
+    preds.append(rf.predict_proba(np.hstack([Dte, Fte]))[:, 1])
+=======
+    Ptr, Pte = physchem(train_smiles), physchem(test_smiles)
+    rf.fit(np.hstack([Ptr, Ftr]), y)
+    preds.append(rf.predict_proba(np.hstack([Pte, Fte]))[:, 1])
+>>>>>>> REPLACE
+-----

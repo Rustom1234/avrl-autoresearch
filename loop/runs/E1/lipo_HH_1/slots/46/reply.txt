@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    rf = RandomForestRegressor(n_estimators=200, max_features=0.3, n_jobs=8, random_state=seed)
+    p_rf = rf.fit(Xa, ya).predict(Xb)
+    m = lgb.train(lgb_params((31, 10, 0.2), seed), lgb.Dataset(Xa, ya), num_boost_round=N_ROUNDS)
+    p_lgb = m.predict(Xb)
+=======
+    def drop(X, r):
+        X = X.copy()
+        mask = r.random((X.shape[0], 2 * N_BITS)) < 0.1
+        X[:, :2 * N_BITS][mask] = 0
+        return X
+
+    rng = np.random.default_rng(seed)
+    Xaug = np.vstack([Xa] + [drop(Xa, rng) for _ in range(2)])
+    yaug = np.concatenate([ya, ya, ya])
+    rf = RandomForestRegressor(n_estimators=200, max_features=0.3, n_jobs=8, random_state=seed)
+    rf.fit(Xaug, yaug)
+    m = lgb.train(lgb_params((31, 10, 0.2), seed), lgb.Dataset(Xaug, yaug), num_boost_round=N_ROUNDS)
+    tr = np.random.default_rng(seed + 12345)
+    Xtta = [Xb] + [drop(Xb, tr) for _ in range(3)]
+    p_rf = np.mean([rf.predict(X) for X in Xtta], axis=0)
+    p_lgb = np.mean([m.predict(X) for X in Xtta], axis=0)
+>>>>>>> REPLACE
+-----

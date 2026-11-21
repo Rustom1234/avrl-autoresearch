@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+def construct_packing():
+    import time
+    from scipy.optimize import minimize
+    n = 26
+    t0 = time.time()
+=======
+def _pack(seed, ms_len, bh_len, v0=None):
+    import time
+    from scipy.optimize import minimize
+    n = 26
+    t0 = time.time()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng = np.random.default_rng(0)
+=======
+    rng = np.random.default_rng(seed)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    bv = None
+    while time.time() - t0 < 60:
+=======
+    bv = None
+    if v0 is not None:
+        bv = v0.copy()
+        _c, _r = finalize(bv)
+        best = (_c, _r)
+        bs = _r.sum()
+    while time.time() - t0 < ms_len:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.time() - t0 < 200:
+=======
+    while time.time() - t0 < ms_len + bh_len:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+
+
+# EVOLVE-BLOCK-END
+=======
+    return best, bs, bv
+
+
+def construct_packing():
+    results = []
+    for sd in (0, 1, 2):
+        results.append(_pack(sd, 20, 30))
+    top = max(results, key=lambda t: t[1])
+    fin = _pack(99, 0, 80, v0=top[2])
+    if fin[1] > top[1]:
+        top = fin
+    return top[0]
+
+
+# EVOLVE-BLOCK-END
+>>>>>>> REPLACE
+-----

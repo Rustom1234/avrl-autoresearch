@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+def scaled_rank(p):
+    return (rankdata(p) - 1) / max(len(p) - 1, 1)
+=======
+def scaled_rank(p):
+    return (rankdata(p) - 1) / max(len(p) - 1, 1)
+
+
+ALPHA_LP = 0.9
+LP_ITERS = 30
+LP_K = 10
+LP_WEIGHT = 0.2
+
+
+def label_spread(fp_train, y_train, fp_test):
+    F_all = np.vstack([fp_train, fp_test]).astype(np.float64)
+    inter = F_all @ F_all.T
+    cnt = F_all.sum(axis=1)
+    sim = inter / np.maximum(cnt[:, None] + cnt[None, :] - inter, 1e-9)
+    np.fill_diagonal(sim, 0.0)
+    n = sim.shape[0]
+    idx = np.argsort(-sim, axis=1)[:, :LP_K]
+    rows = np.repeat(np.arange(n), LP_K)
+    W = np.zeros_like(sim)
+    W[rows, idx.ravel()] = sim[rows, idx.ravel()]
+    W = np.maximum(W, W.T)
+    d = W.sum(axis=1)
+    dinv = 1.0 / np.sqrt(np.maximum(d, 1e-12))
+    S = dinv[:, None] * W * dinv[None, :]
+    n_tr = len(y_train)
+    Y0 = np.zeros(n)
+    Y0[:n_tr] = 2.0 * np.asarray(y_train, dtype=np.float64) - 1.0
+    F = Y0.copy()
+    for _ in range(LP_ITERS):
+        F = ALPHA_LP * (S @ F) + (1 - ALPHA_LP) * Y0
+    return F[n_tr:]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    graph = label_spread(X_train[:, :N_BITS], train_y, X_test[:, :N_BITS])
+    y = np.asarray(train_y, dtype=np.int64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    tree = 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+    return (1 - LP_WEIGHT) * tree + LP_WEIGHT * scaled_rank(graph)
+>>>>>>> REPLACE
+-----

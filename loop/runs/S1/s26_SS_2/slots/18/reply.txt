@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+    cur_v = bv.copy(); cur_s = bs
+    while time.time() - t0 < 200:
+        w = cur_v.copy()
+        k = rng.integers(1, 5)
+        idx = rng.choice(n, k, replace=False)
+        w[idx] += rng.normal(0, 0.05, k)
+        w[n + idx] += rng.normal(0, 0.05, k)
+=======
+    cur_v = bv.copy(); cur_s = bs
+    pool = [(bs, bv.copy())]
+    stall = 0
+    while time.time() - t0 < 190:
+        w = cur_v.copy()
+        k = rng.integers(1, 7)
+        sig = np.exp(rng.uniform(np.log(0.01), np.log(0.2)))
+        idx = rng.choice(n, k, replace=False)
+        w[idx] += rng.normal(0, sig, k)
+        w[n + idx] += rng.normal(0, sig, k)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                           options={"maxiter": 100, "ftol": 1e-12})
+=======
+                           options={"maxiter": 80, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > cur_s or rng.random() < np.exp((s - cur_s) / 0.002):
+            cur_v = w; cur_s = s
+=======
+        if s > cur_s + 1e-12:
+            cur_v = w; cur_s = s
+            stall = 0
+            pool.append((s, w.copy()))
+            pool.sort(key=lambda t: -t[0])
+            pool = pool[:5]
+        else:
+            stall += 1
+            if stall >= 60:
+                stall = 0
+                pv = pool[rng.integers(0, len(pool))]
+                cur_v = pv[1].copy(); cur_s = pv[0]
+>>>>>>> REPLACE
+-----

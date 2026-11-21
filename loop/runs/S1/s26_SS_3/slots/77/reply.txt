@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+        k = rng.choice(np.argsort(r)[:4])
+        keep = np.arange(n) != k
+        cc = c[keep]
+        rr = r[keep]
+        P = rng.random((3000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:10]
+        p = P[rng.choice(top)]
+        c0 = np.vstack([cc, p[None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, [0.03]])
+=======
+        k = rng.choice(np.argsort(r)[:6])
+        dk = np.sqrt(((c - c[k]) ** 2).sum(1))
+        dk[k] = 9.0
+        k2 = rng.choice(np.argsort(dk)[:4])
+        keep = (np.arange(n) != k) & (np.arange(n) != k2)
+        cc = c[keep]
+        rr = r[keep] * 0.97
+        for _h in range(2):
+            P = rng.random((4000, 2))
+            dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+            clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+            p = P[np.argmax(clear)]
+            cc = np.vstack([cc, p[None]])
+            rr = np.concatenate([rr, [0.03]])
+        c0 = np.clip(cc + rng.normal(0, 0.003, cc.shape), 0.01, 0.99)
+        r0 = rr
+>>>>>>> REPLACE
+-----

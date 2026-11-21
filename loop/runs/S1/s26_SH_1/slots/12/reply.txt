@@ -1,0 +1,90 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+    for _k in range(100000):
+        if time.time() - t0 > 200.0 and best is not None:
+            break
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+        r0 = np.full(_N, 0.05)
+        x, y = _optimize(x0, y0, r0)
+        r = _lp_radii(x, y)
+        if r is None:
+            continue
+        s = float(np.sum(r))
+        if best is None or s > best[0]:
+            centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            best = (s, centers, r)
+    if best is None:
+        centers = np.column_stack(_seed(rng)[:2])
+        radii = np.zeros(_N)
+        return centers, radii
+    return best[1], best[2]
+=======
+def _brief(x0, y0, r0, maxiter=60):
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    bnds = [(None, None)] * (2 * _N) + [(0.0, None)] * _N
+    try:
+        res = minimize(_obj, z, jac=_obj_grad, constraints=cons,
+                       bounds=bnds, method="SLSQP",
+                       options={"maxiter": maxiter, "ftol": 1e-12})
+        if np.all(np.isfinite(res.x)):
+            z = res.x
+    except Exception:
+        pass
+    return z[:_N], z[_N:2 * _N]
+
+
+def _score(x, y):
+    r = _lp_radii(x, y)
+    if r is None:
+        return -1.0, None
+    return float(np.sum(r)), r
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    t0 = time.time()
+    K = 8
+    pop = []
+    for _ in range(K):
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x, y = _optimize(P[:, 0].copy(), P[:, 1].copy(), np.full(_N, 0.05))
+        s, r = _score(x, y)
+        pop.append([s, x, y, r])
+    rnd = 0
+    while time.time() - t0 < 150.0:
+        rnd += 1
+        for k in range(K):
+            if time.time() - t0 > 150.0:
+                break
+            sigma = 0.01 + 0.03 * k / (K - 1)
+            s_old, x, y, _r = pop[k]
+            xp = np.clip(x + rng.normal(0.0, sigma, _N), 0.0, 1.0)
+            yp = np.clip(y + rng.normal(0.0, sigma, _N), 0.0, 1.0)
+            x2, y2 = _brief(xp, yp, np.full(_N, 0.05))
+            s2, r2 = _score(x2, y2)
+            if s2 > s_old:
+                pop[k] = [s2, x2, y2, r2]
+        if rnd % 5 == 0:
+            scores = [p[0] for p in pop]
+            w = int(np.argmin(scores))
+            b = int(np.argmax(scores))
+            pop[w] = [pop[b][0], pop[b][1].copy(), pop[b][2].copy(), pop[b][3]]
+    bs, bx, by, br = max(pop, key=lambda p: p[0])
+    x, y = _optimize(bx, by, np.full(_N, 0.05))
+    s, r = _score(x, y)
+    if r is not None and (br is None or s > bs):
+        bx, by, br, bs = x, y, r, s
+    if br is None:
+        centers = np.column_stack(_seed(rng)[:2])
+        radii = np.zeros(_N)
+        return centers, radii
+    centers = np.column_stack([np.clip(bx, 0.0, 1.0), np.clip(by, 0.0, 1.0)])
+    return centers, br
+>>>>>>> REPLACE
+-----

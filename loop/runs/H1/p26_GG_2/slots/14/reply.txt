@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def obj(v, lambd):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Overlap penalty
+        d_sq = np.sum((c[iu[0]] - c[iu[1]]) ** 2, axis=1)
+        dist = np.sqrt(d_sq)
+        overlap = np.maximum(0, r[iu[0]] + r[iu[1]] - dist)
+        # Boundary penalty
+        out_x = np.maximum(0, r - c[:, 0]) + np.maximum(0, r - (1 - c[:, 0]))
+        out_y = np.maximum(0, r - c[:, 1]) + np.maximum(0, r - (1 - c[:, 1]))
+        penalty = np.sum(overlap**2) + np.sum(out_x**2) + np.sum(out_y**2)
+        return -r.sum() + lambd * penalty
+
+    best_v = x0
+    cur_lambd = 10.0
+    for _ in range(3):
+        res = minimize(obj, best_v, args=(cur_lambd,), method="SLSQP", 
+                        options={"maxiter": MAX_ITER // 3})\n        if res.success: best_v = res.x
+        cur_lambd *= 5.0
+    return best_v[:2 * n].reshape(n, 2), best_v[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints是一位{\
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----

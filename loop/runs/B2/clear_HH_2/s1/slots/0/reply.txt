@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+
+    lgbm = lgb.LGBMRegressor(n_estimators=400, learning_rate=0.03, num_leaves=31, subsample=0.8, subsample_freq=1,
+                             colsample_bytree=0.5, min_child_samples=10, random_state=seed, n_jobs=8, verbose=-1)
+    lgbm.fit(desc_features(train_smiles), y)
+    p_desc = lgbm.predict(desc_features(test_smiles))
+
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+
+    n = len(p_desc)
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+
+    # out-of-fold GP prediction on training molecules (grouped by scaffold) as an extra LightGBM feature
+    scaffolds = [MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles]
+    groups = np.unique(scaffolds, return_inverse=True)[1]
+    oof = np.zeros(len(y))
+    for tr, va in GroupKFold(n_splits=5).split(K_tr, y, groups):
+        oof[va] = gp_mean(K_tr[np.ix_(tr, tr)], y[tr], K_tr[np.ix_(va, tr)], s2)
+
+    D_tr = np.column_stack([desc_features(train_smiles), oof])
+    D_te = np.column_stack([desc_features(test_smiles), p_fp])
+    lgbm = lgb.LGBMRegressor(n_estimators=400, learning_rate=0.03, num_leaves=31, subsample=0.8, subsample_freq=1,
+                             colsample_bytree=0.5, min_child_samples=10, random_state=seed, n_jobs=8, verbose=-1)
+    lgbm.fit(D_tr, y)
+    p_desc = lgbm.predict(D_te)
+
+    n = len(p_desc)
+>>>>>>> REPLACE
+-----

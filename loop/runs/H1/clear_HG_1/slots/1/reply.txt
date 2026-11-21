@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(X_train, y_train_transformed)
+        preds = model.predict(X_test)
+        return np.expm1(preds)
+    else:
+        model.fit(X_train, y_train)
+        return model.predict(X_test)
+========
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    # Feature selection
+    selector = RandomForestRegressor(n_estimators=100, max_features=MAX_FEATURES, n_jobs=-1, random_state=seed)
+    selector.fit(X_train, y_train)
+    importances = selector.feature_importances_
+    top_indices = np.argsort(importances)[-300:]
+    X_train = X_train[:, top_indices]
+    X_test = X_test[:, top_indices]
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(X_train, y_train_transformed)
+        preds = model.predict(X_test)
+        return np.expm1(preds)
+    else:
+        model.fit(X_train, y_train)
+        return model.predict(X_test)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+=======
+def _solve_sym(n, rng):
+    """Optimise a 180-degree point-symmetric packing (m = n // 2 free circles, mirrors at (1 - c, r))."""
+    m = n // 2
+    iu = np.triu_indices(m, 1)
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (m, 2))
+    x0 = np.concatenate([base.ravel(), np.full(m, INIT_RADIUS)])
+
+    def cons(v):
+        c, r = v[:2 * m].reshape(m, 2), v[2 * m:]
+        d_pair = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        d_cross = np.sqrt(((c[:, None] - (1 - c)[None]) ** 2).sum(-1)) - r[:, None] - r[None]
+        return np.concatenate([d_pair, d_cross.ravel(), c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -2 * v[2 * m:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    c, r = res.x[:2 * m].reshape(m, 2), res.x[2 * m:]
+    return np.vstack([c, 1 - c]), np.concatenate([r, r])
+
+
+def _solve_once(n, rng, init=None, r_init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS) if r_init is None else r_init])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        if n % 2 == 0 and rng.random() < 0.5:
+            c0, r0 = _solve_sym(n, rng)
+            c, r = _solve_once(n, rng, c0, r0)
+        else:
+            c, r = _solve_once(n, rng, best[0] if guided else None)
+>>>>>>> REPLACE
+-----

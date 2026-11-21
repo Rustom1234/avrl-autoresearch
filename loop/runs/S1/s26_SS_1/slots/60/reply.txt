@@ -1,0 +1,60 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _polish(c, r, w=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def obj(x):
+        return -x[2 * n:].sum()
+
+    def objg(x):
+        g = np.zeros(3 * n)
+        g[2 * n:] = -1
+        return g
+=======
+    ww = np.ones(n) if w is None else w
+
+    def obj(x):
+        return -(ww * x[2 * n:]).sum()
+
+    def objg(x):
+        g = np.zeros(3 * n)
+        g[2 * n:] = -ww
+        return g
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+=======
+    best_s, best = -1, None
+    cands = []
+    while time.time() - t0 < 90:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+=======
+        s = r2.sum()
+        cands.append((s, c2, r2))
+        cands.sort(key=lambda t: -t[0])
+        cands = cands[:5]
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    t1 = time.time()
+    for k, (s0, cc, rr) in enumerate(cands):
+        if time.time() - t1 > 55:
+            break
+        try:
+            g = rng.normal(0, 1, _N)
+            for eps in (0.3, 0.1, 0.03, 0.0):
+                cc = np.clip(_polish(cc, rr, 1 + eps * g), 0, 1)
+                rr = _lp_radii(cc)
+            if rr.sum() > best_s:
+                best_s, best = rr.sum(), (cc, rr)
+        except Exception:
+            continue
+    c, r = best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_train, y_train)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    return np.expm1(preds)
+=======
+    # Simple hold-out for XGBoost early stopping
+    train_idx = np.split(np.arange(len(X_train)), [int(0.8 * len(X_train))])[0]
+    val_idx = np.split(np.arange(len(X_train)), [int(0.8 * len(X_train))])[1]
+    X_tr, X_val = X_train[train_idx], X_train[val_idx]
+    y_tr, y_val = y_train[train_idx], y_train[val_idx]
+
+    xgb = XGBRegressor(n_estimators=N_TREES_XGB, max_depth=6, learning_rate=0.1, random_state=seed)
+    xgb.fit(X_tr, y_tr, eval_set=[(X_val, y_val)], verbose=False)
+    
+    lgbm = LGBMRegressor(n_estimators=N_TREES_LGBM, max_depth=6, learning_rate=0.1, random_state=seed, verbose=-1)
+    lgbm.fit(X_train, y_train)
+    
+    preds = (rf.predict(X_test) + xgb.predict(X_test) + lgbm.predict(X_test)) / 3
+    return np.expm1(preds)
+>>>>>>> REPLACE
+-----

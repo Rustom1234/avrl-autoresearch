@@ -1,0 +1,128 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    
+    r = np.maximum(r - SHRINK, 0)
+    
+    # Greedy coordinate ascent to grow radii
+    rng_repair = np.random.default_rng(42)
+    indices = rng_repair.permutation(n)
+    for _ in range(20):
+        changed = False
+        for i in indices:
+            old_r = r[i]
+            # Max radius bounded by walls
+            r[i] = min(r[i], c[i, 0], c[i, 1], 1 - c[i, 0], 1 - c[i, 1])
+            # Max radius bounded by other circles
+            dist_sq = np.sum((c - c[i])**2, axis=1)
+            d = np.sqrt(dist_sq)
+            # Only consider circles that aren't the current one
+            mask = np.arange(n) != i
+            r[i] = min(r[i], np.minimum(d[mask] - r[mask.nonzero()[0][0] if len(mask.nonzero()[0])>0 else                                  # this logic is slightly wrong, need to handle all
+                                         r[mask] - (r[i] - (r[i] - r[i])), d[mask] - r[mask])) # wait, simpler:
+            
+            # Correct logic for max radius r[i] given r[j]:
+            # r[i] + r[j] <= d[j]  =>  r[i] <= d[j] - r[j]
+            # r[i] <= min over j != i of (d[j] - r[j])
+            # But we need to consider that r[j] might change. Since we grow r[i] first,
+            # and r[j] for j > i hasn't changed yet in this sweep, it works.
+            # Let's just re-calc r[i] properly:
+            
+            # Actually, the simplest safe greedy growth:
+            # r_max = min(r_max, d[j] - r[j]) for all j != i
+            # we need to exclude j=i, but d[i,i] is 0, so we just ignore the 0 result.
+            
+            possible_r = d[mask] - r[mask]
+            r[i] = min(r[i], np.min(possible_r[possible_r > 0]))
+            
+            if abs(r[i] - old_r) > 1e-12:
+                changed = True
+        if not changed: break
+    return r
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+
+    r = np.maximum(r - SHRINK, 0)
+    
+    # Greedy coordinate ascent to grow radii
+    local_rng = np.random.default_rng(42)
+    indices = local_rng.permutation(n)
+    for _ in range(20):
+        changed = False
+        for i in indices:
+            old_r = r[i]
+            # Max radius bounded by walls
+            r[i] = min(r[i], c[i, 0], c[i, 1], 1 - c[i, 0], 1 - c[i, 1])
+            # Max radius bounded by other circles
+            dist_sq = np.sum((c - c[i])**2, axis=1)
+            d = np.sqrt(dist_sq)
+            mask = np.arange(n) != i
+            possible_r = d[mask] - r[mask]
+            r[i] = min(r[i], np.min(possible_r[possible_r > 0]) if np.any(possible_r > 0) else r[i])
+            
+            if abs(r[i] - old_r) > 1e-12:
+                changed = True
+        if not changed:
+            break
+    return r
+>>>>>>> REPLACE
+-----

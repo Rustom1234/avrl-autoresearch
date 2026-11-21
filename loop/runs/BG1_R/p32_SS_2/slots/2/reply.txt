@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    R = int(rng.integers(5, 8))
+    m = int(np.ceil(n / R))
+    pts = np.array([((j + 0.5 + 0.5 * (i % 2)) / (m + 0.5), (i + 0.5) / R) for i in range(R) for j in range(m)])
+    pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.02, (n, 2))
+    pts = np.clip(pts, 0.03, 0.97)
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+=======
+def _reinsert_start(c, r, rng):
+    """Move the smallest circle to the largest sampled hole and shrink the others slightly."""
+    k = int(np.argmin(r))
+    keep = np.arange(len(r)) != k
+    P = rng.random((2000, 2))
+    d = np.sqrt(((P[:, None] - c[keep][None]) ** 2).sum(-1)) - r[keep][None]
+    h = np.minimum(d.min(1), np.minimum(P, 1 - P).min(1))
+    c, r = c.copy(), r * 0.95
+    c[k] = P[np.argmax(h)]
+    r[k] = max(h.max(), 0.01) * 0.95
+    return np.concatenate([c.ravel(), r])
+
+
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        R = int(rng.integers(5, 8))
+        m = int(np.ceil(n / R))
+        pts = np.array([((j + 0.5 + 0.5 * (i % 2)) / (m + 0.5), (i + 0.5) / R) for i in range(R) for j in range(m)])
+        pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.02, (n, 2))
+        pts = np.clip(pts, 0.03, 0.97)
+        x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if time.process_time() - t0 < 0.5 * time_limit:   # random restarts
+            c, r = _solve_once(n, rng)
+        else:                                             # remove-and-reinsert local search
+            c, r = _solve_once(n, rng, _reinsert_start(best[0], best[1], rng))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

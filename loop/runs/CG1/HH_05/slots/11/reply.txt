@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def predict(model, images):
+    loader = CifarLoader(images, None, train=False, batch_size=2000)
+    return infer(model, loader, tta_level=2)
+=======
+@torch.compile(fullgraph=True)
+def _fused_predict(model, test_images):
+    with torch.no_grad():
+        n = test_images.shape[0]
+        pad = 1
+        padded = F.pad(test_images, (pad,) * 4, "reflect")
+        views = [test_images, padded[:, :, 0:32, 0:32], padded[:, :, 2:34, 2:34]]
+        views = views + [v.flip(-1) for v in views]
+        stacked = torch.cat(views, dim=0)
+        logits = torch.cat(
+            [model(c.contiguous(memory_format=torch.channels_last)) for c in stacked.split(2000)]
+        ).view(len(views), n, -1)
+        base = logits[0]
+        confidences = F.softmax(base, dim=1).max(dim=1).values
+        k_uncertain = int(n * 0.25)
+        _, uncertain_indices = torch.topk(confidences, k_uncertain, largest=False, sorted=False)
+        mask = torch.zeros(n, dtype=torch.bool, device=base.device).index_fill(0, uncertain_indices, True)
+        return torch.where(mask.view(-1, 1), logits.mean(dim=0), base)
+
+
+def predict(model, images):
+    loader = CifarLoader(images, None, train=False, batch_size=2000)
+    model.eval()
+    return _fused_predict(model, loader.normalize(loader.images))
+>>>>>>> REPLACE
+-----

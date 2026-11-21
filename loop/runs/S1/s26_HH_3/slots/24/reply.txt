@@ -1,0 +1,72 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _rattlers(c, r, tol=1e-6):
+    """Indices of circles with no constraint of slack below tol (not load-bearing)."""
+    n = len(r)
+    loaded = np.zeros(n, dtype=bool)
+    iu, ju = np.triu_indices(n, 1)
+    dd = np.hypot(c[iu, 0] - c[ju, 0], c[iu, 1] - c[ju, 1]) - (r[iu] + r[ju])
+    act = dd < tol
+    loaded[iu[act]] = True
+    loaded[ju[act]] = True
+    wall = np.minimum(np.minimum(c[:, 0] - r, 1 - c[:, 0] - r), np.minimum(c[:, 1] - r, 1 - c[:, 1] - r))
+    loaded |= wall < tol
+    return np.where(~loaded)[0]
+
+
+def _largest_hole(centers, radii, rng, m=2000):
+    """Sample m seeded points; return the one with the greatest clearance to circles and walls."""
+    p = rng.uniform(0.0, 1.0, size=(m, 2))
+    dc = np.hypot(p[:, None, 0] - centers[None, :, 0], p[:, None, 1] - centers[None, :, 1]) - radii[None, :]
+    wall = np.minimum(np.minimum(p[:, 0], 1 - p[:, 0]), np.minimum(p[:, 1], 1 - p[:, 1]))
+    score = np.minimum(dc.min(axis=1), wall)
+    return p[int(np.argmax(score))]
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        cur_c, cur_r, cur_s = best_c, best_r, best_sum
+=======
+        cur_c, cur_r, cur_s = best_c, best_r, best_sum
+        cur_rat = np.array([], dtype=int)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c0 = cur_c.copy()
+            k = int(rng.integers(1, 4))
+            pick = rng.choice(n, size=k, replace=False)
+            c0[pick] = np.clip(c0[pick] + rng.normal(0.0, 0.1, size=(k, 2)), 0.0, 1.0)
+            try:
+                c, r = _optimize(c0, np.maximum(cur_r, 0.01))
+                r = _repair(c, r)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+            if s > cur_s or rng.random() < np.exp((s - cur_s) / 0.01):
+                cur_c, cur_r, cur_s = c, r, s
+=======
+            c0 = cur_c.copy()
+            if len(cur_rat) > 0:
+                for i in cur_rat:
+                    others = np.delete(np.arange(n), i)
+                    c0[i] = _largest_hole(c0[others], cur_r[others], rng)
+            else:
+                k = int(rng.integers(1, 4))
+                pick = rng.choice(n, size=k, replace=False)
+                c0[pick] = np.clip(c0[pick] + rng.normal(0.0, 0.1, size=(k, 2)), 0.0, 1.0)
+            try:
+                c, r_raw = _optimize(c0, np.maximum(cur_r, 0.01))
+                rat = _rattlers(c, r_raw)
+                r = _repair(c, r_raw)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+            if s > cur_s or rng.random() < np.exp((s - cur_s) / 0.01):
+                cur_c, cur_r, cur_s, cur_rat = c, r, s, rat
+>>>>>>> REPLACE
+-----

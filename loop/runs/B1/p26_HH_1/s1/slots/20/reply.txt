@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+ELITE = 5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None:   # first start: a random restart
+=======
+    rng, t0, pool = np.random.default_rng(seed), time.process_time(), []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if not pool:   # first start: a random restart
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c, r = best[0].copy(), best[1].copy()
+=======
+            c, r = pool[rng.integers(len(pool))]
+            c, r = c.copy(), r.copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        s = r.sum()
+        if all(abs(s - q[1].sum()) > 1e-6 for q in pool) and (len(pool) < ELITE or s > pool[-1][1].sum()):
+            pool.append((c, r))
+            pool.sort(key=lambda q: -q[1].sum())
+            del pool[ELITE:]
+    return pool[0]
+>>>>>>> REPLACE
+-----

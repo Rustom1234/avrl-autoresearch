@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+def minmax(A, B, chunk=25):
+    sa, sb = A.sum(1), B.sum(1)
+    K = np.empty((len(A), len(B)), dtype=np.float64)
+    for i in range(0, len(A), chunk):
+        d = np.abs(A[i:i + chunk, None, :] - B[None, :, :]).sum(2)
+        tot = sa[i:i + chunk, None] + sb[None, :]
+        K[i:i + chunk] = (tot - d) / (tot + d + 1e-9)
+    return K
+=======
+def minmax(A, B, levels=4):
+    A, B = np.minimum(A, levels), np.minimum(B, levels)
+    sa, sb = A.sum(1), B.sum(1)
+    mn = np.zeros((len(A), len(B)), dtype=np.float64)
+    for t in range(1, levels + 1):
+        mn += (A >= t).astype(np.float32) @ (B >= t).astype(np.float32).T
+    return mn / (sa[:, None] + sb[None, :] - mn + 1e-9)
+>>>>>>> REPLACE
+-----

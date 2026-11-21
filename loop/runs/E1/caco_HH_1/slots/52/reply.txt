@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+LOCAL_K = 60
+LOCAL_RIDGE = 1.0
+
+
+def local_linear(Z, y, Q, loo=False):
+    # Z: standardized training physchem, Q: query rows; loo=True excludes each training point from its own neighbours
+    D = np.sqrt(((Q[:, None, :] - Z[None, :, :]) ** 2).sum(-1))
+    if loo:
+        np.fill_diagonal(D, np.inf)
+    out = np.empty(len(Q))
+    for i in range(len(Q)):
+        idx = np.argsort(D[i])[:LOCAL_K]
+        d = D[i, idx]
+        h = max(np.median(d), 1e-6)
+        w = np.exp(-0.5 * (d / h) ** 2)
+        A = np.hstack([np.ones((len(idx), 1)), Z[idx]])
+        AtW = A.T * w
+        R = LOCAL_RIDGE * np.eye(A.shape[1])
+        R[0, 0] = 0.0
+        beta = np.linalg.solve(AtW @ A + R, AtW @ y[idx])
+        out[i] = beta[0] + Q[i] @ beta[1:]
+    return out
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    scaler = StandardScaler().fit(ptr)
+    lin = Ridge(alpha=1.0).fit(scaler.transform(ptr), y)
+    base_tr = lin.predict(scaler.transform(ptr))
+    base_te = lin.predict(scaler.transform(pte))
+=======
+    scaler = StandardScaler().fit(ptr)
+    Ztr = scaler.transform(ptr)
+    Zte = scaler.transform(pte)
+    base_tr = local_linear(Ztr, y, Ztr, loo=True)
+    base_te = local_linear(Ztr, y, Zte)
+>>>>>>> REPLACE
+-----

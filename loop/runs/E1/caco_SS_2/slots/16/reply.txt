@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def morgan_counts(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def minmax_kernel(A, B):
+    K = np.empty((len(A), len(B)), dtype=np.float64)
+    for i in range(len(A)):
+        K[i] = np.minimum(A[i], B).sum(1) / np.maximum(np.maximum(A[i], B).sum(1), 1e-9)
+    return K
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    keep = Xtr.std(axis=0) > 0
+    qt = QuantileTransformer(output_distribution='normal', n_quantiles=min(200, len(Xtr)), random_state=seed)
+    Str = qt.fit_transform(Xtr[:, keep])
+    Ste = qt.transform(Xte[:, keep])
+    svr = SVR(kernel='rbf', C=3, epsilon=0.1, gamma='scale').fit(Str, y)
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    Ftr, Fte = morgan_counts(train_smiles), morgan_counts(test_smiles)
+    Ktr = minmax_kernel(Ftr, Ftr)
+    Kte = minmax_kernel(Fte, Ftr)
+    mu = y.mean()
+    alpha = np.linalg.solve(Ktr + 0.5 * np.eye(len(Ktr)), y - mu)
+    p_krr = Kte @ alpha + mu
+    return 0.7 * p_lgb + 0.3 * p_krr
+>>>>>>> REPLACE
+-----

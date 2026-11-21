@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    best_err, best_cfg = np.inf, (0.5, 1.0)
+    for lam in (0.1, 0.5, 2.0):
+        for wr in (0.5, 1.0, 2.0):
+            err = 0.0
+            for itr, iva in GroupKFold(n_splits=4).split(Ta, ya, ga):
+                w_in = np.linalg.solve(Ta[np.ix_(itr, itr)] + wr * Ra[np.ix_(itr, itr)] + lam * np.eye(len(itr)), ya[itr] - mu)
+                pv = (Ta[np.ix_(iva, itr)] + wr * Ra[np.ix_(iva, itr)]) @ w_in + mu
+                err += np.abs(pv - ya[iva]).sum()
+            if err < best_err:
+                best_err, best_cfg = err, (lam, wr)
+=======
+    best_err, best_cfg = np.inf, (0.5, 1.0)
+    yc = ya - mu
+    n = len(ya)
+    for wr in (0.5, 1.0, 2.0):
+        s, V = np.linalg.eigh(Ta + wr * Ra)
+        s = np.maximum(s, 0)
+        a2 = (V.T @ yc) ** 2
+        for lam in (0.03, 0.1, 0.3, 1.0, 3.0):
+            # GP negative log marginal likelihood with signal variance profiled out
+            nll = 0.5 * n * np.log(np.sum(a2 / (s + lam)) / n) + 0.5 * np.sum(np.log(s + lam))
+            if nll < best_err:
+                best_err, best_cfg = nll, (lam, wr)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,642 @@
+[
+ {
+  "id": "b001",
+  "title": "EState fingerprint and EState atom indices",
+  "spec": "Add RDKit's EState fingerprints (rdkit.Chem.EStateFingerprinter.FingerprintMol, the count-based 79-dim vector) and the per-molecule sum and max of EState indices (rdkit.Chem.EState.EState.EStateIndices) as extra columns. Concatenate them to the existing descriptor block so the RF, LightGBM and CatBoost members see them. Leave the Ridge input and all hyperparameters unchanged. Guard each call with try/except and fall back to zeros so that failed molecules do not crash the fit.",
+  "family": "data",
+  "sim_hist_bge": 0.7750205993652344,
+  "sim_tried_bge": 0.7750205993652344,
+  "sim_hist_mini": 0.5786039233207703,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Choose the LightGBM tree count by grouped early stopping",
+  "spec": "Let the data decide how many boosting rounds the LightGBM member needs instead of fixing 500. Inside fit_predict, split the training molecules by Murcko scaffold groups (MurckoScaffoldSmiles, falling back to the SMILES on failure) with GroupKFold(n_splits=5) and take one fold as a validation set; fit an LGBMRegressor with n_estimators=3000 and the current other hyperparameters using callbacks=[lightgbm.early_stopping(100, verbose=False)] against that validation set, read best_iteration_, then refit on all the training rows with n_estimators set to that value (scaled up by 5/4 to compensate for the held-out fifth, with a floor of 100 and a cap of 3000). Use the refit model's prediction as the LightGBM member exactly as before. The optimal number of rounds plausibly varies across the 15 folds, and a fixed 500 is either under- or over-fit depending on the fold; choosing it on scaffold-disjoint validation data matches how the harness evaluates.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8091058135032654,
+  "sim_tried_bge": 0.8091058135032654,
+  "sim_hist_mini": 0.5505172610282898,
+  "sources": [
+   [
+    "fable",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Seed-average every ensemble member over three seeds",
+  "spec": "All three tree members and the Ridge are fit once with a single random_state=seed. Because the dataset is small (970 molecules) and the folds test unseen scaffolds, a noticeable part of each member's prediction is fitting noise that averaging over seeds removes for free. Modify fit_predict so that, for each of the three tree models, the model is fit three times with random_state = seed, seed+1, seed+2 (or random_seed for CatBoost), each prediction vector is converted to normalized ranks with rankdata(p)/len(p), and the three rank vectors are averaged into that member's single prediction before the member-level mean is taken. The Ridge is deterministic and needs no change. Reduce n_estimators/iterations by a factor of about two (RF 150, LightGBM 250, CatBoost 250) so the job still fits comfortably inside the 10-minute, 15-fit budget; the seed average should more than compensate for the smaller individual models. Keep the 0.7/0.3 final blend untouched.",
+  "family": "other",
+  "sim_hist_bge": 0.8742700815200806,
+  "sim_tried_bge": 0.7673004865646362,
+  "sim_hist_mini": 0.771170437335968,
+  "sources": [
+   [
+    "opus",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Add an Avalon count fingerprint block",
+  "spec": "Add a fourth feature block: 1024-bit Avalon counts from rdkit.Avalon.pyAvalonTools.GetAvalonCountFP, converted to a dense float32 array (iterate the nonzero elements of the returned sparse count vector into a zero array of length 1024). Place it between the ErG block and the Morgan count block in both the train and test hstack calls, so all three tree members see it; leave the Ridge member reading only the last N_BITS Morgan columns, unchanged. Avalon uses its own enumerated path and feature-class definitions rather than circular atom environments, so it encodes substructures that neither Morgan counts nor ErG pharmacophore shapes capture, and metabolic lability in hepatocytes is often driven by specific labile fragments. Keep every model, the rank target, and the 0.7/0.3 blend exactly as they are.",
+  "family": "data",
+  "sim_hist_bge": 0.7953519821166992,
+  "sim_tried_bge": 0.7876689434051514,
+  "sim_hist_mini": 0.559395432472229,
+  "sources": [
+   [
+    "fable",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Extra descriptor blocks: BCUT and autocorrelation",
+  "spec": "Append rdkit.Chem.rdMolDescriptors.CalcAUTOCORR2D (192 values) and the BCUT2D descriptors (Descriptors.BCUT2D_* are already in descList, so use only AUTOCORR2D) to the descriptor matrix. Clean them with nan_to_num and clip. Place them before the ErG block so that the shapes of the last N_BITS columns stay valid for Ridge.",
+  "family": "data",
+  "sim_hist_bge": 0.9461456537246704,
+  "sim_tried_bge": 0.7914173603057861,
+  "sim_hist_mini": 0.9264611005783081,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Size-normalized Morgan counts for the Ridge member",
+  "spec": "Before the log1p transform in the Ridge member, divide each molecule's Morgan count vector by its heavy-atom count (mol.GetNumHeavyAtoms(), floored at 1), then apply log1p. This removes the bias toward large molecules, whose counts are bigger, from the linear model's inputs. Use the same transform on training and test molecules. Keep Ridge alpha 10, the 0.7/0.3 blend and all tree members unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8340120315551758,
+  "sim_tried_bge": 0.8340120315551758,
+  "sim_hist_mini": 0.7111040353775024,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Shrink members toward consensus",
+  "spec": "After computing the 3 rank-normalized tree member predictions and the Ridge rank, compute the consensus c as the mean of all 4. Replace each tree member p with 0.7*p+0.3*c before the final blend. Then make the final blend as before. This is a light regularization of the ensemble.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8930863738059998,
+  "sim_tried_bge": 0.7765437364578247,
+  "sim_hist_mini": 0.7297586798667908,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Inner scaffold-grouped early stopping for boosters",
+  "spec": "Hold out a scaffold-grouped 15% of the training fold, using the Murcko scaffold of each training molecule as the group key, and train LightGBM and CatBoost with early stopping on this holdout (LightGBM: callbacks early_stopping(50) with a 1000-tree cap at learning_rate 0.03; CatBoost: early_stopping_rounds 50 with iterations 1500). Record the best iteration counts, then refit each booster on the full training fold with n_estimators or iterations set to 1.1 times the best count. Use the seed argument for the split and the models. The RF and Ridge members are unchanged.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8056362867355347,
+  "sim_tried_bge": 0.8056362867355347,
+  "sim_hist_mini": 0.5909501314163208,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Lambdarank-style LightGBM member swap",
+  "spec": "Replace the LGBMRegressor member with LGBMRegressor(objective='huber', alpha=0.3) on the rank target y in [0,1]. Keep the other hyperparameters. This makes the loss robust to outliers in the rank target, so it can differ from the squared-error members.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8887811899185181,
+  "sim_tried_bge": 0.8113470673561096,
+  "sim_hist_mini": 0.7941579818725586,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Trim high-residual training molecules via inner out-of-fold fits",
+  "spec": "Hepatocyte clearance assays are noisy and a handful of mislabelled or unlearnable molecules can distort both the tree members and the Ridge. Inside fit_predict, before fitting the final models, run a single cheap inner pass: 5-fold KFold(shuffle=True, random_state=seed) over the training set with one LGBMRegressor (same hyperparameters as the existing member but n_estimators=300) to produce out-of-fold predictions of the rank target, compute absolute residuals, and drop the worst 5 percent of training rows. Then fit all four existing members (RF, LightGBM, CatBoost, Ridge) on the trimmed rows only, with the target re-ranked on the surviving subset, and keep the final 0.7/0.3 blend and all prediction-side code unchanged. The inner pass adds roughly one extra LightGBM fit per fold, well inside the time budget. The trim fraction is the single knob; keep it as a module-level constant TRIM_FRAC = 0.05 so a follow-up slot can test 0.10 or 0.02.",
+  "family": "data",
+  "sim_hist_bge": 0.8379734754562378,
+  "sim_tried_bge": 0.7947757244110107,
+  "sim_hist_mini": 0.7086650133132935,
+  "sources": [
+   [
+    "opus",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Replicate the ErG incumbent unchanged",
+  "spec": "Make no change to train.py at all and simply run the current file again as a replicate job. The incumbent (RDKit descriptors + 315-dim ErG + Morgan counts feeding the RF/LightGBM/CatBoost rank average at 0.7 blended with a 0.3 Ridge on log1p Morgan counts) scored 0.4745 on a single run, a 0.0186 gain over the previous accepted state, which is only about 2.7 noise sd and has never been confirmed. A second independent run gives the mean_adjusted estimate two observations and tells us whether the ErG block is a real improvement or a lucky draw; everything downstream (blend-weight tuning, new members) is being judged against this number, so it is worth one slot to pin it down. Do not touch any setting, seed handling, or ordering, so the only difference between the two runs is the harness fold assignment noise.",
+  "family": "other",
+  "sim_hist_bge": 0.7544523477554321,
+  "sim_tried_bge": 0.7511584758758545,
+  "sim_hist_mini": 0.5299662351608276,
+  "sources": [
+   [
+    "opus",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Pick the Ridge alpha by scaffold-grouped inner CV",
+  "spec": "Replace the fixed Ridge(alpha=10.0) member with an alpha chosen inside fit_predict by scaffold-grouped cross-validation on the training set only. Compute Murcko scaffold strings for train_smiles with rdkit.Chem.Scaffolds.MurckoScaffold.MurckoScaffoldSmiles (fall back to the SMILES itself if it fails), use sklearn.model_selection.GroupKFold(n_splits=5) with those scaffolds as groups, and evaluate alpha in [1, 3, 10, 30, 100] on log1p of the Morgan count block, scoring each fold by Spearman correlation between predicted and true rank target (scipy.stats.spearmanr). Pick the alpha with the best mean fold score, refit Ridge with it on all the training rows, and use that prediction in place of the current pr. Keep the 0.7/0.3 blend, the rank target, and all three tree members untouched. This replaces a hand-set regularization constant with a data-driven one and should stabilize the linear member across folds where the fingerprint block is sparser.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8544529676437378,
+  "sim_tried_bge": 0.8544529676437378,
+  "sim_hist_mini": 0.6308315992355347,
+  "sources": [
+   [
+    "fable",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Route Morgan counts away from tree members",
+  "spec": "Give the tree members (RF, LightGBM, CatBoost) only the descriptor and ErG columns, dropping the 2048 Morgan count columns from their input matrix. Keep the Morgan count block only for the Ridge member, which already uses the last N_BITS columns of the feature matrix. This leaves the fingerprint information to the linear model and gives the trees a smaller, denser feature set. Compute the column slice once and reuse it for train and test. Everything else in the blend is unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8194202184677124,
+  "sim_tried_bge": 0.8194202184677124,
+  "sim_hist_mini": 0.6372044086456299,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Second LightGBM member with dart boosting for diversity",
+  "spec": "Add a fourth member to the rank-averaged tree group: a second LGBMRegressor configured very differently from the first, using boosting_type='dart', n_estimators=600, learning_rate=0.05, num_leaves=63, colsample_bytree=0.6, subsample=0.7 with subsample_freq=1, min_child_samples=5, drop_rate=0.1, n_jobs=8, random_state=seed+1, verbose=-1. It is fitted on the same full feature matrix and the same rank target, its prediction is rank-normalized like the others, and it simply joins the mean over the models list so the 0.7/0.3 blend with the Ridge member is unchanged. The existing LightGBM is deliberately shallow and heavily column-subsampled; a deeper, less column-starved dart model makes different errors, and rank-averaging benefits mainly from decorrelated members rather than from individually better ones. Keep an eye on runtime: dart is slower, so reduce n_estimators if the job approaches the 10-minute limit.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8684786558151245,
+  "sim_tried_bge": 0.8030596971511841,
+  "sim_hist_mini": 0.6676729321479797,
+  "sources": [
+   [
+    "fable",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "Within-fold Spearman feature filter",
+  "spec": "Inside fit_predict, before any model is trained, score every column of the training matrix Xtr by the absolute Spearman correlation between the column and the rank target y, computed on the training fold only. Keep the top 400 columns by this score, and apply the same column mask to Xte. Use the reduced matrix for the RF, LightGBM and CatBoost members. Leave the Ridge input on the full Morgan count block. Ties and constant columns get score 0. This is a supervised, fold-internal filter and must not look at test molecules.",
+  "family": "other",
+  "sim_hist_bge": 0.773066520690918,
+  "sim_tried_bge": 0.7703810930252075,
+  "sim_hist_mini": 0.641951322555542,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Strip salts and keep the largest fragment",
+  "spec": "Every featurizer in train.py calls Chem.MolFromSmiles(s) directly, so counterions, solvates, and multi-component SMILES contribute spurious atoms to the descriptors, ErG fingerprint, and Morgan counts. Add a single helper, e.g. def parse(s) that does m = Chem.MolFromSmiles(s); if m is None return a benzene fallback; otherwise split on fragments with Chem.GetMolFrags(m, asMols=True, sanitizeFrags=False) and keep the fragment with the most heavy atoms; then return that fragment. Route featurize, descriptors, and erg through parse instead of Chem.MolFromSmiles so all three feature blocks see the same cleaned molecule. This is a pure preprocessing change, about six lines, with no effect on model structure or runtime. It should mainly help the descriptor block, where MolWt, TPSA, and counts are badly distorted by salts, and the Ridge member, where counterion bits add noise to the log1p Morgan vector.",
+  "family": "data",
+  "sim_hist_bge": 0.8419842720031738,
+  "sim_tried_bge": 0.7091889381408691,
+  "sim_hist_mini": 0.6949828863143921,
+  "sources": [
+   [
+    "opus",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Add an RBF kernel ridge member on normalized descriptors",
+  "spec": "The outer blend currently mixes tree models with one linear model on fingerprint counts; no member exploits smooth nonlinear structure in the continuous physicochemical descriptors. Inside fit_predict, build a descriptor-only matrix from the first columns of Xtr/Xte that correspond to the RDKit descriptors plus the ErG block (i.e. everything except the last N_BITS columns), fit a sklearn QuantileTransformer(output_distribution='normal', n_quantiles=min(200, n_train), random_state=seed) on the training rows and apply it to both, then fit KernelRidge(alpha=1.0, kernel='rbf', gamma=1.0/n_features) on the rank target. Rank-normalize its prediction and make the final output 0.6 * tree_mean + 0.25 * ridge_morgan_rank + 0.15 * rbf_rank, keeping the existing tree average and Morgan Ridge exactly as they are. This differs from the rejected averaged-kernel experiment, which mixed an RBF descriptor kernel into a single kernel ridge; here it is a separate, independently rank-normalized blend member, which is the pattern that has actually produced the gains in this run.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8165252208709717,
+  "sim_tried_bge": 0.8165252208709717,
+  "sim_hist_mini": 0.6757689714431763,
+  "sources": [
+   [
+    "opus",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Prune near-duplicate RDKit descriptor columns",
+  "spec": "Add a correlation filter to the descriptor block so the tree members see fewer redundant columns. Inside fit_predict, after computing the raw descriptor matrix for the training molecules, standardize it, compute the absolute Pearson correlation matrix with numpy (guard against zero-variance columns by giving them correlation 0 and dropping them), and greedily drop any column whose absolute correlation with an already-kept column exceeds 0.95, walking columns in their original order. Apply the identical kept-column index list to the test descriptor matrix, then concatenate as before with ErG and Morgan counts. Do not change the models, the target, the Ridge member, or the ErG and Morgan blocks. RDKit's descList contains many nearly collinear variants (several molecular-weight, Chi, and Kappa flavours), which dilute the per-split feature sampling of the RF, LightGBM, and CatBoost members; removing them raises the chance each split sees an informative descriptor.",
+  "family": "data",
+  "sim_hist_bge": 0.8021312952041626,
+  "sim_tried_bge": 0.787224531173706,
+  "sim_hist_mini": 0.5777598023414612,
+  "sources": [
+   [
+    "fable",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "LightGBM dart boosting with extra trees",
+  "spec": "Replace the LightGBM member's hyperparameters with boosting_type='dart', drop_rate 0.1, skip_drop 0.5, n_estimators 400, learning_rate 0.05, num_leaves 15, extra_trees=True, colsample_bytree 0.3, subsample 0.8 and subsample_freq 1, min_child_samples 10, with random_state set to seed. Keep the other members and the blend exactly as they are. The change only affects the boosting scheme of one member, so any gain or loss can be attributed to it.",
+  "family": "architecture",
+  "sim_hist_bge": 0.7972148656845093,
+  "sim_tried_bge": 0.7392122745513916,
+  "sim_hist_mini": 0.6447170376777649,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Swap the Ridge member for minmax-Tanimoto kernel ridge",
+  "spec": "The file already contains an unused minmax_kernel function. Replace the Ridge-on-log1p-Morgan member (the last four lines of fit_predict) with a KernelRidge member that uses the precomputed minmax Tanimoto kernel on the Morgan count block only: Ktr = minmax_kernel(Xtr[:, -N_BITS:], Xtr[:, -N_BITS:]), Kte = minmax_kernel(Xte[:, -N_BITS:], Xtr[:, -N_BITS:]), then KernelRidge(alpha=0.5, kernel='precomputed').fit(Ktr, y) and predict on Kte, rank-normalized and blended at the same 0.3 weight against 0.7 times the tree average. Note the distinction from the earlier rejected experiment: that one added kernel ridge as a fourth member inside the rank average, which diluted the trees; here kernel ridge replaces the linear member in the outer blend, occupying the slot of the model that is known to add the most value. Kernel ridge on this kernel was the strongest single model earlier in the run, so it is a natural substitute for Ridge in the outer blend.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8557554483413696,
+  "sim_tried_bge": 0.8557554483413696,
+  "sim_hist_mini": 0.6970338225364685,
+  "sources": [
+   [
+    "opus",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b021",
+  "title": "Random-projection MLP on descriptors+ErG",
+  "spec": "Add a member: sklearn MLPRegressor (hidden layers (256,64), alpha 1e-2, early_stopping, max_iter 300, random_state=seed) trained on QuantileTransformer(output_distribution='normal') applied to the descriptor+ErG columns, which are the first Xtr.shape[1]-N_BITS columns. Average 3 seeds. Blend it by rank at 15% and scale the other weights by 0.85.",
+  "family": "architecture",
+  "sim_hist_bge": 0.961552619934082,
+  "sim_tried_bge": 0.8623963594436646,
+  "sim_hist_mini": 0.8803380131721497,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b022",
+  "title": "Seed-bagged tree members",
+  "spec": "Fit each of the RF, LightGBM and CatBoost members 3 times with seeds seed, seed+1 and seed+2. Average the 3 predictions of each member before ranking. Keep the hyperparameters the same. This reduces variance, and the run time should stay within 10 minutes.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8652090430259705,
+  "sim_tried_bge": 0.7398197650909424,
+  "sim_hist_mini": 0.7957888841629028,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b023",
+  "title": "Add a pairwise-rank LightGBM member",
+  "spec": "The loss is Spearman correlation, so a member trained directly on pairwise ordering rather than squared error is a principled source of diversity. Add an LGBMRanker member inside fit_predict: discretize the rank target into 32 integer relevance levels with np.floor(y * 32).astype(int) clipped to [0, 31], treat the whole training set as one query group (group=[len(y)]), and fit LGBMRanker(objective='lambdarank', n_estimators=400, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3, min_child_samples=10, n_jobs=8, random_state=seed, verbose=-1) on the same full Xtr used by the other tree members. Its raw scores are only meaningful up to a monotone transform, which is exactly what the existing pipeline needs: rank-normalize with rankdata(p)/len(p) and add it as a fourth element of the preds list so it enters the 0.7-weighted tree average, leaving the 0.3 Ridge term untouched. If LGBMRanker's single-group setup errors out, fall back to LGBMRegressor with objective='huber' and report that in the log rather than crashing.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8832998871803284,
+  "sim_tried_bge": 0.7982592582702637,
+  "sim_hist_mini": 0.7270026206970215,
+  "sources": [
+   [
+    "opus",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b024",
+  "title": "Switch the LightGBM member to an L1 objective",
+  "spec": "Change the existing LGBMRegressor member to objective='regression_l1' (MAE) while keeping all its other hyperparameters identical: 500 trees, learning_rate 0.03, 15 leaves, colsample_bytree 0.3, subsample 0.8 with subsample_freq 1, min_child_samples 10. Nothing else changes: same features, same uniform rank target, same per-member rank normalization, same 0.7/0.3 blend with the Ridge member. On a bounded uniform rank target the squared-error objective spends much of its capacity chasing molecules at the extremes of the rank scale, whereas an L1 objective fits the conditional median and is far less sensitive to the handful of molecules whose scaffold-held-out rank is badly mispredicted. Because the final score is Spearman, only the ordering matters, so a median-style fit is well matched to the metric.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8612041473388672,
+  "sim_tried_bge": 0.7837313413619995,
+  "sim_hist_mini": 0.7568647265434265,
+  "sources": [
+   [
+    "fable",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b025",
+  "title": "Replicate the ErG incumbent unchanged",
+  "spec": "Run the current train.py exactly as it is, with no edits at all, to obtain a second independent measurement of the incumbent. The ErG gain (0.4745, a 0.0186 improvement) rests on a single run, and several later slots have measured 0.4736-0.4787 around it, so the true level of the incumbent is uncertain by roughly one noise sd. Submit the file byte-identical (an empty edit set) and report the official loss; this run anchors every subsequent delta and tells us whether the recent string of flat results reflects a plateau or a lucky incumbent reading. No code, feature, or hyperparameter change of any kind.",
+  "family": "other",
+  "sim_hist_bge": 0.6786983013153076,
+  "sim_tried_bge": 0.6756190061569214,
+  "sim_hist_mini": 0.43909114599227905,
+  "sources": [
+   [
+    "fable",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b026",
+  "title": "Strip salts, keep largest fragment",
+  "spec": "Add a helper mol(s) that parses SMILES with Chem.MolFromSmiles, then keeps the largest fragment by heavy atom count using rdkit.Chem.rdmolops.GetMolFrags(m, asMols=True) and max by GetNumHeavyAtoms. Use it in featurize, descriptors and erg instead of calling Chem.MolFromSmiles directly. Leave the rest unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.947435736656189,
+  "sim_tried_bge": 0.6561295986175537,
+  "sim_hist_mini": 0.8705734610557556,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b027",
+  "title": "Ridge-then-RF residual stacking member",
+  "spec": "Build a new member in which a standardized Ridge (alpha 10) is first fit on the standardized descriptor+ErG columns only, using training data to fit. Compute its in-sample residuals on the training set, then fit a RandomForestRegressor (300 trees, max_features 0.2, n_jobs 8, random_state seed) on Xtr to predict those residuals. The member prediction is the Ridge prediction plus the RF residual prediction on test molecules. Rank-normalize it and include it as an extra member in the existing rank average, with the Ridge member and blend weights unchanged. Use the seed argument for all randomness.",
+  "family": "architecture",
+  "sim_hist_bge": 0.830065131187439,
+  "sim_tried_bge": 0.830065131187439,
+  "sim_hist_mini": 0.6123490929603577,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b028",
+  "title": "Drop high-residual training molecules",
+  "spec": "Inside fit_predict, fit a quick RF (100 trees) on Xtr with 5-fold out-of-fold predictions. Remove the 5% of training molecules with the largest absolute rank residual. Then fit all members on the cleaned set. Use KFold with shuffle and the seed.",
+  "family": "data",
+  "sim_hist_bge": 0.8956540822982788,
+  "sim_tried_bge": 0.7715378999710083,
+  "sim_hist_mini": 0.7751607894897461,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b029",
+  "title": "Ionization-state SMARTS counts as extra features",
+  "spec": "Add a small block of counts computed with RDKit SMARTS patterns on each molecule: carboxylic acids ([CX3](=O)[OX2H1,OX1-]), tetrazoles, acyl sulfonamides, phenols, aliphatic amines (primary, secondary, tertiary, not amides or anilines), amidines/guanidines, quaternary N, and a zwitterion flag (acid and base both present). Also add a crude pH 7.4 logD proxy = Crippen MolLogP minus 3 if an acid is present minus 1 if a base is present. Append these columns to the descriptor block before the Morgan counts. Keep all other members unchanged so the effect of ionization information is isolated.",
+  "family": "data",
+  "sim_hist_bge": 0.7577427625656128,
+  "sim_tried_bge": 0.7549904584884644,
+  "sim_hist_mini": 0.4352860152721405,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b030",
+  "title": "Avalon fingerprint block for Ridge",
+  "spec": "Add count Avalon fingerprints (rdkit.Avalon.pyAvalonTools.GetAvalonCountFP with nBits=1024, converted to a numpy array) to the Ridge member's input, concatenated with log1p Morgan counts. Tree members keep their current features. Use the same Ridge alpha.",
+  "family": "data",
+  "sim_hist_bge": 0.8186822533607483,
+  "sim_tried_bge": 0.8186822533607483,
+  "sim_hist_mini": 0.7141627073287964,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b031",
+  "title": "Seed-bag the whole pipeline over three seeds",
+  "spec": "Wrap the existing modelling code in a loop over three derived seeds (seed, seed+1000, seed+2000) and average the final blended rank predictions across them. Refactor fit_predict so the features are computed once (they do not depend on the seed), then for each derived seed build the RF, LightGBM, and CatBoost members with that seed, form the current 0.7 tree-average plus 0.3 Ridge blend, rank-normalize the result, and finally return the mean of the three rank-normalized blends. The Ridge member is deterministic, so it can be fitted once outside the loop and reused. This reduces the variance that each member's random column and row sampling injects into the fold predictions; since the metric is Spearman on only about 190 test molecules per fold, seed variance is a real part of the measured loss. Check the runtime budget: if three passes exceed roughly seven minutes, drop the CatBoost iterations to 300 rather than reducing the number of seeds.",
+  "family": "other",
+  "sim_hist_bge": 0.8929736614227295,
+  "sim_tried_bge": 0.7863172292709351,
+  "sim_hist_mini": 0.7716803550720215,
+  "sources": [
+   [
+    "fable",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b032",
+  "title": "Ridge blend weight 0.4, alpha 3",
+  "spec": "In fit_predict, change the Ridge member: use Ridge(alpha=3.0) on log1p Morgan counts, and change the final blend to 0.6*np.mean(preds,axis=0) + 0.4*rankdata(pr)/len(pr). Nothing else changes.",
+  "family": "regularization",
+  "sim_hist_bge": 0.9332854151725769,
+  "sim_tried_bge": 0.7996275424957275,
+  "sim_hist_mini": 0.8396596908569336,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b033",
+  "title": "Add a PLS regression member on descriptors and ErG",
+  "spec": "Add a fourth outer blend member using sklearn.cross_decomposition.PLSRegression, which is well suited to the wide, highly collinear RDKit descriptor block and gives a different inductive bias from both the trees and the sparse-count Ridge. Take the non-fingerprint columns of Xtr/Xte (RDKit descriptors plus the 315 ErG features), standardize them with StandardScaler fitted on the training rows, clip to [-5, 5] to tame descriptor outliers, and fit PLSRegression(n_components=12, scale=False) on the rank target. Flatten its prediction, rank-normalize with rankdata(p)/len(p), and change the final blend to 0.6 * tree_mean + 0.25 * ridge_rank + 0.15 * pls_rank with the rest of fit_predict unchanged. PLS is fast (a few seconds for 970 rows) and the component count is the only knob, so a follow-up could test 6 or 20 components if this direction shows promise.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8043243288993835,
+  "sim_tried_bge": 0.8043243288993835,
+  "sim_hist_mini": 0.6299733519554138,
+  "sources": [
+   [
+    "opus",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b034",
+  "title": "Rank-average weight toward LightGBM/CatBoost",
+  "spec": "Replace np.mean(preds,axis=0) with the weighted sum 0.25*RF + 0.375*LGBM + 0.375*CatBoost, using the already rank-normalized predictions. Keep the Ridge blend at 0.3.",
+  "family": "architecture",
+  "sim_hist_bge": 0.80388343334198,
+  "sim_tried_bge": 0.80388343334198,
+  "sim_hist_mini": 0.6455872058868408,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b035",
+  "title": "Add an Avalon fingerprint count block",
+  "spec": "Add a new feature block from the Avalon fingerprinter, which encodes substructures with a different hashing scheme from Morgan and has not yet been tried (atom-pair and torsion counts were, and were flat). Write def avalon(smiles) that uses from rdkit.Avalon import pyAvalonTools and returns np.array of pyAvalonTools.GetAvalonCountFP(mol, nBits=1024).ToList() per molecule as float32. In fit_predict, insert this block into both Xtr and Xte between the ErG block and the Morgan counts, i.e. np.hstack([descriptors(s), erg(s), avalon(s), featurize(s)]). Leave the Ridge member reading the last N_BITS columns, so it still sees only the Morgan counts and the change is isolated to the three tree models, whose column subsampling (max_features 0.2, colsample 0.3, rsm 0.2) can exploit the extra substructure views. Runtime cost is small; if Avalon is unavailable in the environment, fall back cleanly by catching ImportError and returning a zero-width array.",
+  "family": "data",
+  "sim_hist_bge": 0.8008818030357361,
+  "sim_tried_bge": 0.8008818030357361,
+  "sim_hist_mini": 0.6186224222183228,
+  "sources": [
+   [
+    "opus",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b036",
+  "title": "Drop the CatBoost member and keep RF plus LightGBM",
+  "spec": "Simplify the rank-averaged part of the ensemble from three members to two by deleting the CatBoostRegressor entry from the models list (and its import), so the 0.7 weight is split between the RandomForestRegressor and the LGBMRegressor only. Leave everything else exactly as it is: the same features, the same rank target, the same per-member rank normalization, and the same 0.7/0.3 blend with the Ridge member on log1p Morgan counts. CatBoost was added in slot 29 and measured 0.4745, identical to the incumbent, so it may be contributing nothing but runtime and code. If the loss stays within noise of the incumbent, the simpler and much faster two-member ensemble should be preferred on its own merits and leaves more headroom in the 10-minute budget for future members.",
+  "family": "architecture",
+  "sim_hist_bge": 0.7984762191772461,
+  "sim_tried_bge": 0.796123206615448,
+  "sim_hist_mini": 0.6628979444503784,
+  "sources": [
+   [
+    "fable",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b037",
+  "title": "Deeper, more regularized CatBoost member",
+  "spec": "Change the CatBoost member to depth 8, iterations 1000, learning_rate 0.03, l2_leaf_reg 10, rsm 0.2, random_seed seed and thread_count 8, keeping the same descriptor+ErG+Morgan input matrix. Deeper symmetric trees with stronger L2 regularization may capture interactions the depth-6 model misses while staying stable on small data. Leave the other members and the blend weights unchanged so the change is isolated to this model.",
+  "family": "regularization",
+  "sim_hist_bge": 0.7905784249305725,
+  "sim_tried_bge": 0.7905784249305725,
+  "sim_hist_mini": 0.528556764125824,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b038",
+  "title": "Ordinal multiclass LightGBM as a fifth rank member",
+  "spec": "Bin the training rank target into 8 equal-frequency classes (np.digitize on quantiles of y). Fit an LGBMRegressor-style LGBMClassifier with objective multiclass, 300 trees, learning rate 0.05, num_leaves 15, colsample_bytree 0.3, subsample 0.8 and subsample_freq 1, using the same feature matrix Xtr. At prediction time, score each test molecule as the probability-weighted mean of the class midpoints (values in (0,1)). Rank-normalize this score and add it as a fifth member to the existing rank average of the RF, LightGBM and CatBoost members, keeping the 0.7/0.3 split with the Ridge unchanged.",
+  "family": "architecture",
+  "sim_hist_bge": 0.830592155456543,
+  "sim_tried_bge": 0.8044102191925049,
+  "sim_hist_mini": 0.7328290939331055,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b039",
+  "title": "Add a PLS regression member on descriptors and ErG",
+  "spec": "Add one new member to the blend: sklearn.cross_decomposition.PLSRegression with n_components=10 fitted on the standardized descriptor-plus-ErG columns (i.e. the feature matrix excluding the last N_BITS Morgan columns), predicting the rank target. Standardize with StandardScaler fitted on train and applied to test, ravel the PLS output, rank-normalize the prediction the same way the other members are, and blend it in at 15% while scaling the existing combination to 85% (keep the internal 0.7 tree-average / 0.3 Ridge split inside that 85%). PLS finds supervised low-rank directions in correlated continuous descriptors, a very different inductive bias from both the trees and the unregularized-direction Ridge on sparse counts, and the descriptor and ErG blocks are exactly the dense correlated kind of input PLS handles well.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8105821013450623,
+  "sim_tried_bge": 0.8105821013450623,
+  "sim_hist_mini": 0.5616296529769897,
+  "sources": [
+   [
+    "fable",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b040",
+  "title": "Tune the Ridge blend weight and alpha",
+  "spec": "In fit_predict, the final line blends the rank-averaged tree ensemble and the Ridge member as 0.7 * tree_mean + 0.3 * ridge_rank. The Ridge member was the single largest recent win (0.4922/0.4939, replicated), which suggests the linear model on log1p Morgan counts carries information the trees miss and may currently be underweighted. Change the blend to 0.55 * tree_mean + 0.45 * ridge_rank and at the same time lower the Ridge regularization from alpha=10.0 to alpha=3.0. Keep everything else identical: same features, same rank target, same three tree members, same rankdata normalization of each prediction vector. This is a two-number change on existing lines, so it costs nothing in runtime or code complexity, and it probes the most promising direction left in the current architecture. If it helps, a follow-up slot can bracket the weight further (0.5 vs 0.4); if it hurts, the incumbent 0.7/0.3 split is confirmed as near-optimal.",
+  "family": "regularization",
+  "sim_hist_bge": 0.9071747064590454,
+  "sim_tried_bge": 0.8103461861610413,
+  "sim_hist_mini": 0.7573229074478149,
+  "sources": [
+   [
+    "opus",
+    "c",
+    1
+   ]
+  ]
+ }
+]

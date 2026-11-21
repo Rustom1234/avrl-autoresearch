@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "The diff changes one line: the torch.compile mode goes to 'max-autotune-no-cudagraphs'. It does not touch the val_bpb computation, the data, the seed lines, the prepare.py import line, the evaluation call or the summary printing. The evaluation runs through the same compiled model object as in the incumbent, so the eval path is structurally unchanged.",
+  "The change doesn't introduce any bug that would make the result meaningless. Autotuning only picks among kernel implementations of the same ops. It can cause small numerical differences, but these are within normal noise.",
+  "Likely cause of the rejection: max-autotune makes compile much slower because it benchmarks Triton/GEMM kernel choices. That time counts toward the 450 s startup-plus-training limit, so this run was probably rejected for going over time or for compile-side differences. It is unlikely to be a real attempt to tamper with the metric. If the run's logs show the actual flag, check it before using a slot to retry.",
+  "Cost/benefit: even if it fits in time, the gain from max-autotune-no-cudagraphs in a 300 s run is usually small. It also adds risk to the startup time. A replicate is not recommended unless the compile time is measured first.",
+  "The harness gave no val_bpb numbers (the run was rejected), so z cannot be recomputed and there are no claims to check against numbers."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    from sklearn.kernel_ridge import KernelRidge
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    model = KernelRidge(alpha=1.0, kernel="precomputed")
+    model.fit(minmax_kernel(Xtr, Xtr), y - y.mean())
+    return model.predict(minmax_kernel(Xte, Xtr)) + y.mean()
+=======
+def maccs(smiles):
+    from rdkit.Chem import MACCSkeys
+    return np.array([list(MACCSkeys.GenMACCSKeys(Chem.MolFromSmiles(s))) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    from sklearn.ensemble import ExtraTreesRegressor
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr = np.hstack([descriptors(train_smiles), maccs(train_smiles)])
+    Xte = np.hstack([descriptors(test_smiles), maccs(test_smiles)])
+    model = ExtraTreesRegressor(n_estimators=800, max_features=0.3, min_samples_leaf=2,
+                                n_jobs=8, random_state=seed)
+    model.fit(Xtr, y)
+    return model.predict(Xte)
+>>>>>>> REPLACE
+-----

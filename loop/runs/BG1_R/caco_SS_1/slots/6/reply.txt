@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y)
+    et = model.predict(featurize(test_smiles))
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    keep = np.where(Xtr.std(0) > 0)[0]
+    C = np.abs(np.corrcoef(Xtr[:, keep], rowvar=False))
+    C = np.nan_to_num(C)
+    sel = []
+    for j in range(len(keep)):
+        if not sel or C[j, sel].max() <= 0.95:
+            sel.append(j)
+    cols = keep[sel]
+    model.fit(Xtr[:, cols], y)
+    et = model.predict(Xte[:, cols])
+>>>>>>> REPLACE
+-----

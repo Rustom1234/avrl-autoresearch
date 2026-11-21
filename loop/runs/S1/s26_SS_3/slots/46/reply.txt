@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+        k = rng.choice(np.argsort(r)[:4])
+        keep = np.arange(n) != k
+        cc = c[keep]
+        rr = r[keep]
+        P = rng.random((3000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:10]
+        p = P[rng.choice(top)]
+        c0 = np.vstack([cc, p[None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, [0.03]])
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+=======
+        D = np.sqrt(((c[:, None, :] - c[None]) ** 2).sum(2))
+        gap = D - (r[:, None] + r[None])
+        np.fill_diagonal(gap, 1.0)
+        ncont = (gap < 1e-7).sum(1)
+        cand = np.where(ncont >= 5)[0]
+        if len(cand) == 0:
+            cand = np.arange(n)
+        k = rng.choice(cand)
+        rem = np.argsort(D[k])[:3]
+        keep = np.ones(n, bool)
+        keep[rem] = False
+        cc = c[keep]
+        rr = r[keep]
+        lo = np.clip(c[rem].min(0) - 0.1, 0, 1)
+        hi = np.clip(c[rem].max(0) + 0.1, 0, 1)
+        P = lo + rng.random((4000, 2)) * (hi - lo)
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:3]
+        c0 = np.vstack([cc, P[top]])
+        c0 = np.clip(c0 + rng.normal(0, 0.002, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, np.full(3, 0.02)])
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 200, "ftol": 1e-11})
+>>>>>>> REPLACE
+-----

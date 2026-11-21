@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+    models = [
+        RandomForestRegressor(n_estimators=300, max_features=0.2, n_jobs=8, random_state=seed),
+        LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+                      subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                      random_state=seed, verbose=-1),
+        CatBoostRegressor(iterations=500, learning_rate=0.05, depth=6, rsm=0.2, thread_count=8,
+                          random_seed=seed, verbose=0),
+    ]
+    preds = []
+    for m in models:
+        m.fit(Xtr, y)
+        p = m.predict(Xte)
+        preds.append(rankdata(p) / len(p))
+    from sklearn.linear_model import Ridge
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+    pr = r.predict(np.log1p(Xte[:, -N_BITS:]))
+    return 0.7 * np.mean(preds, axis=0) + 0.3 * rankdata(pr) / len(pr)
+=======
+    from sklearn.linear_model import Ridge
+    from sklearn.model_selection import GroupKFold
+    from scipy.optimize import nnls
+    from rdkit.Chem.Scaffolds import MurckoScaffold
+
+    def run(Xa, ya, Xb):
+        models = [
+            RandomForestRegressor(n_estimators=300, max_features=0.2, n_jobs=8, random_state=seed),
+            LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+                          subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                          random_state=seed, verbose=-1),
+            CatBoostRegressor(iterations=300, learning_rate=0.05, depth=6, rsm=0.2, thread_count=8,
+                              random_seed=seed, verbose=0),
+        ]
+        out = []
+        for m in models:
+            m.fit(Xa, ya)
+            out.append(m.predict(Xb))
+        r = Ridge(alpha=10.0).fit(np.log1p(Xa[:, -N_BITS:]), ya)
+        out.append(r.predict(np.log1p(Xb[:, -N_BITS:])))
+        return np.array([rankdata(p) / len(p) for p in out]).T
+
+    groups = [MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles]
+    oof = np.zeros((len(y), 4))
+    for a, b in GroupKFold(n_splits=3).split(Xtr, y, groups):
+        oof[b] = run(Xtr[a], y[a], Xtr[b])
+    w, _ = nnls(oof, y)
+    w = w / w.sum() if w.sum() > 0 else np.array([0.23, 0.23, 0.24, 0.3])
+    return run(Xtr, y, Xte) @ w
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,93 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _set_n(n):
+    global _N, _I, _J
+    _N = n
+    _I, _J = np.triu_indices(n, 1)
+
+
+def _multistart(n, rng, tlimit):
+    _set_n(n)
+    best = None
+    t0 = time.time()
+    while time.time() - t0 < tlimit:
+        P = rng.uniform(0.05, 0.95, size=(n, 2))
+        x, y = _optimize(P[:, 0].copy(), P[:, 1].copy(), np.full(n, 0.05))
+        r = _lp_radii(x, y)
+        if r is None:
+            continue
+        s = float(np.sum(r))
+        if best is None or s > best[0]:
+            best = (s, x.copy(), y.copy(), r)
+    _set_n(26)
+    return best
+
+
+def _add_in_hole(x, y):
+    g = np.linspace(0.0, 1.0, 201)
+    GX, GY = np.meshgrid(g, g)
+    G = np.column_stack([GX.ravel(), GY.ravel()])
+    C = np.column_stack([x, y])
+    d = np.sqrt(((G[:, None, :] - C[None, :, :]) ** 2).sum(-1)).min(axis=1)
+    b = np.minimum(np.minimum(G[:, 0], 1 - G[:, 0]), np.minimum(G[:, 1], 1 - G[:, 1]))
+    score = np.minimum(d, 2 * b)
+    k = int(np.argmax(score))
+    return np.append(x, G[k, 0]), np.append(y, G[k, 1])
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    t0 = time.time()
+    starts = []
+    b27 = _multistart(27, rng, 35.0)
+    b25 = _multistart(25, rng, 35.0)
+    if b27 is not None:
+        _s, x, y, r = b27
+        k = int(np.argmin(r))
+        keep = np.arange(27) != k
+        starts.append((x[keep], y[keep], np.minimum(r[keep], 0.08)))
+    if b25 is not None:
+        _s, x, y, r = b25
+        x2, y2 = _add_in_hole(x, y)
+        starts.append((x2, y2, np.concatenate([np.minimum(r, 0.08), [0.05]])))
+    _set_n(26)
+    best = None
+    it = 0
+    while True:
+        if it < len(starts):
+            x0, y0, r0 = starts[it]
+        else:
+            if time.time() - t0 > 150.0:
+                break
+            P = rng.uniform(0.05, 0.95, size=(26, 2))
+            x0 = P[:, 0].copy()
+            y0 = P[:, 1].copy()
+            r0 = np.full(26, 0.05)
+        it += 1
+        _set_n(26)
+        x, y = _optimize(np.asarray(x0, float), np.asarray(y0, float), np.asarray(r0, float))
+        r = _lp_radii(x, y)
+        if r is None:
+            continue
+        s = float(np.sum(r))
+        if best is None or s > best[0]:
+            centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            best = (s, centers, r)
+    if best is None:
+        return np.column_stack(_seed(rng)[:2]), np.zeros(26)
+    _set_n(26)
+    s0, c0, r0 = best
+    x2, y2 = _polish(c0[:, 0].copy(), c0[:, 1].copy(), r0)
+    for shrink in (1e-12, 1e-9):
+        r2 = _lp_radii(x2, y2, shrink)
+        if r2 is None:
+            continue
+        if _valid(x2, y2, r2) and float(np.sum(r2)) > s0:
+            return np.column_stack([x2, y2]), r2
+    return best[1], best[2]
+
+
+def _old_construct_packing():
+>>>>>>> REPLACE
+-----

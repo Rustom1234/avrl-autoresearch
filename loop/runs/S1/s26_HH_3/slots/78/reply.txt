@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+def _optimize(centers0, radii0):
+=======
+def _optimize(centers0, radii0, infl=0.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def cons(z):
+        x, y, r = unpack(z)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        pair = dx * dx + dy * dy - (r[iu] + r[ju]) ** 2
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    def cons_jac(z):
+        x, y, r = unpack(z)
+        J = np.zeros((m + 4 * n, 3 * n))
+        rows = np.arange(m)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        s = r[iu] + r[ju]
+        J[rows, iu] = 2 * dx
+        J[rows, ju] = -2 * dx
+        J[rows, n + iu] = 2 * dy
+        J[rows, n + ju] = -2 * dy
+        J[rows, 2 * n + iu] = -2 * s
+        J[rows, 2 * n + ju] = -2 * s
+=======
+    def cons(z):
+        x, y, r = unpack(z)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        pair = dx * dx + dy * dy - (1.0 + infl) ** 2 * (r[iu] + r[ju]) ** 2
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    def cons_jac(z):
+        x, y, r = unpack(z)
+        J = np.zeros((m + 4 * n, 3 * n))
+        rows = np.arange(m)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        s = r[iu] + r[ju]
+        g2 = (1.0 + infl) ** 2
+        J[rows, iu] = 2 * dx
+        J[rows, ju] = -2 * dx
+        J[rows, n + iu] = 2 * dy
+        J[rows, n + ju] = -2 * dy
+        J[rows, 2 * n + iu] = -2 * s * g2
+        J[rows, 2 * n + ju] = -2 * s * g2
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c0, r0 = _relax(c0, r0)
+            c, r = _optimize(c0, r0)
+=======
+            c0, r0 = _relax(c0, r0)
+            eps = rng.uniform(0.0, 0.02)
+            c1, r1 = _optimize(c0, r0, eps)
+            c, r = _optimize(c1, np.maximum(r1, 0.0))
+>>>>>>> REPLACE
+-----

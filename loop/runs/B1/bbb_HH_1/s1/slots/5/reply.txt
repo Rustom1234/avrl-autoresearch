@@ -1,0 +1,68 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+from sklearn.ensemble import RandomForestClassifier
+from lightgbm import LGBMClassifier
+=======
+from scipy.stats import rankdata
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import GroupKFold
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from lightgbm import LGBMClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+W_GRID = [0.2, 0.35, 0.5, 0.65, 0.8]
+
+
+def fit_members(X, y, seed):
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X, y)
+    return rf, gb
+
+
+def scaffold_groups(smiles_list):
+    keys = {}
+    groups = []
+    for s in smiles_list:
+        scaf = MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(s))
+        groups.append(keys.setdefault(scaf, len(keys)))
+    return np.array(groups)
+
+
+def choose_weight(X, y, groups, seed):
+    scores = {w: [] for w in W_GRID}
+    for tr, te in GroupKFold(n_splits=3).split(X, y, groups):
+        if len(np.unique(y[te])) < 2:
+            continue
+        rf, gb = fit_members(X[tr], y[tr], seed)
+        p_rf = scaled_rank(rf.predict_proba(X[te])[:, 1])
+        p_gb = scaled_rank(gb.predict_proba(X[te])[:, 1])
+        for w in W_GRID:
+            scores[w].append(roc_auc_score(y[te], w * p_rf + (1 - w) * p_gb))
+    return max(W_GRID, key=lambda w: np.mean(scores[w]))
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    w = choose_weight(X_train, y, scaffold_groups(train_smiles), seed)
+    rf, gb = fit_members(X_train, y, seed)
+    return w * scaled_rank(rf.predict_proba(X_test)[:, 1]) + (1 - w) * scaled_rank(gb.predict_proba(X_test)[:, 1])
+>>>>>>> REPLACE
+-----

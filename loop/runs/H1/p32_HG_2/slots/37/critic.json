@@ -1,0 +1,14 @@
+{
+ "ok": false,
+ "issues": [
+  "No sign of getting around the measurement. There is no file or network access and no pasted coordinates, all randomness comes from the seeded rng, and the solve() signature is unchanged.",
+  "Bug: the code is not a Halton sequence. Both dimensions use base 2. The inner loop sets pts[j,i] = 0.5**j * (j % 2), so every even j gives 0 and every odd j gives a value of at most 0.5 that shrinks fast. In practice all n starting centres sit on the same point, the random offset, with about half of them exactly identical. Each restart is just one random point plus SLSQP pulling a degenerate cluster apart. That is not the low-discrepancy start the diff claims, and it gives less spread across restarts than uniform starts. The harness still checks the packing, so the measured number is valid. But whatever change there is cannot be credited to Halton starts.",
+  "Style: halton() is defined again inside _solve_once on every call, and it has a pointless O(n) Python loop. This goes against 'simpler is better'.",
+  "Claim check: the candidate's -2.938 comes from 1 job against an incumbent mean of -2.9355 from 1 job. The difference of 0.0025 is under one noise sd of 0.0034, so it is not evidence of a gain. A sum of 2.938 is slightly above the stated best published value of about 2.9370. That is plausible as noise and/or adjustment, but it is worth a look before anyone believes it.",
+  "Recomputed z = 0.0025 / (0.0034 * sqrt(1 + 1)) = 0.52. This matches the harness, and so does the provisional reject."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.52
+ }
+}

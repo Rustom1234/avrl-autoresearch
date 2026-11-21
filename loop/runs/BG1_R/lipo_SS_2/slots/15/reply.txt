@@ -1,0 +1,84 @@
+<<<<<<< SEARCH
+import lightgbm as lgb
+=======
+import lightgbm as lgb
+from catboost import CatBoostRegressor
+
+N_CNT = 1024
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+=======
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    cgen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_CNT)
+    rows = []
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([fp, desc]))
+=======
+        cnt = cgen.GetCountFingerprintAsNumPy(m).astype(np.float32)
+        rows.append(np.concatenate([fp, desc, cnt]))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+    et = ExtraTreesRegressor(
+=======
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+    Ctr, Cte = Xtr[:, N_BITS:], Xte[:, N_BITS:]
+    Xtr, Xte = Xtr[:, :-N_CNT], Xte[:, :-N_CNT]
+    et = ExtraTreesRegressor(
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr))])
+=======
+    cb = CatBoostRegressor(iterations=500, depth=6, learning_rate=0.08, rsm=0.3, loss_function="RMSE",
+                           thread_count=8, random_seed=seed, verbose=0).fit(Ctr, ytr)
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr)), cb.predict(Cte)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    oof = np.zeros((len(y), 4))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import lightgbm as lgb
+=======
+import lightgbm as lgb
+from catboost import CatBoostRegressor
+
+N_CNT = 1024
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+=======
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    cgen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_CNT)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([fp, desc]))
+=======
+        cnt = cgen.GetCountFingerprintAsNumPy(m).astype(np.float32)
+        rows.append(np.concatenate([fp, desc, cnt]))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+=======
+def base_preds(Xtr, ytr, Xte, seed, n_trees):
+    Ctr, Cte = Xtr[:, N_BITS:], Xte[:, N_BITS:]
+    Xtr, Xte = Xtr[:, :-N_CNT], Xte[:, :-N_CNT]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr))])
+=======
+    cb = CatBoostRegressor(iterations=500, depth=6, learning_rate=0.08, rsm=0.3, loss_function="RMSE",
+                           thread_count=8, random_seed=seed, verbose=0).fit(Ctr, ytr)
+    return np.column_stack([et.predict(Xte), gb.predict(Xte), sv.predict(tanimoto(Fte, Ftr)), cb.predict(Cte)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    oof = np.zeros((len(y), 4))
+>>>>>>> REPLACE
+-----

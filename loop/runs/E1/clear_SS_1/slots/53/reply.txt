@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+=======
+    Ftr, Fte = xgb_features(train_smiles), xgb_features(test_smiles)
+    D = len(Descriptors.descList)
+    desc, mor, av, erg = np.arange(D), np.arange(D, D + 1024), np.arange(D + 1024, D + 2048), np.arange(D + 2048, Ftr.shape[1])
+    groups = [np.r_[desc, mor], np.r_[desc, av], np.r_[desc, erg, mor], np.arange(Ftr.shape[1])]
+    p_rf = 0
+    for i, cols in enumerate(groups):
+        model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                             min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed + i)
+        model.fit(Ftr[:, cols], y)
+        p_rf = p_rf + model.predict(Fte[:, cols]) / len(groups)
+>>>>>>> REPLACE
+-----

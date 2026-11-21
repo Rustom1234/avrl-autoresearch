@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    gamma = 1.0 / D.shape[1]
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    rng = np.random.RandomState(seed)
+    nd = D.shape[1]
+    K_desc_train = np.zeros((len(D), len(D)))
+    K_desc_test = np.zeros((len(Dt), len(D)))
+    for _ in range(8):
+        cols = rng.choice(nd, size=max(1, nd // 2), replace=False)
+        g = 2.0 / len(cols)
+        K_desc_train += rbf(D[:, cols], D[:, cols], g) / 8.0
+        K_desc_test += rbf(Dt[:, cols], D[:, cols], g) / 8.0
+    K_train = 0.5 * (tanimoto(X, X) + K_desc_train)
+    K_test = 0.5 * (tanimoto(Xt, X) + K_desc_test)
+>>>>>>> REPLACE
+-----

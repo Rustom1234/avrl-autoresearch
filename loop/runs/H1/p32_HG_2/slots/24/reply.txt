@@ -1,0 +1,88 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if best is None or hops_since_improvement > 15:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            hops_since_improvement = 0
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+=======
+    # Parallel Tempering setup
+    temps = [0.0, 0.002, 0.005, 0.01]
+    replicas = []
+    for t in temps:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        replicas.append({'c': c, 'r': r, 'temp': t})
+    
+    best = max(replicas, key=lambda x: x['r'].sum())
+    
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        # Metropolis-Hastings step for each replica
+        for i in range(len(replicas)):
+            rep = replicas[i]
+            c_curr, r_curr = rep['c'], rep['r']
+            
+            # Perturbation
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c_sol, r_sol = _solve_once(n, rng, x0=x0)
+            c_sol = np.clip(c_sol, 0, 1)
+            r_sol = _repair(c_sol, r_sol)
+            
+            delta = r_sol.sum() - r_curr.sum()
+            if delta > 0 or (rep['temp'] > 0 and rng.random() < np.exp(delta / rep['temp'])):
+                rep['c'], rep['r'] = c_sol, r_sol
+        
+        # Swap adjacent replicas
+        for i in range(len(temps) - 1):
+            r1, r2 = replicas[i], replicas[i+1]
+            delta = (r2['r'].sum() - r1['r'].sum()) * (1.0 / (r1['temp'] + r2['temp'])) # simplified swap prob
+            # Standard exchange: exp( (S2 - S1) / (1/T1 + 1/T2) )
+            # But since T_i are small and fixed, we use a simpler transition
+            if rng.random() < 0.1: # Small chance to swap to maintain diversity
+                replicas[i], replicas[i+1] = replicas[i+1], replicas[i]
+        
+        best = max(replicas, key=lambda x: x['r'].sum())
+        if best['r'].sum() > best['r'].sum(): # Safety
+             pass
+             
+    return best['c'], best['r']
+>>>>>>> REPLACE
+-----

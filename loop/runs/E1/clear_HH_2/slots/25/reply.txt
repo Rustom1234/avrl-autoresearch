@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def count_features(smiles):
+=======
+_PRIOR_CACHE = {}
+
+
+def prior_features(smiles):
+    rows = []
+    for s in smiles:
+        if s not in _PRIOR_CACHE:
+            m = Chem.MolFromSmiles(s)
+            _PRIOR_CACHE[s] = [Descriptors.MolLogP(m), Descriptors.TPSA(m)]
+        rows.append(_PRIOR_CACHE[s])
+    return np.array(rows, dtype=np.float64)
+
+
+def count_features(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    n = len(p_desc)
+    blend = W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+    P = prior_features(test_smiles)
+    prior = rankdata(rankdata(P[:, 0]) - rankdata(P[:, 1])) / n  # high logP, low TPSA -> high clearance
+    return 0.8 * blend + 0.2 * prior
+>>>>>>> REPLACE
+-----

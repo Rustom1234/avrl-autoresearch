@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    best = None
+    best_val = -1.0
+    it = 0
+
+    # point-reflection symmetric phase: w = [x(13), y(13), r(13)]
+    h = 13
+    T = np.zeros((N3, 3 * h))
+    bb = np.zeros(N3)
+    for k in range(h):
+        T[k, k] = 1.0
+        T[h + k, k] = -1.0
+        bb[h + k] = 1.0
+        T[n + k, h + k] = 1.0
+        T[n + h + k, h + k] = -1.0
+        bb[n + h + k] = 1.0
+        T[2 * n + k, 2 * h + k] = 1.0
+        T[2 * n + h + k, 2 * h + k] = 1.0
+    gred = np.zeros(3 * h)
+    gred[2 * h:] = -2.0
+    bounds_r = [(0, 1)] * (2 * h) + [(0, 0.5)] * h
+    best_w = None
+    best_w_val = -1.0
+    while time.time() - t0 < 0.25 * time_budget:
+        c0 = rng.random((h, 2)) * 0.9 + 0.05
+        r0 = np.full(h, 0.05) + rng.random(h) * 0.03
+        w0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(lambda w: -2.0 * np.sum(w[2 * h:]), w0,
+                           jac=lambda w: gred, method="SLSQP", bounds=bounds_r,
+                           constraints=[{"type": "ineq",
+                                         "fun": lambda w: cons(T @ w + bb),
+                                         "jac": lambda w: jac(T @ w + bb) @ T}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        if -res.fun > best_w_val:
+            best_w_val = -res.fun
+            best_w = res.x
+    if best_w is not None:
+        try:
+            res = minimize(obj, T @ best_w + bb, jac=grad, method="SLSQP",
+                           bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+            out = finalize(res.x)
+            if out is not None and out[1].sum() > best_val:
+                best_val = out[1].sum()
+                best = out
+        except Exception:
+            pass
+>>>>>>> REPLACE
+-----

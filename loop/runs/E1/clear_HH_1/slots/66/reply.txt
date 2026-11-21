@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+    sq = (A ** 2).sum(axis=1)[:, None] + (B ** 2).sum(axis=1)[None, :] - 2.0 * A @ B.T
+    return np.exp(-gamma * np.maximum(sq, 0.0))
+=======
+def sqdist(A, B):
+    sq = (A ** 2).sum(axis=1)[:, None] + (B ** 2).sum(axis=1)[None, :] - 2.0 * A @ B.T
+    return np.maximum(sq, 0.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gamma = 1.0 / D.shape[1]
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    sq_tr = sqdist(D, D)
+    sq_te = sqdist(Dt, D)
+    # self-tuning bandwidths: distance to 7th neighbour (index 0 is self for training points)
+    s_tr = np.sqrt(np.maximum(np.sort(sq_tr, axis=1)[:, 7], 1e-12))
+    s_te = np.sqrt(np.maximum(np.sort(sq_te, axis=1)[:, 6], 1e-12))
+    K_train = 0.5 * (tanimoto(X, X) + np.exp(-sq_tr / (2.0 * np.outer(s_tr, s_tr))))
+    K_test = 0.5 * (tanimoto(Xt, X) + np.exp(-sq_te / (2.0 * np.outer(s_te, s_tr))))
+>>>>>>> REPLACE
+-----

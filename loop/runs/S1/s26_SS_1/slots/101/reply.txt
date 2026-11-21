@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    c = np.clip(c, 0, 1)
+    r = _lp_radii(c)
+    i, j = _IU
+    d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    ratio = max(np.max((r[i] + r[j]) / np.maximum(d, 1e-300)), np.max(r / np.maximum(wall, 1e-300)))
+    f = 1.0 - max(ratio - 1.0, 0.0) - 1e-14
+    r = np.maximum(r * f, 0)
+    for _ in range(50):
+        ok = np.all(r[i] + r[j] <= d) and np.all(r <= c[:, 0]) and np.all(r <= c[:, 1]) \
+            and np.all(r <= 1 - c[:, 0]) and np.all(r <= 1 - c[:, 1])
+        if ok:
+            break
+        r = np.maximum(r - 1e-12, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

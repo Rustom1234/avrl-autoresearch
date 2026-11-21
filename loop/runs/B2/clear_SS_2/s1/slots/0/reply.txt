@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+    models = [
+        RandomForestRegressor(
+=======
+    from sklearn.model_selection import GroupKFold
+    from rdkit.Chem.Scaffolds import MurckoScaffold
+    from lightgbm import early_stopping
+
+    def scaffold(s):
+        try:
+            return MurckoScaffold.MurckoScaffoldSmiles(smiles=s)
+        except Exception:
+            return s
+
+    groups = np.array([scaffold(s) for s in train_smiles])
+    tr_idx, va_idx = next(GroupKFold(n_splits=5).split(Xtr, y, groups))
+    es = LGBMRegressor(n_estimators=3000, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+                       subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                       random_state=seed, verbose=-1)
+    es.fit(Xtr[tr_idx], y[tr_idx], eval_set=[(Xtr[va_idx], y[va_idx])],
+           callbacks=[early_stopping(100, verbose=False)])
+    best = es.best_iteration_ or 3000
+    n_rounds = int(min(3000, max(100, round(best * 5 / 4))))
+
+    models = [
+        RandomForestRegressor(
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+=======
+        LGBMRegressor(n_estimators=n_rounds, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    models = [
+        RandomForestRegressor(n_estimators=300, max_features=0.2, n_jobs=8, random_state=seed),
+=======
+    from sklearn.model_selection import GroupKFold
+    from rdkit.Chem.Scaffolds import MurckoScaffold
+    from lightgbm import early_stopping
+
+    def scaffold(s):
+        try:
+            return MurckoScaffold.MurckoScaffoldSmiles(smiles=s)
+        except Exception:
+            return s
+
+    groups = np.array([scaffold(s) for s in train_smiles])
+    tr_idx, va_idx = next(GroupKFold(n_splits=5).split(Xtr, y, groups))
+    es = LGBMRegressor(n_estimators=3000, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+                       subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                       random_state=seed, verbose=-1)
+    es.fit(Xtr[tr_idx], y[tr_idx], eval_set=[(Xtr[va_idx], y[va_idx])],
+           callbacks=[early_stopping(100, verbose=False)])
+    best = es.best_iteration_ or 3000
+    n_rounds = int(min(3000, max(100, round(best * 5 / 4))))
+
+    models = [
+        RandomForestRegressor(n_estimators=300, max_features=0.2, n_jobs=8, random_state=seed),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+=======
+        LGBMRegressor(n_estimators=n_rounds, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+>>>>>>> REPLACE
+-----

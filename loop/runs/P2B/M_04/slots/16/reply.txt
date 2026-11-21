@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+DEPTH = 8               # number of transformer layers
+=======
+DEPTH = 9               # number of transformer layers
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+EMBEDDING_LR = 0.6      # learning rate for token embeddings (Adam)
+UNEMBEDDING_LR = 0.004  # learning rate for lm_head (Adam)
+=======
+EMBEDDING_LR = 0.6      # learning rate for token embeddings and tied lm_head (Adam)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        torch.nn.init.normal_(self.transformer.wte.weight, mean=0.0, std=1.0)
+        torch.nn.init.normal_(self.lm_head.weight, mean=0.0, std=0.001)
+=======
+        torch.nn.init.normal_(self.transformer.wte.weight, mean=0.0, std=0.02)
+        self.lm_head.weight = self.transformer.wte.weight  # tied input/output embedding
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def setup_optimizer(self, unembedding_lr=0.004, embedding_lr=0.2, matrix_lr=0.02,
+                        weight_decay=0.0, adam_betas=(0.8, 0.95), scalar_lr=0.5):
+=======
+    def setup_optimizer(self, embedding_lr=0.2, matrix_lr=0.02,
+                        weight_decay=0.0, adam_betas=(0.8, 0.95), scalar_lr=0.5):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        embedding_params = list(self.transformer.wte.parameters())
+        lm_head_params = list(self.lm_head.parameters())
+=======
+        embedding_params = list(self.transformer.wte.parameters())  # shared with lm_head
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        assert len(list(self.parameters())) == (len(matrix_params) + len(embedding_params) +
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+        assert len(list(self.parameters())) == (len(matrix_params) + len(embedding_params) +
+            len(value_embeds_params) + len(resid_params) + len(x0_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=lm_head_params, lr=unembedding_lr * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=embedding_params, lr=embedding_lr * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+=======
+            dict(kind='adamw', params=embedding_params, lr=embedding_lr * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+optimizer = model.setup_optimizer(
+    unembedding_lr=UNEMBEDDING_LR,
+    embedding_lr=EMBEDDING_LR,
+=======
+optimizer = model.setup_optimizer(
+    embedding_lr=EMBEDDING_LR,
+>>>>>>> REPLACE
+-----

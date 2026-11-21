@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+    pi = [names.index(n) for n in ['MolLogP', 'TPSA', 'NumHDonors', 'NumHAcceptors', 'MolWt', 'NumRotatableBonds']]
+    Xtr = featurize(train_smiles)[:, :nd]
+    Xte = featurize(test_smiles)[:, :nd]
+    sc = StandardScaler().fit(Xtr[:, pi])
+    ridge = Ridge(alpha=10.0).fit(sc.transform(Xtr[:, pi]), y)
+    rtr = ridge.predict(sc.transform(Xtr[:, pi]))
+    rte = ridge.predict(sc.transform(Xte[:, pi]))
+    model.fit(Xtr, y - rtr)
+=======
+    pi = [names.index(n) for n in ['MolLogP', 'TPSA', 'NumHDonors', 'NumHAcceptors', 'MolWt', 'NumRotatableBonds',
+                                   'NumAromaticRings', 'FractionCSP3', 'HeavyAtomCount', 'RingCount']]
+    Xtr = featurize(train_smiles)[:, :nd]
+    Xte = featurize(test_smiles)[:, :nd]
+    lo, hi = np.percentile(Xtr, 1, axis=0), np.percentile(Xtr, 99, axis=0)
+    Xtr = np.clip(Xtr, lo, hi)
+    Xte = np.clip(Xte, lo, hi)
+    sc = StandardScaler().fit(Xtr[:, pi])
+    Ptr, Pte = sc.transform(Xtr[:, pi]), sc.transform(Xte[:, pi])
+    ridge = Ridge(alpha=30.0).fit(Ptr, y)
+    rtr = ridge.predict(Ptr)
+    rte = ridge.predict(Pte)
+    from sklearn.model_selection import KFold
+    oof = np.zeros(len(y))
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(Ptr):
+        oof[b] = Ridge(alpha=30.0).fit(Ptr[a], y[a]).predict(Ptr[b])
+    Xtr = np.column_stack([Xtr, oof])
+    Xte = np.column_stack([Xte, rte])
+    from rdkit.Chem.Scaffolds import MurckoScaffold
+    scaf = [MurckoScaffold.MurckoScaffoldSmiles(s) for s in train_smiles]
+    cnt = {k: scaf.count(k) for k in set(scaf)}
+    w = np.array([1.0 / np.sqrt(cnt[k]) for k in scaf])
+    model.fit(Xtr, y - rtr, sample_weight=w)
+>>>>>>> REPLACE
+-----

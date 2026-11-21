@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+from sklearn.cross_decomposition import PLSRegression
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, r, train_smiles)
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+=======
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    pls = PLSRegression(n_components=8, scale=False).fit(X_tr, r)
+    Z_tr, Z_te = pls.transform(X_tr), pls.transform(X_te)
+    mu_z, sd_z = Z_tr.mean(0), Z_tr.std(0) + 1e-9
+    Z_tr, Z_te = (Z_tr - mu_z) / sd_z, (Z_te - mu_z) / sd_z
+    D_tr = np.sqrt(((Z_tr[:, None, :] - Z_tr[None, :, :]) ** 2).sum(-1))
+    ell = np.median(D_tr[np.triu_indices(len(Z_tr), 1)])
+    K_tr = np.exp(-D_tr ** 2 / (2 * ell ** 2))
+    K_te = np.exp(-((Z_te[:, None, :] - Z_tr[None, :, :]) ** 2).sum(-1) / (2 * ell ** 2))
+    s2 = choose_sigma2(K_tr, r, train_smiles)
+    p_fp = gp_mean(K_tr, r, K_te, s2) + base_te
+>>>>>>> REPLACE
+-----

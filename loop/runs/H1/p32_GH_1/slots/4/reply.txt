@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    def cons(v, cap):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r, cap - r])
+
+    x = x0
+    for cap in RADIUS_CAPS:   # gradually raise the allowed radius, warm-starting each stage
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": cons, "args": (cap,)}, options={"maxiter": MAX_ITER})
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+=======
+    def penalty(v, cap, lam):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        ov = np.minimum(np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]], 0)
+        bnd = np.minimum(np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r, cap - r]), 0)
+        return -r.sum() + lam * ((ov ** 2).sum() + (bnd ** 2).sum())
+
+    x = x0
+    for cap in RADIUS_CAPS:   # gradually raise the allowed radius, warm-starting each stage
+        for lam in (1e2, 1e4, 1e6):   # increasing penalty weight on overlaps
+            x = minimize(penalty, x, args=(cap, lam), method="L-BFGS-B", options={"maxiter": MAX_ITER}).x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

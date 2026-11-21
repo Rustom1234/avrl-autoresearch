@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def generic_scaffold(smiles):
+    scaf = MurckoScaffold.GetScaffoldForMol(Chem.MolFromSmiles(smiles))
+    return Chem.MolToSmiles(MurckoScaffold.MakeScaffoldGeneric(scaf))
+
+
+def target_encode(gen_a, ya, ga, gen_b, m=5):
+    # Smoothed mean of y per generic scaffold, shrunk toward the global mean with weight m.
+    # Training rows leave out their own Murcko group (leave-one-group-out), so no self-leakage.
+    mu = ya.mean()
+    sums, cnts, pair_s, pair_c = {}, {}, {}, {}
+    for g, k, y in zip(gen_a, ga, ya):
+        sums[g] = sums.get(g, 0.0) + y
+        cnts[g] = cnts.get(g, 0) + 1
+        pair_s[(g, k)] = pair_s.get((g, k), 0.0) + y
+        pair_c[(g, k)] = pair_c.get((g, k), 0) + 1
+    ea = np.array([(sums[g] - pair_s[(g, k)] + m * mu) / (cnts[g] - pair_c[(g, k)] + m) for g, k in zip(gen_a, ga)])
+    eb = np.array([(sums.get(g, 0.0) + m * mu) / (cnts.get(g, 0) + m) for g in gen_b])
+    return ea, eb
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+    # Three base learners; returns their predictions on Xb as columns.
+    rf = RandomForestRegressor(n_estimators=200, max_features=0.3, n_jobs=8, random_state=seed)
+    p_rf = rf.fit(Xa, ya).predict(Xb)
+    m = lgb.train(lgb_params((31, 10, 0.2), seed), lgb.Dataset(Xa, ya), num_boost_round=N_ROUNDS)
+    p_lgb = m.predict(Xb)
+=======
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed, gen_a, gen_b):
+    # Three base learners; returns their predictions on Xb as columns.
+    # Tree learners also get the generic-scaffold target-encoding column.
+    ea, eb = target_encode(gen_a, ya, ga, gen_b)
+    Ta_tree, Tb_tree = np.column_stack([Xa, ea]), np.column_stack([Xb, eb])
+    rf = RandomForestRegressor(n_estimators=200, max_features=0.3, n_jobs=8, random_state=seed)
+    p_rf = rf.fit(Ta_tree, ya).predict(Tb_tree)
+    m = lgb.train(lgb_params((31, 10, 0.2), seed), lgb.Dataset(Ta_tree, ya), num_boost_round=N_ROUNDS)
+    p_lgb = m.predict(Tb_tree)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    groups = np.array([MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles])
+    oof = np.zeros((len(y), 3))
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+=======
+    groups = np.array([MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in train_smiles])
+    gen = np.array([generic_scaffold(s) for s in train_smiles])
+    gen_te = np.array([generic_scaffold(s) for s in test_smiles])
+    oof = np.zeros((len(y), 3))
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed, gen[tr], gen[va])
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed, gen, gen_te)
+>>>>>>> REPLACE
+-----

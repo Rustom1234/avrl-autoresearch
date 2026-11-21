@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity check: the diff only changes the gradient-accumulation count inside the training loop. It does not touch the val_bpb calculation, the data or loader, the seed lines, the evaluation call or the final summary printing. Nothing here calls for a veto.",
+  "Correctness: the loss is divided by the same `accum` that the loop runs, so the gradients are scaled correctly. `accum` is set at the start of each step from total_training_time, so the switch lands cleanly between steps. This is a batch-size ramp: a small batch for the first 30% of the time budget, then a large one. The result is a real measurement, not a broken one.",
+  "Possible mismatch: the comment says '2**17 -> 2**19 tokens/step'. That only holds if one micro-batch is 2**16 tokens. If the sequence length is 2048 with DEVICE_BATCH_SIZE 64, one micro-batch is 2**17 tokens, so the real range is 2**18 -> 2**20. This affects only the comment, not the result.",
+  "Leftover code: any later use of `grad_accum_steps` (token counts, throughput or MFU logging, LR scaling by batch) will now be wrong, because the real number of micro-steps changes during the run. This matters only if the LR schedule or step count depends on it. Under a time-based schedule it is just a logging error.",
+  "Higher memory use: none. Per-micro-step VRAM stays the same because DEVICE_BATCH_SIZE does not change. The wall-clock time per step changes, but the run is still bounded by the 300 s budget.",
+  "Cannot recompute z: the incumbent's per-run values or standard deviation are not given. The candidate runs average 1.0757 (SD about 0.0014), against an incumbent mean of 1.0913, a gap of 0.0156. That gap is in the stated direction and is consistent with z = 2.857 if the incumbent's spread is around 0.005\u20130.008. I can't check this exactly."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+    return best
+
+
+# EVOLVE-BLOCK-END
+=======
+    try:
+        from scipy.optimize import linprog
+        c0, r0 = best
+        v = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        g = cons(v)
+        act = np.where(g < 1e-8)[0]
+        if len(act) > 0:
+            Ja = cjac(v)[act]
+            dv = np.linalg.lstsq(Ja, -g[act], rcond=None)[0]
+            dv = np.clip(dv, -1e-6, 1e-6)
+            v2 = v + dv
+        else:
+            v2 = v
+        cands = [np.stack([v2[:n], v2[n:2 * n]], 1), c0]
+        for cc in cands:
+            cc = np.clip(cc, 0, 1)
+            d = np.sqrt(np.sum((cc[I] - cc[J]) ** 2, axis=1))
+            bd = np.minimum(np.minimum(cc[:, 0], cc[:, 1]),
+                            np.minimum(1 - cc[:, 0], 1 - cc[:, 1]))
+            A = np.zeros((m, n))
+            A[np.arange(m), I] = 1; A[np.arange(m), J] = 1
+            res = linprog(-np.ones(n), A_ub=A, b_ub=d,
+                          bounds=[(0, max(b, 0)) for b in bd], method="highs")
+            if res.status != 0:
+                continue
+            for sh in (1e-12, 1e-10):
+                rr = np.maximum(res.x - sh, 0)
+                dd = np.sqrt(np.sum((cc[I] - cc[J]) ** 2, axis=1))
+                ok = (np.all(rr[I] + rr[J] <= dd) and np.all(rr <= bd)
+                      and np.all(cc >= 0) and np.all(cc <= 1))
+                if ok:
+                    if rr.sum() > bs:
+                        bs = rr.sum(); best = (cc, rr)
+                    break
+    except Exception:
+        pass
+    return best
+
+
+# EVOLVE-BLOCK-END
+>>>>>>> REPLACE
+-----

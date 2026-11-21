@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.preprocessing import QuantileTransformer
+from scipy.spatial.distance import cdist
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    Ftr, Fte = xgb_features(train_smiles), xgb_features(test_smiles)
+    model.fit(Ftr, y)
+    p_rf = model.predict(Fte)
+    nd = len(Descriptors.descList)
+    qt = QuantileTransformer(n_quantiles=200, output_distribution="uniform")
+    Dtr = np.clip(qt.fit_transform(Ftr[:, :nd]), 0, 1)
+    Dte = np.clip(qt.transform(Fte[:, :nd]), 0, 1)
+    gamma = 1.0 / (nd * 2)
+    Ktr = tanimoto(Xtr, Xtr) * np.exp(-gamma * cdist(Dtr, Dtr, "sqeuclidean"))
+    Kte = tanimoto(Xte, Xtr) * np.exp(-gamma * cdist(Dte, Dtr, "sqeuclidean"))
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(Ktr, (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(Kte)
+>>>>>>> REPLACE
+-----

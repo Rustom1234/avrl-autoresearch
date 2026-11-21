@@ -1,0 +1,78 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+=======
+import zlib
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import BRICS
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+N_FRAG = 512
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+N_CONFIGS = 1
+N_ROUNDS = 600
+=======
+def brics_counts(smiles):
+    # Hashed BRICS fragment counts; zlib.crc32 is deterministic across processes (unlike hash()).
+    out = np.zeros((len(smiles), N_FRAG), dtype=np.float64)
+    for i, s in enumerate(smiles):
+        for frag in BRICS.BRICSDecompose(Chem.MolFromSmiles(s)):
+            out[i, zlib.crc32(frag.encode()) % N_FRAG] += 1
+    return out
+
+
+N_CONFIGS = 1
+N_ROUNDS = 600
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Descriptor block is the last columns of X (already clipped to 1st-99th percentiles on the full train set).
+    Za = Xa[:, 2 * N_BITS:].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:].astype(np.float64)
+=======
+    # Descriptor block sits right after the Morgan bits (clipped to 1st-99th percentiles); BRICS columns follow it and are not used by the RBF kernel.
+    nd = len(Descriptors._descList)
+    Za = Xa[:, 2 * N_BITS:2 * N_BITS + nd].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:2 * N_BITS + nd].astype(np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Dtr = np.nan_to_num(np.array([desc_vector(s) for s in train_smiles]), nan=0.0, posinf=0.0, neginf=0.0)
+    Dte = np.nan_to_num(np.array([desc_vector(s) for s in test_smiles]), nan=0.0, posinf=0.0, neginf=0.0)
+=======
+    Dtr = np.nan_to_num(np.hstack([np.array([desc_vector(s) for s in train_smiles]), brics_counts(train_smiles)]),
+                        nan=0.0, posinf=0.0, neginf=0.0)
+    Dte = np.nan_to_num(np.hstack([np.array([desc_vector(s) for s in test_smiles]), brics_counts(test_smiles)]),
+                        nan=0.0, posinf=0.0, neginf=0.0)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import zlib
+import numpy as np
+=======
+import numpy as np
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def brics_counts(smiles):
+    # Hashed BRICS fragment counts; zlib.crc32 is deterministic across processes (unlike hash()).
+=======
+def _frag_hash(frag):
+    # Deterministic string hash (unlike hash(), it does not depend on the process's hash seed).
+    h = 0
+    for ch in frag:
+        h = (h * 31 + ord(ch)) & 0xFFFFFFFF
+    return h
+
+
+def brics_counts(smiles):
+    # Hashed BRICS fragment counts; _frag_hash is deterministic across processes (unlike hash()).
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            out[i, zlib.crc32(frag.encode()) % N_FRAG] += 1
+=======
+            out[i, _frag_hash(frag) % N_FRAG] += 1
+>>>>>>> REPLACE
+-----

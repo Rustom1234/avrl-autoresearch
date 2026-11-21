@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+from scipy.stats import spearmanr
+=======
+from scipy.stats import spearmanr
+from scipy.spatial.distance import cdist, pdist
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def loess_std(D_tr, D_te):
+    mu, sd = D_tr.mean(0), D_tr.std(0)
+    keep = sd > 0
+    def f(D):
+        return np.clip((D[:, keep] - mu[keep]) / sd[keep], -5, 5)
+    return f(D_tr), f(D_te)
+
+
+def loess_predict(Z_tr, y_tr, Z_te, bw):
+    D2 = cdist(Z_te, Z_tr, "sqeuclidean")
+    Xa = np.column_stack([np.ones(len(Z_tr)), Z_tr])
+    P = 10.0 * np.eye(Xa.shape[1])
+    P[0, 0] = 1e-6
+    out = np.empty(len(Z_te))
+    for i in range(len(Z_te)):
+        w = np.exp(-D2[i] / (2 * bw ** 2))
+        XtW = Xa.T * w
+        beta = np.linalg.solve(XtW @ Xa + P, XtW @ y_tr)
+        out[i] = beta[0] + Z_te[i] @ beta[1:]
+    return out
+
+
+def choose_loess_h(Z, y, smiles):
+    scaffolds = [MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in smiles]
+    groups = np.unique(scaffolds, return_inverse=True)[1]
+    best_score, best_h = -np.inf, 1.0
+    for h in (0.5, 1.0, 2.0):
+        pred = np.zeros(len(y))
+        for tr, va in GroupKFold(n_splits=5).split(Z, y, groups):
+            bw = h * np.median(pdist(Z[tr]))
+            pred[va] = loess_predict(Z[tr], y[tr], Z[va], bw)
+        score = spearmanr(pred, y).correlation
+        if score > best_score:
+            best_score, best_h = score, h
+    return best_h
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+
+    n = len(p_desc)
+    return W_DESC * rankdata(p_desc) / n + (1 - W_DESC) * rankdata(p_fp) / n
+=======
+    p_fp = gp_mean(K_tr, r, tanimoto(X_te, X_tr), s2) + base_te
+
+    Z_tr, Z_te = loess_std(desc_features(train_smiles), desc_features(test_smiles))
+    h = choose_loess_h(Z_tr, y, train_smiles)
+    p_loess = loess_predict(Z_tr, y, Z_te, h * np.median(pdist(Z_tr)))
+
+    n = len(p_desc)
+    return (rankdata(p_desc) + rankdata(p_fp) + rankdata(p_loess)) / (3 * n)
+>>>>>>> REPLACE
+-----

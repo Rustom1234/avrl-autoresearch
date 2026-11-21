@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+N_TREES = 300
+FEATURE_FRACTION = 0.8
+BAG_FRACTION = 0.8
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMRegressor(n_estimators=N_TREES, 
+                             feature_fraction=FEATURE_FRACTION, 
+                             bag_fraction=BAG_FRACTION, 
+                             random_state=seed, 
+                             n_jobs=-1, 
+                             verbosity=-1)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+N_TREES = 1000
+FEATURE_FRACTION = 0.8
+BAG_FRACTION = 0.8
+LEARNING_RATE = 0.05
+NUM_LEAVES = 31
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = LGBMRegressor(n_estimators=N_TREES, 
+                             learning_rate=LEARNING_RATE, 
+                             num_leaves=NUM_LEAVES, 
+                             feature_fraction=FEATURE_FRACTION, 
+                             bag_fraction=BAG_FRACTION, 
+                             random_state=seed, 
+                             n_jobs=-1, 
+                             verbosity=-1)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+>>>>>>> REPLACE
+-----

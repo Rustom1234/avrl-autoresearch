@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+=======
+def _lattice(n, rng):
+    rows = int(rng.integers(5, 8))
+    cols = int(np.ceil(n / rows)) + int(rng.integers(0, 2))
+    p = np.array([(j + 0.5 * (i % 2), i) for i in range(rows) for j in range(cols)], dtype=float)
+    p /= p.max(0)
+    p = INIT_LOW + (1 - 2 * INIT_LOW) * p + rng.normal(0, 0.02, p.shape)
+    p = p[rng.permutation(len(p))[:n]]
+    if rng.random() < 0.5:
+        p = p[:, ::-1]
+    return np.clip(p, 0, 1)
+
+
+def _solve_once(n, rng, init=None):
+    base = _lattice(n, rng) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+-----

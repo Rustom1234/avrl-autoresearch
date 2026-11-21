@@ -1,0 +1,56 @@
+<<<<<<< SEARCH
+class Muon(torch.optim.Optimizer):
+=======
+class Lion(torch.optim.Optimizer):
+    def __init__(self, params, beta1=0.9, beta2=0.99):
+        defaults = dict(lr=1e-3, weight_decay=0.0, beta1=beta1, beta2=beta2)
+        super().__init__(params, defaults)
+
+    @torch.no_grad()
+    def step(self):
+        for group in self.param_groups:
+            lr, wd = group["lr"], group["weight_decay"]
+            b1, b2 = group["beta1"], group["beta2"]
+            for p in group["params"]:
+                if p.grad is None:
+                    continue
+                state = self.state[p]
+                if "momentum_buffer" not in state:
+                    state["momentum_buffer"] = torch.zeros_like(p, dtype=torch.float32)
+                m = state["momentum_buffer"]
+                g = p.grad.float()
+                update = torch.sign(b1 * m + (1 - b1) * g)
+                p.mul_(1 - lr * wd)
+                p.add_(update.to(p.dtype), alpha=-lr)
+                m.mul_(b2).add_(g, alpha=1 - b2)
+
+    def zero_grad(self, set_to_none: bool = True):
+        for group in self.param_groups:
+            for p in group["params"]:
+                if p.grad is not None:
+                    if set_to_none:
+                        p.grad = None
+                    else:
+                        p.grad.zero_()
+
+
+class Muon(torch.optim.Optimizer):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    param_configs = [
+        dict(params=[model.whiten.bias], lr=bias_lr, weight_decay=wd / bias_lr),
+        dict(params=norm_biases, lr=bias_lr, weight_decay=wd / bias_lr),
+        dict(params=[model.head.weight], lr=head_lr, weight_decay=wd / head_lr),
+    ]
+    optimizer1 = torch.optim.SGD(
+        param_configs, momentum=SGD_MOMENTUM, nesterov=True, fused=True
+    )
+=======
+    param_configs = [
+        dict(params=[model.whiten.bias], lr=bias_lr * 0.3, weight_decay=wd / bias_lr),
+        dict(params=norm_biases, lr=bias_lr * 0.3, weight_decay=wd / bias_lr),
+        dict(params=[model.head.weight], lr=head_lr * 0.3, weight_decay=wd / head_lr),
+    ]
+    optimizer1 = Lion(param_configs)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement: no file or network access, no pasted coordinates, and no use of labels. Randomness still comes from the seed path.",
+  "Sign bug in the new gradient step: grad_r gets -1 for each overlapping pair, then r -= lr*grad_r. That makes overlapping circles bigger instead of smaller, so the step works against its own purpose. The comment says 'Shrink radii', which does not match what the code does.",
+  "The comment 'If dist is 0, move in random direction' is not implemented. The code only adds 1e-9 to the denominator, so two circles at the same centre get no push.",
+  "The post-processing is a pure-Python O(n^2) double loop run 50 times on every SLSQP local solve, which is about 25k pair checks per restart. It uses up the time budget and cuts the number of restarts. That probably explains much of the drop. It also adds ugly code, which goes against the 'simpler is better' rule.",
+  "The packing can still pass the harness check because the existing repair step afterwards makes it valid, and the harness checks it exactly. So the score is a real, if poor, measurement and not a meaningless one. No veto.",
+  "Recomputed z = (incumbent - candidate) / (0.0034*sqrt(1/1 + 1/2)) = (-2.9317 + 2.9167)/0.004164 \u2248 -3.60. The harness reports -3.552. The small gap is probably from using unrounded means; the sign and size agree. The candidate is worse by about 0.015 in sum of radii, so the provisional reject is right.",
+  "Only one candidate run against two incumbent runs, but the effect is large and clearly negative. A replicate is not worth a slot."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -3.6
+ }
+}

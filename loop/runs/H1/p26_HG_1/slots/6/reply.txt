@@ -1,0 +1,90 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+    dist_matrix = np.sqrt(((x0[:2*n].reshape(n, 2)[:, None] - x0[:2*n].reshape(n, 2)[None, :])) ** 2).sum(-1))
+    active_iu = iu
+    if n > 1:
+        active_iu = iu[dist_matrix[iu] < 0.35]
+
+    def cons(v, indices=active_iu):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        if indices.size == 0: return np.concatenate([c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        d = np.sqrt(((c[indices[0]] - c[indices[1]]) ** 2).sum(1)) - r[indices[0]] - r[indices[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons, "args": (active_iu,)}, 
+                   options={"maxiter": MAX_ITER})\n    
+    # Second pass with all constraints to ensure validity
+    c_mid = res.x[:2 * n].reshape(n, 2)
+    r_mid = res.x[2 * n:]
+    
+    def cons_full(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res2 = minimize(lambda v: -v[2 * n:].sum(), res.x, method="SLSQP", constraints={"type": "ineq", "fun": cons_full},
+                   options={"maxiter": MAX_ITER - (MAX_ITER if res.success else                      MAX_ITER // 2)})
+    return res2.x[:2 * n].reshape(n, 2), res2.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+
+    def get_active_constraints(c_curr):
+        dists = np.sqrt(((c_curr[iu[0]] - c_curr[iu[1]]) ** 2).sum(1))
+        # Only consider pairs that are close enough to possibly overlap
+        # or whose radius sum is greater than current distance
+        mask = dists < 0.4
+        return iu[0][mask], iu[1][mask]
+
+    def cons(v, active_iu):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[active_iu[0]] - c[active_iu[1]]) ** 2).sum(1)) - r[active_iu[0]] - r[active_iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    # Phase 1: Fast solve with pruned constraints
+    c_init = x0[:2*n].reshape(n, 2)
+    a_iu = get_active_constraints(c_init)
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", 
+                   constraints={"type": "ineq", "fun": lambda v: cons(v, a_iu)},
+                   options={"maxiter": MAX_ITER})\n    
+    # Phase 2: Refine with all constraints (or a more complete set)
+    c_mid = res.x[:2 * n].reshape(n, 2)
+    r_mid = res.x[2 * n:]
+    # For Phase 2, we use all pairs to ensure exactness
+    res_final = minimize(lambda v: -v[2 * n:].sum(), res.x, method="SLSQP", 
+                           constraints={"type": "ineq", "fun": lambda v: cons(v, iu)},
+                           options={"maxiter": MAX_ITER})\n    return res_final.x[:2 * n].reshape(n, 2), res_final.x[2 * n:]
+-----

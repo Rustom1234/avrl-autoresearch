@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    Ktr, Kte = tanimoto(Xtr, Xtr), tanimoto(Xte, Xtr)
+    ys = (y - y.mean()) / (y.std() + 1e-9)
+    rng = np.random.RandomState(seed)
+    p_svr = np.zeros(len(test_smiles))
+    for _ in range(10):
+        idx = rng.choice(len(y), int(0.8 * len(y)), replace=False)
+        svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+        svr.fit(Ktr[np.ix_(idx, idx)], ys[idx])
+        p_svr += svr.predict(Kte[:, idx]) / 10
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+from xgboost import XGBRegressor
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import ConstantKernel, RBF, WhiteKernel
+from sklearn.preprocessing import QuantileTransformer
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = XGBRegressor(objective='reg:absoluteerror', tree_method='hist', max_depth=6, learning_rate=0.03,
+                         n_estimators=600, subsample=0.8, colsample_bytree=0.3, min_child_weight=3,
+                         random_state=seed, n_jobs=8)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.float64))
+    return model.predict(featurize(test_smiles))
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_tr = featurize(train_smiles)[:, N_BITS:].astype(np.float64)
+    X_te = featurize(test_smiles)[:, N_BITS:].astype(np.float64)
+    keep = X_tr.std(axis=0) > 0
+    X_tr, X_te = X_tr[:, keep], X_te[:, keep]
+    qt = QuantileTransformer(n_quantiles=len(X_tr), output_distribution='normal', random_state=seed)
+    X_tr = qt.fit_transform(X_tr)
+    X_te = qt.transform(X_te)
+    kernel = ConstantKernel(1.0) * RBF(length_scale=10.0) + WhiteKernel(noise_level=0.1)
+    gp = GaussianProcessRegressor(kernel=kernel, normalize_y=True, n_restarts_optimizer=2, random_state=seed)
+    gp.fit(X_tr, np.asarray(train_y, dtype=np.float64))
+    return gp.predict(X_te)
+>>>>>>> REPLACE
+-----

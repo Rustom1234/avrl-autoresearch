@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def jitter_anneal_search(seed=12345, budget=150.0, start=None):
+=======
+def _ring_start(rng, amp):
+    # Structured seed: 4 corners, 8 edge circles, an outer interior ring of 8,
+    # an inner ring of 5, and one centre circle (larger nominal sizes in the middle).
+    pts = []
+    for cx, cy in [(0.08, 0.08), (0.92, 0.08), (0.08, 0.92), (0.92, 0.92)]:
+        pts.append([cx, cy])
+    for t in [0.3, 0.7]:
+        pts.append([t, 0.06])
+        pts.append([t, 0.94])
+        pts.append([0.06, t])
+        pts.append([0.94, t])
+    for i in range(8):
+        a = 2 * np.pi * i / 8 + np.pi / 8
+        pts.append([0.5 + 0.25 * np.cos(a), 0.5 + 0.25 * np.sin(a)])
+    for i in range(5):
+        a = 2 * np.pi * i / 5
+        pts.append([0.5 + 0.1 * np.cos(a), 0.5 + 0.1 * np.sin(a)])
+    pts.append([0.5, 0.5])
+    c = np.array(pts, dtype=float)
+    c = c + rng.uniform(-amp, amp, c.shape)
+    return np.clip(c, 0.0, 1.0)
+
+
+def jitter_anneal_search(seed=12345, budget=150.0, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            start = _lattice_start(np.random.default_rng(999 + k), amp)
+=======
+            if k % 2 == 1:
+                start = _ring_start(np.random.default_rng(999 + k), amp)
+            else:
+                start = _lattice_start(np.random.default_rng(999 + k), amp)
+>>>>>>> REPLACE
+-----

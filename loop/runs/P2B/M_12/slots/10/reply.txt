@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+=======
+FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
+SHORT_CTX_FRAC = 0.3    # first fraction of time budget trained at half sequence length
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+=======
+    short_ctx = total_training_time < SHORT_CTX_FRAC * TIME_BUDGET
+    for micro_step in range(grad_accum_steps):
+        xs, ys = (x.reshape(-1, MAX_SEQ_LEN // 2), y.reshape(-1, MAX_SEQ_LEN // 2)) if short_ctx else (x, y)
+        with autocast_ctx:
+            loss = model(xs, ys)
+>>>>>>> REPLACE
+-----

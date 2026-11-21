@@ -1,0 +1,288 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import rbf_kernel
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def get_descriptors(smiles):
+    descriptors = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            desc = [
+                float(rdkit.Chem.Descriptors.MolWt(mol)),
+                float(rdkit.Chem.Descriptors.MolLogP(mol)),
+                float(rdkit.Chem.Descriptors.NumHDonors(mol)),
+                float(rdkit.Chem.Descriptors.NumHAcceptors(mol)),
+                float(rdkit.Chem.Descriptors.TPSA(mol))
+            ]
+            descriptors.append(desc)
+        else:
+            descriptors.append([0.0] * 5)
+    return np.array(descriptors, dtype=np.float32)
+
+def get_morgan_sim(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    fps = [gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles]
+    sim_matrix = np.zeros((len(fps), len(fps)))
+    for i in range(len(fps)):
+        for j in range(i, len(fps)):
+            # Tanimoto similarity
+            sim = np.inner(fps[i], fps[j]) / (np.sum(fps[i]) + np.sum(fps[j]) - np.inner(fps[i], fps[j]))
+            sim_matrix[i, j] = sim_matrix[j, i] = max(0, min(1, sim))
+    return sim_matrix
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    train_fps = [rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS).GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in train_smiles]
+    train_desc = get_descriptors(train_smiles)
+    test_fps = [rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS).GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in test_smiles]
+    test_desc = get_descriptors(test_smiles)
+
+    # Kernels
+    # Tanimoto Kernel
+    K_tan_train = np.zeros((len(train_smiles), len(train_smiles)))
+    for i in range(len(train_smiles)):
+        for j in range(i, len(train_smiles)):
+            sim = np.inner(train_fps[i], train_fps[j]) / (np.sum(train_fps[i]) + np.sum(train_fps[j]) - np.inner(train_fps[i], train_fps[j]))
+            K_tan_train[i, j] = K_tan_train[j, i] = max(0, min(1, sim))
+    
+    # RBF Kernel on descriptors
+    std_train_desc = StandardScaler().fit_transform(train_desc)
+    std_test_desc = StandardScaler().transform(test_desc)
+    K_rbf_train = rbf_kernel(std_train_desc, gamma=0.1)
+    
+    K_fused_train = (K_tan_train + K_rbf_train) / 2
+    
+    # Test Kernel Construction
+    K_tan_test = np.zeros((len(test_smiles), len(train_smiles)))
+    for i in range(len(test_smiles)):
+        for j in range(len(train_smiles)):
+            sim = np.inner(test_fps[i], train_fps[j]) / (np.sum(test_fps[i]) + np.sum(train_fps[j]) - np.inner(test_fps[i], train_fps[j]))
+            K_tan_test[i, j] = max(0, min(1, sim))
+    
+    K_rbf_test = rbf_kernel(std_test_desc, gamma=0.1)
+    K_fused_test = (K_tan_test + K_rbf_test) / 2
+    
+    model = SVC(kernel='precomputed', C=1.0, probability=True, random_state=seed)
+    model.fit(K_fused_train, np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(K_fused_test)[:, 1]
+-----
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def get_descriptors(smiles):
+    descs = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            descs.append([
+                float(rdkit.Chem.Descriptors.MolWt(mol)),
+                float(rdkit.Chem.Descriptors.MolLogP(mol)),
+                float(rdkit.Chem.Descriptors.NumHDonors(mol)),
+                float(rdkit.Chem.Descriptors.NumHAcceptors(mol)),
+                float(rdkit.Chem.Descriptors.TPSA(mol))
+            ])
+        else:
+            descs.append([0.0] * 5)
+    return np.array(descs, dtype=np.float32)
+
+def compute_tanimoto_kernel(fps):
+    n = len(fps)
+    K = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i, n):
+            dot = np.inner(fps[i], fps[j])
+            sum_i = np.sum(fps[i])
+            sum_j = np.sum(fps[j])
+            sim = dot / (sum_i + sum_j - dot)
+            K[i, j] = K[j, i] = max(0.0, min(1.0, sim))
+    return K
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    
+    train_fps = np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in train_smiles])
+    test_fps = np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in test_smiles])
+    
+    train_descs = get_descriptors(train_smiles)
+    test_descs = get_descriptors(test_smiles)
+    
+    # Tanimoto Kernel
+    K_tan_train = compute_tanimoto_kernel(train_fps)
+    K_tan_test = compute_tanimoto_kernel(test_fps)
+    K_tan_train_test = compute_tanimoto_kernel(np.vstack([train_fps, test_fps]))[:, :len(train_smiles), len(train_smiles):]
+    
+    # RBF Kernel on descriptors
+    scaler = StandardScaler()
+    train_descs_std = scaler.fit_transform(train_descs)
+    test_descs_std = scaler.transform(test_descs)
+    
+    def rbf_kernel(x1, x2):
+        sq_dist = np.sum((x1[:, np.newaxis, :] - x2[np.newaxis, :, :]) ** 2, axis=2)
+        return np.exp(-0.5 * sq_dist)
+    
+    K_rbf_train = rbf_kernel(train_descs_std, train_descs_std)
+    K_rbf_test = rbf_kernel(test_descs_std, test_descs_std)
+    K_rbf_train_test = rbf_kernel(train_descs_std, test_descs_std)
+    
+    # Fused Kernel
+    K_train = (K_tan_train + K_rbf_train) / 2
+    K_test = (K_tan_test + K_rbf_test) / 2
+    K_train_test = (K_tan_train_test + K_rbf_train_test) / 2
+    
+    # The SVC kernel='precomputed' expects a square matrix for training
+    # and a matrix of shape (n_test, n_train) for prediction
+    model = SVC(kernel='precomputed', C=1.0, probability=True, random_state=seed)
+    model.fit(K_train, np.asarray(train_y, dtype=np.int64))
+    
+    # For precomputed, predict needs (n_test, n_train)
+    return model.predict_proba(K_train_test.T)[:, 1]
+-----
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestClassifier
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+知========================================================================================================================
+from rdkit import Chem
+from rdkit import Descriptors
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def get_descriptors(smiles):
+    descs = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            descs.append([
+                Descriptors.MolWt(mol),
+                Descriptors.MolLogP(mol),
+                Descriptors.NumHDonors(mol),
+                Descriptors.NumHAcceptors(mol),
+                Descriptors.TPSA(mol)
+            ])
+        else:
+            descs.append([0.0] * 5)
+    return np.array(descs, dtype=np.float32)
+
+def compute_tanimoto_kernel(fps):
+    n = len(fps)
+    K = np.zeros((n, n))
+    for i in range(n):
+        for j in range(i, n):
+            dot = np.inner(fps[i], fps[j])
+            sum_i = np.sum(fps[i])
+            sum_j = np.sum(fps[j])
+            sim = dot / (sum_i + sum_j - dot) if (sum_i + sum_j - dot) > 0 else 0
+            K[i, j] = K[j, i] = max(0.0, min(1.0, sim))
+    return K
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    
+    train_fps = np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in train_smiles])
+    test_fps = np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in test_smiles])
+    
+    train_descs = get_descriptors(train_smiles)
+    test_descs = get_descriptors(test_smiles)
+    
+    # Tanimoto Kernel
+    K_tan_train = compute_tanimoto_kernel(train_fps)
+    # Compute train-test part of Tanimoto kernel
+    combined_fps = np.vstack([train_fps, test_fps])
+    K_tan_full = compute_tanimoto_kernel(combined_fps)
+    K_tan_train_test = K_tan_full[len(train_smiles):, :len(train_smiles)].T
+    
+    # RBF Kernel on descriptors
+    scaler = StandardScaler()
+    train_descs_std = scaler.fit_transform(train_descs)
+    test_descs_std = scaler.transform(test_descs)
+    
+    def rbf_kernel(x1, x2):
+        sq_dist = np.sum((x1[:, np.newaxis, :] - x2[np.newaxis, :, :]) ** 2, axis=2)
+        return np.exp(-0.5 * sq_dist)
+    
+    K_rbf_train = rbf_kernel(train_descs_std, train_descs_std)
+    K_rbf_train_test = rbf_kernel(train_descs_std, test_descs_std)
+    
+    # Fusion
+    K = (K_tan_train + K_rbf_train) / 2
+    
+    model = SVC(kernel='precomputed', C=1.0, probability=True)
+    model.fit(K, np.asarray(train_y, dtype=np.int64))
+    
+    K_test_total = (K_tan_train_test + K_rbf_train_test) / 2
+    return model.predict_proba(K_test_total)[:, 1]
+-----

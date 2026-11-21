@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+    m = lgb.train(lgb_params((31, 10, 0.2), seed), lgb.Dataset(Xa, ya), num_boost_round=N_ROUNDS)
+    p_lgb = m.predict(Xb)
+    mu = ya.mean()
+=======
+    mu = ya.mean()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+    return np.column_stack([p_rf, p_lgb, p_krr])
+=======
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+    # Residual LightGBM: inner scaffold-grouped OOF kernel predictions are a feature; target is y minus that.
+    oof_krr = np.zeros(len(ya))
+    for itr, iva in GroupKFold(n_splits=5).split(Ta, ya, ga):
+        w_in = np.linalg.solve(Ta[np.ix_(itr, itr)] + wr * Ra[np.ix_(itr, itr)] + lam * np.eye(len(itr)), ya[itr] - mu)
+        oof_krr[iva] = (Ta[np.ix_(iva, itr)] + wr * Ra[np.ix_(iva, itr)]) @ w_in + mu
+    m = lgb.train(lgb_params((31, 10, 0.2), seed),
+                  lgb.Dataset(np.column_stack([Xa, oof_krr]), ya - oof_krr), num_boost_round=N_ROUNDS)
+    p_lgb = m.predict(np.column_stack([Xb, p_krr])) + p_krr
+    return np.column_stack([p_rf, p_lgb, p_krr])
+>>>>>>> REPLACE
+-----

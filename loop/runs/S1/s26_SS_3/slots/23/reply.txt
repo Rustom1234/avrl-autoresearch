@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+    while best is not None and time.time() - t0 < time_budget:
+        c, r = best
+        k = rng.choice(np.argsort(r)[:4])
+        keep = np.arange(n) != k
+        cc = c[keep]
+        rr = r[keep]
+        P = rng.random((3000, 2))
+        dd = np.sqrt(((P[:, None, :] - cc[None]) ** 2).sum(2)) - rr[None]
+        clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+        top = np.argsort(-clear)[:10]
+        p = P[rng.choice(top)]
+        c0 = np.vstack([cc, p[None]])
+        c0 = np.clip(c0 + rng.normal(0, 0.003, c0.shape), 0.01, 0.99)
+        r0 = np.concatenate([rr * 0.97, [0.03]])
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is None:
+            continue
+        c2, r2 = out
+        if r2.sum() > best_val:
+            best_val = r2.sum()
+            best = (c2, r2)
+=======
+    cur = best
+    cur_val = best_val
+    while best is not None and time.time() - t0 < time_budget:
+        c, r = cur
+        nm = int(rng.integers(1, 4))
+        if rng.random() < 0.3:
+            ks = np.argsort(r)[:nm]
+        else:
+            ks = rng.choice(n, nm, replace=False)
+        c0 = c.copy()
+        r0 = r * 0.97
+        c0[ks] = rng.random((nm, 2)) * 0.9 + 0.05
+        r0[ks] = 0.03
+        c0 = np.clip(c0 + rng.normal(0, 0.002, c0.shape), 0.01, 0.99)
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 100, "ftol": 1e-11})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is None:
+            continue
+        c2, r2 = out
+        v2 = r2.sum()
+        if v2 > cur_val or rng.random() < np.exp((v2 - cur_val) / 0.002):
+            cur = (c2, r2)
+            cur_val = v2
+        if v2 > best_val:
+            best_val = v2
+            best = (c2, r2)
+>>>>>>> REPLACE
+-----

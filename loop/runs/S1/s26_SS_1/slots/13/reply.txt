@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    i, j = _IU
+    m = len(i)
+    x0 = np.concatenate([c[:, 0], c[:, 1], r])
+=======
+    I_all, J_all = _IU
+    d0 = np.sqrt(((c[I_all] - c[J_all]) ** 2).sum(1))
+    mask = d0 < 0.4
+    i, j = I_all[mask], J_all[mask]
+    m = len(i)
+    x0 = np.concatenate([c[:, 0], c[:, 1], r])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(obj, x0, jac=objg, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": consj}],
+                   bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n,
+                   options={"maxiter": 300, "ftol": 1e-12})
+    x = res.x
+=======
+    x = x0
+    for _ in range(4):
+        res = minimize(obj, x, jac=objg, method="SLSQP",
+                       constraints=[{"type": "ineq", "fun": cons, "jac": consj}],
+                       bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n,
+                       options={"maxiter": 300, "ftol": 1e-12})
+        x = res.x
+        X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+        viol = ((X[I_all] - X[J_all]) ** 2 + (Y[I_all] - Y[J_all]) ** 2
+                - (R[I_all] + R[J_all]) ** 2) < -1e-9
+        viol &= ~mask
+        if not viol.any():
+            break
+        mask = mask | viol
+        i, j = I_all[mask], J_all[mask]
+        m = len(i)
+>>>>>>> REPLACE
+-----

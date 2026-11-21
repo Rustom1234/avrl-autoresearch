@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _hex_init(n, rng):
+    """Jittered hex-like lattice (rows of 6 and 5) for n = 32, else uniform random."""
+    if n != 32 or rng.random() < 0.5:
+        return rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n)
+    ys = np.linspace(0.08, 0.92, 6)
+    xs6 = np.linspace(0.08, 0.92, 6)
+    xs5 = (xs6[:-1] + xs6[1:]) / 2
+    pts = np.array([(x, y) for k, y in enumerate(ys) for x in (xs6 if k % 2 == 0 else xs5)])
+    pts = np.delete(pts, rng.integers(len(pts)), axis=0)
+    if rng.random() < 0.5:
+        pts = pts[:, ::-1]
+    pts = np.clip(pts + rng.normal(0, 0.02, pts.shape), 0.03, 0.97)
+    return pts.ravel()
+
+
+def _solve_once(n, rng, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        y0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), [INIT_RADIUS]])
+=======
+        y0 = np.concatenate([_hex_init(n, rng), [INIT_RADIUS]])
+>>>>>>> REPLACE
+-----

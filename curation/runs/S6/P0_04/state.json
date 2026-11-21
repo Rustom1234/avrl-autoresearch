@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/S6/P0_04/cand/s07_1.py",
+ "inc_scores": {
+  "11": 1.93436885668074,
+  "12": 1.9378651697555147
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random shuffle with a conservative selection strategy that only includes indices corresponding to documents containing 'K\u00f6nigsberg', 'Live Intrusion', or 'collision course', repeated enough to fill T tokens.",
+   "outcome": "dev 3.4802 against 1.9408 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Implement n-gram filtering using a precomputed histogram built from docs using only the target vocabulary words from target_sample, retaining only documents containing at least 3 of these words (repeated if needed).",
+   "outcome": "dev 1.9421 against 1.9408 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Replace the random shuffle with a domain probability estimator: precompute document-level token statistics over the entire pool using tiktoken to estimate the ratio of target vocabulary letters for each document, then sort documents by this estimated probability in descending order and iterate through them to fill T tokens.",
+   "outcome": "dev 1.9537 against 1.9408 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Sort documents by the ratio of 'times' they appear first in the randomly shuffled list, doubling the weight of documents that survive longer than single-document passes to increase the relative frequency of minimal-domain tokens.",
+   "outcome": "dev 1.9574 against 1.9408 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Implement a weighted selection strategy using n-gram matching: precompute a vocabulary leak count for each document against the refinement set of the target_sample (tokens appearing only once or twice), then sequentially select documents with the highest leak count ratio until the token budget T is filled.",
+   "outcome": "dev 4.7626 against 1.9408 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Sort documents by the ratio of tokens from the target domain vocabulary (contiguous trigrams present in target_sample) to total tokens, descending.",
+   "outcome": "dev 2.0003 against 1.9408 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Precompute the absolute frequency of every target_sample token in the pool and sort documents by their relative overlap with the most frequent target tokens (lexical centering) instead of using sorted order for duplicates or trigram ratios.",
+   "outcome": "dev 1.9344 against 1.9408 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 8,
+   "idea": "Replace the weight-based scoring in `doc_scores` with an `overlap` score based on the Jaccard index of target tokens (intersection/union size) to reduce the influence of rare noise tokens that happen to overlap with target vocabulary.",
+   "outcome": "dev 2.0134 against 1.9344 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Precompute the raw token order of `target_sample` (keeping the sequence) and a frequency-mapped copy of `target_sample` tokens, then score documents by how well their raw token stream aligns with the target sequence using Levenshtein distance on a contiguous substring window (or alignment score) rather than just overlap frequency or trigram ratios.",
+   "outcome": "dev 2.0273 against 1.9344 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Instead of relying solely on token frequency overlap, implement a document-level embedding similarity score (using sentence-transformers or a static sentence embedding model if allowed, but given constraints, use a heuristic scoring based on the ratio of 'real' vs 'extra' target tokens minus noise ratios) to prioritize documents that are contextually similar to target samples rather than just lexically overlapping, or alternatively, implement a learned ranking by mapping token features to document scores using a simple neural network classifier trained on pseudo-labels derived from target_sample content structure (e.g., presence of specific syntactic patterns common in the target domain). However, since we cannot train a model in this run, let's try a more robust lexical matching: precompute the maximum contiguous trigram sequence from the target_sample, then score documents by the proportion of their tokens that are the beginning of these trigrams, sorted descending.",
+   "outcome": "dev 2.0033 against 1.9344 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Modify the scoring function to calculate the top-k hitting ratio of each document against a sorted list of the most frequent 20 unique words from target_sample, rather than summing all overlaps, to prioritize documents that contain a high concentration of the most discriminative vocabulary.",
+   "outcome": "dev 1.9880 against 1.9344 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Modify the scoring function to calculate a pooled frequency-normalized score for each target token present in a document, dividing each token's count in the document by the global pool average frequency of that token (so rarer useful tokens get higher weight), then sum these normalized scores to rank documents.",
+   "outcome": "dev 1.9701 against 1.9344 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.007864300000000001,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00035375000000000006,
+   "dev": 3.480178975841039,
+   "inc": 1.9408453695428047,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00038005,
+   "dev": 1.94214593678059,
+   "inc": 1.9408453695428047,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0004745,
+   "dev": 1.9537074705876891,
+   "inc": 1.9408453695428047,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0006229499999999999,
+   "dev": 1.9574304291787237,
+   "inc": 1.9408453695428047,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0007729,
+   "dev": 4.762617780448255,
+   "inc": 1.9408453695428047,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0005354000000000001,
+   "dev": 2.0003362580599013,
+   "inc": 1.9408453695428047,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0014687000000000003,
+   "dev": 1.93436885668074,
+   "inc": 1.9408453695428047,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 0.8913450126706225,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0005322,
+   "dev": 2.013382348082639,
+   "inc": 1.93436885668074,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 0.8913450126706225,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0006745000000000006,
+   "dev": 2.027302008900247,
+   "inc": 1.93436885668074,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 0.8913450126706225,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0006953000000000003,
+   "dev": 2.0033146108253486,
+   "inc": 1.93436885668074,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 0.8913450126706225,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0005947500000000007,
+   "dev": 1.9880017599801048,
+   "inc": 1.93436885668074,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 0.8913450126706225,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0007592999999999992,
+   "dev": 1.9700866721936365,
+   "inc": 1.93436885668074,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9408453695428047,
+ "inc_slot": 7
+}

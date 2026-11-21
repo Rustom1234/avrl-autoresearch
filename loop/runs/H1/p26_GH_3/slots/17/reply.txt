@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = _soft_relax(n, rng)
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    x0 = _soft_relax(n, rng)
+    x0[2 * n:] = 0.01  # gradual radius scaling: start with tiny radii
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    x = x0
+    for cap in np.arange(0.03, 0.3, 0.02):  # grow the radius cap by 0.02 per step, re-optimising each time
+        bounds = [(None, None)] * (2 * n) + [(0, cap)] * n
+        x = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", bounds=bounds,
+                     constraints={"type": "ineq", "fun": cons}, options={"maxiter": 50}).x
+    res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

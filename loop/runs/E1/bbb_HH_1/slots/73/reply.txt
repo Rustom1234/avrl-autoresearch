@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from lightgbm import LGBMClassifier
+=======
+from lightgbm import LGBMClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import StandardScaler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def scaled_rank(p):
+=======
+def lda_score(D_fit, y_fit, D_eval):
+    # Fisher discriminant direction with Ledoit-Wolf shrinkage on standardized descriptors
+    sc = StandardScaler().fit(D_fit)
+    lda = LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto')
+    lda.fit(sc.transform(D_fit), y_fit)
+    return lda.decision_function(sc.transform(D_eval))
+
+
+def scaled_rank(p):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lo, hi = np.percentile(D_train, [1, 99], axis=0)
+    X_train = np.hstack([X_train, np.clip(D_train, lo, hi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+    lo, hi = np.percentile(D_train, [1, 99], axis=0)
+    Dc_train = np.clip(D_train, lo, hi)
+    Dc_test = np.clip(D_test, lo, hi)
+    # Out-of-fold LDA projection for training rows; full-fold fit for test rows
+    lda_train = np.zeros(len(y), dtype=np.float64)
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+    for tr_idx, va_idx in skf.split(Dc_train, y):
+        lda_train[va_idx] = lda_score(Dc_train[tr_idx], y[tr_idx], Dc_train[va_idx])
+    lda_test = lda_score(Dc_train, y, Dc_test)
+    X_train = np.hstack([X_train, Dc_train.astype(np.float32), lda_train[:, None].astype(np.float32)])
+    X_test = np.hstack([X_test, Dc_test.astype(np.float32), lda_test[:, None].astype(np.float32)])
+>>>>>>> REPLACE
+-----

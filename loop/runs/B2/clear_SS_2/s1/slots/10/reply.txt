@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+    models = [
+        RandomForestRegressor(n_estimators=300, max_features=0.2, n_jobs=8, random_state=seed),
+        LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+                      subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                      random_state=seed, verbose=-1),
+        CatBoostRegressor(iterations=500, learning_rate=0.05, depth=6, rsm=0.2, thread_count=8,
+                          random_seed=seed, verbose=0),
+    ]
+    preds = []
+    for m in models:
+        m.fit(Xtr, y)
+        p = m.predict(Xte)
+        preds.append(rankdata(p) / len(p))
+=======
+    def make(s):
+        return [
+            RandomForestRegressor(n_estimators=300, max_features=0.2, n_jobs=8, random_state=s),
+            LGBMRegressor(n_estimators=500, learning_rate=0.03, num_leaves=15, colsample_bytree=0.3,
+                          subsample=0.8, subsample_freq=1, min_child_samples=10, n_jobs=8,
+                          random_state=s, verbose=-1),
+            CatBoostRegressor(iterations=500, learning_rate=0.05, depth=6, rsm=0.2, thread_count=8,
+                              random_seed=s, verbose=0),
+        ]
+    preds = []
+    for j in range(3):
+        member_preds = []
+        for k in range(3):
+            m = make(seed + k)[j]
+            m.fit(Xtr, y)
+            member_preds.append(m.predict(Xte))
+        p = np.mean(member_preds, axis=0)
+        preds.append(rankdata(p) / len(p))
+>>>>>>> REPLACE
+-----

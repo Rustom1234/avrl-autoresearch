@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+MM_LEVELS = 4  # count clip for the MinMax kernel
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+def count_fp(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = [np.minimum(gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)), MM_LEVELS) for s in smiles]
+    return np.array(rows, dtype=np.float64)
+
+
+_DESC_CACHE = {}
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+    dot = A @ B.T
+    na = (A * A).sum(axis=1)[:, None]
+    nb = (B * B).sum(axis=1)[None, :]
+    return dot / np.maximum(na + nb - dot, 1e-9)
+=======
+def minmax(A, B):
+    # Generalised Tanimoto on clipped counts: sum_i min(a_i, b_i) = sum_k [a>=k][b>=k], so each level is one matmul.
+    smin = np.zeros((A.shape[0], B.shape[0]))
+    for k in range(1, MM_LEVELS + 1):
+        smin += (A >= k).astype(np.float64) @ (B >= k).astype(np.float64).T
+    smax = A.sum(axis=1)[:, None] + B.sum(axis=1)[None, :] - smin
+    return smin / np.maximum(smax, 1e-9)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Ta, Ra = tanimoto(Fa, Fa), rbf(Za, Za)
+=======
+    Ta, Ra = minmax(Fa, Fa), rbf(Za, Za)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+=======
+    p_krr = (minmax(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Tanimoto kernel uses the ECFP bits only (first N_BITS columns).
+    Ftr, Fte = Ftr[:, :N_BITS].astype(np.float64), Fte[:, :N_BITS].astype(np.float64)
+=======
+    # MinMax kernel uses radius-2 count ECFP.
+    Ftr, Fte = count_fp(train_smiles), count_fp(test_smiles)
+>>>>>>> REPLACE
+-----

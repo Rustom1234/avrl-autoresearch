@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+    while best is not None and time.time() - t0 < time_budget:
+        c, r = best
+        k = rng.choice(np.argsort(r)[:4])
+=======
+    if best is not None:
+        try:
+            from scipy.optimize import dual_annealing, linprog
+            c_b, r_b = best
+            A = np.zeros((m, n))
+            A[ar, iu] = 1.0
+            A[ar, ju] = 1.0
+            t_da = time.time() + 0.15 * time_budget
+
+            def lp_r(p):
+                P = p.reshape(n, 2)
+                d = np.sqrt(((P[iu] - P[ju]) ** 2).sum(1))
+                wl = np.maximum(np.minimum(P.min(1), (1 - P).min(1)), 0.0)
+                res = linprog(-np.ones(n), A_ub=A, b_ub=d,
+                              bounds=list(zip(np.zeros(n), wl)), method="highs")
+                if res.status != 0:
+                    return None
+                return res.x
+
+            def fit(p):
+                rr_ = lp_r(p)
+                return 1.0 if rr_ is None else -rr_.sum()
+
+            p0 = c_b.reshape(-1)
+            lo = np.clip(p0 - 0.04, 0, 1)
+            hi = np.clip(p0 + 0.04, 0, 1)
+            da = dual_annealing(fit, list(zip(lo, hi)), x0=p0, seed=0,
+                                maxiter=1000, no_local_search=True,
+                                callback=lambda x, f, ctx: time.time() > t_da)
+            rr_ = lp_r(da.x)
+            if rr_ is not None:
+                P = da.x.reshape(n, 2)
+                z0 = np.concatenate([P[:, 0], P[:, 1], rr_ * 0.999])
+                res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                               constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                               options={"maxiter": 300, "ftol": 1e-12})
+                out = finalize(res.x)
+                if out is not None and out[1].sum() > best_val:
+                    best_val = out[1].sum()
+                    best = out
+        except Exception:
+            pass
+    while best is not None and time.time() - t0 < time_budget:
+        c, r = best
+        k = rng.choice(np.argsort(r)[:4])
+>>>>>>> REPLACE
+-----

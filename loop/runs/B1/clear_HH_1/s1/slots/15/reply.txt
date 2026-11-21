@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata, spearmanr
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    T_train = tanimoto(X, X)
+    R_train = rbf(D, D, gamma)
+    T_test = tanimoto(Xt, X)
+    R_test = rbf(Dt, D, gamma)
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    ys = (y - mu) / sd
+    inner = KFold(n_splits=5, shuffle=True, random_state=seed)
+    best_score, best_w, best_c = -np.inf, 0.5, 5.0
+    for w in (0.25, 0.4, 0.5, 0.6, 0.75):
+        K_in = w * T_train + (1.0 - w) * R_train
+        for C in (1.0, 3.0, 10.0, 30.0):
+            scores = []
+            for tr, te in inner.split(ys):
+                m = SVR(kernel="precomputed", C=C, epsilon=0.05)
+                m.fit(K_in[np.ix_(tr, tr)], ys[tr])
+                p = m.predict(K_in[np.ix_(te, tr)])
+                scores.append(spearmanr(p, ys[te]).correlation)
+            s = np.nanmean(scores)
+            if s > best_score:
+                best_score, best_w, best_c = s, w, C
+    K_train = best_w * T_train + (1.0 - best_w) * R_train
+    K_test = best_w * T_test + (1.0 - best_w) * R_test
+    model = SVR(kernel="precomputed", C=best_c, epsilon=0.05)
+    model.fit(K_train, ys)
+    return model.predict(K_test)
+>>>>>>> REPLACE
+-----

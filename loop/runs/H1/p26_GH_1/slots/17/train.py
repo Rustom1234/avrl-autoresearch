@@ -1,0 +1,81 @@
+"""train.py: packs n circles into the unit square so that the sum of their radii is as large as possible.
+
+The harness calls solve(n, seed, time_limit) and checks the returned packing exactly.
+Returns (centers, radii): centers is an (n, 2) array, radii an (n,) array. Every circle must lie inside
+[0, 1] x [0, 1] and no two circles may overlap.
+"""
+import time
+
+import numpy as np
+from scipy.optimize import minimize
+
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+MAX_ITER = 200
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+SCREEN_FRACTION = 0.5   # share of the time budget spent on cheap screening starts
+SCREEN_ITER = 60        # SLSQP iteration cap for screening starts
+
+
+def _solve_once(n, rng, x0=None, maxiter=MAX_ITER):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+    s0 = rng.uniform(0.7, 1.4)   # elliptical stretch used only in the initial search
+
+    def make_cons(s):
+        def cons(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            d = np.sqrt((c[iu[0], 0] - c[iu[1], 0]) ** 2 + (s * (c[iu[0], 1] - c[iu[1], 1])) ** 2) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        return cons
+
+    def obj(v):
+        return -v[2 * n:].sum()
+
+    res = minimize(obj, x0, method="SLSQP", constraints={"type": "ineq", "fun": make_cons(s0)},
+                   options={"maxiter": maxiter})
+    # round to true circles: re-solve with the real circle constraints, starting from the stretched solution
+    res = minimize(obj, res.x, method="SLSQP", constraints={"type": "ineq", "fun": make_cons(1.0)},
+                   options={"maxiter": maxiter})
+    return res.x
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+
+
+def _pack(n, v):
+    c = np.clip(v[:2 * n].reshape(n, 2), 0, 1)
+    return c, _repair(c, v[2 * n:])
+
+
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    budget = TIME_FRACTION * time_limit
+    pool = []   # raw SLSQP results from cheap screening starts
+    while time.process_time() - t0 < SCREEN_FRACTION * budget:
+        pool.append(_solve_once(n, rng, maxiter=SCREEN_ITER))
+    pool.sort(key=lambda v: -v[2 * n:].sum())
+    best, k = _pack(n, pool[0]), 0
+    while time.process_time() - t0 < budget:   # spend the rest of the time refining the most promising starts
+        c, r = _pack(n, _solve_once(n, rng, x0=pool[k % min(3, len(pool))]))
+        k += 1
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best

@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def morgan_counts(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def tanimoto_kernel(A, B):
+    K = np.empty((len(A), len(B)), dtype=np.float64)
+    for i, a in enumerate(A):
+        K[i] = np.minimum(a, B).sum(1) / np.maximum(np.maximum(a, B).sum(1), 1e-9)
+    return K
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.5 * p_lgb + 0.5 * svr.predict(Ste)
+=======
+    Ctr, Cte = morgan_counts(train_smiles), morgan_counts(test_smiles)
+    tsvr = SVR(kernel='precomputed', C=5, epsilon=0.1).fit(tanimoto_kernel(Ctr, Ctr), y)
+    p_tan = tsvr.predict(tanimoto_kernel(Cte, Ctr))
+    return 0.5 * p_lgb + 0.25 * svr.predict(Ste) + 0.25 * p_tan
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+def xgb_features(smiles):
+=======
+SOFT_SPOTS = [Chem.MolFromSmarts(p) for p in ["c[OX2][CH3]", "[NX3][CH3]", "[CH2,CH1;!R]c", "[CX3](=O)[OX2][#6]", "[cH]1[cH][cH][cH][cH]c1"]]
+
+
+def extra_features(m):
+    logp = Descriptors.MolLogP(m)
+    tpsa = Descriptors.TPSA(m)
+    ha = max(m.GetNumHeavyAtoms(), 1)
+    fsp3 = Descriptors.FractionCSP3(m)
+    mw = Descriptors.MolWt(m)
+    rot = Descriptors.NumRotatableBonds(m)
+    return [logp * tpsa, logp ** 2, fsp3 * mw, rot / ha] + [len(m.GetSubstructMatches(p)) for p in SOFT_SPOTS]
+
+
+def xgb_features(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([d, gen.GetCountFingerprintAsNumPy(m), av, erg]))
+=======
+        rows.append(np.concatenate([d, gen.GetCountFingerprintAsNumPy(m), av, erg, extra_features(m)]))
+>>>>>>> REPLACE
+-----

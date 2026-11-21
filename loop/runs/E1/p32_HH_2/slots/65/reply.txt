@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+HOP_SD = 0.04
+=======
+HOP_SD = 0.04
+GRID = 200
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, centers0):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, centers0, r0=None):
+    x0 = np.concatenate([centers0, np.full(n, INIT_RADIUS) if r0 is None else r0])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _power_start(n, rng):
+    """Power-diagram start: sites weighted by squared target radii; cell centroids (grid approximation) are the centres."""
+    sites = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    target = 0.05 + 0.2 * rng.beta(2, 3, n)
+    w = target ** 2
+    g = (np.arange(GRID) + 0.5) / GRID
+    gx, gy = np.meshgrid(g, g)
+    pts = np.stack([gx.ravel(), gy.ravel()], 1)
+    owner = np.argmin(((pts[:, None] - sites[None]) ** 2).sum(-1) - w[None], 1)
+    centers = sites.copy()
+    for i in range(n):
+        m = owner == i
+        if m.any():
+            centers[i] = pts[m].mean(0)
+    r = np.minimum(target, np.minimum(np.minimum(centers[:, 0], centers[:, 1]), np.minimum(1 - centers[:, 0], 1 - centers[:, 1])))
+    return centers.ravel(), np.maximum(r, 0)
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for _, p in pool[:KEEP]:
+            c, r = _solve_once(n, p)
+=======
+        for _, p in pool[:KEEP]:
+            r0 = None
+            if rng.random() < 0.25:
+                p, r0 = _power_start(n, rng)
+            c, r = _solve_once(n, p, r0)
+>>>>>>> REPLACE
+-----

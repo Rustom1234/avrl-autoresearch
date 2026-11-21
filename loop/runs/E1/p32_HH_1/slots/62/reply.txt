@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    iu = np.triu_indices(n, 1)
+
+    def cons(v, pi, pj):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[pi] - c[pj]) ** 2).sum(1)) - r[pi] - r[pj]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    # start with pairs whose start centres are close, then add any pair violated by the solution
+    mask = np.sqrt(((base[iu[0]] - base[iu[1]]) ** 2).sum(1)) < 2.5 * 2 * INIT_RADIUS
+    x = x0
+    for _ in range(5):
+        pi, pj = iu[0][mask], iu[1][mask]
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda v: cons(v, pi, pj)},
+                       options={"maxiter": MAX_ITER})
+        x = res.x
+        c, r = x[:2 * n].reshape(n, 2), x[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        viol = (d < r[iu[0]] + r[iu[1]] - 1e-6) & ~mask
+        if not viol.any():
+            break
+        mask = mask | viol
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

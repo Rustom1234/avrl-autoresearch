@@ -1,0 +1,218 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(X_train, y_train_transformed)
+        preds = model.predict(X_test)
+        return np.expm1(preds)
+    else:
+        model.fit(X_train, y_train)
+        return model.predict(X_test)
+=======
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)\n    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        K_train = tanimoto_kernel(X_train, X_train)
+        K_test = tanimoto_kernel(X_test, X_train)
+        
+        model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        K_train = tanimoto_kernel(X_train, X_train)
+        K_test = tanimoto_kernel(X_test, X_train)
+        
+        model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(X_train, y_train_transformed)
+        preds = model.predict(X_test)
+        return np.expm1(preds)
+    else:
+        model.fit(X_train, y_train)
+        return model.predict(X_test)
+ISSUES_REPLACE
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_test, X_train)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+>>>>>>>
+-----
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+N_TREES = 300
+MAX_FEATURES = 0.3
+MIN_SAMPLES_LEAF = 1
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(X_train, y_train_transformed)
+        preds = model.predict(X_test)
+        return np.expm1(preds)
+    else:
+        model.fit(X_train, y_train)
+        return model.predict(X_test)
+=======
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_test, X_train)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+>>>>>>> REPLACE
+-----

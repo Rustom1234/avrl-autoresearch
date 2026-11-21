@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _classinit(rng):
+    n = _N
+    nb = int(rng.choice([4, 5]))
+    nm = int(rng.choice([8, 10, 12]))
+    ns = n - nb - nm
+    rb, rm, rs_ = 0.13, 0.10, 0.07
+    pts, rad = [], []
+    cand = [[rb, rb], [1 - rb, rb], [rb, 1 - rb], [1 - rb, 1 - rb], [0.5, 0.5]]
+    order = rng.permutation(5)
+    if nb == 4 and rng.random() < 0.5:
+        order = np.array([4] + [k for k in order if k != 4][:3])
+    for k in order[:nb]:
+        pts.append(np.array(cand[k]) + rng.normal(0, 0.02, 2))
+        rad.append(rb)
+
+    def score(p, r):
+        s = min(p[0], p[1], 1 - p[0], 1 - p[1]) - 0.8 * r
+        for q, rq in zip(pts, rad):
+            s = min(s, np.hypot(*(p - q)) - 0.8 * (r + rq))
+        return s
+
+    def place(r, edge):
+        best, bs = None, -9
+        for _ in range(40):
+            if edge:
+                t = rng.uniform(r, 1 - r)
+                side = rng.integers(4)
+                p = np.array([[t, r], [t, 1 - r], [r, t], [1 - r, t]][side])
+            else:
+                p = rng.uniform(r, 1 - r, 2)
+            s = score(p, r)
+            if s > bs:
+                bs, best = s, p
+        pts.append(best)
+        rad.append(r)
+
+    for _ in range(nm):
+        place(rm, True)
+    for _ in range(ns):
+        place(rs_, False)
+    c = np.array(pts) + rng.normal(0, 0.005, (n, 2))
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            if rng.random() < 0.25:
+                c = _classinit(rng)
+            else:
+                c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+>>>>>>> REPLACE
+-----

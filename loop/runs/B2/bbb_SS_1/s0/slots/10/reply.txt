@@ -1,0 +1,102 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from scipy.stats import rankdata
+from sklearn.ensemble import RandomForestClassifier
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
+=======
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+from scipy.stats import rankdata
+from sklearn.decomposition import TruncatedSVD
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import QuantileTransformer
+from lightgbm import LGBMClassifier
+from catboost import CatBoostClassifier
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+N_SVD = 128
+KNN_K = 10
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        fp = gen.GetCountFingerprintAsNumPy(m).astype(np.float32)
+        desc = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        rows.append(np.concatenate([desc, fp]))
+    X = np.array(rows, dtype=np.float64)
+    X = np.nan_to_num(X, nan=0.0, posinf=1e6, neginf=-1e6)
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+=======
+_LFC = rdMolStandardize.LargestFragmentChooser()
+_UNC = rdMolStandardize.Uncharger()
+
+
+def standardize(smi):
+    m = Chem.MolFromSmiles(smi)
+    try:
+        s = _UNC.uncharge(_LFC.choose(m))
+        if s is not None and s.GetNumAtoms() > 0:
+            return s
+    except Exception:
+        pass
+    return m
+
+
+def tanimoto_knn(B_train, y_train, B_test, k=KNN_K):
+    inter = B_test @ B_train.T
+    sa = B_test.sum(1)[:, None]
+    sb = B_train.sum(1)[None, :]
+    sim = inter / np.maximum(sa + sb - inter, 1e-9)
+    idx = np.argsort(-sim, axis=1)[:, :k]
+    s = np.take_along_axis(sim, idx, axis=1)
+    return (s * y_train[idx]).sum(1) / np.maximum(s.sum(1), 1e-9)
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    mols = [standardize(s) for s in smiles]
+    desc = np.array([[f(m) for _, f in Descriptors.descList] for m in mols], dtype=np.float64)
+    desc = np.clip(np.nan_to_num(desc, nan=0.0, posinf=1e6, neginf=-1e6), -1e6, 1e6)
+    counts = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float64)
+    bits = np.array([gen.GetFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    return desc, counts, bits
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = featurize(train_smiles)
+    Xt = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    D, C, B = featurize(train_smiles)
+    Dt, Ct, Bt = featurize(test_smiles)
+    X = np.concatenate([D, C], axis=1).astype(np.float32)
+    Xt = np.concatenate([Dt, Ct], axis=1).astype(np.float32)
+    y = np.asarray(train_y, dtype=np.int64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+=======
+        preds.append(rankdata(m.predict_proba(Xt)[:, 1]) / len(Xt))
+    preds.append(rankdata(tanimoto_knn(B.astype(np.float32), y, Bt.astype(np.float32))) / len(Xt))
+    qt = QuantileTransformer(n_quantiles=200, output_distribution="normal", random_state=seed)
+    svd = TruncatedSVD(n_components=N_SVD, random_state=seed)
+    M = np.concatenate([qt.fit_transform(D), svd.fit_transform(C)], axis=1)
+    Mt = np.concatenate([qt.transform(Dt), svd.transform(Ct)], axis=1)
+    mlp = MLPClassifier(hidden_layer_sizes=(256, 64), early_stopping=True, max_iter=500, random_state=seed)
+    mlp.fit(M, y)
+    preds.append(rankdata(mlp.predict_proba(Mt)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

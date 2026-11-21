@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+    for lam in (10.0, 1e2, 1e3, 1e4, 1e5):   # increasing penalty weight on constraint violations
+=======
+    lam, prev = 10.0, np.inf
+    while lam <= 1e5:   # adaptive penalty weight on constraint violations
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x = minimize(fg, x, jac=True, method="L-BFGS-B", bounds=bounds, options={"maxiter": MAX_ITER}).x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+=======
+        x = minimize(fg, x, jac=True, method="L-BFGS-B", bounds=bounds, options={"maxiter": MAX_ITER}).x
+        f, g = fg(x)
+        viol, g[2 * n:] = f + x[2 * n:].sum(), g[2 * n:] + 1   # total penalty and its gradient
+        if viol > 1e-4 and np.linalg.norm(g) < 1e-3:   # stuck: small random kick, then re-solve
+            x = np.clip(x + np.concatenate([0.01 * rng.standard_normal(2 * n), np.zeros(n)]), 0, 1)
+            x = minimize(fg, x, jac=True, method="L-BFGS-B", bounds=bounds, options={"maxiter": MAX_ITER}).x
+        lam *= 100 if viol > 0.5 * prev else 10   # slow decrease -> more aggressive penalty growth
+        prev = viol
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

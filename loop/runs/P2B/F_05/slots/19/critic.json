@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Nothing looks like tampering. The diff changes only one hyperparameter, TOTAL_BATCH_SIZE (2**19 to 2**18). It does not touch the evaluation call, the metric, the data, the prepare.py import line or the seed lines.",
+  "No bug that would make the result meaningless. Halving the total batch should only reduce grad-accumulation steps, from 4 to 2 if the baseline uses DEVICE_BATCH_SIZE 64 with sequence length 2048. 2**18 still divides evenly by 64*2048, so any divisibility assert will pass. The diff does not include that assert line, so this rests on the baseline layout.",
+  "Side effects to keep in mind: within the fixed 300 s there are about twice as many optimizer steps. The learning rates and any step-based schedule were tuned for the larger batch and were not changed. That is a legitimate tuning change, not an integrity problem.",
+  "The numbers match the claim. The candidate mean is 1.06535 and the incumbent mean is 1.0860, an improvement of about 0.0207 bpb. The two candidate runs agree closely (1.0656 and 1.0651).",
+  "I can't check z = 3.767 exactly because the per-run incumbent values and the variance formula aren't given. It implies a standard error of about 0.0055. That seems plausible but conservative given how tight the candidate runs are. With only 2 runs on each side the test has little statistical power, but the result is consistent with accepting."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

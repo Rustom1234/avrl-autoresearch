@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import QuantileTransformer
+=======
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.decomposition import TruncatedSVD
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def ap_counts(smiles):
+    gen = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(Xtr, y)
+    p_lgb = model.predict(Xte)
+=======
+    svd = TruncatedSVD(n_components=30, random_state=seed)
+    Atr = svd.fit_transform(np.log1p(ap_counts(train_smiles)))
+    Ate = svd.transform(np.log1p(ap_counts(test_smiles)))
+    model.fit(np.hstack([Xtr, Atr]), y)
+    p_lgb = model.predict(np.hstack([Xte, Ate]))
+>>>>>>> REPLACE
+-----

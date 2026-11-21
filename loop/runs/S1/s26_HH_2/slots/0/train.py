@@ -1,0 +1,208 @@
+# EVOLVE-BLOCK-START
+"""Constructor-based circle packing for n=26 circles"""
+
+import numpy as np
+
+
+def construct_packing():
+    """
+    Construct a specific arrangement of 26 circles in a unit square
+    that attempts to maximize the sum of their radii.
+
+    Returns:
+        Tuple of (centers, radii, sum_of_radii)
+        centers: np.array of shape (26, 2) with (x, y) coordinates
+        radii: np.array of shape (26) with radius of each circle
+        sum_of_radii: Sum of all radii
+    """
+    # Initialize arrays for 26 circles
+    n = 26
+    centers = np.zeros((n, 2))
+
+    # Place circles in a structured pattern
+    # This is a simple pattern - evolution will improve this
+
+    # First, place a large circle in the center
+    centers[0] = [0.5, 0.5]
+
+    # Place 8 circles around it in a ring
+    for i in range(8):
+        angle = 2 * np.pi * i / 8
+        centers[i + 1] = [0.5 + 0.3 * np.cos(angle), 0.5 + 0.3 * np.sin(angle)]
+
+    # Place 16 more circles in an outer ring
+    for i in range(16):
+        angle = 2 * np.pi * i / 16
+        centers[i + 9] = [0.5 + 0.7 * np.cos(angle), 0.5 + 0.7 * np.sin(angle)]
+
+    # Additional positioning adjustment to make sure all circles
+    # are inside the square and don't overlap
+    # Clip to ensure everything is inside the unit square
+    centers = np.clip(centers, 0.01, 0.99)
+
+    # Compute maximum valid radii for this configuration
+    radii = compute_max_radii(centers)
+    return centers, radii
+
+
+def compute_max_radii(centers):
+    """
+    Compute the maximum possible radii for each circle position
+    such that they don't overlap and stay within the unit square.
+
+    Args:
+        centers: np.array of shape (n, 2) with (x, y) coordinates
+
+    Returns:
+        np.array of shape (n) with radius of each circle
+    """
+    n = centers.shape[0]
+    radii = np.ones(n)
+
+    # First, limit by distance to square borders
+    for i in range(n):
+        x, y = centers[i]
+        # Distance to borders
+        radii[i] = min(x, y, 1 - x, 1 - y)
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            dist = np.sqrt(np.sum((centers[i] - centers[j]) ** 2))
+
+            # Then, limit by distance to other circles
+            # Each pair of circles with centers at distance d can have
+            # sum of radii at most d to avoid overlap
+            for i in range(n):
+                for j in range(i + 1, n):
+                    dist = np.sqrt(np.sum((centers[i] - centers[j]) ** 2))
+
+                    # If current radii would cause overlap
+                    if radii[i] + radii[j] > dist:
+                        # Scale both radii proportionally
+                        scale = dist / (radii[i] + radii[j])
+                        radii[i] *= scale
+                        radii[j] *= scale
+
+    # Ensure no negative radii due to numerical issues
+    radii = np.maximum(radii, 0.0)
+    return radii
+
+
+from scipy.optimize import linprog
+import time as _time
+
+_N = 26
+_MARGIN = 1e-9
+
+
+def _lp_radii(c):
+    """Exact LP: maximise sum of radii for fixed centers."""
+    n = c.shape[0]
+    iu, ju = np.triu_indices(n, 1)
+    m = iu.shape[0]
+    d = np.sqrt(np.sum((c[iu] - c[ju]) ** 2, axis=1))
+    A = np.zeros((m, n))
+    A[np.arange(m), iu] = 1.0
+    A[np.arange(m), ju] = 1.0
+    x, y = c[:, 0], c[:, 1]
+    ub = np.maximum(np.minimum.reduce([x, y, 1.0 - x, 1.0 - y]), 0.0)
+    bounds = np.column_stack([np.zeros(n), ub])
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=bounds, method="highs")
+    if res.status != 0 or res.x is None:
+        return None
+    return res.x
+
+
+def _make_valid(c, r):
+    """Clip radii to walls, enforce pair constraints exactly, add tiny margin."""
+    n = c.shape[0]
+    x, y = c[:, 0], c[:, 1]
+    r = np.maximum(np.minimum.reduce([r, x, y, 1.0 - x, 1.0 - y]), 0.0)
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = np.sqrt(np.sum((c[i] - c[j]) ** 2))
+            s = r[i] + r[j]
+            if s > d:
+                f = d / s if s > 0 else 0.0
+                r[i] *= f
+                r[j] *= f
+    r = r * (1.0 - _MARGIN)
+    return np.maximum(r, 0.0)
+
+
+def _relax(c, r, steps, lr_c, lr_r):
+    """Repulsion from overlaps and walls moves centers; radii grow into free space."""
+    n = r.shape[0]
+    eye = np.eye(n)
+    for k in range(steps):
+        decay = 1.0 - 0.9 * k / max(steps - 1, 1)
+        diff = c[:, None, :] - c[None, :, :]
+        d = np.sqrt(np.sum(diff ** 2, axis=-1) + eye)
+        gap = d - (r[:, None] + r[None, :])
+        np.fill_diagonal(gap, np.inf)
+        ov = np.maximum(-gap, 0.0)
+        unit = diff / d[:, :, None]
+        f = np.sum(ov[:, :, None] * unit, axis=1)
+        gl = c[:, 0] - r
+        gr = 1.0 - c[:, 0] - r
+        gb = c[:, 1] - r
+        gt = 1.0 - c[:, 1] - r
+        f[:, 0] += np.maximum(-gl, 0.0) - np.maximum(-gr, 0.0)
+        f[:, 1] += np.maximum(-gb, 0.0) - np.maximum(-gt, 0.0)
+        c = np.clip(c + lr_c * decay * f, 0.0, 1.0)
+        g = np.minimum(np.minimum.reduce([gl, gr, gb, gt]), gap.min(axis=1))
+        r = np.maximum(r + lr_r * decay * g, 0.0)
+    return c, r
+
+
+def _score(c):
+    r = _lp_radii(c)
+    if r is None:
+        return None, -1.0
+    rv = _make_valid(c, r)
+    return rv, float(rv.sum())
+
+
+def construct_packing():
+    """Inflation relaxation multistart, then basin hopping on the LP-scored packing."""
+    rng = np.random.RandomState(2024)
+    t0 = _time.time()
+    best_c = rng.uniform(0.1, 0.9, size=(_N, 2))
+    best_r = np.zeros(_N)
+    best_s = 0.0
+    for _ in range(30):
+        c = rng.uniform(0.1, 0.9, size=(_N, 2))
+        r = np.full(_N, 0.01)
+        c, r = _relax(c, r, 1200, 0.3, 0.05)
+        rv, s = _score(c)
+        if rv is not None and s > best_s:
+            best_s, best_c, best_r = s, c.copy(), rv
+        if _time.time() - t0 > 100:
+            break
+    cur_c, cur_r, cur_s = best_c.copy(), best_r.copy(), best_s
+    while _time.time() - t0 < 180:
+        c = cur_c.copy()
+        k = rng.randint(1, 4)
+        idx = rng.choice(_N, k, replace=False)
+        c[idx] = rng.uniform(0.05, 0.95, size=(k, 2))
+        c = np.clip(c + rng.normal(0.0, 0.01, size=c.shape), 0.0, 1.0)
+        r0 = np.maximum(cur_r * 0.8, 0.0)
+        c, _ = _relax(c, r0, 300, 0.1, 0.02)
+        rv, s = _score(c)
+        if rv is not None and s > cur_s + 1e-9:
+            cur_c, cur_r, cur_s = c.copy(), rv, s
+    centers = cur_c
+    radii = _make_valid(centers, cur_r)
+    return centers, radii
+
+
+# EVOLVE-BLOCK-END
+
+
+# This part remains fixed (not evolved)
+def run_packing():
+    """Run the circle packing constructor for n=26"""
+    centers, radii = construct_packing()
+    # Calculate the sum of radii
+    sum_radii = np.sum(radii)
+    return centers, radii, sum_radii

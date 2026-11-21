@@ -1,0 +1,77 @@
+<<<<<<< SEARCH
+    K_train = get_tanimoto(X_train, X_train)
+    K_test = get_tanimoto(X_test, X_train)
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    return model.predict(K_test)
+=======
+    K_train = get_tanimoto(X_train, X_train)
+    K_test = get_tanimoto(X_test, X_train)
+    
+    # Density-based sample weights: 
+    # Lower weight for molecules in dense clusters, higher for isolated ones.
+    # We use the mean similarity to 10 nearest neighbors.
+    sorted_indices = np.argsort(np.sort(K_train, axis=1), axis=1)[:, 1:11]
+    avg_sim = np.mean(np.take_along_axis(K_train, sorted_indices, axis=1), axis=1)
+    weights = 1.0 / (avg_sim + 0.05)
+    weights /= np.mean(weights)
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64), sample_weight=weights)
+    return model.predict(K_test)
+-----
+<<<<<<< SEARCH
+    K_train = get_tanimoto(X_train, X_train)
+    K_test = get_tanimoto(X_test, X_train)
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    return model.predict(K_test)
+ Dynamo
+=======
+    K_train = get_tanimoto(X_train, X_train)
+    K_test = get_tanimoto(X_test, X_train)
+    
+    # Density-based sample weights: 
+    # Lower weight for molecules in dense clusters, higher for isolated ones.
+    # We use the mean similarity to 10 nearest neighbors (excluding self).
+    # K_train is sorted per row to find neighbors.
+    sorted_K = np.sort(K_train, axis=1)
+    # Take indices 1 to 10 (first index is self-similarity)
+    neighbor_sims = sorted_K[:, 1:11]
+    avg_sim = np.mean(neighbor_sims, axis=1)
+    weights = 1.0 / (avg_sim + 0.05)
+    weights /= np.mean(weights)
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64), sample_weight=weights)
+    return model.predict(K_test)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    K_train = get_tanimoto(X_train, X_train)
+    K_test = get_tanimoto(X_test, X_train)
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64))
+    return model.predict(K_test)
+=======
+    K_train = get_tanimoto(X_train, X_train)
+    K_test = get_tanimoto(X_test, X_train)
+    
+    # Density-based sample weights: 
+    # Lower weight for molecules in dense clusters, higher for isolated ones.
+    # We use the mean similarity to 10 nearest neighbors (excluding self).
+    sorted_K = np.sort(K_train, axis=1)
+    # Take indices 1 to 11 (first index is self-similarity, which is ~1.0)
+    neighbor_sims = sorted_K[:, 1:11]
+    avg_sim = np.mean(neighbor_sims, axis=1)
+    weights = 1.0 / (avg_sim + 0.05)
+    weights /= np.mean(weights)
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+    model.fit(K_train, np.asarray(train_y, dtype=np.float64), sample_weight=weights)
+    return model.predict(K_test)
+>>>>>>> REPLACE
+-----

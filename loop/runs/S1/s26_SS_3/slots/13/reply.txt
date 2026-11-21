@@ -1,0 +1,21 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 4 == 0:
+            cp = rng.random((n, 2)) * 0.9 + 0.05
+            rp = np.full(n, 0.03)
+            eye = np.eye(n)
+            for s in range(2000):
+                dv = cp[:, None, :] - cp[None, :, :]
+                dist = np.sqrt((dv ** 2).sum(2)) + eye
+                ov = np.maximum(rp[:, None] + rp[None, :] - dist, 0.0)
+                np.fill_diagonal(ov, 0.0)
+                cp = cp + 0.5 * ((ov / dist)[:, :, None] * dv).sum(1)
+                cp = cp + rng.normal(0, 0.003 * (1 - s / 2000), cp.shape)
+                cp = np.clip(cp, rp[:, None], 1 - rp[:, None])
+                rp = np.minimum(rp * (1.003 if ov.max() < 1e-3 else 0.999), 0.5)
+            c0 = np.clip(cp, 0.02, 0.98)
+            r0 = rp * 0.9
+>>>>>>> REPLACE
+-----

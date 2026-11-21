@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    res = y - base_tr
+    Ltr = stage2.apply(Xtr)
+    Lte = stage2.apply(Xte)
+    order = np.argsort(res)
+    res_sorted = res[order]
+    out = np.empty(len(test_smiles), dtype=np.float64)
+    for i in range(len(Lte)):
+        w = (Ltr == Lte[i]).sum(axis=1).astype(np.float64)[order]
+        cw = np.cumsum(w)
+        k = min(int(np.searchsorted(cw, 0.5 * cw[-1])), len(res_sorted) - 1)
+        out[i] = res_sorted[k]
+    return base_te + out
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,74 @@
+<<<<<<< SEARCH
+def _old_construct_packing():
+=======
+def _kkt_polish(c, r, steps=6):
+    """Damped-free Gauss-Newton on active pair/wall equalities; accept only LP-improving points."""
+    n = c.shape[0]
+    best_c, best_r = c.copy(), r.copy()
+    _, best_s = _score(best_c)
+    iu, ju = np.triu_indices(n, 1)
+    d = np.sqrt(np.sum((c[iu] - c[ju]) ** 2, axis=1))
+    gap = d - r[iu] - r[ju]
+    pairs = np.where(np.abs(gap) < 1e-7)[0]
+    walls = []
+    for i in range(n):
+        x, y = c[i]
+        for t, v in enumerate([x - r[i], y - r[i], 1.0 - x - r[i], 1.0 - y - r[i]]):
+            if abs(v) < 1e-7:
+                walls.append((i, t))
+    m = pairs.size + len(walls)
+    if m == 0:
+        return best_c, best_r
+    z = np.concatenate([c.ravel(), r])
+    for _ in range(steps):
+        cc = z[:2 * n].reshape(n, 2)
+        rr = z[2 * n:]
+        F = np.zeros(m)
+        J = np.zeros((m, 3 * n))
+        row = 0
+        for k in pairs:
+            i, j = iu[k], ju[k]
+            dx = cc[i] - cc[j]
+            dd = np.sqrt(dx @ dx) + 1e-18
+            F[row] = dd - rr[i] - rr[j]
+            J[row, 2 * i:2 * i + 2] = dx / dd
+            J[row, 2 * j:2 * j + 2] = -dx / dd
+            J[row, 2 * n + i] = -1.0
+            J[row, 2 * n + j] = -1.0
+            row += 1
+        for i, t in walls:
+            x, y = cc[i]
+            if t == 0:
+                F[row] = x - rr[i]
+                J[row, 2 * i] = 1.0
+            elif t == 1:
+                F[row] = y - rr[i]
+                J[row, 2 * i + 1] = 1.0
+            elif t == 2:
+                F[row] = 1.0 - x - rr[i]
+                J[row, 2 * i] = -1.0
+            else:
+                F[row] = 1.0 - y - rr[i]
+                J[row, 2 * i + 1] = -1.0
+            J[row, 2 * n + i] = -1.0
+            row += 1
+        dz = np.linalg.lstsq(J, -F, rcond=None)[0]
+        z = z + dz
+        cc = np.clip(z[:2 * n].reshape(n, 2), 0.0, 1.0)
+        rr = np.maximum(z[2 * n:], 0.0)
+        z = np.concatenate([cc.ravel(), rr])
+        rv, s = _score(cc)
+        if rv is not None and s > best_s:
+            best_s, best_c, best_r = s, cc.copy(), rv.copy()
+    return best_c, best_r
+
+
+def _old_construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best_c, _make_valid(best_c, best_r)
+=======
+    best_c, best_r = _kkt_polish(best_c, best_r)
+    return best_c, _make_valid(best_c, best_r)
+>>>>>>> REPLACE
+-----

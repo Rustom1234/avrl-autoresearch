@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+=======
+TIME_FRACTION = 0.65
+POLISH_END = 0.8
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _slp(c, r, t_end):
+    """Sequential LP: maximise sum(dr) on linearised constraints inside a trust region."""
+    from scipy.optimize import linprog
+    n = len(r)
+    i, j = np.triu_indices(n, 1)
+    tr = 0.01
+    I = np.eye(n)
+    Z = np.zeros((n, n))
+    while time.process_time() < t_end and tr > 1e-7:
+        diff = c[i] - c[j]
+        d = np.sqrt((diff ** 2).sum(1))
+        sel = d - r[i] - r[j] < 4 * tr
+        a, b, u, dd = i[sel], j[sel], diff[sel] / d[sel, None], d[sel]
+        m = len(a)
+        k = np.arange(m)
+        A = np.zeros((m, 3 * n))
+        A[k, 2 * a], A[k, 2 * a + 1], A[k, 2 * b], A[k, 2 * b + 1] = -u[:, 0], -u[:, 1], u[:, 0], u[:, 1]
+        A[k, 2 * n + a] = 1
+        A[k, 2 * n + b] = 1
+        rhs = dd - r[a] - r[b]
+        W, wb = [], []
+        for ax in range(2):
+            E = np.zeros((n, 3 * n))
+            E[:, ax:2 * n:2] = -I
+            E[:, 2 * n:] = I
+            W.append(E)
+            wb.append(c[:, ax] - r)
+            E = np.zeros((n, 3 * n))
+            E[:, ax:2 * n:2] = I
+            E[:, 2 * n:] = I
+            W.append(E)
+            wb.append(1 - c[:, ax] - r)
+        res = linprog(np.concatenate([np.zeros(2 * n), -np.ones(n)]), A_ub=np.vstack([A] + W),
+                      b_ub=np.maximum(np.concatenate([rhs] + wb), 0), bounds=[(-tr, tr)] * (3 * n),
+                      method="highs")
+        if res.status != 0:
+            tr /= 2
+            continue
+        c2 = np.clip(c + res.x[:2 * n].reshape(n, 2), 0, 1)
+        r2 = _repair(c2, np.maximum(r + res.x[2 * n:], 0))
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+        else:
+            tr /= 2
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            best = (c, r)
+    return best
+=======
+            best = (c, r)
+    c, r = _slp(best[0], best[1], t0 + POLISH_END * time_limit)
+    if r.sum() > best[1].sum():
+        best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

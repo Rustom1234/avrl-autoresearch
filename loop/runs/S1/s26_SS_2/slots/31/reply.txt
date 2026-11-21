@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+    cur_v = bv.copy(); cur_s = bs
+=======
+    cur_v = bv.copy(); cur_s = bs; bw = bv.copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if s > bs:
+            bs = s; best = (c, r)
+    return best
+=======
+        if s > bs:
+            bs = s; best = (c, r); bw = w.copy()
+    pv = bw.copy()
+    for _ in range(2):
+        d = np.hypot(pv[:n][I] - pv[:n][J], pv[n:2 * n][I] - pv[n:2 * n][J])
+        mask = d < pv[2 * n:][I] + pv[2 * n:][J] + 0.05
+        idx = np.concatenate([np.where(mask)[0], m + np.arange(4 * n)])
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), pv, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                           method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": lambda z: cons(z)[idx],
+                                         "jac": lambda z: cjac(z)[idx]}],
+                           options={"maxiter": 1000, "ftol": 1e-15})
+            pv = res.x
+        except Exception:
+            break
+        c, r = finalize(pv)
+        if r.sum() > bs:
+            bs = r.sum(); best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

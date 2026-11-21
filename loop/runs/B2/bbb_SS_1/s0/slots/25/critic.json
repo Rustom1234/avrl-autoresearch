@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Recomputed z ~1.53 (diff 0.0092, SE = 0.0049*sqrt(1/2+1/1) = 0.0060), matching the reported 1.528; this is below a conventional 1.96 bar and the incumbent has only 1 run, so the 'accept' is weakly supported. An extra incumbent replicate would firm it up.",
+  "Complexity cost is large relative to the gain: 5 member models, an inner scaffold-grouped GroupKFold, and a combinatorial weight search replace a 3-model average. The brief says a small gain is not worth ugly code.",
+  "Runtime risk: each fit_predict now trains 5 members x 5 inner folds plus 5 full-data fits (MLP and CatBoost included), a large increase over the ~33 s baseline. It evidently fit inside the 10-minute cap for these runs, but there is little headroom, and the final all-data fit is not covered by the CV timing.",
+  "Possible column-slicing bug worth confirming: fit_member slices X[:, N_DESC:] for the kNN fingerprint block, which is only correct if featurize concatenates descriptors before the fingerprint. The concatenation line is not shown in the diff. If the order is (fp, desc) the kNN member silently uses the wrong columns. This would weaken one member rather than invalidate the measurement, so it is not a veto, but it should be checked.",
+  "choose_weights selects over 5 singletons + 20 pairs/triples + uniform using OOF AUROC on the training folds only; shrinking 0.5 toward uniform limits the selection overfitting. No test labels are touched, but the selected weights are still fit on data the outer harness also scores, so a small optimistic bias in the CV loss is plausible."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 1.533
+ }
+}

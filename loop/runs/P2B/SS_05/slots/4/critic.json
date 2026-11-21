@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "None of the integrity concerns apply. The diff changes one hyperparameter, TOTAL_BATCH_SIZE, from 2**19 to 2**17. It doesn't touch the evaluation call, the metric, the data, the prepare.py import line or the seed lines.",
+  "No bug makes the result meaningless. With DEVICE_BATCH_SIZE 64, and assuming the usual sequence length of 2048 (64 * 2048 = 2**17), gradient accumulation becomes 1 and the divisibility check still passes. More, smaller optimizer steps in a fixed 300 s budget is a plausible reason for a real gain.",
+  "The learning rates were not rescaled for a batch 4x smaller. That is a tuning issue, not an integrity issue.",
+  "The gain is large (about 0.063 bpb), but the two candidate runs agree closely (1.0515 and 1.0514). The provisional accept matches the numbers given.",
+  "I can't recompute z because the incumbent's standard deviation isn't given. Candidate mean = 1.05145, and the difference from the incumbent mean of 1.1145 is 0.06305. The reported z = 15.353 implies a standard error of about 0.0041, which is plausible but can't be checked from the numbers given."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

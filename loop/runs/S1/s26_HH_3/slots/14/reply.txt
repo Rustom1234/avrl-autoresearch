@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _lp_radii(c):
+    """Exact max-sum-of-radii LP for fixed centers: r_i + r_j <= d_ij, 0 <= r_i <= border distance."""
+    from scipy.optimize import linprog
+    n = c.shape[0]
+    iu, ju = np.triu_indices(n, 1)
+    d = np.hypot(c[iu, 0] - c[ju, 0], c[iu, 1] - c[ju, 1])
+    A = np.zeros((len(iu), n))
+    rows = np.arange(len(iu))
+    A[rows, iu] = 1.0
+    A[rows, ju] = 1.0
+    bd = np.maximum(np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])), 0.0)
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=[(0.0, float(v)) for v in bd], method="highs")
+    if res.status != 0:
+        return None, -1.0
+    r = np.maximum(res.x, 0.0) * (1 - 1e-9)
+    return r, float(np.sum(r))
+
+
+def _anneal(c, rng, steps=3000, t_cap=25.0):
+    """Metropolis search over centers; sigma and temperature decay geometrically with step index."""
+    cur_c = np.clip(np.asarray(c, dtype=float).copy(), 0.0, 1.0)
+    cur_r, cur_s = _lp_radii(cur_c)
+    if cur_r is None:
+        return cur_c, np.zeros(len(cur_c))
+    best_c, best_r, best_s = cur_c.copy(), cur_r.copy(), cur_s
+    t0 = time.time()
+    for k in range(steps):
+        if time.time() - t0 > t_cap:
+            break
+        frac = k / float(steps)
+        sigma = 0.05 * (0.0005 / 0.05) ** frac
+        temp = 0.02 * (0.01) ** frac
+        cand = np.clip(cur_c + rng.normal(0.0, sigma, size=cur_c.shape), 0.0, 1.0)
+        r, s = _lp_radii(cand)
+        if r is None:
+            continue
+        if s >= cur_s or rng.random() < np.exp((s - cur_s) / temp):
+            cur_c, cur_r, cur_s = cand, r, s
+            if s > best_s:
+                best_c, best_r, best_s = cand.copy(), r.copy(), s
+    return best_c, best_r
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+=======
+    if best_c is not None:
+        try:
+            ac, ar = _anneal(best_c, rng)
+            ar = _repair(ac, ar)
+            if float(np.sum(ar)) > best_sum:
+                best_sum, best_c, best_r = float(np.sum(ar)), ac, ar
+        except Exception:
+            pass
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def mol(s):
+    from rdkit.Chem import rdmolops
+    m = Chem.MolFromSmiles(s)
+    frags = rdmolops.GetMolFrags(m, asMols=True)
+    return max(frags, key=lambda f: f.GetNumHeavyAtoms())
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(mol(s)) for s in smiles], dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        m = Chem.MolFromSmiles(s)
+=======
+        m = mol(s)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.array([rdReducedGraphs.GetErGFingerprint(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+    return np.array([rdReducedGraphs.GetErGFingerprint(mol(s)) for s in smiles], dtype=np.float32)
+>>>>>>> REPLACE
+-----

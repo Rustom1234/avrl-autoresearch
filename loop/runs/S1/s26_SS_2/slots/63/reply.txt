@@ -1,0 +1,62 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 60:
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+=======
+    N27 = n + 1
+    I27, J27 = np.triu_indices(N27, 1)
+    m27 = len(I27)
+
+    def cons27(v):
+        x = v[:N27]; y = v[N27:2 * N27]; r = v[2 * N27:]
+        d = np.sqrt((x[I27] - x[J27]) ** 2 + (y[I27] - y[J27]) ** 2)
+        return np.concatenate([d - r[I27] - r[J27], x - r, 1 - x - r, y - r, 1 - y - r])
+
+    def cjac27(v):
+        x = v[:N27]; y = v[N27:2 * N27]
+        dx = x[I27] - x[J27]; dy = y[I27] - y[J27]
+        d = np.sqrt(dx * dx + dy * dy) + 1e-12
+        Jm = np.zeros((m27 + 4 * N27, 3 * N27))
+        k = np.arange(m27)
+        Jm[k, I27] = dx / d; Jm[k, J27] = -dx / d
+        Jm[k, N27 + I27] = dy / d; Jm[k, N27 + J27] = -dy / d
+        Jm[k, 2 * N27 + I27] = -1; Jm[k, 2 * N27 + J27] = -1
+        a = np.arange(N27)
+        Jm[m27 + a, a] = 1; Jm[m27 + a, 2 * N27 + a] = -1
+        Jm[m27 + N27 + a, a] = -1; Jm[m27 + N27 + a, 2 * N27 + a] = -1
+        Jm[m27 + 2 * N27 + a, N27 + a] = 1; Jm[m27 + 2 * N27 + a, 2 * N27 + a] = -1
+        Jm[m27 + 3 * N27 + a, N27 + a] = -1; Jm[m27 + 3 * N27 + a, 2 * N27 + a] = -1
+        return Jm
+
+    while time.time() - t0 < 60:
+        if rng.random() < 0.3:
+            w = np.concatenate([rng.uniform(0.05, 0.95, 2 * N27), np.full(N27, 0.05)])
+            bnd27 = [(0, 1)] * (2 * N27) + [(0, 0.5)] * N27
+            try:
+                w = minimize(lambda z: -z[2 * N27:].sum(), w,
+                             jac=lambda z: np.concatenate([np.zeros(2 * N27), -np.ones(N27)]),
+                             method="SLSQP", bounds=bnd27,
+                             constraints=[{"type": "ineq", "fun": cons27, "jac": cjac27}],
+                             options={"maxiter": 200, "ftol": 1e-12}).x
+            except Exception:
+                continue
+            for k in range(N27):
+                if time.time() - t0 > 60:
+                    break
+                keep = np.delete(np.arange(N27), k)
+                u = np.concatenate([w[:N27][keep], w[N27:2 * N27][keep], w[2 * N27:][keep]])
+                try:
+                    res = minimize(lambda z: -z[2 * n:].sum(), u,
+                                   jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                                   method="SLSQP", bounds=bounds,
+                                   constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                                   options={"maxiter": 80, "ftol": 1e-12})
+                except Exception:
+                    continue
+                c, r = finalize(res.x)
+                s = r.sum()
+                if s > bs:
+                    bs = s; best = (c, r); bv = res.x.copy()
+            continue
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+>>>>>>> REPLACE
+-----

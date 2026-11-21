@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/S6/PM_04/cand/s10_0.py",
+ "inc_scores": {
+  "11": 1.8872146084752803
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Filter out junk (short/repetitive/compressed) and domain-mismatched docs using heuristics (e.g., lowercase normalization, unique-line ratio, ASCII purity, '= Title =' match, and WikiText punctuation markers), then shuffle the kept indices",
+   "outcome": "dev 1.9434 against 1.9410 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace the random shuffle with a unified scoring function that ranks documents by a scrambled-word detector (using word-bigram similarity to target_sample) and a domain classifier (using '=Title=' match and WikiText punctuation frequencies to distinguish legitimate wiki articles from junk or scrambled text).",
+   "outcome": "dev 2.0653 against 1.9410 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Implement a clean-in-domain filter that discards short/repetitive/junk docs and exact/near-duplicates while heuristically purifying a seeded random subset of ~5000 docs with low junk probability using Fisher-Yates shuffle to bring the workforce down to the clean pool. Use only standard library.",
+   "outcome": "dev 1.9485 against 1.9410 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Compute a per-document quality composite score using a combination of the 'WikiText-style' structural heuristics (lines starting with '= Title =' and WikiText punctuation markers), a purity metric (fraction of ASCII letters/spaces), and a bigram-likelihood check against the target_sample word set to detect shuffled articles; filter for these metrics meeting a high threshold, strictly deduplicate by normalizing text and keeping the first occurrence of near-duplicates, then shuffle the remaining indices with the seed.",
+   "outcome": "dev 1.9190 against 1.9410 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the random shuffling of the top-scored filtered documents with a learned ranking step: build a TF-IDF model on word bigrams from target_sample vs. junk/pool samples, score the filtered high-quality docs by their predicted probability of being in-domain, and select the top K that approximate token count T instead of returning a shuffled slice.",
+   "outcome": "FAILED to run (6/PM_04/cand/s05_1.py\", line 74, in select score = float(np.dot(doc_tfidf, score_vector)) ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TypeError: only 0-dimensional arrays can be converted to Python scalars)"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the shuffled observation of only exact typographic matches for '= Title =' with a robust structural score that counts ' @-@ ', ' @,@ ', ' @.@ ', ' , ', and ' . ' markers per 1000 chars (like the 1.8225 benchmark) and adds a hybrid TF-IDF ranker (using chartokens/whitespace tokens to avoid bigram failure) to prioritize high-relevance, non-scrambled documents before shuffling.",
+   "outcome": "dev 1.9165 against 1.9190 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Implement a two-stage sorting: first, remove damaged docs (short, repetitive lines, low ASCII purity, low zlib ratio) and exact/near-duplicates; second, rank remaining clean docs using a logistic regression classifier trained on char n-grams (1-3) of target_sample vs. a seeded random sample of pool documents, selecting the top K documents that sum to approximately T tokens before shuffling the final selection.",
+   "outcome": "dev 2.0072 against 1.9190 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Construct a curated selector that applies strict structural filtering (purity > 0.9, '= Title =', WikiText punctuation count > 50), exact/near-deduplication, and a word-bigram similarity threshold to the target_sample bigram set to retrain the logistic regression classifier on only high-confidence wiki examples rather than noisy mixed samples, then ranks and truncates to T tokens.",
+   "outcome": "dev 2.2128 against 1.9190 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Implement a multi-stage filter using exact text hashing for deduplication, a zlib compression ratio check to remove repetitive junk, and a pragmatic okay thresholds to keep moderate-length documents and shuffle the remaining ones rather than enforcing strict purity or domain-matching requirements that risk discarding too much useful vocabulary.",
+   "outcome": "dev 1.9846 against 1.9190 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Add a zlib compression ratio check combined with a line-uniqueness ratio to robustly filter out repetitive boilerplate and spam templates before applying main curators, then rank remaining documents by a weighted score of WikiText structural purity, ASCII letter density, and bigram overlap with target_sample.",
+   "outcome": "dev 1.8872 against 1.9190 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 11,
+   "idea": "Integrate a learned domain classifier using scikit-learn's TfidfVectorizer (on char 1-3 n-grams) trained on target_sample vs. a seeded junk negative set, to rank and select the top documents by probability rather than relying solely on heuristic heuristics for scoring.",
+   "outcome": "FAILED to run (env/lib/python3.12/site-packages/sklearn/utils/validation.py\", line 458, in check_consistent_length raise ValueError( ValueError: Found input variables with inconsistent numbers of samples: [200, 701])"
+  },
+  {
+   "slot": 12,
+   "idea": "Apply the strict structural and word-bigram filters from the 1.8225 baseline (though not exactly this run) converted to a working implementation where we break ties on scores by enforcing an exact hit-rate threshold of 0.85 against the target_sample bigram set using its 2nd percentile as a threshold, then exact-dedupe with a large prefix normalization buffer (200 characters) to handle the 'Damage' issue without losing too many valid documents that were rejected earlier due to subset mismatches. Finally, top-k rank by score and truncate to tokens without random shuffle if under 0.35 of T.",
+   "outcome": "dev 1.9496 against 1.8872 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.0129016,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0006167,
+   "dev": 1.943402039645293,
+   "inc": 1.9410203454720598,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0007051499999999999,
+   "dev": 2.065334897788611,
+   "inc": 1.9410203454720598,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0005608,
+   "dev": 1.9484637259381319,
+   "inc": 1.9410203454720598,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.00081375,
+   "dev": 1.9189807899855897,
+   "inc": 1.9410203454720598,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.033244630673008,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.0018398,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 1,
+   "n_accept": 1,
+   "gain_sd": 3.033244630673008,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0008795999999999995,
+   "dev": 1.9164620739613705,
+   "inc": 1.9189807899855897,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.033244630673008,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0012458,
+   "dev": 2.0072335653424545,
+   "inc": 1.9189807899855897,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.033244630673008,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0012009000000000004,
+   "dev": 2.212777217567021,
+   "inc": 1.9189807899855897,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.033244630673008,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0007703499999999995,
+   "dev": 1.9846401488759817,
+   "inc": 1.9189807899855897,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.033244630673008,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0010624499999999995,
+   "dev": 1.8872146084752803,
+   "inc": 1.9189807899855897,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 7.405138590253164,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.0019994,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 1,
+   "fails": 1,
+   "n_accept": 2,
+   "gain_sd": 7.405138590253164,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0012069000000000003,
+   "dev": 1.9496494355870477,
+   "inc": 1.8872146084752803,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9410203454720598,
+ "inc_slot": 10
+}

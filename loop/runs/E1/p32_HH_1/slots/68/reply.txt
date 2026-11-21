@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+SOFT_BETAS = (20, 80, 320)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+=======
+def _softmin_obj(v, n, iu, beta):
+    """Negative of (sum r + soft-min of all clearances), with its analytic gradient."""
+    c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+    i, j = iu
+    diff = c[i] - c[j]
+    d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+    u = diff / d[:, None]
+    m_p, a = len(i), np.arange(n)
+    g = np.concatenate([d - r[i] - r[j], c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r])
+    J = np.zeros((m_p + 4 * n, 3 * n))
+    k = np.arange(m_p)
+    J[k, 2 * i] = u[:, 0]
+    J[k, 2 * i + 1] = u[:, 1]
+    J[k, 2 * j] = -u[:, 0]
+    J[k, 2 * j + 1] = -u[:, 1]
+    J[k, 2 * n + i] = -1
+    J[k, 2 * n + j] = -1
+    w0 = m_p
+    J[w0 + a, 2 * a] = 1
+    J[w0 + n + a, 2 * a + 1] = 1
+    J[w0 + 2 * n + a, 2 * a] = -1
+    J[w0 + 3 * n + a, 2 * a + 1] = -1
+    J[w0 + np.arange(4 * n), 2 * n + np.tile(a, 4)] = -1
+    m = g.min()
+    e = np.exp(-beta * (g - m))
+    S = e.sum()
+    softmin = m - np.log(S) / beta
+    grad_r = np.concatenate([np.zeros(2 * n), np.ones(n)])
+    val = -(r.sum() + softmin)
+    grad = -(grad_r + J.T @ (e / S))
+    return val, grad
+
+
+def _solve_once(n, rng, init=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+=======
+    iu = np.triu_indices(n, 1)
+    for beta in SOFT_BETAS:
+        x0 = minimize(_softmin_obj, x0, args=(n, iu, beta), jac=True, method="L-BFGS-B",
+                      bounds=[(None, None)] * (2 * n) + [(0, None)] * n, options={"maxiter": 200}).x
+
+    def cons(v):
+>>>>>>> REPLACE
+-----

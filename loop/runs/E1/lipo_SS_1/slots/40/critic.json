@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: I found no way the candidate gets around the measurement. The bit-frequency mask (keep) is computed only from the training fingerprints (Xtr). The new MLP is trained on (Mtr, y) and predicts on Mte only. It does not read files or use test labels. Seeds come from the seed argument (seed + 100 + k).",
+  "Bugs: none that would make the result meaningless. Mtr and Mte use the same column mask, so their features line up. Applying log1p to counts is harmless. One assumption: Dtr and Dte are already scaled earlier in the script, as the existing MLP branch implies.",
+  "z does not quite match. Candidate mean = (0.4913 + 0.4944) / 2 = 0.49285, so the gain is 0.5029 - 0.49285 = 0.01005. With noise sd 0.0042, SE = 0.0042 * sqrt(1/2 + 1/1) = 0.00514, which gives z of about 1.954. The harness reports 1.965. If the accept threshold is 1.96, the decision depends on rounding or on the sd value used.",
+  "The evidence is thin: the incumbent has only one run, and the candidate's gain of about 0.010 is roughly 2.4 times the single-run noise sd. Consider a replicate of the incumbent before locking this in.",
+  "Cost: three more MLPs per fit add runtime. The 10-minute job limit was evidently not hit, but the remaining margin is unknown. The code adds moderately (8 lines plus a third set of blend weights, 0.4/0.3/0.3, that were not tuned)."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 1.954
+ }
+}

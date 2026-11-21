@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/RR_05/cand/s04_0.py",
+ "inc_scores": {
+  "11": 1.8330239444970513
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace random selection with a target-similarity filter plus cleaning: (1) Fit a TfidfVectorizer on character n-grams (analyzer='char_wb', ngram_range=(1,3), sublinear_tf=True, max_features ~50k, on the first 3000 chars of each doc) over target_sample + pool docs; train a LogisticRegression (or just use cosine similarity to the target centroid) with target_sample as positives and a seeded random 2000-doc pool subset as negatives, then score every pool doc. (2) Drop junk outright: docs with low whitespace ratio (<8% spaces, catches base64), spam templates (contain 'online store |' / 'free shipping' / 'best price guaranteed'), and exact/near duplicates (dedupe on hash of normalised first 200 chars + keep one). (3) Detect word-shuffled WikiText-style docs: compute fraction of the doc's word bigrams that fall in a set of common bigrams built from target_sample (e.g. ' of the', ', and', ' . The') and tokens-level sanity such as rate of ' , ' / ' . ' followed by a capitalised word vs. lowercase; drop docs whose target-bigram hit rate is below ~half the target_sample median. (4) Rank the surviving docs by classifier score, take the top docs until their gpt2 token count (tiktoken, encode_ordinary_batch) reaches ~T (if the clean high-score set, e.g. docs starting with '= ' and score>0.5, has fewer than T tokens, just return that set and let it cycle rather than padding with off-domain text). (5) Shuffle the selected indices with random.Random(CURATE_SEED) and return.",
+   "outcome": "dev 1.8496 against 1.9599 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Add a two-phase curriculum that uses the word-shuffled in-domain articles as warm-up instead of throwing them away, applied only when the clean tier-0 set has fewer than about 0.8 T tokens.\n\n1. Keep the current pipeline to build the clean set C (tier 0: clean, score > 0.5, starts with '=' when need_eq). Count its gpt2 tokens.\n2. Build a second set S of 'shuffled but in-domain' docs: those now put in shuffled_flag by the bigram-hit-rate or cap-rate test, which already passed the whitespace, alpha, spam and dedupe filters. Also require that they start with '=' when need_eq, and that their classifier score is > 0.5. To score them, include them in fit_idx so they get char-n-gram scores. Sort S by score, descending.\n3. If tokens(C) >= 0.8 T, behave exactly as now. Otherwise build the output list explicitly to a length of about 1.02 T tokens:\n   - Phase A (first): top-scored docs of S up to min(0.35 T, T - tokens(C)) tokens, in seeded-shuffled order.\n   - Phase B (rest): C, repeated as many passes as needed to fill the remaining budget, with a fresh seeded shuffle on each pass. This puts all clean text at the end of training and never cycles back into shuffled docs.\n4. Drop the padding of C with tier-1 and tier-2 off-domain docs (the floor_tok logic) whenever S can supply the tokens.\n5. Print or log tokens(C), tokens(S) and the phase sizes for diagnosis.",
+   "outcome": "dev 2.0163 against 1.8496 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Refine the 'need_eq' and 'tier' logic: instead of a hard check on the start of the string, count the occurrences of the '=' character and the word count. Define tier-0 as docs with high classifier scores (>0.6) that have a high density of '=' (count/length > 0.05) or very high character-ngram overlap with the target sample. Define tier-1 as high-score docs that are 'clean' but don't meet the '=' density. This targets the specific structure of the target sample more robustly.",
+   "outcome": "dev 1.8541 against 1.8496 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the LogisticRegression classifier with a more robust 'nearest neighbor' approach using a fixed-size vocabulary of high-frequency character n-grams from the target_sample, and use the cosine similarity of the doc's n-gram counts as the score.",
+   "outcome": "dev 1.8330 against 1.8496 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Introduce a 'relevance-aware' deduplication: instead of deduplicating based on the first 200 characters of normalized text (which might be identical for different articles with the same title), use a sliding window of 50 characters starting at index 200 and combine it with a check for a unique 'identifier' (like a number or a specific year) within the first 500 characters to ensure we aren't discarding unique articles that share common headers.",
+   "outcome": "dev 1.8343 against 1.8330 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Add a whole-document, windowed damage filter on the tier-0 candidates, calibrated on target_sample, and leave the rest of the pipeline unchanged. Today the damage tests only look at the head (first 4000 chars for bigram hit rate, first 2000 for cap rate), so partly damaged or char-noised articles can pass.\n\n1. Build a character 4-gram LM from target_sample with 2-fold cross-fitting (fold A scores fold B and the reverse). Use lowercase-preserving raw text, add-k smoothing with backoff to a 3-gram/unigram, stored in dicts or hashed numpy arrays.\n2. For each target doc, split the full text into non-overlapping 1500-char windows. For each window compute (a) mean char cross-entropy under the other fold's LM, (b) word-bigram hit rate against the other fold's common-bigram set, and (c) fraction of whitespace-split words found in the other fold's word vocabulary.\n3. Set thresholds from the target windows: ce_thr = 99th percentile of window CE + 0.05, hit_thr_w = 1st percentile of window hit rate * 0.9, oov_thr = 1st percentile of in-vocab fraction * 0.9.\n4. For every survivor that would be tier 0 (score > 0.5 and starts with '=' when need_eq), score all its windows, up to 40 windows per doc spread evenly over the doc, using the LM, bigram set and vocabulary built from the full target_sample. Drop the doc from tier 0 if more than 15% of its windows violate any threshold, or if its doc-level mean CE exceeds the 99th percentile of target doc-level CE.\n5. Also drop docs where one 200-char chunk repeats 3 or more times inside the doc.\n6. Print how many docs and tokens are removed by each rule.\n\nKeep the selection as it is: tier 0 only, cycled if below T, seeded shuffle. Guard the new step with the time budget and skip it if elapsed time exceeds 120 s.",
+   "outcome": "dev 1.9746 against 1.8330 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Recover clean in-domain text that the pipeline now loses, and use it to fill any shortfall before cycling. Keep the scoring and damage filters unchanged.\n\n1. Dedupe after the damage filters. Today the dedupe key is added to `seen` before the hit-rate and cap-rate tests, so a damaged copy that comes first in the pool blocks its clean twin. Run whitespace, alpha, spam, hit-rate and cap-rate tests first. Then group the passing docs by the existing key and keep one doc per group: the longest one (ties broken by lowest index).\n\n2. Calibrate the score threshold on the target instead of the fixed 0.5. Char 1-3-gram cosine is above 0.5 for almost any English text, so 0.5 does not separate domains. Compute each target doc's cosine to the centroid of the other target docs (leave-one-out: subtract its own counts). Set `thr = 5th percentile of those scores - 0.02`.\n\n3. Redefine the tiers.\n   - Tier 0: score >= thr and starts with '=' (when need_eq).\n   - Tier 1: score >= thr, does not start with '=', and matches the target's tokenisation style. The style test is that the doc's rate per 1000 chars of the spaced tokens ' , ', ' . ' and ' @' in the first 5000 chars is at least half the 5th percentile of the same rate on target_sample. These are headless or truncated article fragments.\n   - Tier 2: everything else. Never selected unless tiers 0 and 1 together are below 0.3 T.\n\n4. Selection. Take tier 0 by descending score up to 1.02 T tokens. If tier 0 has fewer than T tokens, add tier 1 docs by descending score until 1.02 T is reached. If the total is still short, return what there is and let it cycle. Seeded shuffle of the whole list, as now.\n\n5. Print tokens in tier 0 and tier 1, thr, and the number of docs recovered by the dedupe reordering.",
+   "outcome": "dev 1.8338 against 1.8330 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Replace the character n-gram cosine similarity with a 'relative' score: for each document in the pool, compute its cosine similarity to the target centroid and then divide it by the mean cosine similarity of all documents in the pool. Use this normalized score (or a threshold based on the 10th percentile of these relative scores) to define Tier 0, while maintaining the current whitespace, alpha, spam, hit-rate, cap-rate, and dedupe logic.",
+   "outcome": "dev 1.8398 against 1.8330 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Make scoring fast, then extend the existing head-only damage tests to the whole document, reusing the thresholds already calibrated. Leave tiers, selection, cycling and the seeded shuffle unchanged.\n\n1. Speed up scoring. Replace the per-document Python loop of 20000 `text.count` calls with one sklearn `CountVectorizer(analyzer='char', ngram_range=(1,3), lowercase=True, vocabulary=common_ngrams, dtype=np.float32)`. Transform `target_sample` (first 5000 chars) to get the centroid, and transform the survivors (first 5000 chars) in one sparse batch. Compute cosine as (X @ centroid_unit) / row L2 norm. Scores should be essentially the same as now, in seconds rather than minutes. This also ensures the exact tiktoken count is always used and never the `len//4` fallback.\n\n2. Add a whole-document damage test for tier-0 candidates only (score > 0.5 and starts with '=' when `need_eq`). Split the full text into consecutive 4000-char chunks, capped at 30 chunks spread evenly for very long docs. For each chunk compute the existing word-bigram hit rate against `bigram_set` and the existing cap rate. Drop the doc if any of these holds:\n   - the hit rate over all its bigrams is below `hit_thr`;\n   - more than 25% of its chunks with at least 20 bigrams have hit rate below `hit_thr`;\n   - the cap rate over the whole doc is below `cap_thr`.\n   Do not add new thresholds, a char LM or a repeat rule.\n\n3. Safety. If the new test removes more than 30% of tier-0 tokens, skip it and keep the old behaviour. Skip it also if elapsed time exceeds 100 s.\n\n4. Print elapsed time after scoring, tier-0 docs and tokens before and after the new test, and whether exact token counting was used.",
+   "outcome": "FAILED to run (/active-audit/curation/runs/C1/RR_05/cand/s09_1.py', '/homes/rdubash/active-audit/data/curation/pool_v2', '/homes/rdubash/active-audit/data/curation/tmp9kf5dlup.json']' died with <Signals.SIGKILL: 9>.)"
+  },
+  {
+   "slot": 10,
+   "idea": "Replace the manual 'count' loops with a single `sklearn.feature_extraction.text.CountVectorizer` (using `analyzer='char'`, `ngram_range=(1,3)`, and the pre-identified `common_ngrams`) to calculate scores for all survivors in a single matrix operation. Following the successful logic of the previous rejected experiment, apply a 'damage filter' to Tier-0 candidates by checking the word-bigram hit rate and cap-rate across the entire document (split into 4000-char windows) rather than just the head, ensuring that long-form documents remain coherent throughout.",
+   "outcome": "dev 1.8289 against 1.8330 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Implement 'Structural and Style Cohesion' filtering: For Tier-0 candidates, calculate the variance of the word-bigram hit rate across its 4000-char chunks. Reject docs where the variance is high (indicating parts of the doc are from different sources) or where the average hit rate drops significantly in the latter 50% of the text compared to the first 50% (detecting 'tail-end' junk/padding/advertisements).",
+   "outcome": "dev 1.8360 against 1.8330 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Replace the manual 'count' loops with `sklearn.feature_extraction.text.CountVectorizer` (analyzer='char', ngram_range=(1,3), lowercase=True, vocabulary=common_ngrams) to calculate scores for all survivors in one matrix operation. Then, implement a 'cross-chunk consistency' filter: for Tier-0 candidates, split the document into 4000-character chunks and reject the document if any chunk's word-bigram hit rate (against the target's `bigram_set`) is more than 3 standard deviations below the global hit rate of the target sample, or if the hit rate drops by more than 50% between the first and last third of the document.",
+   "outcome": "dev 1.8287 against 1.8330 for the best at the time, rejected"
+  }
+ ],
+ "usd": 2.8048205500000005,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.4453396,
+   "dev": 1.84962983268105,
+   "inc": 1.9598695172659042,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 15.171990721835138,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.19798049999999995,
+   "dev": 2.016299277356031,
+   "inc": 1.84962983268105,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 15.171990721835138,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.32301369999999996,
+   "dev": 1.8541070450200767,
+   "inc": 1.84962983268105,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 15.171990721835138,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0030213000000000045,
+   "dev": 1.8330239444970513,
+   "inc": 1.84962983268105,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.457414364003977,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.25670545,
+   "dev": 1.8342758305046654,
+   "inc": 1.8330239444970513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.457414364003977,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.30608579999999996,
+   "dev": 1.9745816227180883,
+   "inc": 1.8330239444970513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.457414364003977,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.24518295,
+   "dev": 1.8338466447661859,
+   "inc": 1.8330239444970513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.457414364003977,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.2756379,
+   "dev": 1.8398194364561435,
+   "inc": 1.8330239444970513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.457414364003977,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.4233379000000004,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 5,
+   "fails": 1,
+   "n_accept": 2,
+   "gain_sd": 17.457414364003977,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003045900000000046,
+   "dev": 1.8288776185566853,
+   "inc": 1.8330239444970513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.457414364003977,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.32008919999999996,
+   "dev": 1.8360086593337182,
+   "inc": 1.8330239444970513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 17.457414364003977,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.005380350000000256,
+   "dev": 1.8287255877420694,
+   "inc": 1.8330239444970513,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9598695172659042,
+ "inc_slot": 4
+}

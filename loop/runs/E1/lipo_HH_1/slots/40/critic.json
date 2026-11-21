@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of gaming the measurement. wl_counts only reads the SMILES strings and RDKit graph structure. It never touches labels, files or the network. Featurizing test_smiles without labels works the same way as the existing featurize and descriptor code.",
+  "The descriptor slice is updated correctly. Before, Xa[:, 2*N_BITS:] would have picked up the new WL columns. Now it is limited to 2*N_BITS : 2*N_BITS+N_DESC, so the descriptor ridge/linear block still sees only the clipped descriptors. This assumes the descriptor block has exactly len(Descriptors._descList) columns, which it does if the incumbent computes every descriptor in _descList. The Tanimoto kernel still uses only the first N_BITS columns.",
+  "The _crc hash is deterministic and does not depend on Python's hash seed. Inputs and outputs do not depend on the seed, so results are reproducible.",
+  "Runtime risk: _crc is a pure-Python loop over bytes. It runs roughly 2 times per atom per iteration across 4 iterations, for every train and test molecule in every fit. That could add tens of seconds or more across the 15 fits. Check this against the 10-minute limit if the incumbent is already slow. If needed, compute WL counts once per SMILES and cache them, or use a cheaper hash.",
+  "Minor: WL counts go in raw, not clipped or scaled. That is fine for trees, and the linear block excludes them.",
+  "No harness numbers are available yet (no run), so there are no claims to check and z cannot be recomputed."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

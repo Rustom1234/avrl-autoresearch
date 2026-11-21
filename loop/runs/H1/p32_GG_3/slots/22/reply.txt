@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints Wings={"type": "ineq", "fun": cons},
+                   options={{"maxiter": MAX_ITER}})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    best_sum_prev = -1.0
+    def callback(xk):
+        nonlocal best_sum_prev
+        current_sum = -xk[2 * n:].sum()
+        if abs(current_sum - best_sum_prev) < 1e-8:
+            raise StopIteration
+        best_sum_prev = current_sum
+
+    try:
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={{"type": "ineq", "fun": cons}},
+                       options={{"maxiter": MAX_ITER, "callback": callback}})
+    except StopIteration:
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={{"type": "ineq", "fun": cons}},
+                       options={{"maxiter": MAX_ITER}})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    best_sum_prev = -1.0
+    def callback(xk):
+        nonlocal best_sum_prev
+        curr_sum = -xk[2 * n:].sum()
+        if best_sum_prev != -1.0 and abs(curr_sum - best_sum_prev) < 1e-8:
+            raise StopIteration
+        best_sum_prev = curr_sum
+
+    try:
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER, "callback": callback})
+    except StopIteration:
+        res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                       options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

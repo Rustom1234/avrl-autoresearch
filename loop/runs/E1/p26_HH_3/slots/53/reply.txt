@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    return _optimise(n, x0)
+=======
+def _solve_once(n, rng):
+    sx, sy = rng.uniform(0.35, 0.65, 2)
+    cells = [(0, 0, sx, sy), (sx, 0, 1, sy), (0, sy, sx, 1), (sx, sy, 1, 1)]
+    areas = np.array([(x1 - x0) * (y1 - y0) for x0, y0, x1, y1 in cells])
+    counts = np.floor(n * areas).astype(int)
+    for k in rng.integers(0, 4, n - counts.sum()):   # remainder goes to random cells
+        counts[k] += 1
+    c = np.vstack([np.column_stack([rng.uniform(x0 + 0.03, x1 - 0.03, m), rng.uniform(y0 + 0.03, y1 - 0.03, m)])
+                   for (x0, y0, x1, y1), m in zip(cells, counts)])
+    return _optimise(n, np.concatenate([c.ravel(), np.full(n, INIT_RADIUS)]))
+>>>>>>> REPLACE
+-----

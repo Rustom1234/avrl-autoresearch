@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _polish(c, r, mi=300):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": 300, "ftol": 1e-12})
+=======
+                   options={"maxiter": mi, "ftol": 1e-12})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    cur_s = r.sum()
+    while time.time() - t0 < 190:
+        try:
+            c1 = c.copy()
+            k = int(rng.integers(1, 4))
+            idx = list(np.argsort(r)[:k + 2])
+            idx = [idx[q] for q in rng.permutation(len(idx))[:k]]
+            for q in idx:
+                if rng.random() < 0.5:
+                    c1[q] = rng.uniform(0.05, 0.95, 2)
+                else:
+                    P = rng.uniform(0.02, 0.98, (1500, 2))
+                    mask = np.ones(_N, bool)
+                    mask[q] = False
+                    d = np.sqrt(((P[:, None, :] - c1[None, mask, :]) ** 2).sum(2)) - r[mask][None, :]
+                    sc = np.minimum(d.min(1), np.minimum(np.minimum(P[:, 0], P[:, 1]), np.minimum(1 - P[:, 0], 1 - P[:, 1])))
+                    top = np.argsort(-sc)[:5]
+                    c1[q] = P[top[rng.integers(len(top))]]
+            c1 = c1 + rng.normal(0, 0.003, c1.shape)
+            c1 = np.clip(c1, 0.02, 0.98)
+            r1 = _lp_radii(c1)
+            c2 = np.clip(_polish(c1, r1, 100), 0, 1)
+            r2 = _lp_radii(c2)
+            if r2.sum() > cur_s:
+                cur_s, c, r = r2.sum(), c2, r2
+        except Exception:
+            continue
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+>>>>>>> REPLACE
+-----

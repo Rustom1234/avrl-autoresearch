@@ -1,0 +1,73 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _penalty_polish(centers0, radii0):
+    """L-BFGS-B on -sum(r) + mu * squared overlap/boundary violations, mu x10 per stage."""
+    n = len(radii0)
+    iu, ju = np.triu_indices(n, 1)
+
+    def fg(z, mu):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[2 * n:]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        d = np.sqrt(dx * dx + dy * dy) + 1e-12
+        ov = np.maximum(0.0, r[iu] + r[ju] - d)
+        bl = np.maximum(0.0, r - x)
+        br = np.maximum(0.0, x + r - 1.0)
+        bb = np.maximum(0.0, r - y)
+        bt = np.maximum(0.0, y + r - 1.0)
+        f = -np.sum(r) + mu * (np.sum(ov * ov) + np.sum(bl * bl) + np.sum(br * br)
+                               + np.sum(bb * bb) + np.sum(bt * bt))
+        gx = np.zeros(n)
+        gy = np.zeros(n)
+        gr = -np.ones(n)
+        gs = 2.0 * ov * mu
+        np.add.at(gr, iu, gs)
+        np.add.at(gr, ju, gs)
+        gd = -2.0 * ov * mu
+        ux = dx / d
+        uy = dy / d
+        np.add.at(gx, iu, gd * ux)
+        np.add.at(gx, ju, -gd * ux)
+        np.add.at(gy, iu, gd * uy)
+        np.add.at(gy, ju, -gd * uy)
+        gx += mu * (-2.0 * bl + 2.0 * br)
+        gy += mu * (-2.0 * bb + 2.0 * bt)
+        gr += mu * (2.0 * bl + 2.0 * br + 2.0 * bb + 2.0 * bt)
+        return f, np.concatenate([gx, gy, gr])
+
+    z = np.concatenate([np.clip(centers0[:, 0], 0.0, 1.0),
+                        np.clip(centers0[:, 1], 0.0, 1.0),
+                        np.maximum(np.asarray(radii0, dtype=float), 0.0)])
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    mu = 10.0
+    while mu <= 1e7:
+        res = minimize(fg, z, args=(mu,), jac=True, method="L-BFGS-B",
+                       bounds=bounds, options={"maxiter": 300})
+        z = res.x
+        mu *= 10.0
+    centers = np.column_stack([z[:n], z[n:2 * n]])
+    return np.clip(centers, 0.0, 1.0), np.maximum(z[2 * n:], 0.0)
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+=======
+    if best_c is not None:
+        try:
+            c, r = _penalty_polish(best_c, best_r)
+            r = _repair(c, r)
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+        except Exception:
+            pass
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+>>>>>>> REPLACE
+-----

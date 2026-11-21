@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from scipy.spatial.distance import cdist
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def featurize_pairs(smiles):
+    ap = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+    tt = rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=2048)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append(np.concatenate([ap.GetCountFingerprintAsNumPy(m), tt.GetCountFingerprintAsNumPy(m)]))
+    return np.array(rows, dtype=np.float64)
+
+
+def minmax(A, B):
+    d = cdist(A, B, metric="cityblock")
+    s = A.sum(axis=1)[:, None] + B.sum(axis=1)[None, :]
+    return (s - d) / np.maximum(s + d, 1e-9)
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    D = descriptors(train_smiles)
+    Dt = descriptors(test_smiles)
+=======
+    P = featurize_pairs(train_smiles)
+    Pt = featurize_pairs(test_smiles)
+    D = descriptors(train_smiles)
+    Dt = descriptors(test_smiles)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    K_train = (tanimoto(X, X) + rbf(D, D, gamma) + minmax(P, P)) / 3.0
+    K_test = (tanimoto(Xt, X) + rbf(Dt, D, gamma) + minmax(Pt, P)) / 3.0
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+    def pen(z, mu):
+=======
+    def pen(z, mu, p=2.0, eps=1e-18):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        d = np.sqrt(dx * dx + dy * dy + 1e-18)
+        ov = np.maximum(r[iu] + r[ju] - d, 0.0)
+=======
+        d = np.sqrt(dx * dx + dy * dy + eps)
+        ov = np.maximum(r[iu] + r[ju] - d, 0.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        f = -np.sum(r) + mu * (np.sum(ov * ov) + np.sum(bl * bl + br * br + bb * bb + bt * bt))
+=======
+        f = -np.sum(r) + mu * (np.sum(ov ** p) + np.sum(bl * bl + br * br + bb * bb + bt * bt))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        gd = 2.0 * mu * ov
+=======
+        gd = p * mu * np.power(ov, p - 1.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        for lvl, mu in enumerate((10.0, 1e2, 1e3, 1e4, 1e5)):
+            sig = 0.004 / np.sqrt(lvl + 1)
+            zp[:2 * n] = np.clip(zp[:2 * n] + rng.normal(0.0, sig, size=2 * n), 0.0, 1.0)
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+=======
+        for lvl, mu in enumerate((10.0, 1e2, 1e3, 1e4, 1e5)):
+            sig = 0.004 / np.sqrt(lvl + 1)
+            p_lvl = 1.5 if lvl == 0 else 2.0
+            eps_lvl = 10.0 ** (-3.0 - 9.0 * lvl / 4.0)
+            zp[:2 * n] = np.clip(zp[:2 * n] + rng.normal(0.0, sig, size=2 * n), 0.0, 1.0)
+            rp = minimize(pen, zp, args=(mu, p_lvl, eps_lvl), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+            rp = minimize(pen, zp, args=(mu, p_lvl, eps_lvl), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+>>>>>>> REPLACE
+-----

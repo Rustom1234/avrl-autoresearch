@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed):
+=======
+def base_predict(Xa, Fa, ya, Xb, Fb, ga, seed, cfg=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best_err, best_cfg = np.inf, (0.5, 1.0)
+    for lam in (0.1, 0.5, 2.0):
+        for wr in (0.5, 1.0, 2.0):
+            err = 0.0
+            for itr, iva in GroupKFold(n_splits=4).split(Ta, ya, ga):
+                w_in = np.linalg.solve(Ta[np.ix_(itr, itr)] + wr * Ra[np.ix_(itr, itr)] + lam * np.eye(len(itr)), ya[itr] - mu)
+                pv = (Ta[np.ix_(iva, itr)] + wr * Ra[np.ix_(iva, itr)]) @ w_in + mu
+                err += np.abs(pv - ya[iva]).sum()
+            if err < best_err:
+                best_err, best_cfg = err, (lam, wr)
+    lam, wr = best_cfg
+=======
+    if cfg is None:
+        best_err, cfg = np.inf, (0.5, 1.0)
+        for lam in (0.1, 0.5, 2.0):
+            for wr in (0.5, 1.0, 2.0):
+                err = 0.0
+                for itr, iva in GroupKFold(n_splits=4).split(Ta, ya, ga):
+                    w_in = np.linalg.solve(Ta[np.ix_(itr, itr)] + wr * Ra[np.ix_(itr, itr)] + lam * np.eye(len(itr)), ya[itr] - mu)
+                    pv = (Ta[np.ix_(iva, itr)] + wr * Ra[np.ix_(iva, itr)]) @ w_in + mu
+                    err += np.abs(pv - ya[iva]).sum()
+                if err < best_err:
+                    best_err, cfg = err, (lam, wr)
+    lam, wr = cfg
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([p_rf, p_lgb, p_krr])
+=======
+    return np.column_stack([p_rf, p_lgb, p_krr]), cfg
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+        oof[va] = base_predict(Xtr[tr], Ftr[tr], y[tr], Xtr[va], Ftr[va], groups[tr], seed)[0]
+    meta = Ridge(alpha=1e-3, positive=True).fit(oof, y)
+    _, cfg = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    y_s = 0.5 * y + 0.5 * meta.predict(oof)
+    base_te, _ = base_predict(Xtr, Ftr, y_s, Xte, Fte, groups, seed, cfg)
+    return meta.predict(base_te)
+>>>>>>> REPLACE
+-----

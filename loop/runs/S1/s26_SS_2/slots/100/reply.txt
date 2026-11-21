@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+=======
+        if time.time() - t0 < 20:
+            kk = int(rng.integers(4, 11))
+            gg = np.array([0.17, 0.5, 0.83])
+            pts = np.array([(a, b) for a in gg for b in gg])
+            sel = rng.permutation(9)[:min(kk, 9)]
+            P = list(np.clip(pts[sel] + rng.normal(0, 0.03, (len(sel), 2)), 0.15, 0.85))
+            if kk > 9:
+                P.append(rng.uniform(0.1, 0.9, 2))
+            R = [0.15] * len(P)
+            gx = (np.arange(60) + 0.5) / 60
+            GX, GY = np.meshgrid(gx, gx)
+            G = np.stack([GX.ravel(), GY.ravel()], 1)
+            while len(P) < n:
+                cl = np.minimum(np.minimum(G[:, 0], 1 - G[:, 0]),
+                                np.minimum(G[:, 1], 1 - G[:, 1]))
+                for p_, rr in zip(P, R):
+                    cl = np.minimum(cl, np.hypot(G[:, 0] - p_[0], G[:, 1] - p_[1]) - rr)
+                bi = int(np.argmax(cl))
+                P.append(G[bi].copy())
+                R.append(max(float(cl[bi]), 0.01))
+            P = np.array(P)
+            v = np.concatenate([P[:, 0], P[:, 1], np.array(R)])
+        else:
+            v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+>>>>>>> REPLACE
+-----

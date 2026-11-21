@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _cons_full(v, n, iu):
+    c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+    d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+    return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+
+def _block_moves(x, n, rng, k=8, rounds=6):
+    """Re-optimise random subsets of k circles with the others fixed; keep a move only if the radius sum rises."""
+    iu = np.triu_indices(n, 1)
+    for _ in range(rounds):
+        sub = rng.choice(n, k, replace=False)
+        idx = np.concatenate([2 * sub, 2 * sub + 1, 2 * n + sub])
+        base = x.copy()
+
+        def full(z):
+            v = base.copy()
+            v[idx] = z
+            return v
+
+        res = minimize(lambda z: -z[2 * k:].sum(), base[idx], method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda z: _cons_full(full(z), n, iu)},
+                       options={"maxiter": MAX_ITER})
+        v = full(res.x)
+        if v[2 * n:].sum() > x[2 * n:].sum() and _cons_full(v, n, iu).min() > -1e-9:
+            x = v
+    return x
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+=======
+        x = res.x
+    x = _block_moves(x, n, rng)
+    res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                   constraints={"type": "ineq", "fun": lambda v: cons(v, 1.0)},
+                   options={"maxiter": MAX_ITER})
+    x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

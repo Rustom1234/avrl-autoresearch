@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    candidates = [c0.copy(), c_orig, _adam_soft(c_orig)]
+    try:
+        res = minimize(obj, z0, jac=obj_grad, method="SLSQP", bounds=bounds,
+                       constraints=[{"type": "ineq", "fun": cons}],
+                       options={"maxiter": 300, "ftol": 1e-12})
+        z = res.x
+        candidates.append(np.clip(np.stack([z[:n], z[n:2 * n]], axis=1), 0.0, 1.0))
+    except Exception:
+        pass
+=======
+    candidates = [c0.copy(), c_orig, _adam_soft(c_orig)]
+    try:
+        z = z0
+        for cap in (0.12, 0.25, 0.5):
+            zc = z.copy()
+            zc[2 * n:] = np.minimum(zc[2 * n:], cap)
+            bounds_cap = [(0.0, 1.0)] * (2 * n) + [(0.0, cap)] * n
+            res = minimize(obj, zc, jac=obj_grad, method="SLSQP", bounds=bounds_cap,
+                           constraints=[{"type": "ineq", "fun": cons}],
+                           options={"maxiter": 300, "ftol": 1e-12})
+            z = res.x
+        candidates.append(np.clip(np.stack([z[:n], z[n:2 * n]], axis=1), 0.0, 1.0))
+    except Exception:
+        pass
+>>>>>>> REPLACE
+-----

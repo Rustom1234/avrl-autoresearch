@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _slsqp(c0, r0):
+    n = len(r0)
+    x0 = np.concatenate([c0.ravel(), r0])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    return _slsqp(base, np.full(n, INIT_RADIUS))
+
+
+def _solve_shell(n, rng, k=20):
+    """Solve a k-circle boundary shell first, then insert the remaining circles in the interior."""
+    m = rng.uniform(0.05, 0.15)
+    s, t = 1 - 2 * m, rng.uniform(0, 4, k)
+    e, f, z = np.floor(t).astype(int), t - np.floor(t), np.zeros(k)
+    edges = np.array([[f, z], [z + 1, f], [1 - f, z + 1], [z, 1 - f]])  # shape (4, 2, k)
+    p = edges[e, :, np.arange(k)]  # shape (k, 2), random points on the rectangle boundary
+    cs, rs = _slsqp(np.clip(m + s * p, 0, 1), np.full(k, INIT_RADIUS))
+    ci = rng.uniform(0.2, 0.8, (n - k, 2))
+    return _slsqp(np.clip(np.vstack([cs, ci]), 0, 1), np.concatenate([rs, np.full(n - k, INIT_RADIUS)]))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+        if not guided and n > 20 and rng.random() < 0.5:
+            c, r = _solve_shell(n, rng)
+        else:
+            c, r = _solve_once(n, rng, best[0] if guided else None)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import rdPartialCharges
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def gasteiger(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rdPartialCharges.ComputeGasteigerCharges(m)
+        q = np.array([a.GetDoubleProp("_GasteigerCharge") for a in m.GetAtoms()])
+        q = np.nan_to_num(q, nan=0.0, posinf=0.0, neginf=0.0)
+        rows.append([np.sum(q < -0.25), np.sum((q >= -0.25) & (q < -0.05)),
+                     np.sum((q >= -0.05) & (q < 0.05)), np.sum((q >= 0.05) & (q < 0.25)),
+                     np.sum(q >= 0.25), np.abs(q).max() if q.size else 0.0])
+    return np.array(rows, dtype=np.float64)
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    D = descriptors(train_smiles)
+    Dt = descriptors(test_smiles)
+=======
+    D = np.hstack([descriptors(train_smiles), gasteiger(train_smiles)])
+    Dt = np.hstack([descriptors(test_smiles), gasteiger(test_smiles)])
+>>>>>>> REPLACE
+-----

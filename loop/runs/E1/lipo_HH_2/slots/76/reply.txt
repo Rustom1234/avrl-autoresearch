@@ -1,0 +1,70 @@
+<<<<<<< SEARCH
+from sklearn.model_selection import KFold
+=======
+from sklearn.model_selection import KFold
+import os
+from rdkit import RDConfig
+from rdkit.Chem import rdfragcatalog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+_FCAT = {}
+
+
+def frag_catalog():
+    if "fcat" not in _FCAT:
+        fp = rdfragcatalog.FragCatParams(1, 6, os.path.join(RDConfig.RDDataDir, "FunctionalGroups.txt"))
+        _FCAT["fcat"] = rdfragcatalog.FragCatalog(fp)
+        _FCAT["gen"] = rdfragcatalog.FragFPGenerator()
+    return _FCAT["fcat"], _FCAT["gen"]
+
+
+def frag_bits(smiles):
+    fcat, gen = frag_catalog()
+    out = np.zeros((len(smiles), fcat.GetFPLength()), dtype=np.float32)
+    for i, s in enumerate(smiles):
+        for b in gen.GetFPForMol(Chem.MolFromSmiles(s), fcat).GetOnBits():
+            out[i, b] = 1.0
+    return out
+
+
+def frag_fit(smiles):
+    F = frag_bits(smiles)
+    keep = np.where(F.sum(0) >= 5)[0]
+    return F[:, keep], keep
+
+
+def frag_apply(smiles, keep):
+    return frag_bits(smiles)[:, keep]
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+=======
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.float64)
+    Ftr, keep = frag_fit(train_smiles)
+    X = np.hstack([X, Ftr])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xte = featurize(test_smiles)
+=======
+    Xte = np.hstack([featurize(test_smiles), frag_apply(test_smiles, keep)])
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import os
+from rdkit import RDConfig
+=======
+from rdkit import RDConfig
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        fp = rdfragcatalog.FragCatParams(1, 6, os.path.join(RDConfig.RDDataDir, "FunctionalGroups.txt"))
+=======
+        fp = rdfragcatalog.FragCatParams(1, 6, RDConfig.RDDataDir + "/FunctionalGroups.txt")
+>>>>>>> REPLACE
+-----

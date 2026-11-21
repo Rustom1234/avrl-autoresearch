@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    X_tr = featurize(train_smiles)
+    X_te = featurize(test_smiles)
+    resid = y - A_tr @ coef
+    model.fit(X_tr, resid)
+    cb = model.predict(X_te)
+    # kNN median of OLS residuals in standardised, winsorised RDKit descriptor space
+    D_tr = X_tr[:, N_BITS:].astype(np.float64)
+    D_te = X_te[:, N_BITS:].astype(np.float64)
+    lo, hi = np.percentile(D_tr, 1, axis=0), np.percentile(D_tr, 99, axis=0)
+    D_tr = np.clip(D_tr, lo, hi)
+    D_te = np.clip(D_te, lo, hi)
+    mu, sd = D_tr.mean(0), D_tr.std(0)
+    sd[sd < 1e-9] = 1.0
+    Z_tr = (D_tr - mu) / sd
+    Z_te = (D_te - mu) / sd
+    d2 = (Z_te ** 2).sum(1)[:, None] + (Z_tr ** 2).sum(1)[None, :] - 2 * Z_te @ Z_tr.T
+    idx = np.argsort(d2, axis=1)[:, :15]
+    knn = np.median(resid[idx], axis=1)
+    return 0.75 * cb + 0.25 * knn + A_te @ coef
+>>>>>>> REPLACE
+-----

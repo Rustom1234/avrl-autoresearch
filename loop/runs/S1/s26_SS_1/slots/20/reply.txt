@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 150:
+=======
+    while time.time() - t0 < 90:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    c, r = best
+    best_s = r.sum()
+    gg = (np.arange(200) + 0.5) / 200
+    G2 = np.stack(np.meshgrid(gg, gg), -1).reshape(-1, 2)
+    wallg = np.minimum(np.minimum(G2[:, 0], G2[:, 1]),
+                       np.minimum(1 - G2[:, 0], 1 - G2[:, 1]))
+    while time.time() - t0 < 150:
+        try:
+            w = 1.0 / (r + 0.02)
+            k = int(rng.choice(_N, p=w / w.sum()))
+            keep = np.arange(_N) != k
+            d = np.sqrt(((G2[:, None, :] - c[keep][None, :, :]) ** 2).sum(2)) - r[keep][None, :]
+            hole = np.minimum(d.min(1), wallg)
+            pt = G2[hole.argmax()]
+            c0 = c.copy()
+            c0[k] = pt
+            r0 = r * 0.9
+            r0[k] = 0.0
+            c2 = np.clip(_polish(c0, r0), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        if r2.sum() > best_s:
+            best_s = r2.sum()
+            c, r = c2, r2
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

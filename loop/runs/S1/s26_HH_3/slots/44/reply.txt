@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+            c0 = cur_c.copy()
+            k = int(rng.integers(1, 4))
+            pick = rng.choice(n, size=k, replace=False)
+            c0[pick] = np.clip(c0[pick] + rng.normal(0.0, 0.1, size=(k, 2)), 0.0, 1.0)
+            try:
+                c, r = _optimize(c0, np.maximum(cur_r, 0.01))
+                r = _repair(c, r)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+            if s > cur_s or rng.random() < np.exp((s - cur_s) / 0.01):
+                cur_c, cur_r, cur_s = c, r, s
+=======
+            K = 48
+            cands = np.repeat(cur_c[None, :, :], K, axis=0)
+            for q in range(K):
+                k = int(rng.integers(1, 4))
+                pick = rng.choice(n, size=k, replace=False)
+                cands[q, pick] = np.clip(cands[q, pick] + rng.normal(0.0, 0.1, size=(k, 2)), 0.0, 1.0)
+            diff = cands[:, :, None, :] - cands[:, None, :, :]
+            dist = np.sqrt(np.sum(diff * diff, axis=3))
+            dist[:, np.arange(n), np.arange(n)] = np.inf
+            nn = dist.min(axis=2)
+            wall = np.minimum(np.minimum(cands[:, :, 0], cands[:, :, 1]),
+                              np.minimum(1 - cands[:, :, 0], 1 - cands[:, :, 1]))
+            proxy = np.minimum(wall, 0.5 * nn).sum(axis=1)
+            top = np.argsort(-proxy)[:4]
+            trials = []
+            for q in top:
+                try:
+                    c, r = _optimize(cands[q], np.maximum(cur_r, 0.01))
+                    r = _repair(c, r)
+                except Exception:
+                    continue
+                trials.append((float(np.sum(r)), c, r))
+            if not trials:
+                continue
+            s, c, r = max(trials, key=lambda t: t[0])
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+            if s > cur_s or rng.random() < np.exp((s - cur_s) / 0.01):
+                cur_c, cur_r, cur_s = c, r, s
+>>>>>>> REPLACE
+-----

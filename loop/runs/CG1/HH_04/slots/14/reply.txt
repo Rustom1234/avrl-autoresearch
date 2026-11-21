@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+        if self.shuffle:
+            torch.randperm(len(self._indices), out=self._indices)
+            indices = self._indices
+        else:
+=======
+        if self.shuffle:
+            dev = self.labels.device
+            keys = torch.empty(len(self.labels), device=dev)
+            for c in range(10):
+                idx = (self.labels == c).nonzero(as_tuple=True)[0]
+                n = len(idx)
+                rank = torch.randperm(n, device=dev)
+                keys[idx] = (rank + torch.rand(n, device=dev)) / n
+            indices = torch.argsort(keys)
+        else:
+>>>>>>> REPLACE
+-----

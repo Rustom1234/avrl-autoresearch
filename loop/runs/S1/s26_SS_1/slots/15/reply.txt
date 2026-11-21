@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+_RINGS = [(12, 8, 6), (14, 8, 4), (10, 10, 6), (12, 9, 5), (11, 8, 7)]
+
+
+def _ringinit(rng):
+    a, b, k = _RINGS[rng.integers(len(_RINGS))]
+    pts = []
+    ph = rng.uniform(0, 1)
+    for t in range(a):
+        u = (t + ph) / a * 4.0
+        side = int(u) % 4
+        f = u - int(u)
+        p = [(f, 0.0), (1.0, f), (1 - f, 1.0), (0.0, 1 - f)][side]
+        pts.append(p)
+    c = np.array(pts, float)
+    c = 0.06 + 0.88 * c
+    ang = rng.uniform(0, 2 * np.pi)
+    ring = [[0.5 + 0.28 * np.cos(ang + 2 * np.pi * t / b),
+             0.5 + 0.28 * np.sin(ang + 2 * np.pi * t / b)] for t in range(b)]
+    cen = [[0.5 + 0.1 * np.cos(ang + 2 * np.pi * t / k),
+            0.5 + 0.1 * np.sin(ang + 2 * np.pi * t / k)] for t in range(k)]
+    c = np.vstack([c, ring, cen])[:_N]
+    if len(c) < _N:
+        c = np.vstack([c, rng.uniform(0.2, 0.8, (_N - len(c), 2))])
+    c = c + rng.normal(0, rng.uniform(0.01, 0.03), c.shape)
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+=======
+            c = (_ringinit(rng) if u < 0.2 else _hexgrid(rng) if u < 0.4
+                 else (_hexinit(rng) if u < 0.7 else _physics(rng)))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,81 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+    for _k in range(100000):
+        if time.time() - t0 > 200.0 and best is not None:
+            break
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        x0 = P[:, 0].copy()
+        y0 = P[:, 1].copy()
+        r0 = np.full(_N, 0.05)
+        x, y = _optimize(x0, y0, r0)
+        r = _lp_radii(x, y)
+        if r is None:
+            continue
+        s = float(np.sum(r))
+        if best is None or s > best[0]:
+            centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            best = (s, centers, r)
+=======
+def _screen_one(z0):
+    # single capped SLSQP stage (radii <= 0.10, maxiter 100) used for screening
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    bnds = [(None, None)] * (2 * _N) + [(0.0, 0.10)] * _N
+    try:
+        res = minimize(_obj, z0, jac=_obj_grad, constraints=cons, bounds=bnds,
+                       method="SLSQP", options={"maxiter": 100, "ftol": 1e-12})
+        z = res.x if np.all(np.isfinite(res.x)) else z0
+    except Exception:
+        z = z0
+    return z
+
+
+def _finish_from(z):
+    # remaining staged schedule: caps 0.12 then uncapped, maxiter 300
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    for cap in (0.12, None):
+        bnds = [(None, None)] * (2 * _N) + [(0.0, cap)] * _N
+        try:
+            res = minimize(_obj, z, jac=_obj_grad, constraints=cons, bounds=bnds,
+                           method="SLSQP", options={"maxiter": 300, "ftol": 1e-12})
+            if np.all(np.isfinite(res.x)):
+                z = res.x
+        except Exception:
+            pass
+    return z
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+    pool = []
+    # screening phase: many cheap starts, keep LP-scored pool
+    for _k in range(600):
+        if time.time() - t0 > 90.0:
+            break
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+        z0 = np.concatenate([P[:, 0], P[:, 1], np.full(_N, 0.05)])
+        z = _screen_one(z0)
+        r = _lp_radii(z[:_N], z[_N:2 * _N])
+        if r is None:
+            continue
+        pool.append((float(np.sum(r)), z))
+    pool.sort(key=lambda t: -t[0])
+    # finishing phase: full remaining schedule on top 25 only
+    for _s, z in pool[:25]:
+        if time.time() - t0 > 190.0 and best is not None:
+            break
+        zf = _finish_from(z)
+        x, y = zf[:_N], zf[_N:2 * _N]
+        r = _lp_radii(x, y)
+        if r is None:
+            continue
+        s = float(np.sum(r))
+        if best is None or s > best[0]:
+            centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            best = (s, centers, r)
+>>>>>>> REPLACE
+-----

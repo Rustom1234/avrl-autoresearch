@@ -1,0 +1,85 @@
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    r0 = np.maximum(r - 1e-10, 0)
+    try:
+        c1, r1 = _newton(c, r)
+        if r1.sum() > r0.sum():
+            return c1, r1
+    except Exception:
+        pass
+    return c, r0
+
+
+def _feasible_shrink(c, r, eps=1e-13):
+    n = _N
+    i, j = _IU
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    d = np.sqrt(((c[i] - c[j]) ** 2).sum(1))
+    for _ in range(5):
+        v = r[i] + r[j] - d
+        bad = np.where(v > -eps)[0]
+        if len(bad) == 0:
+            break
+        for k in bad:
+            s = (v[k] + eps) / 2
+            r[i[k]] -= s
+            r[j[k]] -= s
+        r = np.maximum(r, 0)
+        v = r[i] + r[j] - d
+    return r
+
+
+def _newton(c, r):
+    n = _N
+    i, j = _IU
+    X, Y, R = c[:, 0].copy(), c[:, 1].copy(), r.copy()
+    d = np.sqrt((X[i] - X[j]) ** 2 + (Y[i] - Y[j]) ** 2)
+    pa = np.where(np.abs(d - R[i] - R[j]) < 1e-9)[0]
+    wa = []
+    for k in range(n):
+        for t, val in enumerate((X[k], Y[k], 1 - X[k], 1 - Y[k])):
+            if abs(val - R[k]) < 1e-9:
+                wa.append((k, t))
+    for _ in range(6):
+        F = []
+        J = []
+        for k in pa:
+            a, b = i[k], j[k]
+            dx, dy = X[a] - X[b], Y[a] - Y[b]
+            dd = np.hypot(dx, dy)
+            F.append(dd - R[a] - R[b])
+            row = np.zeros(3 * n)
+            row[a], row[b] = dx / dd, -dx / dd
+            row[n + a], row[n + b] = dy / dd, -dy / dd
+            row[2 * n + a] = row[2 * n + b] = -1
+            J.append(row)
+        for k, t in wa:
+            row = np.zeros(3 * n)
+            if t == 0:
+                f = X[k] - R[k]; row[k] = 1
+            elif t == 1:
+                f = Y[k] - R[k]; row[n + k] = 1
+            elif t == 2:
+                f = 1 - X[k] - R[k]; row[k] = -1
+            else:
+                f = 1 - Y[k] - R[k]; row[n + k] = -1
+            row[2 * n + k] = -1
+            F.append(f)
+            J.append(row)
+        if not F:
+            break
+        step = np.linalg.lstsq(np.array(J), -np.array(F), rcond=None)[0]
+        X += step[:n]
+        Y += step[n:2 * n]
+        R += step[2 * n:]
+    c1 = np.clip(np.stack([X, Y], 1), 0, 1)
+    r1 = _feasible_shrink(c1, R, 1e-13)
+    r1 = np.maximum(r1 - 1e-13, 0)
+    return c1, r1
+>>>>>>> REPLACE
+-----

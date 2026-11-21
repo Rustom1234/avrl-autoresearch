@@ -1,0 +1,27 @@
+| Cell | Loops | Mean sealed gain | 95% interval | Loops that changed the script | Gains |
+|---|---|---|---|---|---|
+| HH | 6 | 0.0342 | 0.0150 to 0.0533 | 6 | 0.050 0.055 0.024 0.005 0.005 0.065 |
+| N | 12 | 0.0002 | -0.0078 to 0.0076 | 5 | -0.013 0.000 0.000 0.010 0.000 -0.032 0.000 0.030 0.000 0.007 0.000 0.000 |
+| SS | 6 | 0.0187 | 0.0109 to 0.0270 | 6 | 0.032 0.032 0.020 0.014 0.008 0.006 |
+
+A headroom: mean gain(SS) = 0.0187 (needs >= 0.05); t = 4.05, one-sided p = 0.0049 -> FAIL
+B menu: gain(N) / gain(SS) = 0.01 (needs <= 0.33); permutation p = 0.0061 -> PASS
+D gap: gain(HH) / gain(SS) = 1.82 (needs <= 0.67) -> FAIL
+
+Accepted edits (in-loop gain = drop of the incumbent's mean cost):
+  HH HH_01 slot 7 gain 0.1427 [low resolution early in training] Trains the first 40% of steps on batches bilinearly downsampled (antialiased) to 24x24, with the final MaxPool2d(3) swapped for AdaptiveMaxPool2d(1) so the netw
+  HH HH_02 slot 18 gain 0.1547 [low resolution early in training] Progressive resolution: for the first 40% of steps, bilinear-antialias downsample each augmented batch to 24x24 and compile the training step statically (dynami
+  HH HH_03 slot 10 gain 0.0458 [low resolution early in training] Progressive resolution: the first 40 percent of training steps downsample each augmented batch to 28x28 with bilinear antialiased interpolation, then train at f
+  HH HH_04 slot 2 gain 0.1141 [low resolution early in training] Train on 24x24 area-downscaled batches for the first 30% of steps, then 32x32, with the final MaxPool2d(3) swapped for AdaptiveMaxPool2d(1) so the 24x24 path (2
+  HH HH_05 slot 7 gain 0.0768 [low resolution early in training] Feed random 28x28 crops (via the existing batch_crop) for the first half of optimizer steps and full 32x32 images afterwards, with the forward step compiled wit
+  HH HH_06 slot 0 gain 0.0621 [low resolution early in training] Low-resolution warm-up: for the first 20 percent of training steps, bilinear-antialiased downsampling of each batch from 32 to 24 pixels, with the final MaxPool
+  HH HH_06 slot 10 gain 0.0515 [low resolution early in training] Replace the single low-resolution warm-up with three progressive-resizing stages: 20x20 for the first 20 percent of steps, 24x24 from 20 to 55 percent, and full
+  SS SS_01 slot 8 gain 0.0907 [fix per-step recompilation of the Muon helper] Pass the per-step target magnitude as a tensor instead of the Python int step count, so the compiled Newton-Schulz function is not recompiled every step and no 
+  SS SS_02 slot 3 gain 0.1364 [low resolution early in training] Train the first 40% of steps on 24x24 bilinearly downsampled inputs (adaptive final max-pool, separate static compiled graphs), then switch to 32x32.
+  SS SS_03 slot 0 gain 0.0706 [no augmentation in the last epoch] Disable translate and color jitter during the final (partial) training epoch so the training distribution matches test.
+  SS SS_04 slot 4 gain 0.0543 [fix per-step recompilation of the Muon helper] The Muon helper was recompiled every step because the Python int step count is specialised by torch.compile, so I now pass the step as a CUDA tensor and raised 
+  SS SS_05 slot 0 gain 0.0894 [low resolution early in training] Train the first 40% of steps on bilinearly downsampled 24x24 batches, then 32x32, using an adaptive max pool for the final pool.
+  SS SS_06 slot 6 gain 0.1062 [low resolution early in training] Train the first 35% of steps at 24x24 resolution (bilinear downsample) with an adaptive final max pool, then switch to full 32x32.
+
+C one trick: shares of the summed in-loop SS gain: low resolution early in training 61%, fix per-step recompilation of the Muon helper 26%, no augmentation in the last epoch 13%
+C: largest share 61% (low resolution early in training), needs <= 60% -> FAIL

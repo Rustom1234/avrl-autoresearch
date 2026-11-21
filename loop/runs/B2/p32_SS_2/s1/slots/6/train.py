@@ -1,0 +1,99 @@
+"""train.py: packs n circles into the unit square so that the sum of their radii is as large as possible.
+
+The harness calls solve(n, seed, time_limit) and checks the returned packing exactly.
+Returns (centers, radii): centers is an (n, 2) array, radii an (n,) array. Every circle must lie inside
+[0, 1] x [0, 1] and no two circles may overlap.
+"""
+import time
+
+import numpy as np
+import scipy.sparse as sp
+from scipy.optimize import linprog
+
+# Settings
+TIME_FRACTION = 0.8
+INIT_LOW = 0.1
+INIT_RADIUS = 0.05
+SHRINK = 1e-9
+PAIR_CUT = 0.45
+SLP_ITER = 80
+SLP_DELTA = 0.05
+
+
+def _slp(c, r, deadline):
+    """Successive LP on (centres, radii) with a shrinking trust region; a step is kept only if the repaired sum improves."""
+    n = len(r)
+    delta, cur = SLP_DELTA, r.sum()
+    for _ in range(SLP_ITER):
+        if delta < 1e-7 or time.process_time() > deadline:
+            break
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        i, j = np.where(np.triu(d < PAIR_CUT, 1))
+        rows, cols, vals, b = [], [], [], []
+        for k, (a, q) in enumerate(zip(i, j)):
+            ux, uy = (c[a] - c[q]) / d[a, q]
+            rows += [k] * 6
+            cols += [2 * a, 2 * a + 1, 2 * q, 2 * q + 1, 2 * n + a, 2 * n + q]
+            vals += [-ux, -uy, ux, uy, 1.0, 1.0]
+            b.append(d[a, q])
+        row = len(i)
+        for a in range(n):
+            x, y = c[a]
+            for col, sgn, rhs in ((2 * a, -1.0, x), (2 * a, 1.0, 1 - x), (2 * a + 1, -1.0, y), (2 * a + 1, 1.0, 1 - y)):
+                rows += [row, row]
+                cols += [col, 2 * n + a]
+                vals += [sgn, 1.0]
+                b.append(rhs)
+                row += 1
+        A = sp.coo_matrix((vals, (rows, cols)), shape=(row, 3 * n)).tocsr()
+        cost = np.concatenate([np.zeros(2 * n), -np.ones(n)])
+        bounds = [(-delta, delta)] * (2 * n) + [(0, None)] * n
+        res = linprog(cost, A_ub=A, b_ub=np.array(b), bounds=bounds, method="highs")
+        if res.status != 0:
+            delta *= 0.5
+            continue
+        c_new = np.clip(c + res.x[:2 * n].reshape(n, 2), 0, 1)
+        r_new = _repair(c_new, res.x[2 * n:])
+        if r_new.sum() > cur + 1e-12:
+            c, r, cur = c_new, r_new, r_new.sum()
+        else:
+            delta *= 0.5
+    return c, r
+
+
+def _solve_once(n, rng, deadline):
+    R = int(rng.integers(5, 8))
+    m = int(np.ceil(n / R))
+    pts = np.array([((j + 0.5 + 0.5 * (i % 2)) / (m + 0.5), (i + 0.5) / R) for i in range(R) for j in range(m)])
+    pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.02, (n, 2))
+    c = np.clip(pts, 0.03, 0.97)
+    r = _repair(c, np.full(n, INIT_RADIUS))
+    return _slp(c, r, deadline)
+
+
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng, t0 + TIME_FRACTION * time_limit)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best

@@ -1,0 +1,83 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import linear_sum_assignment, minimize
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+CROSS_PROB = 0.5
+ELITE_SIZE = 4
+
+
+def _sym(c, k):
+    """Apply one of the 8 symmetries of the unit square (k in 0..7) to the centres."""
+    x, y = (c[:, 1], c[:, 0]) if k // 4 else (c[:, 0], c[:, 1])
+    x = 1 - x if k % 2 else x
+    y = 1 - y if (k // 2) % 2 else y
+    return np.stack([x, y], 1)
+
+
+def _update_pool(pool, c, r):
+    """Keep the ELITE_SIZE best distinct packings (distinct by sum of radii)."""
+    s = r.sum()
+    if any(abs(s - p[0]) < 1e-7 for p in pool):
+        return
+    pool.append((s, c, r))
+    pool.sort(key=lambda p: -p[0])
+    del pool[ELITE_SIZE:]
+
+
+def _crossover(pool, n, rng):
+    """Average two elite packings after matching circles of the second to the first."""
+    i, j = rng.choice(len(pool), 2, replace=False)
+    (_, c1, r1), (_, c2, r2) = pool[i], pool[j]
+    c2s = _sym(c2, int(rng.integers(8)))
+    rows, cols = linear_sum_assignment(np.sqrt(((c1[:, None] - c2s[None]) ** 2).sum(-1)))
+    perm = np.empty(n, int)
+    perm[rows] = cols
+    c = 0.5 * (c1 + c2s[perm]) + rng.normal(0, 0.01, c1.shape)
+    r = 0.5 * (r1 + r2[perm])
+    return np.clip(c, 0, 1), np.maximum(r, 0)
+
+
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    best = (c, _repair(c, r))
+    pool = []
+    _update_pool(pool, best[0], best[1])
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if len(pool) >= 2 and rng.random() < CROSS_PROB:   # Procrustes consensus crossover start
+            c0, r0 = _crossover(pool, n, rng)
+            c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        else:                                              # basin hopping from the incumbent
+            bc, br = best
+            c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+            r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+            c0, r0 = _relocate(c0, r0, rng)
+            c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        _update_pool(pool, c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

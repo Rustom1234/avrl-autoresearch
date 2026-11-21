@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    R = int(rng.integers(5, 8))
+    m = int(np.ceil(n / R))
+    pts = np.array([((j + 0.5 + 0.5 * (i % 2)) / (m + 0.5), (i + 0.5) / R) for i in range(R) for j in range(m)])
+    pts = pts[rng.permutation(len(pts))[:n]] + rng.normal(0, 0.02, (n, 2))
+    pts = np.clip(pts, 0.03, 0.97)
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _slsqp(c0, r0, maxiter):
+    N = len(r0)
+    iu = np.triu_indices(N, 1)
+
+    def cons(v):
+        c, r = v[:2 * N].reshape(N, 2), v[2 * N:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    x0 = np.concatenate([c0.ravel(), r0])
+    res = minimize(lambda v: -v[2 * N:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": maxiter})
+    return res.x[:2 * N].reshape(N, 2), res.x[2 * N:]
+
+
+def _solve_once(n, rng):
+    R = int(rng.integers(5, 8))
+    k = int(rng.integers(1, 4))
+    N = n + k
+    m = int(np.ceil(N / R))
+    pts = np.array([((j + 0.5 + 0.5 * (i % 2)) / (m + 0.5), (i + 0.5) / R) for i in range(R) for j in range(m)])
+    pts = pts[rng.permutation(len(pts))[:N]] + rng.normal(0, 0.02, (N, 2))
+    pts = np.clip(pts, 0.03, 0.97)
+    c, r = _slsqp(pts, np.full(N, INIT_RADIUS), 60)
+    keep = np.argsort(r)[k:]
+    return _slsqp(np.clip(c[keep], 0, 1), r[keep], MAX_ITER)
+>>>>>>> REPLACE
+-----

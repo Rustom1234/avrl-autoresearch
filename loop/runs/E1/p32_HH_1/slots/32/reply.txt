@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+=======
+def _solve_once(n, rng, init=None, ftol=1e-6, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter, "ftol": ftol})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < budget:   # random restarts until the time is used
+        frac = (time.process_time() - t0) / budget
+        guided = best is not None and frac > 0.5 and rng.random() < 0.5
+        if frac < 0.4:
+            ftol, iters = 1e-4, 150
+        elif frac < 0.8 or not guided:
+            ftol, iters = 1e-6, 200
+        else:
+            ftol, iters = 1e-9, 300
+        c, r = _solve_once(n, rng, best[0] if guided else None, ftol, iters)
+>>>>>>> REPLACE
+-----

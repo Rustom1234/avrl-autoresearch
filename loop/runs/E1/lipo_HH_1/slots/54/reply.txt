@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import Ridge
+from scipy.spatial.distance import cdist
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gamma = 1.0 / (2 * Za.shape[1])
+
+    def rbf(A, B):
+        d2 = (A * A).sum(axis=1)[:, None] + (B * B).sum(axis=1)[None, :] - 2 * A @ B.T
+        return np.exp(-gamma * np.maximum(d2, 0))
+
+    Ta, Ra = tanimoto(Fa, Fa), rbf(Za, Za)
+=======
+    gamma = 1.0 / (Za.shape[1] * cdist(Za, Za, "cityblock").mean())
+
+    def lap(A, B):
+        return np.exp(-gamma * cdist(A, B, "cityblock"))
+
+    Ta, Ra = tanimoto(Fa, Fa), lap(Za, Za)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    p_krr = (tanimoto(Fb, Fa) + wr * rbf(Zb, Za)) @ w + mu
+=======
+    p_krr = (tanimoto(Fb, Fa) + wr * lap(Zb, Za)) @ w + mu
+>>>>>>> REPLACE
+-----

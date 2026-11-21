@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _lp_radii(centers, fallback):
+    """Exact optimal radii for fixed centers via LP; falls back to repair on failure."""
+    n = centers.shape[0]
+    c = np.clip(centers, 0.0, 1.0)
+    iu, ju = np.triu_indices(n, 1)
+    d = np.hypot(c[iu, 0] - c[ju, 0], c[iu, 1] - c[ju, 1])
+    A = np.zeros((len(iu), n))
+    rows = np.arange(len(iu))
+    A[rows, iu] = 1.0
+    A[rows, ju] = 1.0
+    b = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    b = np.maximum(b, 0.0)
+    try:
+        res = linprog(-np.ones(n), A_ub=A, b_ub=d,
+                      bounds=[(0.0, float(bi)) for bi in b], method="highs")
+    except Exception:
+        res = None
+    if res is None or res.status != 0 or res.x is None:
+        return _repair(c, fallback)
+    return _repair(c, np.maximum(res.x, 0.0) * (1 - 1e-9))
+
+
+def _best_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                r = _repair(c, r)
+=======
+                r = _lp_radii(c, r)
+>>>>>>> REPLACE
+-----

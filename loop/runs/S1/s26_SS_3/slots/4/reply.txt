@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < time_budget:
+        it += 1
+=======
+    while time.time() - t0 < 0.6 * time_budget:
+        it += 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best is None:
+        c = np.stack([np.linspace(0.05, 0.95, n), np.full(n, 1e-3)], axis=1)
+=======
+    if best is None:
+        c = np.stack([np.linspace(0.05, 0.95, n), np.full(n, 1e-3)], axis=1)
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    while time.time() - t0 < time_budget:
+=======
+    while time.time() - t0 < 0.6 * time_budget:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    if best is None:
+=======
+    gx = (np.arange(50) + 0.5) / 50
+    GX, GY = np.meshgrid(gx, gx)
+    G = np.stack([GX.ravel(), GY.ravel()], axis=1)
+    while best is not None and time.time() - t0 < time_budget:
+        c, r = best
+        order = np.argsort(r)
+        k = int(order[rng.integers(0, 6)])
+        keep = np.array([i for i in range(n) if i != k])
+        d = np.sqrt(((G[:, None, :] - c[keep][None, :, :]) ** 2).sum(-1)) - r[keep][None, :]
+        wall = np.minimum.reduce([G[:, 0], G[:, 1], 1 - G[:, 0], 1 - G[:, 1]])
+        hole = np.minimum(d.min(axis=1), wall)
+        top = np.argsort(-hole)[:8]
+        p = G[top[rng.integers(0, len(top))]]
+        c0 = c.copy()
+        c0[k] = p
+        r0 = r.copy()
+        r0[k] = max(0.3 * hole[top[0]], 0.01)
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is None:
+            continue
+        if out[1].sum() > best_val:
+            best_val = out[1].sum()
+            best = out
+
+    if best is None:
+>>>>>>> REPLACE
+-----

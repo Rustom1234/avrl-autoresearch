@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+    cur_v = float(np.sum(lp_radii(cur)))
+    best, best_v = cur.copy(), cur_v
+=======
+    cur_r = lp_radii(cur)
+    cur_v = float(np.sum(cur_r))
+    best, best_v = cur.copy(), cur_v
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        k = int(rng.integers(c.shape[0]))
+        cand = cur.copy()
+        cand[k] = np.clip(cand[k] + rng.normal(0.0, sigma, 2), 0.02, 0.98)
+        v = float(np.sum(lp_radii(cand)))
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v = cand, v
+            if v > best_v:
+                best, best_v = cand.copy(), v
+=======
+        u = rng.random()
+        cand = cur.copy()
+        moved = False
+        if u < 0.2:
+            big = int(np.argmax(cur_r))
+            d = np.linalg.norm(cur - cur[big], axis=1)
+            d[big] = np.inf
+            near = [int(j) for j in np.argsort(d)[:4] if cur_r[j] < cur_r[big]]
+            if near:
+                j = near[int(rng.integers(len(near)))]
+                cand[[big, j]] = cur[[j, big]]
+                moved = True
+        elif u < 0.3:
+            small = int(np.argmin(cur_r))
+            cand[small] = rng.uniform(0.05, 0.95, 2)
+            moved = True
+        if not moved:
+            k = int(rng.integers(c.shape[0]))
+            cand[k] = np.clip(cand[k] + rng.normal(0.0, sigma, 2), 0.02, 0.98)
+        rc = lp_radii(cand)
+        v = float(np.sum(rc))
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v, cur_r = cand, v, rc
+            if v > best_v:
+                best, best_v = cand.copy(), v
+>>>>>>> REPLACE
+-----

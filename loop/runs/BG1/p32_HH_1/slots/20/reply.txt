@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+    cur = best = None
+    while time.process_time() - t0 < budget:
+        if cur is None:
+            c, r = _solve_once(n, rng)
+        else:
+            frac = (time.process_time() - t0) / budget
+            T = 0.01 * (1e-4 / 0.01) ** frac
+=======
+    cur = best = None
+    stall, T_hi, t_start = 0, 0.01, 0.0
+    while time.process_time() - t0 < budget:
+        now = time.process_time() - t0
+        if cur is None:
+            c, r = _solve_once(n, rng)
+        else:
+            frac = (now - t_start) / (budget - t_start)
+            T = T_hi * (1e-4 / T_hi) ** frac
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best, stall = (c, r), 0
+        else:
+            stall += 1
+        if stall > 30:
+            cur, stall = best, 0
+            T_hi, t_start = 0.003, now
+    return best
+>>>>>>> REPLACE
+-----

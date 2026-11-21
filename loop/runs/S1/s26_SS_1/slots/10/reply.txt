@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _hexgrid(rng):
+    nr = int(rng.choice([5, 6]))
+    s = rng.uniform(0.17, 0.2)
+    rs = s * np.sqrt(3) / 2
+    ox, oy = rng.uniform(0, s), rng.uniform(0, rs * 2)
+    pts = []
+    for a in range(-3, 14):
+        for b in range(-3, 14):
+            x = ox + s * (b + 0.5 * (a % 2))
+            y = oy + rs * a * (nr / 5.5)
+            if 0.05 <= x <= 0.95 and 0.05 <= y <= 0.95:
+                pts.append([x, y])
+    c = np.array(pts, float).reshape(-1, 2)
+    if len(c) > _N:
+        c = c[rng.permutation(len(c))[:_N]]
+    elif len(c) < _N:
+        c = np.vstack([c, rng.uniform(0.1, 0.9, (_N - len(c), 2))])
+    if rng.random() < 0.5:
+        c = c[:, ::-1].copy()
+    c = c + rng.normal(0, 0.005, c.shape)
+    return np.clip(c, 0.03, 0.97)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            c = _hexinit(rng) if rng.random() < 0.5 else _physics(rng)
+=======
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            r = _lp_radii(c)
+=======
+    rngs = [np.random.default_rng(s) for s in (12345, 1, 2, 3)]
+    sbest = [-1.0] * 4
+    best_s, best = -1, None
+    k = 0
+    while time.time() - t0 < 150:
+        focus = time.time() - t0 >= 90
+        if focus:
+            si = int(np.argmax(sbest))
+        else:
+            si = k % 4
+            k += 1
+        rng = rngs[si]
+        try:
+            u = rng.random()
+            c = _hexgrid(rng) if u < 0.3 else (_hexinit(rng) if u < 0.65 else _physics(rng))
+            if focus:
+                c = np.clip(c + rng.normal(0, 0.02, c.shape), 0.03, 0.97)
+            r = _lp_radii(c)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        s = r2.sum()
+        if s > best_s:
+=======
+        s = r2.sum()
+        if s > sbest[si]:
+            sbest[si] = s
+        if s > best_s:
+>>>>>>> REPLACE
+-----

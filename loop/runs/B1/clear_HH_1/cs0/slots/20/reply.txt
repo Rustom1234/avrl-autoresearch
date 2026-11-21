@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    model.fit(K_train, (y - mu) / sd)
+    p_svr = model.predict(K_test)
+
+    F = np.hstack([D, X])
+    Ft = np.hstack([Dt, Xt])
+    from sklearn.model_selection import train_test_split
+    bins = np.minimum((y * 10).astype(int), 9)
+    tr, va = train_test_split(np.arange(len(y)), test_size=0.15, random_state=seed, stratify=bins)
+    params = dict(learning_rate=0.05, num_leaves=15, min_child_samples=10, subsample=0.8, subsample_freq=1,
+                  colsample_bytree=0.3, reg_lambda=1.0, random_state=seed, n_jobs=8, verbose=-1)
+    m1 = lgb.LGBMRegressor(n_estimators=2000, **params)
+    m1.fit(F[tr], y[tr], eval_set=[(F[va], y[va])], callbacks=[lgb.early_stopping(100, verbose=False)])
+    n_best = max(int((m1.best_iteration_ or 50) / 0.85), 50)
+    m2 = lgb.LGBMRegressor(n_estimators=n_best, **params)
+    m2.fit(F, y)
+    p_gbm = m2.predict(Ft)
+
+    r = lambda p: (rankdata(p) - 0.5) / len(p)
+    return 0.7 * r(p_svr) + 0.3 * r(p_gbm)
+>>>>>>> REPLACE
+-----

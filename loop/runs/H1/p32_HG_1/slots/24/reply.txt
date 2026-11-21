@@ -1,0 +1,297 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    if rng.random() < 0.33:
+        # Hexagonal lattice start
+        # Approximate grid to cover unit square with ~32-40 points
+        # Rows with alternating offsets
+        rows = 6
+        cols = 7
+        pts = []
+        for r in range(rows):
+            for c in range(cols):
+                x = c * (1.0 / (cols - 1))
+                y = r * (1.0 / (rows - 1))
+                if r % 2 == 1:
+                    x += 0.5 / (cols - 1)
+                pts.append([x, y])
+        pts = np.array(pts)
+        # Jitter and filter
+        pts += rng.normal(0, 0.02, pts.shape)
+        # Keep only n points that are most central
+        dist_sq = np.sum((pts - 0.5)**2, axis=1)
+        indices = np.argsort(dist_sq)[:n]
+        pts = pts[indices]
+        x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    else:
+        # Uniform random start
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    # Try to solve for n+1 circles first
+    m = n + 1
+    if rng.random() < 0.33:
+        rows, cols = 7, 8
+        pts = []
+        for r in range(rows):
+            for c in range(cols):
+                x = c * (1.0 / (cols - 1))
+                y = r * (1.0 / (rows - 1))
+                if r % 2 == 1: x += 0.5 / (cols - 1)
+                pts.append([x, y])
+        pts = np.array(pts)
+        pts += rng.normal(0, 0.02, pts.shape)
+        dist_sq = np.sum((pts - 0.5)**2, axis=1)
+        pts = pts[np.argsort(dist_sq)[:m]]
+        x0_base = np.concatenate([pts.flatten(), np.full(m, INIT_RADIUS)])
+    else:
+        x0_base = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * m), np.full(m, INIT_RADIUS)])
+
+    def get_res(count, x0):
+        iu = np.triu_indices(count, 1)
+        def cons(v):
+            c, r = v[:2 * count].reshape(count, 2), v[2 * count:]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        res = minimize(lambda v: -v[2 * count:].sum(), x0, method="SLSQP", 
+                        constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+        return res.x[:2 * count].reshape(count, 2), res.x[2 * count:]
+
+    res_m = get_res(m, x0_base)
+    best_m_sum = -1.0
+    best_m_coords = None
+    
+    # Try removing each circle to find the best n-circle packing
+    for i in range(m):
+        c_m, r_m = res_m
+        c_sub = np.delete(c_m, i, axis=0)
+        r_sub = np.delete(r_m, i, np.newaxis).flatten()
+        
+        # Quick local refinement for the n-circle subset
+        x0_sub = np.concatenate([c_sub.flatten(), r_sub])
+        # To save time, we use a very small MAX_ITER for the sub-refinement
+        res_sub = minimize(lambda v: -v[2 * n:].sum(), x0_sub, method="SLSQP", 
+                             constraints={"type": "ineq", "fun": lambda v: ( 
+                                 (lambda c_s, r_s: ( 
+                                     np.sqrt(((c_s[np.triu_indices(n, 1)[0]] - c_s[np.triu_indices(n, 1)[1]])**2).sum(1)) - 
+                                     r_s[np.triu_indices(n, 1)[0]] - r_s[np.triu_indices(n, 1)[1]] 
+                                     ).flatten() 
+                                     ).call(v[:2*n].reshape(n, 2), v[2*n:] 
+                                 )(v[:2*n].reshape(n, 2), v[2*n:])) 
+                             )}, options={"maxiter": 50})
+        
+        # Actually, since we only have 30s, let's just use the best of the m-1 subsets
+        # Actually, let's simplify: just find the best i to remove that maintains validity
+        # To keep it simple and fast, we'll just return the best of the m-1 sets directly
+        pass
+
+    # Simplification: Just solve for n+1 and return the best n-subset that is valid
+    # To ensure it's valid and fast, we'll use the best of the m-1 subsets after a tiny polish
+    # However, the prompt asks for a specific logic. Let's implement the best n-subset logic.
+    
+    # Revised simple logic: solve n+1, then for each i, remove circle i and return the best valid one.
+    # Because n=32 is small, we can afford a bit of work.
+    
+    # Let's do the correct thing: solve n+1, then for each i, take the n-subset and run a very fast SLSQP
+    # To keep it within time, we limit the sub-calls.
+    
+    # Actually, the best way to do 
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    if rng.random() < 0.33:
+        # Hexagonal lattice start
+        # Approximate grid to cover unit square with ~32-40 points
+        # Rows with alternating offsets
+        rows = 6
+        cols = 7
+        pts = []
+        for r in range(rows):
+            for c in range(cols):
+                x = c * (1.0 / (cols - 1))
+                y = r * (1.0 / (rows - 1))
+                if r % 2 == 1:
+                    x += 0.5 / (cols - 1)
+                pts.append([x, y])
+        pts = np.array(pts)
+        # Jitter and filter
+        pts += rng.normal(0, 0.02, pts.shape)
+        # Keep only n points that are most central
+        dist_sq = np.sum((pts - 0.5)**2, axis=1)
+        indices = np.argsort(dist_sq)[:n]
+        pts = pts[indices]
+        x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    else:
+        # Uniform random start
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    m = n + 1
+    if rng.random() < 0.33:
+        # Hexagonal lattice start
+        rows, cols = 7, 8
+        pts = []
+        for r in range(rows):
+            for c in range(cols):
+                x = c * (1.0 / (cols - 1))
+                y = r * (1.0 / (rows - 1))
+                if r % 2 == 1: x += 0.5 / (cols - 1)
+                pts.append([x, y])
+        pts = np.array(pts)
+        pts += rng.normal(0, 0.02, pts.shape)
+        dist_sq = np.sum((pts - 0.5)**2, axis=1)
+        pts = pts[np.argsort(dist_sq)[:m]]
+        x0_base = np.concatenate([pts.flatten(), np.full(m, INIT_RADIUS)])
+    else:
+        # Uniform random start
+        x0_base = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * m), np.full(m, INIT_RADIUS)])
+
+    def get_res(count, x0):
+        iu = np.triu_indices(count, 1)
+        def cons(v):
+            c, r = v[:2 * count].reshape(count, 2), v[2 * count:]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        res = minimize(lambda v: -v[2 * count:].sum(), x0, method="SLSQP",
+                        constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+        return res.x[:2 * count].reshape(count, 2), res.x[2 * count:]
+
+    # Solve for m = n + 1
+    res_m_coords, res_m_radii = get_res(m, x0_base)
+    
+    best_n_coords, best_n_radii = None, None
+    best_n_sum = -1.0
+
+    # Try deleting each circle to find the best n-circle packing
+    for i in range(m):
+        c_temp = np.delete(res_m_coords, i, axis=0)
+        r_temp = np.delete(res_m_radii, i)
+        
+        # Refine the remaining n circles
+        # Note: We use SLSQP on the reduced set to let it relax
+        x0_reduced = np.concatenate([c_temp.flatten(), r_temp])
+        # Using a small iteration count for refinement to stay within time
+        res_reduced = minimize(lambda v: -v[2 * n:].sum(), x0_reduced, method="SLSQP",
+                                 constraints={"type": "ineq", "fun": lambda v: (c_temp_all := v[:2*n].reshape(n,2), r_temp_all := v[2*n:])[0]},
+                                 # This is a simplification; let's just reuse the logic
+                                 options={"maxiter": 50})
+        # Because the logic above is complex to inline correctly, let's just use the result of 
+        # the m-packing with one circle removed as a high-quality seed.
+        
+        current_sum = r_temp.sum()
+        if current_sum > best_n_sum:
+            best_n_sum = current_sum
+            best_n_coords, best_n_radii = c_temp, r_temp
+            
+    # If the loop didn't produce a valid packing, fallback to a simple start
+    if best_n_coords is None:
+        c_fallback, r_fallback = get_res(n, x0_base[:2*n + n])
+        return c_fallback, r_fallback
+        
+    return best_n_coords, best_n_radii
+-----
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    if rng.random() < 0.33:
+        # Hexagonal lattice start
+        # Approximate grid to cover unit square with ~32-40 points
+        # Rows with alternating offsets
+        rows = 6
+        cols = 7
+        pts = []
+        for r in range(rows):
+            for c in range(cols):
+                x = c * (1.0 / (cols - 1))
+                y = r * (1.0 / (rows - 1))
+                if r % 2 == 1:
+                    x += 0.5 / (cols - 1)
+                pts.append([x, y])
+        pts = np.array(pts)
+        # Jitter and filter
+        pts += rng.normal(0, 0.02, pts.shape)
+        # Keep only n points that are most central
+        dist_sq = np.sum((pts - 0.5)**2, axis=1)
+        indices = np.argsort(dist_sq)[:n]
+        pts = pts[indices]
+        x0 = np.concatenate([pts.flatten(), np.full(n, INIT_RADIUS)])
+    else:
+        # Uniform random start
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints是一位="type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    m = n + 1
+    if rng.random() < 0.33:
+        rows, cols = 7, 8
+        pts = []
+        for r in range(rows):
+            for c in range(cols):
+                x = c * (1.0 / (cols - 1))
+                y = r * (1.0 / (rows - 1))
+                if r % 2 == 1: x += 0.5 / (cols - 1)
+                pts.append([x, y])
+        pts = np.array(pts)
+        pts += rng.normal(0, 0.02, pts.shape)
+        dist_sq = np.sum((pts - 0.5)**2, axis=1)
+        pts = pts[np.argsort(dist_sq)[:m]]
+        x0_base = np.concatenate([pts.flatten(), np.full(m, INIT_RADIUS)])
+    else:
+        x0_base = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * m), np.full(m, INIT_RADIUS)])
+
+    def get_res(count, x0):
+        iu = np.triu_indices(count, 1)
+        def cons(v):
+            c, r = v[:2 * count].reshape(count, 2), v[2 * count:]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+            return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+        res = minimize(lambda v: -v[2 * count:].sum(), x0, method="SLSQP",
+                        constraints={"type": "ineq", "fun": cons}, options={"maxiter": MAX_ITER})
+        return res.x[:2 * count].reshape(count, 2), res.x[2 * count:]
+
+    res_m_coords, res_m_radii = get_res(m, x0_base)
+    best_n_coords, best_n_radii = None, None
+    best_n_sum = -1.0
+
+    for i in range(m):
+        c_temp = np.delete(res_m_coords, i, axis=0)
+        r_temp = np.delete(res_m_radii, i)
+        res_n = get_res(n, np.concatenate([c_temp.flatten(), r_temp]))
+        c_n, r_n = res_n
+        if r_n.sum() > best_n_sum:
+            best_n_sum = r_n.sum()
+            best_n_coords, best_n_radii = c_n, r_n
+
+    return best_n_coords, best_n_radii
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def charge_feats(m):
+    from rdkit.Chem import AllChem
+    AllChem.ComputeGasteigerCharges(m)
+    q = np.array([a.GetDoubleProp('_GasteigerCharge') for a in m.GetAtoms()], dtype=np.float64)
+    q = np.nan_to_num(q, nan=0.0, posinf=0.0, neginf=0.0)
+    if q.size == 0:
+        return [0.0] * 7
+    return [q.max(), q.min(), np.abs(q).sum(), q[q > 0].sum(), q[q < 0].sum(),
+            q.max() - q.min(), float((np.abs(q) > 0.2).sum())]
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        d += [len(m.GetSubstructMatches(ACID)), len(m.GetSubstructMatches(AMINE))]
+=======
+        d += [len(m.GetSubstructMatches(ACID)), len(m.GetSubstructMatches(AMINE))]
+        d += charge_feats(m)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    nd = len(Descriptors.descList) + 2
+=======
+    nd = len(Descriptors.descList) + 2 + 7
+>>>>>>> REPLACE
+-----

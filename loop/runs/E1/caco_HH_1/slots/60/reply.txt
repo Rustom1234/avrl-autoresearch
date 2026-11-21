@@ -1,0 +1,19 @@
+<<<<<<< SEARCH
+    stage2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400, **params)
+    stage2.fit(Xtr, y - base_tr, xgb_model=stage1.get_booster())
+    return base_te + stage2.predict(Xte)
+=======
+    booster1 = stage1.get_booster()
+    nf = Xtr.shape[1]
+    preds = []
+    for k in range(5):
+        rng = np.random.default_rng(seed + k)
+        w = np.zeros(nf)
+        w[rng.permutation(nf)[: nf // 2]] = 1.0
+        s2 = XGBRegressor(objective='reg:absoluteerror', n_estimators=400,
+                          **{**params, 'random_state': seed + k})
+        s2.fit(Xtr, y - base_tr, xgb_model=booster1, feature_weights=w)
+        preds.append(s2.predict(Xte))
+    return base_te + np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

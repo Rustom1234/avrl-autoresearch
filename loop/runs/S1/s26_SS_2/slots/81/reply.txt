@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+=======
+        v = np.concatenate([rng.uniform(0.05, 0.95, 2 * n), np.full(n, 0.05)])
+        if rng.random() < 0.4:
+            g1 = np.array([0.2, 0.5, 0.8])
+            gx_, gy_ = np.meshgrid(g1, g1)
+            P0 = np.stack([gx_.ravel(), gy_.ravel()], 1) + rng.normal(0, 0.03, (9, 2))
+            P0 = np.clip(P0, 0.15, 0.85)
+            pts = [p for p in P0]
+            rad = [0.15] * 9
+            gp = np.linspace(0.02, 0.98, 49)
+            GX, GY = np.meshgrid(gp, gp)
+            G = np.stack([GX.ravel(), GY.ravel()], 1)
+            wall = np.minimum(G.min(1), (1 - G).min(1))
+            for _k in range(n - 9):
+                cp = np.array(pts); cr = np.array(rad)
+                dd = np.hypot(G[:, None, 0] - cp[None, :, 0], G[:, None, 1] - cp[None, :, 1]) - cr[None, :]
+                clr = np.minimum(dd.min(1), wall)
+                kk = int(np.argmax(clr))
+                pts.append(G[kk].copy())
+                rad.append(max(0.5 * clr[kk], 0.01))
+            arr = np.array(pts)
+            v = np.concatenate([arr[:, 0], arr[:, 1], np.array(rad)])
+        for mu in (10, 100, 1e3, 1e4, 1e5):
+>>>>>>> REPLACE
+-----

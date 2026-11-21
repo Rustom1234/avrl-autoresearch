@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    A_tr = np.c_[np.ones(len(y)), base_features(train_smiles)]
+    A_te = np.c_[np.ones(len(test_smiles)), base_features(test_smiles)]
+    coef = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+K_NN = 100
+
+
+def local_prior(Z_q, Z_ref, y_ref, self_ref):
+    D = ((Z_q[:, None, :] - Z_ref[None, :, :]) ** 2).sum(-1)
+    if self_ref:
+        np.fill_diagonal(D, np.inf)
+    idx = np.argsort(D, axis=1)[:, :K_NN]
+    out = np.empty(len(Z_q))
+    for i in range(len(Z_q)):
+        j = idx[i]
+        d = np.sqrt(D[i, j])
+        h = d[-1] + 1e-9
+        sw = np.exp(-0.25 * (d / h) ** 2)  # square root of Gaussian kernel weight
+        A = np.c_[np.ones(K_NN), Z_ref[j]] * sw[:, None]
+        coef = np.linalg.lstsq(A, y_ref[j] * sw, rcond=None)[0]
+        out[i] = coef[0] + Z_q[i] @ coef[1:]
+    return out
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    B_tr = base_features(train_smiles)
+    B_te = base_features(test_smiles)
+    mu = B_tr.mean(0)
+    sd = B_tr.std(0)
+    sd = np.where(sd > 0, sd, 1.0)
+    Z_tr = (B_tr - mu) / sd
+    Z_te = (B_te - mu) / sd
+    prior_tr = local_prior(Z_tr, Z_tr, y, True)
+    prior_te = local_prior(Z_te, Z_tr, y, False)
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - prior_tr)
+    return model.predict(featurize(test_smiles)) + prior_te
+>>>>>>> REPLACE
+-----

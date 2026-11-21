@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    K = 20
+    for k in range(K):
+        if time.time() - t0 > budget:
+            break
+        frac = k / (K - 1)
+        sigma = 0.1 * (0.002 / 0.1) ** frac
+        cand = np.clip(best_c + rng.normal(0.0, sigma, (n, 2)), 0.0, 1.0)
+        cc, rr = _local_opt(cand)
+        s = float(np.sum(rr))
+        if s > best_s:
+            best_c, best_r, best_s = cc, rr, s
+    return best_c, best_r
+=======
+    K = 20
+    sigma = 0.1
+    recent = []
+    for k in range(K):
+        if time.time() - t0 > budget:
+            break
+        cand = np.clip(best_c + rng.normal(0.0, sigma, (n, 2)), 0.0, 1.0)
+        cc, rr = _local_opt(cand)
+        s = float(np.sum(rr))
+        improved = s > best_s
+        if improved:
+            best_c, best_r, best_s = cc, rr, s
+        recent.append(1.0 if improved else 0.0)
+        recent = recent[-5:]
+        if float(np.mean(recent)) > 0.2:
+            sigma *= 1.15
+        else:
+            sigma *= 0.87
+        sigma = min(max(sigma, 0.002), 0.1)
+    return best_c, best_r
+>>>>>>> REPLACE
+-----

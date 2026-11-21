@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+import numpy as np
+=======
+import numpy as np
+from collections import Counter
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+MIN_DF = 5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    fp = np.array([gen.GetCountFingerprintAsNumPy(m) for m in mols], dtype=np.float32)
+    desc = np.array([[f(m) for _, f in Descriptors.descList] for m in mols], dtype=np.float64)
+    desc = np.clip(np.nan_to_num(desc, nan=0.0, posinf=0.0, neginf=0.0), -1e6, 1e6)
+    return np.hstack([fp, desc.astype(np.float32)])
+=======
+def featurize(mols, counts, vocab):
+    fp = np.zeros((len(mols), len(vocab)), dtype=np.float32)
+    for i, c in enumerate(counts):
+        for k, v in c.items():
+            j = vocab.get(k)
+            if j is not None:
+                fp[i, j] = v
+    desc = np.array([[f(m) for _, f in Descriptors.descList] for m in mols], dtype=np.float64)
+    desc = np.clip(np.nan_to_num(desc, nan=0.0, posinf=0.0, neginf=0.0), -1e6, 1e6)
+    return np.hstack([fp, desc.astype(np.float32)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=2**20)
+    train_mols = [Chem.MolFromSmiles(s) for s in train_smiles]
+    test_mols = [Chem.MolFromSmiles(s) for s in test_smiles]
+    train_counts = [gen.GetSparseCountFingerprint(m).GetNonzeroElements() for m in train_mols]
+    test_counts = [gen.GetSparseCountFingerprint(m).GetNonzeroElements() for m in test_mols]
+    df = Counter(k for c in train_counts for k in c)
+    vocab = {k: j for j, k in enumerate(sorted(k for k, n in df.items() if n >= MIN_DF))}
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+=======
+    model.fit(featurize(train_mols, train_counts, vocab), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_mols, test_counts, vocab))[:, 1]
+>>>>>>> REPLACE
+-----

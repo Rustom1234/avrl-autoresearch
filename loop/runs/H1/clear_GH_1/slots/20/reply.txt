@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    X_test = featurize(test_smiles)
+    rf = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                               n_jobs=-1, random_state=seed)
+    rf.fit(X_train, yt)
+=======
+    X_test = featurize(test_smiles)
+    # RFE-style pruning: rank features by RF importance and keep the top 50%
+    sel = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    sel.fit(X_train, yt)
+    keep = np.argsort(sel.feature_importances_)[::-1][:X_train.shape[1] // 2]
+    X_train, X_test = X_train[:, keep], X_test[:, keep]
+    rf = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                               n_jobs=-1, random_state=seed)
+    rf.fit(X_train, yt)
+>>>>>>> REPLACE
+-----

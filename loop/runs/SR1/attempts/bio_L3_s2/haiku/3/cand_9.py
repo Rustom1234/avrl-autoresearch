@@ -1,0 +1,8 @@
+import numpy as np
+def equation(t, P, params):
+    w=params[0]
+    s=np.sin(w*t); c=np.cos(w*t)
+    s2=np.sin(2*w*t); c2=np.cos(2*w*t)
+    return (params[1]*P + params[2]*P**2 + params[3] + params[4]/P
+            + params[5]*P*s + params[6]*P*c + params[7]*s + params[8]*c
+            + params[9]*s2)

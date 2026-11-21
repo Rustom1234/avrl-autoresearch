@@ -1,0 +1,42 @@
+<<<<<<< SEARCH
+def construct_packing():
+    T0 = _time.time()
+=======
+def _ejection_chain(c, rng):
+    """Move one random circle to a random grid cell, then propagate a displacement along nearest-neighbour contacts."""
+    n = c.shape[0]
+    g = np.linspace(0.02, 0.98, 49)
+    G = np.array(np.meshgrid(g, g)).reshape(2, -1).T
+    i = rng.randint(n)
+    c[i] = G[rng.randint(G.shape[0])]
+    cur = i
+    visited = np.zeros(n, dtype=bool)
+    visited[i] = True
+    for link in range(4):
+        d = np.sqrt(((c - c[cur]) ** 2).sum(axis=1))
+        d[visited] = np.inf
+        j = int(np.argmin(d))
+        if not np.isfinite(d[j]):
+            break
+        unit = (c[j] - c[cur]) / max(d[j], 1e-9)
+        overlap = max(0.0, 0.18 - d[j])
+        c[j] = c[j] + (0.5 ** (link + 1)) * overlap * unit
+        c = np.clip(c, 0.0, 1.0)
+        visited[j] = True
+        cur = j
+    return np.clip(c, 0.0, 1.0)
+
+
+def construct_packing():
+    T0 = _time.time()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c = cur_c.copy()
+        if rng.rand() < 0.5:
+=======
+        c = cur_c.copy()
+        if rng.rand() < 0.25:
+            c = _ejection_chain(c, rng)
+        elif rng.rand() < 0.5:
+>>>>>>> REPLACE
+-----

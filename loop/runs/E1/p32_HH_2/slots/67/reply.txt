@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _compact(c, r, rng):
+    """Gravity hop: slide circles in order toward a wall or corner until each touches a wall or a neighbour."""
+    theta = rng.integers(4) * np.pi / 2 + (rng.uniform(0, np.pi / 2) if rng.random() < 0.5 else 0.0)
+    d = np.array([np.cos(theta), np.sin(theta)])
+    c = c.copy()
+    for i in np.argsort(-(c @ d)):
+        t = np.inf
+        for k in range(2):
+            if abs(d[k]) > 1e-12:
+                lim = (1 - r[i] - c[i, k]) / d[k] if d[k] > 0 else (c[i, k] - r[i]) / -d[k]
+                t = min(t, lim)
+        w = c[i] - c
+        R = r[i] + r
+        wd = w @ d
+        disc = wd ** 2 - (w ** 2).sum(1) + R ** 2
+        ok = disc >= 0
+        ok[i] = False
+        t1 = -wd - np.sqrt(np.where(ok, disc, 0))
+        hit = ok & (t1 >= 0)
+        if hit.any():
+            t = min(t, t1[hit].min())
+        c[i] = c[i] + max(t, 0) * d
+    return c
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+=======
+        if rng.random() < 0.25:
+            p = _compact(c, r, rng).ravel()
+        else:
+            p = (c + rng.normal(0, HOP_SD, c.shape)).ravel()
+>>>>>>> REPLACE
+-----

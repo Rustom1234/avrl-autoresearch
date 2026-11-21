@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors
+=======
+import zlib
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import AllChem, Descriptors, BRICS
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+LR = 0.05
+=======
+LR = 0.05
+FRAG_BINS = 512
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        desc = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float32)
+        rows.append(np.concatenate([fp, desc]))
+=======
+        desc = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float32)
+        frag = np.zeros(FRAG_BINS, dtype=np.float32)
+        for frag_smi in BRICS.BRICSDecompose(m):
+            fm = Chem.MolFromSmiles(frag_smi)
+            if fm is not None:
+                frag[zlib.crc32(Chem.MolToSmiles(fm).encode()) % FRAG_BINS] += 1
+        rows.append(np.concatenate([fp, desc, frag]))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import zlib
+import numpy as np
+=======
+import numpy as np
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                frag[zlib.crc32(Chem.MolToSmiles(fm).encode()) % FRAG_BINS] += 1
+=======
+                frag[sum(ord(c) * (i + 1) for i, c in enumerate(Chem.MolToSmiles(fm))) % FRAG_BINS] += 1
+>>>>>>> REPLACE
+-----

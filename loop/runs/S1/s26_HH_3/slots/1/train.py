@@ -1,0 +1,236 @@
+# EVOLVE-BLOCK-START
+"""Constructor-based circle packing for n=26 circles"""
+
+import numpy as np
+
+
+def construct_packing():
+    """
+    Construct a specific arrangement of 26 circles in a unit square
+    that attempts to maximize the sum of their radii.
+
+    Returns:
+        Tuple of (centers, radii, sum_of_radii)
+        centers: np.array of shape (26, 2) with (x, y) coordinates
+        radii: np.array of shape (26) with radius of each circle
+        sum_of_radii: Sum of all radii
+    """
+    # Initialize arrays for 26 circles
+    n = 26
+    centers = np.zeros((n, 2))
+
+    # Place circles in a structured pattern
+    # This is a simple pattern - evolution will improve this
+
+    # First, place a large circle in the center
+    centers[0] = [0.5, 0.5]
+
+    # Place 8 circles around it in a ring
+    for i in range(8):
+        angle = 2 * np.pi * i / 8
+        centers[i + 1] = [0.5 + 0.3 * np.cos(angle), 0.5 + 0.3 * np.sin(angle)]
+
+    # Place 16 more circles in an outer ring
+    for i in range(16):
+        angle = 2 * np.pi * i / 16
+        centers[i + 9] = [0.5 + 0.7 * np.cos(angle), 0.5 + 0.7 * np.sin(angle)]
+
+    # Additional positioning adjustment to make sure all circles
+    # are inside the square and don't overlap
+    # Clip to ensure everything is inside the unit square
+    centers = np.clip(centers, 0.01, 0.99)
+
+    # Compute maximum valid radii for this configuration
+    return _best_packing()
+
+
+def compute_max_radii(centers):
+    """
+    Compute the maximum possible radii for each circle position
+    such that they don't overlap and stay within the unit square.
+
+    Args:
+        centers: np.array of shape (n, 2) with (x, y) coordinates
+
+    Returns:
+        np.array of shape (n) with radius of each circle
+    """
+    n = centers.shape[0]
+    radii = np.ones(n)
+
+    # First, limit by distance to square borders
+    for i in range(n):
+        x, y = centers[i]
+        # Distance to borders
+        radii[i] = min(x, y, 1 - x, 1 - y)
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            dist = np.sqrt(np.sum((centers[i] - centers[j]) ** 2))
+
+            # Then, limit by distance to other circles
+            # Each pair of circles with centers at distance d can have
+            # sum of radii at most d to avoid overlap
+            for i in range(n):
+                for j in range(i + 1, n):
+                    dist = np.sqrt(np.sum((centers[i] - centers[j]) ** 2))
+
+                    # If current radii would cause overlap
+                    if radii[i] + radii[j] > dist:
+                        # Scale both radii proportionally
+                        scale = dist / (radii[i] + radii[j])
+                        radii[i] *= scale
+                        radii[j] *= scale
+
+    # Ensure no negative radii due to numerical issues
+    radii = np.maximum(radii, 0.0)
+    return radii
+
+
+import time
+from scipy.optimize import minimize, linprog
+
+
+def _repair(centers, radii):
+    """Shrink radii so every circle is inside the square and no pair overlaps."""
+    n = len(radii)
+    c = np.clip(centers, 0.0, 1.0)
+    r = np.maximum(np.asarray(radii, dtype=float), 0.0)
+    b = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    r = np.minimum(r, np.maximum(b, 0.0))
+    for _ in range(1000):
+        changed = False
+        for i in range(n):
+            for j in range(i + 1, n):
+                d = np.hypot(c[i, 0] - c[j, 0], c[i, 1] - c[j, 1])
+                s = r[i] + r[j]
+                if s > d * (1 - 1e-10):
+                    f = d * (1 - 1e-10) / s if s > 0 else 0.0
+                    r[i] *= f
+                    r[j] *= f
+                    changed = True
+        if not changed:
+            break
+    r = r * (1 - 1e-9)
+    return np.maximum(r, 0.0)
+
+
+def _optimize(centers0, radii0):
+    """Joint SLSQP over (x, y, r): maximize sum r subject to containment and non-overlap."""
+    n = len(radii0)
+    iu, ju = np.triu_indices(n, 1)
+    m = len(iu)
+    idx = np.arange(n)
+
+    def unpack(z):
+        return z[:n], z[n:2 * n], z[2 * n:]
+
+    def obj(z):
+        return -np.sum(z[2 * n:])
+
+    def obj_grad(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        return g
+
+    def cons(z):
+        x, y, r = unpack(z)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        pair = dx * dx + dy * dy - (r[iu] + r[ju]) ** 2
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    def cons_jac(z):
+        x, y, r = unpack(z)
+        J = np.zeros((m + 4 * n, 3 * n))
+        rows = np.arange(m)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        s = r[iu] + r[ju]
+        J[rows, iu] = 2 * dx
+        J[rows, ju] = -2 * dx
+        J[rows, n + iu] = 2 * dy
+        J[rows, n + ju] = -2 * dy
+        J[rows, 2 * n + iu] = -2 * s
+        J[rows, 2 * n + ju] = -2 * s
+        J[m + idx, idx] = 1
+        J[m + idx, 2 * n + idx] = -1
+        J[m + n + idx, idx] = -1
+        J[m + n + idx, 2 * n + idx] = -1
+        J[m + 2 * n + idx, n + idx] = 1
+        J[m + 2 * n + idx, 2 * n + idx] = -1
+        J[m + 3 * n + idx, n + idx] = -1
+        J[m + 3 * n + idx, 2 * n + idx] = -1
+        return J
+
+    z0 = np.concatenate([centers0[:, 0], centers0[:, 1], radii0])
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                   bounds=bounds, options={"maxiter": 300, "ftol": 1e-12})
+    x, y, r = unpack(res.x)
+    return np.column_stack([x, y]), r
+
+
+def _lp_radii(centers, fallback):
+    """Exact optimal radii for fixed centers via LP; falls back to repair on failure."""
+    n = centers.shape[0]
+    c = np.clip(centers, 0.0, 1.0)
+    iu, ju = np.triu_indices(n, 1)
+    d = np.hypot(c[iu, 0] - c[ju, 0], c[iu, 1] - c[ju, 1])
+    A = np.zeros((len(iu), n))
+    rows = np.arange(len(iu))
+    A[rows, iu] = 1.0
+    A[rows, ju] = 1.0
+    b = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    b = np.maximum(b, 0.0)
+    try:
+        res = linprog(-np.ones(n), A_ub=A, b_ub=d,
+                      bounds=[(0.0, float(bi)) for bi in b], method="highs")
+    except Exception:
+        res = None
+    if res is None or res.status != 0 or res.x is None:
+        return _repair(c, fallback)
+    return _repair(c, np.maximum(res.x, 0.0) * (1 - 1e-9))
+
+
+def _best_packing():
+    """Multi-start over bimodal radius initializations; keep the best feasible packing."""
+    n = 26
+    rng = np.random.default_rng(12345)
+    t0 = time.time()
+    best_sum, best_c, best_r = -1.0, None, None
+    for k in (4, 6, 8, 10):
+        for _ in range(3):
+            if time.time() - t0 > 150:
+                break
+            c0 = rng.uniform(0.08, 0.92, size=(n, 2))
+            r0 = np.full(n, 0.07)
+            r0[:k] = 0.12
+            r0 = r0 * rng.uniform(0.9, 1.1, size=n)
+            try:
+                c, r = _optimize(c0, r0)
+                r = _lp_radii(c, r)
+            except Exception:
+                continue
+            s = float(np.sum(r))
+            if s > best_sum:
+                best_sum, best_c, best_r = s, c, r
+    if best_c is None:
+        c = rng.uniform(0.05, 0.95, size=(n, 2))
+        best_c = np.clip(c, 0.0, 1.0)
+        best_r = _repair(best_c, np.zeros(n))
+    return np.clip(best_c, 0.0, 1.0), best_r
+
+
+# EVOLVE-BLOCK-END
+
+
+# This part remains fixed (not evolved)
+def run_packing():
+    """Run the circle packing constructor for n=26"""
+    centers, radii = construct_packing()
+    # Calculate the sum of radii
+    sum_radii = np.sum(radii)
+    return centers, radii, sum_radii

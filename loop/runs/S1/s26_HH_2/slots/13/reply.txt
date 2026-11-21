@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+        c = cur_c.copy()
+        k = rng.randint(2, 5)
+        idx = rng.choice(_N, k, replace=False)
+        scale = rng.uniform(0.05, 0.15)
+        c[idx] += rng.normal(0.0, scale, size=(k, 2))
+        c = np.clip(c, 0.0, 1.0)
+=======
+        c = cur_c.copy()
+        if rng.rand() < 0.5:
+            i0 = rng.randint(_N)
+            g = np.linspace(0.02, 0.98, 49)
+            G = np.array(np.meshgrid(g, g)).reshape(2, -1).T
+            others = np.delete(c, i0, axis=0)
+            dd = np.sqrt(((G[:, None, :] - others[None, :, :]) ** 2).sum(-1)).min(axis=1)
+            wall = np.minimum(np.minimum(G[:, 0], G[:, 1]), np.minimum(1 - G[:, 0], 1 - G[:, 1]))
+            hole = np.minimum(dd, 2.0 * wall)
+            c[i0] = G[np.argmax(hole)] + rng.normal(0.0, 0.003, size=2)
+            c = np.clip(c, 0.0, 1.0)
+        else:
+            k = rng.randint(2, 5)
+            idx = rng.choice(_N, k, replace=False)
+            scale = rng.uniform(0.05, 0.15)
+            c[idx] += rng.normal(0.0, scale, size=(k, 2))
+            c = np.clip(c, 0.0, 1.0)
+>>>>>>> REPLACE
+-----

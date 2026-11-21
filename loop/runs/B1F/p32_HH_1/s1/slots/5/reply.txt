@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    k = min(8, n - 1)
+
+    def cons(v, pi, pj):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[pi] - c[pj]) ** 2).sum(1)) - r[pi] - r[pj]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    v, prev = x0, np.inf
+    for _ in range(4):
+        c = v[:2 * n].reshape(n, 2)
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        near = d < 0.45
+        near[np.arange(n)[:, None], np.argsort(d, axis=1)[:, 1:k + 1]] = True
+        pi, pj = np.nonzero(np.triu(near | near.T, 1))
+        res = minimize(lambda w: -w[2 * n:].sum(), v, method="SLSQP",
+                       constraints={"type": "ineq", "fun": lambda w: cons(w, pi, pj)}, options={"maxiter": 60})
+        v = res.x
+        obj = v[2 * n:].sum()
+        if abs(obj - prev) < 1e-9:
+            break
+        prev = obj
+    return v[:2 * n].reshape(n, 2), v[2 * n:]
+>>>>>>> REPLACE
+-----

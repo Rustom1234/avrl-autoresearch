@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+=======
+    global _N, _IU
+    cands = []
+    rng1 = np.random.default_rng(777)
+    _N = 25
+    _IU = np.triu_indices(25, 1)
+    try:
+        while time.time() - t0 < 50:
+            try:
+                u = rng1.random()
+                c = _hexgrid(rng1) if u < 0.3 else (_hexinit(rng1) if u < 0.65 else _physics(rng1))
+                r = _lp_radii(c)
+                c2 = np.clip(_polish(c, r), 0, 1)
+                r2 = _lp_radii(c2)
+                cands.append((r2.sum(), c2, r2))
+            except Exception:
+                continue
+    finally:
+        _N = 26
+        _IU = np.triu_indices(26, 1)
+    cands.sort(key=lambda t: -t[0])
+    cands = cands[:5]
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 100:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+=======
+    gx = (np.arange(60) + 0.5) / 60
+    gp = np.stack(np.meshgrid(gx, gx), -1).reshape(-1, 2)
+    tg = time.time()
+    for _, c25, r25 in cands:
+        if time.time() - tg > 40:
+            break
+        d = np.sqrt(((gp[:, None, :] - c25[None]) ** 2).sum(2)) - r25[None]
+        clr = np.minimum(d.min(1), np.minimum(np.minimum(gp[:, 0], gp[:, 1]),
+                                              np.minimum(1 - gp[:, 0], 1 - gp[:, 1])))
+        holes = []
+        for k in np.argsort(-clr):
+            if all(np.hypot(*(gp[k] - h)) > 0.06 for h in holes):
+                holes.append(gp[k])
+            if len(holes) == 8:
+                break
+        for h in holes:
+            try:
+                ck = np.vstack([c25, h[None]])
+                rk = np.append(r25, max(clr[0], 0.01))
+                c2 = np.clip(_polish(ck, rk), 0, 1)
+                r2 = _lp_radii(c2)
+            except Exception:
+                continue
+            if r2.sum() > best_s:
+                best_s, best = r2.sum(), (c2, r2)
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+>>>>>>> REPLACE
+-----

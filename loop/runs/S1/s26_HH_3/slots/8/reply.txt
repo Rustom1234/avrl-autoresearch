@@ -1,0 +1,84 @@
+<<<<<<< SEARCH
+def _best_packing():
+=======
+def _equal_search(rng):
+    """Phase one: maximise one common radius r over centers (SLSQP on x, y, r)."""
+    n = 26
+    iu, ju = np.triu_indices(n, 1)
+    m = len(iu)
+    idx = np.arange(n)
+    z0 = np.concatenate([rng.uniform(0.1, 0.9, size=2 * n), [0.08]])
+
+    def obj(z):
+        return -z[-1]
+
+    def obj_grad(z):
+        g = np.zeros_like(z)
+        g[-1] = -1.0
+        return g
+
+    def cons(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[-1]
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        pair = dx * dx + dy * dy - 4 * r * r
+        bnd = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+        return np.concatenate([pair, bnd])
+
+    def cons_jac(z):
+        x = z[:n]
+        y = z[n:2 * n]
+        r = z[-1]
+        J = np.zeros((m + 4 * n, 2 * n + 1))
+        rows = np.arange(m)
+        dx = x[iu] - x[ju]
+        dy = y[iu] - y[ju]
+        J[rows, iu] = 2 * dx
+        J[rows, ju] = -2 * dx
+        J[rows, n + iu] = 2 * dy
+        J[rows, n + ju] = -2 * dy
+        J[rows, -1] = -8 * r
+        J[m + idx, idx] = 1
+        J[m + idx, -1] = -1
+        J[m + n + idx, idx] = -1
+        J[m + n + idx, -1] = -1
+        J[m + 2 * n + idx, n + idx] = 1
+        J[m + 2 * n + idx, -1] = -1
+        J[m + 3 * n + idx, n + idx] = -1
+        J[m + 3 * n + idx, -1] = -1
+        return J
+
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)]
+    res = minimize(obj, z0, jac=obj_grad, method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                   bounds=bounds, options={"maxiter": 300, "ftol": 1e-12})
+    z = res.x
+    centers = np.column_stack([z[:n], z[n:2 * n]])
+    radii = np.full(n, max(float(z[-1]), 0.0))
+    return np.clip(centers, 0.0, 1.0), radii
+
+
+def _best_packing():
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    for k in (4, 6, 8, 10):
+=======
+    # Phase one equal radii -> phase two free radii (joint SLSQP), multi-start.
+    for _ in range(4):
+        if time.time() - t0 > 80:
+            break
+        try:
+            c, r = _equal_search(rng)
+            c, r = _optimize(c, r)
+            r = _repair(c, r)
+        except Exception:
+            continue
+        s = float(np.sum(r))
+        if s > best_sum:
+            best_sum, best_c, best_r = s, c, r
+    for k in (4, 6, 8, 10):
+>>>>>>> REPLACE
+-----

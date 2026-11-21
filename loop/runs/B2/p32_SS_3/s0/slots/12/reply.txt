@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+    if start is None:
+        def cons_eq(v):
+            c, r = v[:2 * n].reshape(n, 2), v[-1]
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - 2 * r
+            return np.concatenate([d, (c - r).ravel(), (1 - c - r).ravel()])
+
+        y0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), [INIT_RADIUS]])
+        y = minimize(lambda v: -v[-1], y0, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                     options={"maxiter": 50}).x
+        x0 = np.concatenate([np.clip(y[:2 * n], 0.01, 0.99), np.full(n, max(y[-1], 0.01))])
+=======
+    if start is None:
+        w = rng.uniform(0.6, 1.4, n)
+
+        def cons_eq(v):
+            c, t = v[:2 * n].reshape(n, 2), v[-1]
+            rw = t * w
+            d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - rw[iu[0]] - rw[iu[1]]
+            return np.concatenate([d, (c - rw[:, None]).ravel(), (1 - c - rw[:, None]).ravel()])
+
+        y0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), [INIT_RADIUS]])
+        y = minimize(lambda v: -v[-1], y0, method="SLSQP", constraints={"type": "ineq", "fun": cons_eq},
+                     options={"maxiter": 50}).x
+        x0 = np.concatenate([np.clip(y[:2 * n], 0.01, 0.99), np.maximum(y[-1] * w, 0.01)])
+>>>>>>> REPLACE
+-----

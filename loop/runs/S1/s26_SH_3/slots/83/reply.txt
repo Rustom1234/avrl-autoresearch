@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+        res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=bounds, method="highs")
+=======
+        res = linprog(-(np.ones(n) if w is None else w), A_ub=A, b_ub=d, bounds=bounds, method="highs")
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def lp_radii(c):
+=======
+def lp_radii(c, w=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    cur = c.copy()
+    cur_r = lp_radii(cur)
+    cur_v = float(np.sum(cur_r))
+    best, best_v = cur.copy(), cur_v
+    for s in range(steps):
+        if time.time() - t0 > 120:
+            break
+=======
+    cur = c.copy()
+    w = np.clip(1.0 + 0.05 * rng.normal(size=c.shape[0]), 0.9, 1.1)
+    cur_r = lp_radii(cur, w)
+    cur_v = float(np.dot(w, cur_r))
+    best, best_v = cur.copy(), -1.0
+    switch = int(0.6 * steps)
+    for s in range(steps):
+        if time.time() - t0 > 120:
+            break
+        if s == switch:
+            cur_r = lp_radii(cur)
+            cur_v = float(np.sum(cur_r))
+            best, best_v = cur.copy(), cur_v
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rc = lp_radii(cand)
+        v = float(np.sum(rc))
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v, cur_r = cand, v, rc
+            if v > best_v:
+                best, best_v = cand.copy(), v
+=======
+        if s < switch:
+            rc = lp_radii(cand, w)
+            v = float(np.dot(w, rc))
+        else:
+            rc = lp_radii(cand)
+            v = float(np.sum(rc))
+        if v >= cur_v or rng.random() < math.exp((v - cur_v) / T):
+            cur, cur_v, cur_r = cand, v, rc
+            if s >= switch and v > best_v:
+                best, best_v = cand.copy(), v
+>>>>>>> REPLACE
+-----

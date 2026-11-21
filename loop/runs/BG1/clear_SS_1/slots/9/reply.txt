@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+=======
+from scipy.stats import rankdata
+from rdkit.Chem import MACCSkeys
+from catboost import CatBoostRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def desc_maccs_features(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        d = [f(m) for _, f in Descriptors.descList]
+        rows.append(np.concatenate([np.array(d, dtype=np.float64),
+                                    np.array(list(MACCSkeys.GenMACCSKeys(m)), dtype=np.float64)]))
+    X = np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    preds = [rf.predict(mixed_features(test_smiles)), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr))]
+=======
+    cb = CatBoostRegressor(iterations=800, depth=6, learning_rate=0.03, random_seed=seed, thread_count=8,
+                           verbose=0).fit(desc_maccs_features(train_smiles), y)
+    preds = [rf.predict(mixed_features(test_smiles)), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr)),
+             cb.predict(desc_maccs_features(test_smiles))]
+>>>>>>> REPLACE
+-----

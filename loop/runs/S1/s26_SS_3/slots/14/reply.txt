@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        w = 0.7 + 0.6 * rng.random(n)
+        gw = np.zeros(N3)
+        gw[2 * n:] = -w
+        try:
+            res0 = minimize(lambda z: -np.dot(w, z[2 * n:]), z0,
+                            jac=lambda z: gw, method="SLSQP", bounds=bounds,
+                            constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                            options={"maxiter": 100, "ftol": 1e-9})
+            if np.all(np.isfinite(res0.x)):
+                z0 = res0.x
+        except Exception:
+            pass
+>>>>>>> REPLACE
+-----

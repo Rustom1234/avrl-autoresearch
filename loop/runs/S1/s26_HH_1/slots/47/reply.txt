@@ -1,0 +1,74 @@
+<<<<<<< SEARCH
+# This part remains fixed (not evolved)
+def _valid_packing(centers, radii):
+=======
+def _subset_polish(c, r, deadline, seed=2024):
+    # Large-neighbourhood move: free a spatial cluster of 6-10 circles, keep the rest as
+    # fixed obstacles, re-optimise free centres and radii with SLSQP, then recheck the full
+    # packing with _lp_radii and _valid_packing. Accept only if the full sum improves.
+    rng = np.random.default_rng(seed)
+    n = 26
+    best_c = np.array(c, dtype=float)
+    best_r = np.array(r, dtype=float)
+    best_s = float(np.sum(best_r))
+    while time.perf_counter() < deadline:
+        m = int(rng.integers(6, 11))
+        ctr = best_c[int(rng.integers(n))]
+        dd = np.sqrt(np.sum((best_c - ctr) ** 2, axis=1))
+        free = np.sort(np.argsort(dd)[:m])
+        fixed = np.setdiff1d(np.arange(n), free)
+        fc = best_c[fixed]
+        fr = best_r[fixed]
+        I, J = np.triu_indices(m, 1)
+        z0 = np.concatenate([best_c[free, 0], best_c[free, 1], best_r[free]])
+
+        def obj(z):
+            return -np.sum(z[2 * m:])
+
+        def obj_grad(z):
+            g = np.zeros_like(z)
+            g[2 * m:] = -1.0
+            return g
+
+        def cons(z):
+            x = z[:m]
+            y = z[m:2 * m]
+            rr = z[2 * m:]
+            dx = x[I] - x[J]
+            dy = y[I] - y[J]
+            rs = rr[I] + rr[J]
+            fx = x[:, None] - fc[None, :, 0]
+            fy = y[:, None] - fc[None, :, 1]
+            fs = rr[:, None] + fr[None, :]
+            fpair = (fx * fx + fy * fy - fs * fs).ravel()
+            bnd = np.concatenate([x - rr, 1 - x - rr, y - rr, 1 - y - rr])
+            return np.concatenate([dx * dx + dy * dy - rs * rs, fpair, bnd])
+
+        bounds = [(0.0, 1.0)] * (2 * m) + [(0.0, 0.5)] * m
+        try:
+            res = minimize(obj, z0, jac=obj_grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons}],
+                           options={"maxiter": 200, "ftol": 1e-12})
+            z = res.x
+        except Exception:
+            continue
+        newc = best_c.copy()
+        newc[free, 0] = np.clip(z[:m], 0.0, 1.0)
+        newc[free, 1] = np.clip(z[m:2 * m], 0.0, 1.0)
+        rr_full = _lp_radii(newc)
+        s = float(np.sum(rr_full))
+        if s > best_s + 1e-9 and _valid_packing(newc, rr_full):
+            best_c, best_r, best_s = newc, rr_full, s
+    return best_c, best_r
+
+
+# This part remains fixed (not evolved)
+def _valid_packing(centers, radii):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 235.0)
+=======
+        best_c, best_r = _reinsert_polish(best_c, best_r, t_start + 215.0)
+        best_c, best_r = _subset_polish(best_c, best_r, t_start + 235.0)
+>>>>>>> REPLACE
+-----

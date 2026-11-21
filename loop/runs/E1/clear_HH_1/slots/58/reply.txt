@@ -1,0 +1,85 @@
+<<<<<<< SEARCH
+import numpy as np
+from scipy.stats import rankdata
+=======
+import zlib
+import numpy as np
+from scipy.stats import rankdata
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+WL_ITERS = 3
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def wl_docs(smiles):
+    docs = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        labels = [f"{a.GetAtomicNum()}_{int(a.GetIsAromatic())}_{a.GetFormalCharge()}_{a.GetTotalNumHs()}" for a in m.GetAtoms()]
+        nbrs = [[] for _ in labels]
+        for b in m.GetBonds():
+            i, j, bt = b.GetBeginAtomIdx(), b.GetEndAtomIdx(), str(b.GetBondType())
+            nbrs[i].append((bt, j))
+            nbrs[j].append((bt, i))
+        bag = list(labels)
+        for _ in range(WL_ITERS):
+            labels = [str(zlib.crc32("|".join([labels[k]] + sorted(f"{bt}:{labels[n]}" for bt, n in nbrs[k])).encode())) for k in range(len(labels))]
+            bag.extend(labels)
+        docs.append(bag)
+    return docs
+
+
+def wl_matrix(docs, vocab):
+    M = np.zeros((len(docs), len(vocab)))
+    for r, bag in enumerate(docs):
+        for lab in bag:
+            c = vocab.get(lab)
+            if c is not None:
+                M[r, c] += 1.0
+    return M
+
+
+def cosine(A, B):
+    An = A / np.maximum(np.linalg.norm(A, axis=1, keepdims=True), 1e-9)
+    Bn = B / np.maximum(np.linalg.norm(B, axis=1, keepdims=True), 1e-9)
+    return An @ Bn.T
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = featurize(train_smiles).astype(np.float64)
+    Xt = featurize(test_smiles).astype(np.float64)
+=======
+    train_docs = wl_docs(train_smiles)
+    vocab = {}
+    for bag in train_docs:
+        for lab in bag:
+            vocab.setdefault(lab, len(vocab))
+    X = wl_matrix(train_docs, vocab)
+    Xt = wl_matrix(wl_docs(test_smiles), vocab)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    K_train = 0.5 * (cosine(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (cosine(Xt, X) + rbf(Dt, D, gamma))
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+import zlib
+import numpy as np
+=======
+import numpy as np
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            labels = [str(zlib.crc32("|".join([labels[k]] + sorted(f"{bt}:{labels[n]}" for bt, n in nbrs[k])).encode())) for k in range(len(labels))]
+=======
+            labels = [str(hash("|".join([labels[k]] + sorted(f"{bt}:{labels[n]}" for bt, n in nbrs[k])))) for k in range(len(labels))]
+>>>>>>> REPLACE
+-----

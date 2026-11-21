@@ -1,0 +1,23 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def featurize_fcfp(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(
+        radius=RADIUS, fpSize=N_BITS,
+        atomInvariantsGenerator=rdFingerprintGenerator.GetMorganFeatureAtomInvGen())
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+=======
+    Ftr, Fte = featurize_fcfp(train_smiles), featurize_fcfp(test_smiles)
+    Ktr = 0.5 * (tanimoto(Xtr, Xtr) + tanimoto(Ftr, Ftr))
+    Kte = 0.5 * (tanimoto(Xte, Xtr) + tanimoto(Fte, Ftr))
+    svr.fit(Ktr, (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(Kte)
+>>>>>>> REPLACE
+-----

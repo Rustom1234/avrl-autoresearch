@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine. knn_predict only uses train_smiles, the training labels y and test_smiles. It reads no files and never touches test labels. Test molecules are only compared with training molecules, which is valid kNN.",
+  "No bug makes the result meaningless. The Tanimoto similarity is computed correctly from bit vectors, and max(union,1) guards against division by zero. k=25 is far below the training-fold size. The ensemble rank-averages the RF, MLP and kNN predictions, which suits AUROC. y[idx] needs y to be a numpy array; both runs finished, so it is one.",
+  "My z differs slightly from the harness. Candidate mean is (0.0852+0.0765)/2 = 0.08085, so the difference is 0.0926-0.08085 = 0.01175. SE is 0.0049*sqrt(1/2+1/1) = 0.0060, which gives z \u2248 1.96 against the harness's 1.944. The gap is small and probably comes from rounding the inputs.",
+  "This is a borderline case. The incumbent has only 1 run. The two candidate runs differ by 0.0087, which is about 1.8 times the stated noise sd per run. Both runs are below the incumbent, but z \u2248 1.95 is close to any usual threshold. A replicate of the incumbent would make the accept decision more solid.",
+  "Minor: morgan_bits recomputes the training-set fingerprints every fold. It also repeats Morgan featurisation that may already be in featurize(). This affects cost, not correctness.",
+  "The added code is simple, about 15 lines, and an improvement of about 0.012 is large enough to justify it."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 1.958
+ }
+}

@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    for m in models:
+        m.fit(Xtr, y)
+        p = m.predict(Xte)
+=======
+    nd = Xtr.shape[1] - N_BITS
+    for i, m in enumerate(models):
+        c = slice(None) if i == 0 else slice(0, nd)
+        m.fit(Xtr[:, c], y)
+        p = m.predict(Xte[:, c])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    r = Ridge(alpha=10.0).fit(np.log1p(Xtr[:, -N_BITS:]), y)
+    pr = r.predict(np.log1p(Xte[:, -N_BITS:]))
+=======
+    mu = Xtr[:, :nd].mean(0)
+    sd = Xtr[:, :nd].std(0)
+    sd[sd < 1e-6] = 1.0
+    Ztr = np.clip((Xtr[:, :nd] - mu) / sd, -5, 5)
+    Zte = np.clip((Xte[:, :nd] - mu) / sd, -5, 5)
+    Rtr = np.hstack([np.log1p(Xtr[:, -N_BITS:]), Ztr])
+    Rte = np.hstack([np.log1p(Xte[:, -N_BITS:]), Zte])
+    r = Ridge(alpha=10.0).fit(Rtr, y)
+    pr = r.predict(Rte)
+>>>>>>> REPLACE
+-----

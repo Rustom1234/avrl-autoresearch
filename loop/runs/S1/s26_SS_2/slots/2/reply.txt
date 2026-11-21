@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+    while time.time() - t0 < 200:
+        w = cur_v.copy()
+=======
+    while time.time() - t0 < 140:
+        w = cur_v.copy()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            bs = s; best = (c, r)
+    return best
+=======
+            bs = s; best = (c, r); bv = w.copy()
+    while time.time() - t0 < 225:
+        w = bv.copy()
+        rr = w[2 * n:]
+        i, j = rng.choice(n, 2, replace=False)
+        if abs(rr[i] - rr[j]) < 0.01:
+            continue
+        w[[i, j]] = w[[j, i]]
+        w[[n + i, n + j]] = w[[n + j, n + i]]
+        w[2 * n:] = rr * 0.5
+        try:
+            res = minimize(lambda z: -z[2 * n:].sum(), w, jac=lambda z: np.concatenate([np.zeros(2 * n), -np.ones(n)]),
+                           method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": cjac}],
+                           options={"maxiter": 150, "ftol": 1e-12})
+            w = res.x
+        except Exception:
+            continue
+        c, r = finalize(w)
+        s = r.sum()
+        if s > bs:
+            bs = s; best = (c, r); bv = w.copy()
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors, Descriptors, Crippen
+=======
+from rdkit.Chem import rdFingerprintGenerator, rdMolDescriptors, Descriptors, Crippen
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+from lightgbm import LGBMClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GroupKFold
+from lightgbm import LGBMRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+    rf = RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+    rf.fit(X_train, y)
+    gb = LGBMClassifier(n_estimators=300, learning_rate=0.05, num_leaves=15, colsample_bytree=0.3,
+                        random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, y)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict_proba(X_test)[:, 1]))
+=======
+    y = np.asarray(train_y, dtype=np.int64)
+
+    def make_rf():
+        return RandomForestClassifier(n_estimators=N_TREES, max_features=MAX_FEATURES,
+                                      min_samples_leaf=MIN_SAMPLES_LEAF, n_jobs=-1, random_state=seed)
+
+    # Soft targets: inner scaffold-grouped out-of-fold RF probabilities mixed with the hard labels
+    scaffolds = [MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(s)) for s in train_smiles]
+    _, groups = np.unique(scaffolds, return_inverse=True)
+    oof = np.zeros(len(y))
+    for tr_idx, va_idx in GroupKFold(n_splits=5).split(X_train, y, groups):
+        inner = make_rf()
+        inner.fit(X_train[tr_idx], y[tr_idx])
+        oof[va_idx] = inner.predict_proba(X_train[va_idx])[:, 1]
+    soft = 0.7 * y + 0.3 * oof
+
+    rf = make_rf()
+    rf.fit(X_train, y)
+    gb = LGBMRegressor(objective='cross_entropy', n_estimators=300, learning_rate=0.05, num_leaves=15,
+                       colsample_bytree=0.3, random_state=seed, n_jobs=8, verbose=-1)
+    gb.fit(X_train, soft)
+    return 0.5 * (scaled_rank(rf.predict_proba(X_test)[:, 1]) + scaled_rank(gb.predict(X_test)))
+>>>>>>> REPLACE
+-----

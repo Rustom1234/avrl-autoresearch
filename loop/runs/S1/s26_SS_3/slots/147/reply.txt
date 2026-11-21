@@ -1,0 +1,79 @@
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+    while time.time() - t0 < 0.7 * time_budget:
+        it += 1
+=======
+    best = None
+    best_val = -1.0
+    it = 0
+
+    def run_s(z0, mi):
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": mi, "ftol": 1e-11})
+        except Exception:
+            return None
+        return res.x
+
+    def score(z):
+        o = finalize(z)
+        return o[1].sum() if o is not None else -1.0
+
+    pats0 = [[5, 5, 6, 5, 5], [6, 5, 4, 5, 6], [4, 5, 5, 5, 4, 3],
+             [6, 5, 5, 5, 5], [5, 6, 5, 6, 4], [4, 5, 4, 5, 4, 4],
+             [3, 5, 5, 5, 5, 3], [5, 4, 5, 4, 5, 3], [6, 5, 6, 5, 4]]
+    tl = 0.7 * time_budget
+    while time.time() - t0 < tl:
+        pool = []
+        for k in range(150):
+            if time.time() - t0 > tl:
+                break
+            it += 1
+            c0 = rng.random((n, 2)) * 0.9 + 0.05
+            if it % 2 == 1:
+                pat = pats0[(it // 2) % len(pats0)]
+                if rng.random() < 0.5:
+                    pat = pat[::-1]
+                kk = len(pat)
+                pts = []
+                for ri, mm in enumerate(pat):
+                    sh = (0.15 / mm) * (1 if ri % 2 else -1)
+                    for jj in range(mm):
+                        pts.append([(jj + 0.5) / mm + sh, (ri + 0.5) / kk])
+                pts = np.array(pts)
+                if len(pts) == n:
+                    c0 = np.clip(pts + rng.normal(0, 0.02, pts.shape), 0.03, 0.97)
+            r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+            z = run_s(np.concatenate([c0[:, 0], c0[:, 1], r0]), 25)
+            if z is not None:
+                pool.append(z)
+        if not pool:
+            continue
+        sc = [score(z) for z in pool]
+        order = np.argsort(sc)[::-1][:max(1, len(pool) // 5)]
+        surv = []
+        for i in order:
+            if time.time() - t0 > tl + 20:
+                break
+            z = run_s(pool[i], 75)
+            if z is not None:
+                surv.append(z)
+        if not surv:
+            continue
+        sc2 = [score(z) for z in surv]
+        for i in np.argsort(sc2)[::-1][:3]:
+            z = run_s(surv[i], 300)
+            if z is None:
+                continue
+            out = finalize(z)
+            if out is not None and out[1].sum() > best_val:
+                best_val = out[1].sum()
+                best = out
+
+    while False:
+        it += 1
+>>>>>>> REPLACE
+-----

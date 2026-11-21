@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+    for r in [1, 2, 3]:
+        X_train = featurize(train_smiles, r)
+        X_test = featurize(test_smiles, r)
+        K_train += get_tanimoto(X_train, X_train)
+        K_test += get_tanimoto(X_test, X_train)
+    
+    K_train /= 3.0
+    K_test /= 3.0
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+=======
+    # Morgan radius 2
+    X_train_m = featurize(train_smiles, 2)
+    X_test_m = featurize(test_smiles, 2)
+    K_train += get_tanimoto(X_train_m, X_train_m)
+    K_test += get_tanimoto(X_test_m, X_train_m)
+    
+    # Atom Pairs
+    gen_ap = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=2048)
+    X_train_ap = np.array([gen_ap.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in train_smiles], dtype=np.float32)
+    X_test_ap = np.array([gen_ap.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in test_smiles], dtype=np.float32)
+    K_train += get_tanimoto(X_train_ap, X_train_ap)
+    K_test += get_tanimoto(X_test_ap, X_train_ap)
+    
+    K_train /= 2.0
+    K_test /= 2.0
+    
+    model = SVR(kernel='precomputed', C=C, epsilon=EPS)
+>>>>>>> REPLACE
+-----

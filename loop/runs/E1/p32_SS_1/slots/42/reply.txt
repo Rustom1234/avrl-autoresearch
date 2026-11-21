@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+def _relax(n, rng, iu):
+    v = rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n)
+    rho = 0.04
+
+    def f(v, rho):
+        c = v.reshape(n, 2)
+        diff = c[iu[0]] - c[iu[1]]
+        d = np.sqrt((diff ** 2).sum(1)) + 1e-12
+        ov = np.maximum(2 * rho - d, 0)
+        g = np.zeros((n, 2))
+        w = (-2 * ov / d)[:, None] * diff
+        np.add.at(g, iu[0], w)
+        np.add.at(g, iu[1], -w)
+        lo, hi = np.maximum(rho - c, 0), np.maximum(c - (1 - rho), 0)
+        e = (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum()
+        return e, (g - 2 * lo + 2 * hi).ravel()
+
+    for _ in range(6):
+        v = minimize(f, v, args=(rho,), jac=True, method="L-BFGS-B", options={"maxiter": 30}).x
+        rho *= (0.095 / 0.04) ** 0.2
+    return np.concatenate([np.clip(v, 0.02, 0.98), np.full(n, rho / (0.095 / 0.04) ** 0.2)])
+
+
+def _solve_once(n, rng, x0=None):
+    iu = np.triu_indices(n, 1)
+    if x0 is None:
+        x0 = _relax(n, rng, iu)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from scipy.stats import rankdata
+from sklearn.model_selection import GroupKFold
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from scipy.stats import spearmanr
+=======
+from scipy.stats import rankdata
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def choose_sigma2(K, y, smiles):
+    scaffolds = [MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in smiles]
+    groups = np.unique(scaffolds, return_inverse=True)[1]
+    best_score, best_s2 = -np.inf, 0.3
+    for s2 in (0.1, 0.3, 1.0):
+        pred = np.zeros(len(y))
+        for tr, va in GroupKFold(n_splits=5).split(K, y, groups):
+            pred[va] = gp_mean(K[np.ix_(tr, tr)], y[tr], K[np.ix_(va, tr)], s2)
+        score = spearmanr(pred, y).correlation
+        if score > best_score:
+            best_score, best_s2 = score, s2
+    return best_s2
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+=======
+    K_te = tanimoto(X_te, X_tr)
+    p_fp = np.mean([rankdata(gp_mean(K_tr, y, K_te, s2)) for s2 in (0.03, 0.1, 0.3, 1.0)], axis=0)
+>>>>>>> REPLACE
+-----

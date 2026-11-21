@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def select_bits(X):
+    # Training-fold-only selection: keep bits set in 2%-98% of molecules, then drop bits
+    # whose absolute correlation with an earlier kept bit exceeds 0.95.
+    B = (X > 0).astype(np.float64)
+    frac = B.mean(axis=0)
+    keep = np.where((frac >= 0.02) & (frac <= 0.98))[0]
+    B = B[:, keep]
+    C = np.abs(np.corrcoef(B, rowvar=False))
+    redundant = (np.triu(C, 1) > 0.95).any(axis=0)
+    return keep[~redundant]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    et.fit(count_features(train_smiles), y)
+    p_fp = et.predict(count_features(test_smiles))
+=======
+    X_tr = count_features(train_smiles)
+    X_te = count_features(test_smiles)
+    mask = select_bits(X_tr)
+    et.fit(X_tr[:, mask], y)
+    p_fp = et.predict(X_te[:, mask])
+>>>>>>> REPLACE
+-----

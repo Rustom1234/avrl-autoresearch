@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _perim_pts(k, rng):
+    """k centers evenly spaced on the square inset 0.09, random offset, corners forced."""
+    a, b = 0.09, 0.91
+    L = b - a
+    P = 4.0 * L
+    s = np.arange(k) * P / k + rng.uniform(0.0, P / k)
+    out = []
+    for t in s:
+        u = t % P
+        side = int(u // L)
+        f = u - side * L
+        if side == 0:
+            out.append([a + f, a])
+        elif side == 1:
+            out.append([b, a + f])
+        elif side == 2:
+            out.append([b - f, b])
+        else:
+            out.append([a, b - f])
+    out = np.array(out)
+    for c in np.array([[a, a], [b, a], [b, b], [a, b]]):
+        j = np.argmin(np.sum((out - c) ** 2, axis=1))
+        out[j] = c
+    return out
+
+
+def _pack_once(seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    base = np.array([[0.13, 0.13], [0.87, 0.13], [0.13, 0.87], [0.87, 0.87],
+                     [0.5, 0.13], [0.5, 0.87], [0.13, 0.5], [0.87, 0.5]])
+    interior = []
+    for row, yy in enumerate([0.3, 0.5, 0.7]):
+        shift = 0.04 if row % 2 else 0.0
+        for xx in np.linspace(0.3, 0.7, 6) + shift:
+            interior.append([xx, yy])
+    pts = np.vstack([base, np.array(interior)])
+=======
+    kp = int(rng.integers(14, 19))
+    pts = np.vstack([_perim_pts(kp, rng), rng.uniform(0.25, 0.75, size=(n - kp, 2))])
+>>>>>>> REPLACE
+-----

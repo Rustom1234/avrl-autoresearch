@@ -1,0 +1,55 @@
+<<<<<<< SEARCH
+def solve_packing(time_budget=200.0):
+=======
+def solve_packing(time_budget=200.0, n=26, inits=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    n = 26
+    iu, ju = np.triu_indices(n, 1)
+=======
+    iu, ju = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best = None
+    best_val = -1.0
+    it = 0
+=======
+    best = None
+    best_val = -1.0
+    it = 0
+    for c0, r0 in (inits or []):
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is not None and out[1].sum() > best_val:
+            best_val = out[1].sum()
+            best = out
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    centers, radii = solve_packing()
+=======
+    rng = np.random.default_rng(1)
+    inits = []
+    try:
+        c25, r25 = solve_packing(40.0, 25)
+        if len(r25) == 25:
+            P = rng.random((5000, 2))
+            dd = np.sqrt(((P[:, None, :] - c25[None]) ** 2).sum(2)) - r25[None]
+            clear = np.minimum(dd.min(1), np.minimum(P.min(1), (1 - P).min(1)))
+            top = np.argsort(-clear)[:5]
+            for v in range(20):
+                p = P[top[v % 5]]
+                c0 = np.vstack([c25, p[None]])
+                c0 = np.clip(c0 + rng.normal(0, 0.01, c0.shape), 0.01, 0.99)
+                r0 = np.concatenate([r25, [0.02]])
+                inits.append((c0, r0))
+    except Exception:
+        inits = []
+    centers, radii = solve_packing(160.0, 26, inits)
+>>>>>>> REPLACE
+-----

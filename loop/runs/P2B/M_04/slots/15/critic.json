@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity is fine: the diff only changes Block.forward to put an RMSNorm on the attention and MLP branch outputs before they are added to the residual stream. It does not touch the val_bpb measurement, data loading, seed lines, the prepare.py import or the evaluation call.",
+  "No bug makes the result meaningless. This is a legitimate architecture change. One modelling caveat: norm() has no learnable gain, so each block now adds a fixed unit-RMS update and cannot learn how much each branch contributes. Also, if c_proj is zero-initialised, the norm of a near-zero branch output gives very large gradients early in training. Either could explain the worse score, but neither is an integrity problem.",
+  "The numbers agree with the decision. The candidate scored 1.1385 against an incumbent mean of 1.1145 over 16 runs, so it is 0.024 worse (higher bpb). A z of -4.249 under the convention (incumbent \u2212 candidate)/sd points the right way and supports reject. There are no claims in the submission that conflict with these numbers.",
+  "z cannot be recomputed because the incumbent's standard deviation is not given. Back-solving from the reported z, the sd implied is about 0.0056 if z = diff/sd, or about 0.0055 if z = diff/(sd\u00b7sqrt(1+1/16)). Either seems plausible for run-to-run noise.",
+  "There is only one candidate run, but at z \u2248 -4.2 a replicate would almost certainly not change the reject, so it is not worth spending a slot."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

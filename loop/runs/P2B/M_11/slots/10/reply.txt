@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+model = torch.compile(model, dynamic=False)
+ema_src = list(model.parameters())
+ema_buf = [p.detach().clone() for p in ema_src]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+    ema_decay = min(0.999, (1 + step) / (10 + step))
+    with torch.no_grad():
+        for e, p in zip(ema_buf, ema_src):
+            e.lerp_(p, 1 - ema_decay)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Swap in EMA weights for final evaluation
+with torch.no_grad():
+    for e, p in zip(ema_buf, ema_src):
+        p.copy_(e)
+# Final eval
+model.eval()
+>>>>>>> REPLACE
+-----

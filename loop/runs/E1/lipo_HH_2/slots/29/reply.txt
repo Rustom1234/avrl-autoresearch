@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+from sklearn.model_selection import KFold
+=======
+from sklearn.model_selection import KFold
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+LEARNING_RATE = 0.05
+=======
+LEARNING_RATE = 0.05
+DESC_START = N_BITS + 10 + 2048 + 2048  # RDKit descriptor block starts after Morgan, SMARTS, atom-pair, torsion columns
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS]))])
+=======
+    D_tr, D_te = Xtr[:, DESC_START:], Xte[:, DESC_START:]
+    sc = StandardScaler().fit(D_tr)
+    pca = PCA(40, random_state=seed).fit(sc.transform(D_tr))
+    rbf = SVR(kernel="rbf", C=3.0, epsilon=0.1, gamma="scale")
+    rbf.fit(pca.transform(sc.transform(D_tr)), ytr)
+    return np.column_stack([lg.predict(Xte), rf.predict(Xte), svr.predict(tanimoto(Xte[:, :N_BITS], Xtr[:, :N_BITS])),
+                            rbf.predict(pca.transform(sc.transform(D_te)))])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    oof = np.zeros((len(y), 3))
+=======
+    oof = np.zeros((len(y), 4))
+>>>>>>> REPLACE
+-----

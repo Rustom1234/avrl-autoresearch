@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    K_tr = tanimoto(X_tr, X_tr)
+    s2 = choose_sigma2(K_tr, y, train_smiles)
+    p_fp = gp_mean(K_tr, y, tanimoto(X_te, X_tr), s2)
+=======
+    X_tr, X_te = bit_fingerprints(train_smiles), bit_fingerprints(test_smiles)
+    rng = np.random.RandomState(seed)
+    p_members = []
+    for _ in range(10):
+        cols = rng.choice(X_tr.shape[1], X_tr.shape[1] // 2, replace=False)
+        A, B = X_tr[:, cols], X_te[:, cols]
+        K_tr = tanimoto(A, A)
+        s2 = choose_sigma2(K_tr, y, train_smiles)
+        p_members.append(gp_mean(K_tr, y, tanimoto(B, A), s2))
+    p_fp = np.mean(p_members, axis=0)
+>>>>>>> REPLACE
+-----

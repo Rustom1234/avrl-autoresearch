@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+# EMA of model parameters (decay 0.999), swapped in before final eval
+EMA_DECAY = 0.999
+ema_src = list(model.parameters())
+ema_params = [p.detach().clone() for p in ema_src]
+
+model = torch.compile(model, dynamic=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    with torch.no_grad():
+        torch._foreach_lerp_(ema_params, ema_src, 1 - EMA_DECAY)
+    model.zero_grad(set_to_none=True)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Final eval
+with torch.no_grad():
+    torch._foreach_copy_(ema_src, ema_params)
+model.eval()
+>>>>>>> REPLACE
+-----

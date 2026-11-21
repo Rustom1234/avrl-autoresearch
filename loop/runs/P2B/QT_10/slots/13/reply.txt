@@ -1,0 +1,28 @@
+
+-----
+<<<<<<< SEARCH
+MATRIX_LR = 0.04        # learning rate for matrix parameters (Muon)
+=======
+MATRIX_LR_BASE = 0.04     # base learning rate for matrix parameters (Muon)
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+    optimizer.step()
+=======
+    for group in optimizer.param_groups:
+        group["lr"] = group["initial_lr"] * lrm
+        if group['kind'] == 'muon':
+            group["momentum"] = muon_momentum
+            group["weight_decay"] = muon_weight_decay
+            # 3a (256) Layer Decay: starts at 8, decays by 3x every 64 steps
+            decay_steps = step // 64
+            decayed_rate = max(8, 4, 2) * (3 ** -decay_steps)
+            group["lr"] = group["initial_lr"] * lrm * decayed_rate
+    optimizer.step()
+>>>>>>> REPLACE
+-----

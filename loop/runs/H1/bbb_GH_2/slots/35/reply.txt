@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    # L1 feature selection: keep features with nonzero coefficients in a sparse logistic model
+    scaler = StandardScaler().fit(X_train)
+    l1 = LogisticRegression(penalty="l1", C=0.05, solver="liblinear", random_state=seed)
+    l1.fit(scaler.transform(X_train), y)
+    keep = np.abs(l1.coef_[0]) > 1e-8
+    if not keep.any():
+        keep[:] = True
+    X_train = X_train[:, keep]
+    X_test = X_test[:, keep]
+>>>>>>> REPLACE
+-----

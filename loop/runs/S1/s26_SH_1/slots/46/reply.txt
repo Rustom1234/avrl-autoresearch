@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+        if time.time() - t0 > 200.0 and best is not None:
+=======
+        if time.time() - t0 > 140.0 and best is not None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def construct_packing():
+=======
+def _final_stage(x0, y0, r0):
+    """Single uncapped SLSQP stage from a given start."""
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    bnds = [(None, None)] * (2 * _N) + [(0.0, None)] * _N
+    try:
+        res = minimize(_obj, z, jac=_obj_grad, constraints=cons,
+                       bounds=bnds, method="SLSQP",
+                       options={"maxiter": 300, "ftol": 1e-12})
+        z_new = res.x
+    except Exception:
+        z_new = z
+    if not np.all(np.isfinite(z_new)):
+        z_new = z
+    return z_new[:_N], z_new[_N:2 * _N]
+
+
+def construct_packing():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    s0, c0, r0 = best
+=======
+    rng2 = np.random.default_rng(99)
+    t1 = time.time()
+    while time.time() - t1 < 60.0:
+        s_b, c_b, r_b = best
+        Ii, Jj = _I, _J
+        gap = np.sqrt((c_b[Ii, 0] - c_b[Jj, 0]) ** 2 + (c_b[Ii, 1] - c_b[Jj, 1]) ** 2) - (r_b[Ii] + r_b[Jj])
+        ratio = np.maximum(r_b[Ii], r_b[Jj]) / np.maximum(np.minimum(r_b[Ii], r_b[Jj]), 1e-9)
+        cand = np.where((np.abs(gap) < 1e-3) & (ratio > 1.3))[0]
+        c_n = c_b.copy()
+        if len(cand) > 0:
+            k = cand[rng2.integers(len(cand))]
+            a, b = Ii[k], Jj[k]
+            c_n[[a, b]] = c_n[[b, a]]
+        c_n = np.clip(c_n + rng2.normal(0.0, 0.01, size=c_n.shape), 0.0, 1.0)
+        xs, ys = _final_stage(c_n[:, 0].copy(), c_n[:, 1].copy(), 0.7 * r_b)
+        rr = _lp_radii(xs, ys)
+        if rr is not None and float(np.sum(rr)) > s_b:
+            best = (float(np.sum(rr)),
+                    np.column_stack([np.clip(xs, 0.0, 1.0), np.clip(ys, 0.0, 1.0)]),
+                    rr)
+    s0, c0, r0 = best
+>>>>>>> REPLACE
+-----

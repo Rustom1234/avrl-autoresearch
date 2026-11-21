@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def ap_features(smiles):
+    apg = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=1024)
+    ttg = rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=1024)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        d = [f(m) for _, f in Descriptors.descList]
+        rows.append(np.concatenate([d, apg.GetCountFingerprintAsNumPy(m), ttg.GetCountFingerprintAsNumPy(m)]))
+    X = np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+=======
+    model2 = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                          min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed + 1)
+    model2.fit(ap_features(train_smiles), y)
+    p_ap = model2.predict(ap_features(test_smiles))
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    n = len(p_rf)
+    return 0.25 * rankdata(p_rf) / n + 0.25 * rankdata(p_ap) / n + 0.5 * rankdata(p_svr) / n
+>>>>>>> REPLACE
+-----

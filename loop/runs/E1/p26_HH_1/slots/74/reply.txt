@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+            m = np.hypot(*(c - p).T) < R
+            k = m.sum()
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+=======
+            idx = np.flatnonzero(np.hypot(*(c - p).T) < R)
+            k = len(idx)
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            new = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            # mirror partner of each kicked circle under the diagonal reflection (x, y) -> (y, x)
+            j = ((c[None] - c[idx][:, None, ::-1]) ** 2).sum(-1).argmin(1)
+            c[idx], r[idx] = new, 0
+            c[j], r[j] = np.clip(new[:, ::-1], 0, 1), 0
+>>>>>>> REPLACE
+-----

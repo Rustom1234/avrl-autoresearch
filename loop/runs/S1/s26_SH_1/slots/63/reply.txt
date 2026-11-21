@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+def _optimize(x0, y0, r0):
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    # staged radius growth: cap radii at 0.08, 0.10, 0.12, then uncapped,
+    # warm-starting each SLSQP stage from the previous solution
+    for cap in (0.08, 0.10, 0.12, None):
+=======
+_SCHEDULES = [
+    (0.08, 0.10, 0.12, None),
+    (0.10, None),
+    (0.06, 0.09, 0.12, 0.15, None),
+    (0.12, None),
+    (None,),
+]
+
+
+def _optimize(x0, y0, r0, caps=(0.08, 0.10, 0.12, None)):
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    # staged radius growth: cap radii per schedule, then uncapped,
+    # warm-starting each SLSQP stage from the previous solution
+    for cap in caps:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x, y = _optimize(x0, y0, r0)
+=======
+        caps = _SCHEDULES[int(rng.integers(len(_SCHEDULES)))]
+        x, y = _optimize(x0, y0, r0, caps)
+>>>>>>> REPLACE
+-----

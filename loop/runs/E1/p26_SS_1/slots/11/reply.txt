@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+=======
+    iu = np.triu_indices(n, 1)
+
+    if start is None:
+        def energy(v):
+            c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+            diff = c[:, None] - c[None]
+            d = np.sqrt((diff ** 2).sum(-1)) + np.eye(n)
+            ov = np.maximum(r[:, None] + r[None] - d, 0)
+            np.fill_diagonal(ov, 0)
+            lo, hi = np.maximum(r[:, None] - c, 0), np.maximum(r[:, None] - (1 - c), 0)
+            E = 0.5 * (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum() - PEN_W * r.sum()
+            gc = -2 * (ov[:, :, None] * diff / d[:, :, None]).sum(1) - 2 * lo + 2 * hi
+            gr = 2 * ov.sum(1) + 2 * lo.sum(1) + 2 * hi.sum(1) - PEN_W
+            return E, np.concatenate([gc.ravel(), gr])
+
+        pr = minimize(energy, x0, jac=True, method="L-BFGS-B",
+                      bounds=[(None, None)] * (2 * n) + [(0, None)] * n, options={"maxiter": 300})
+        x0 = pr.x
+
+    def cons(v):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+PEN_W = 0.02
+>>>>>>> REPLACE
+-----

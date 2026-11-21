@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+    try:
+        res = minimize(obj, z0, jac=obj_jac, method="SLSQP", bounds=bounds,
+                       constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                       options={"maxiter": 500, "ftol": 1e-12})
+        z = res.x
+    except Exception:
+        z = z0
+=======
+    iu_all, ju_all = iu, ju
+    z = z0
+    try:
+        for _rnd in range(4):
+            xs = z[:n]
+            ys = z[n:2 * n]
+            rs = z[2 * n:]
+            gap = np.hypot(xs[iu_all] - xs[ju_all], ys[iu_all] - ys[ju_all]) - (rs[iu_all] + rs[ju_all])
+            sel = np.where(gap < 0.15)[0]
+            iu = iu_all[sel]
+            ju = ju_all[sel]
+            m = sel.size
+            res = minimize(obj, z, jac=obj_jac, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": cons_jac}],
+                           options={"maxiter": 150, "ftol": 1e-12})
+            z = res.x
+            xs = z[:n]
+            ys = z[n:2 * n]
+            rs = z[2 * n:]
+            gap = np.hypot(xs[iu_all] - xs[ju_all], ys[iu_all] - ys[ju_all]) - (rs[iu_all] + rs[ju_all])
+            if gap.min() >= -1e-9:
+                break
+    except Exception:
+        z = z0
+>>>>>>> REPLACE
+-----

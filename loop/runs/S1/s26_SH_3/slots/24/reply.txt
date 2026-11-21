@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+    centers = np.clip(best_c, 0.0, 1.0)
+=======
+    gx, gy = np.meshgrid(np.linspace(0, 1, 201), np.linspace(0, 1, 201))
+    G = np.stack([gx.ravel(), gy.ravel()], axis=1)
+    z_best = np.concatenate([best_c[:, 0], best_c[:, 1], best_r])
+    best_sum = float(np.sum(best_r))
+    for _ in range(10):
+        if time.time() - t0 > 190:
+            break
+        c_cur = np.stack([z_best[:n], z_best[n:2 * n]], axis=1)
+        r_cur = z_best[2 * n:]
+        k = int(np.argmin(r_cur))
+        others = np.arange(n) != k
+        dd = np.sqrt(((G[:, None, :] - c_cur[None, others, :]) ** 2).sum(-1)) - r_cur[None, others]
+        wall = np.minimum(np.minimum(G[:, 0], G[:, 1]), np.minimum(1 - G[:, 0], 1 - G[:, 1]))
+        hole = np.minimum(dd.min(axis=1), wall)
+        p = G[int(np.argmax(hole))]
+        c_new = c_cur.copy()
+        c_new[k] = p
+        zs = np.concatenate([c_new[:, 0], c_new[:, 1], r_cur.copy()])
+        zs[2 * n + k] = 0.0
+        zn = optimize(zs)
+        vn = float(np.sum(zn[2 * n:]))
+        if vn > best_sum + 1e-9:
+            z_best, best_sum = zn, vn
+    best_c = np.stack([z_best[:n], z_best[n:2 * n]], axis=1)
+    best_r = z_best[2 * n:].copy()
+    centers = np.clip(best_c, 0.0, 1.0)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    for x_tr, x_te in zip(train_sets, test_sets):
+=======
+    for k, (x_tr, x_te) in enumerate(zip(train_sets, test_sets)):
+        rng = np.random.default_rng(seed + k)
+        n = len(y)
+        i_idx = rng.integers(0, n, size=n)
+        j_idx = np.empty(n, dtype=np.int64)
+        for c in (0, 1):
+            mask = y[i_idx] == c
+            j_idx[mask] = rng.choice(np.where(y == c)[0], size=mask.sum())
+        lam = rng.beta(0.4, 0.4, size=(n, 1)).astype(np.float32)
+        x_syn = lam * x_tr[i_idx] + (1 - lam) * x_tr[j_idx]
+        x_aug = np.vstack([x_tr, x_syn])
+        y_aug = np.concatenate([y, y[i_idx]])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        model.fit(x_tr, y)
+=======
+        model.fit(x_aug, y_aug)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    def cons_jac(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        dvec = c[iu[0]] - c[iu[1]]
+        dist = np.maximum(np.sqrt((dvec ** 2).sum(1)), 1e-12)
+        u = dvec / dist[:, None]
+        m, idx = len(iu[0]), np.arange(n)
+        rows = np.arange(m)
+        J = np.zeros((m + 5 * n, 3 * n))
+        J[rows, 2 * iu[0]] = u[:, 0]
+        J[rows, 2 * iu[0] + 1] = u[:, 1]
+        J[rows, 2 * iu[1]] = -u[:, 0]
+        J[rows, 2 * iu[1] + 1] = -u[:, 1]
+        J[rows, 2 * n + iu[0]] = -1
+        J[rows, 2 * n + iu[1]] = -1
+        k = m
+        J[k + idx, 2 * idx] = 1
+        J[k + idx, 2 * n + idx] = -1
+        k += n
+        J[k + idx, 2 * idx + 1] = 1
+        J[k + idx, 2 * n + idx] = -1
+        k += n
+        J[k + idx, 2 * idx] = -1
+        J[k + idx, 2 * n + idx] = -1
+        k += n
+        J[k + idx, 2 * idx + 1] = -1
+        J[k + idx, 2 * n + idx] = -1
+        k += n
+        J[k + idx, 2 * n + idx] = 1
+        return J
+
+    def obj_jac(v):
+        return np.concatenate([np.zeros(2 * n), -np.ones(n)])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, jac=obj_jac, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons, "jac": cons_jac}, options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+-----

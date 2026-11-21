@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of gaming the measurement. The edit is progressive resizing: for the first 30% of training steps the training batches are area-downsampled to 24x24. It works only on the current run's training inputs inside train(). It adds no seeding, file access, test-image use or state carried between runs.",
+  "AdaptiveMaxPool2d(1) replaces MaxPool2d(3) so the head still receives a 1x1 map when the input is 24x24. At 32x32, where the remaining training and all of predict() run, the final map should be 3x3, so global max pooling gives the same result as before. The model's behaviour at evaluation is unchanged.",
+  "The second input shape could make torch.compile recompile. The untimed first call runs the full train() with both resolutions, so both graphs should be compiled before timing starts. Any recompile that still happened during a timed run would make the candidate look slower, not faster. Not a validity issue.",
+  "The whitening layer is initialised from full-resolution patches and then sees 24x24 inputs early in training. That is a modelling choice, not a bug.",
+  "Numbers: the candidate mean is -0.114 over only 2 runs. The two values (-0.147 and -0.081) differ by 0.065, which is large next to the stated per-job sd of 0.026, so the effect size is uncertain. Recomputed z \u2248 0.114 / (0.026\u00b7sqrt(1/2 + 1/15)) \u2248 5.8, consistent with the harness's 5.874 (the small gap is likely a different sd estimate). The accept decision is supported. A replicate would help pin down the size of the gain."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 5.83
+ }
+}

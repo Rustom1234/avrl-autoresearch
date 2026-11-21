@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/LB_03/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.8391114430011513
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random order with a filter + dedupe + rank pipeline aimed at the target (WikiText-style articles: '= Title =' header, spaced punctuation, '@-@').\n\n1) Dedupe: drop exact and near duplicates, keyed on a hash of the whitespace-normalised, lowercased first 500 characters plus document length bucket. Keep the first occurrence.\n\n2) Word-order (damage) filter: many pool docs look like Wikipedia but have their words shuffled within sentences, which unigram features cannot detect. Build the set of lowercased word bigrams from target_sample, restricted to bigrams where both words are in the target's top 3000 words. For each doc, compute hit rate = fraction of its such bigrams (first ~2000 words) that are in the set. Calibrate the threshold on the target itself: build the set from 100 target docs, score the other 100, and use about the 2nd percentile of those scores times 0.9 as the cutoff. Drop docs below it.\n\n3) Domain score: fit TF-IDF (word 1-2 grams, sublinear tf, hashed or max_features about 200k) + LogisticRegression with positives = target_sample split into ~2000-character chunks, and negatives = a seeded random sample of ~3000 pool docs truncated to 2000 characters (PU learning). Score every surviving doc by its positive probability.\n\n4) Junk guards: drop docs under 200 characters, docs with less than 60% alphabetic-or-space characters, and docs with very low unique-word ratio (repetitive spam).\n\n5) Selection: count tokens with tiktoken gpt2. Keep survivors with classifier probability >= 0.5. If they hold more than T tokens, keep the highest scoring up to T. If they hold less than 0.6 T, top up with the next best scoring survivors of the word-order filter until about 0.6 T, then let the trainer cycle. Shuffle the final list with CURATE_SEED.\n\nPrint the counts at each stage so the next experiment can tune thresholds.",
+   "outcome": "dev 1.8391 against 1.9413 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Introduce a 'Template Matcher' pre-filter that assigns a bonus score to documents starting with the specific Wikipedia-style pattern '= [Title] =' or containing specific character sequences like '@-@'.",
+   "outcome": "dev 1.8395 against 1.8391 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Modify the LogisticRegression classifier to use a higher C (overfitting to the domain) and change the negative sampling strategy to 'Hard Negative Mining': instead of 3000 random pool docs, select the 3000 survivors that have the highest word-order hit rates but are least likely to be part of the target sample.",
+   "outcome": "dev 1.8842 against 1.8391 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the TF-IDF Vectorizer's standard n-gram approach with a 'Character N-gram' (n=3 to 5) approach and a higher max_features (300k) for the LogisticRegression classifier.",
+   "outcome": "dev 1.8365 against 1.8391 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "In the LogisticRegression classifier, replace the default 'l2' penalty with a custom heavy-weighting of the target_sample's specific common bigrams (multiplied by their target frequency) to force the model to prioritize exact sequence matching over general domain distribution.",
+   "outcome": "dev 1.8411 against 1.8391 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the TF-IDF Vectorizer with a simple unigram count vectorizer that uses a specialized vocabulary built from the target_sample (only including words with high relative frequency) and combine it with a cross-entropy loss-based ranking or a simpler `MinMaxScaler` on the bigram hit rates.",
+   "outcome": "dev 1.8591 against 1.8391 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Replace the LogisticRegression classifier with a simpler but more robust 'Maximum Shared Vocabulary' score combined with the existing bigram hit rate, specifically using a weighted sum: Score = (Bigram_Hit_Rate * 0.7) + (Intersection_Size / max(Target_Vocab_Size, Doc_Vocab_Size) * 0.3), where the intersection is over the top 5000 target words.",
+   "outcome": "dev 1.8410 against 1.8391 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Implement 'Coherence Scoring' by replacing the LogisticRegression classifier with a score that rewards documents containing long sequences of target-sample bigrams. Specifically, instead of a binary classification, calculate a score for each document based on the sum of the frequencies of its bigrams (found in the target sample) weighted by their position (giving higher weight to earlier bigrams in the document) to reward structured, human-like text.",
+   "outcome": "dev 1.8485 against 1.8391 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Implement a 'Local Coherence' filter that scores documents based on the Jaccard similarity of bigrams within a sliding window (e.g., 50 words), rewarding documents where adjacent bigrams share a common word, while also incorporating the existing bigram hit rate as a global weight.",
+   "outcome": "dev 1.8463 against 1.8391 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Replace the LogisticRegression classifier with a 'Relative Entropy (KL Divergence) Similarity' score: for each doc, compute the log-likelihood of its 1-gram distribution relative to the target_sample's distribution (approximated by a multinomial distribution of the top 5000 words), and combine this with the existing bigram hit rate using a 0.6/0.4 weighted sum.",
+   "outcome": "dev 1.8500 against 1.8391 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Implement a 'Structural Proximity' score: instead of a binary LogisticRegression, use a scoring function that rewards the presence of target-specific markers (like '@-@', '= Title =', and ' ( book )') and the ratio of words from the target top-5000 vocabulary that appear within a window of 10 words of these markers, then combine this with the bigram hit rate via a weighted sum (0.5 weight on bigram hit rate, 0.5 on structural proximity).",
+   "outcome": "dev 1.8847 against 1.8391 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Replace the LogisticRegression classifier with a 'Weighted Bigram Significance' score: instead of a binary classifier, score each document as the sum of its bigram hit rates where the weights are the normalized frequencies of those bigrams in the target_sample. This emphasizes docs that match the most 'common' sequences of the target domain while preserving the importance of the bigram structure.",
+   "outcome": "dev 1.8527 against 1.8391 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.52739085,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.4836996,
+   "dev": 1.8391114430011513,
+   "inc": 1.9412770710583351,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 14.060780079436261,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003267450000000005,
+   "dev": 1.839507267358307,
+   "inc": 1.8391114430011513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 14.060780079436261,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003834599999999966,
+   "dev": 1.8842384919908768,
+   "inc": 1.8391114430011513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 14.060780079436261,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0037464000000000386,
+   "dev": 1.836497026688169,
+   "inc": 1.8391114430011513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 14.060780079436261,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0038887499999999964,
+   "dev": 1.8411497138980324,
+   "inc": 1.8391114430011513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 14.060780079436261,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003091049999999984,
+   "dev": 1.8590505741301058,
+   "inc": 1.8391114430011513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 14.060780079436261,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.005198550000000024,
+   "dev": 1.8410102049681287,
+   "inc": 1.8391114430011513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 14.060780079436261,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003561150000000013,
+   "dev": 1.8484979818828589,
+   "inc": 1.8391114430011513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 14.060780079436261,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0069101999999999775,
+   "dev": 1.8463491117360111,
+   "inc": 1.8391114430011513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 14.060780079436261,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0034916999999999865,
+   "dev": 1.8499606951711562,
+   "inc": 1.8391114430011513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 14.060780079436261,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0029948999999999115,
+   "dev": 1.8847387919499083,
+   "inc": 1.8391114430011513,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 14.060780079436261,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003706500000000057,
+   "dev": 1.852726752761198,
+   "inc": 1.8391114430011513,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9412770710583351,
+ "inc_slot": 1
+}

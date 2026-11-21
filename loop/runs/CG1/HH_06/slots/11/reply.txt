@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+class ConvGroup(nn.Module):
+=======
+class BlendPool(nn.Module):
+    def __init__(self, global_pool=False):
+        super().__init__()
+        self.global_pool = global_pool
+        self.alpha = nn.Parameter(torch.ones(1))
+
+    def reset_parameters(self):
+        self.alpha.data.fill_(1.0)
+
+    def forward(self, x):
+        if self.global_pool:
+            mx = F.adaptive_max_pool2d(x, 1)
+            av = F.adaptive_avg_pool2d(x, 1)
+        else:
+            mx = F.max_pool2d(x, 2)
+            av = F.avg_pool2d(x, 2)
+        return self.alpha * mx + (1 - self.alpha) * av
+
+
+class ConvGroup(nn.Module):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.pool = nn.MaxPool2d(2)
+=======
+        self.pool = BlendPool()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            nn.AdaptiveMaxPool2d(1),
+=======
+            BlendPool(global_pool=True),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        dict(params=[model.head.weight], lr=head_lr, weight_decay=wd / head_lr),
+    ]
+=======
+        dict(params=[model.head.weight], lr=head_lr, weight_decay=wd / head_lr),
+        dict(params=[p for n, p in model.named_parameters() if n.endswith("alpha")], lr=bias_lr, weight_decay=0.0),
+    ]
+>>>>>>> REPLACE
+-----

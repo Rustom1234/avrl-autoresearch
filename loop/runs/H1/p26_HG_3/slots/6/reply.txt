@@ -1,0 +1,121 @@
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+        if best is not None and rng.random() < 0.3:
+            # Remove-and-reinsert move
+            idx = rng.choice(n, 1, replace=False, p=np.linspace(1, 0, n)[np.argsort(r)])[0]
+            c_best = best[0].copy()
+            r_best = best[1].copy()
+            
+            # Create new configuration without circle idx
+            c_new = np.delete(c_best, idx, axis=0)
+            r_new = np.delete(r_best, idx)
+            
+            # Find largest empty spot using 60x60 grid
+            grid_x, grid_y = np.meshgrid(np.linspace(0, 1, 60), np.linspace(0, 1, 60))
+            grid_pts = np.stack([grid_x.ravel(), grid_y.ravel()], axis=1)
+            
+            # Distances to walls
+            dist_walls = np.minimum(grid_pts[:, 0], 1 - grid_pts[:, 0]) * 2
+            dist_walls = np.minimum(dist_walls, np.minimum(grid_pts[:, 1], 1 - grid_pts[:, 1]) * 2)
+            
+            # Distances to existing centers
+            if len(c_new) > 0:
+                dists = np.array([np.sum((grid_pts - c_new[i])**2, axis=1)) for i in range(len(c_new))])
+                dist_circles = np.min(np.sqrt(dists), axis=0)
+            else:
+                dist_circles = np.zeros(grid_pts.shape[0])
+            
+            min_dists = np.minimum(dist_walls, dist_circles)
+            best_pt = grid_pts[np.argmax(min_dists)]
+            
+            # Insert circle with small radius
+            new_r = np.minimum(min_dists[np.argmax(min_dists)] / 2, 0.05)
+            c_new = np.vstack([c_new, best_pt])
+            r_new = np.append(r_new, new_r)
+            
+            # Run local optimization
+            c_opt, r_opt = _solve_once(n, rng)
+            c_opt = np.clip(c_opt, 0, 1)
+            r_opt = _repair(c_opt, r_opt)
+            
+            if r_opt.sum() > best[1].sum():
+                best = (c_opt, r_opt)
+    return best
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+            if len(c_new) > 0:
+                dists = np.array([np.sum((grid_pts - c_new[i])**2, axis=1)) for i in range(len(c_new))])
+                dist_circles = np.min(np.sqrt(dists), axis=0)
+            else:
+                dist_circles = np.zeros(grid_pts.shape[0])
+ Archival_Note: Correcting syntax: np.array([np.sum((grid_pts - c_new[i])**2, axis=1) for i in range(len(c_new))])
+<<<<<<< REPLACE
+            if len(c_new) > 0:
+                dists = np.array([np.sum((grid_pts - c_new[i])**2, axis=1) for i in range(len(c_new))])
+                dist_circles = np.min(np.sqrt(dists), axis=0)
+            else:
+                dist_circles = np.zeros(grid_pts.shape[0])
+-----
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+
+        if best and rng.random() < 0.2:  # 20% chance to try a structured perturbation
+            best_c, best_r = best
+            idx = np.argmin(best_r)
+            
+            # Remove smallest circle
+            c_new = np.delete(best_c, idx, axis=0)
+            r_new = np.delete(best_r, idx)
+            
+            # Find best empty spot in 60x60 grid
+            grid = np.linspace(0.05, 0.95, 60)[np.newaxis, :] * np.ones((1, 60)) + 
+                     np.linspace(0.05, 0.95, 60) * np.ones((60, 1))
+            grid = np.linspace(0.05, 0.95, 60)[:, None] + np.linspace(0.05, 0.95, 60)[None, :]
+            
+            dists = np.array([np.sum((grid - c_new[i])**2, axis=1) for i in range(len(c_new))])
+            dist_circles = np.min(np.sqrt(dists), axis=0)
+            dist_walls = np.minimum(grid[:, 0], 1 - grid[:, 0]) # simplified wall dist
+            dist_walls = np.minimum(dist_walls, np.minimum(grid[:, 1], 1 - grid[:, 1]))
+            
+            score = np.min(dist_circles, axis=0) + dist_walls
+            best_pt = grid[np.argmax(score)]
+            
+            # Reinsert and optimize
+            c_tmp = np.vstack([c_new, best_pt])
+            r_tmp = np.append(r_new, np.min(score[np.argmax(score)])) 
+                if len(r_new) > 0 else np.array([np.min(score[np.argmax(score)])])
+            
+            # Run quick optimization
+            c_opt, r_opt = _solve_once(n, rng)
+            if r_opt.sum() > best_r.sum():
+                best = (c_opt, r_opt)
+    return best
+-----

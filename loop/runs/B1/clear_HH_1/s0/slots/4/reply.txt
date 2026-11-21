@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+import lightgbm as lgb
+from sklearn.svm import SVR
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import rdMolDescriptors
+from rdkit.Chem.Pharm2D import Gobbi_Pharm2D, Generate
+import lightgbm as lgb
+from sklearn.svm import SVR
+from sklearn.linear_model import Ridge
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def pharm(smiles):
+    rows = np.zeros((len(smiles), 4096), dtype=np.float64)
+    for i, s in enumerate(smiles):
+        fp = Generate.Gen2DFingerprint(Chem.MolFromSmiles(s), Gobbi_Pharm2D.factory)
+        for b in fp.GetOnBits():
+            rows[i, b % 4096] = 1.0
+    return rows
+
+
+def physchem(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Descriptors.MolWt(m), Descriptors.MolLogP(m), rdMolDescriptors.CalcTPSA(m),
+                     rdMolDescriptors.CalcNumHBD(m), rdMolDescriptors.CalcNumHBA(m),
+                     rdMolDescriptors.CalcNumRotatableBonds(m), rdMolDescriptors.CalcNumRings(m)])
+    return np.array(rows, dtype=np.float64)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+=======
+    G = pharm(train_smiles)
+    Gt = pharm(test_smiles)
+    K_train = (tanimoto(X, X) + tanimoto(G, G) + rbf(D, D, gamma)) / 3.0
+    K_test = (tanimoto(Xt, X) + tanimoto(Gt, G) + rbf(Dt, D, gamma)) / 3.0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    ys = (y - mu) / sd
+    P = physchem(train_smiles)
+    Pt = physchem(test_smiles)
+    pmu, psd = P.mean(axis=0), P.std(axis=0) + 1e-9
+    P = (P - pmu) / psd
+    Pt = (Pt - pmu) / psd
+    ridge = Ridge(alpha=10.0).fit(P, ys)
+    resid = ys - ridge.predict(P)
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, resid)
+    return model.predict(K_test) + ridge.predict(Pt)
+>>>>>>> REPLACE
+-----

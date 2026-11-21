@@ -1,0 +1,75 @@
+<<<<<<< SEARCH
+    pool = []
+    
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if not pool:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+        else:
+            # Pick a random member, biased towards better ones
+            idx = rng.choices(range(len(pool)), weights=[r_i.sum() for _, r_i in pool], k=1)[0]
+            pc, pr = pool[idx]
+            # Perturb centers slightly
+            x_pert = np.concatenate([pc + rng.normal(0, 0.02, (n, 2)), pr])
+            c, r = _solve_once(n, rng, x0=x_pert)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+        
+        # Check for diversity and update pool
+        is_diverse = True
+        for pc, pr in pool:
+            if np.linalg.norm(r - pr) < 1e-3:
+                is_diverse = False
+                break
+        if is_diverse:
+            pool.append((c, r))
+            pool.sort(key=lambda x: x[1].sum(), reverse=True)
+            if len(pool) > 5:
+                pool.pop()
+        
+        # Also keep track of the global best
+        current_best = pool[0] if pool else (None, np.array([]))
+        if best is None or r.sum() > current_best[1].sum():
+            best = (c, r)
+            
+    return best
+=======
+    pool = []
+    best = (None, np.array([]))
+    
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        if not pool:
+            c, r = _solve_once(n, rng)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+        else:
+            # Pick a random member, biased towards better ones
+            idx = rng.choices(range(len(pool)), weights=[r_i.sum() for _, r_i in pool], k=1)[0]
+            pc, pr = pool[idx]
+            # Perturb centers slightly
+            x_pert = np.concatenate([pc + rng.normal(0, 0.02, (n, 2)), pr])
+            c, r = _solve_once(n, rng, x0=x_pert)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+        
+        # Check for diversity and update pool
+        is_diverse = True
+        for pc, pr in pool:
+            if np.linalg.norm(r - pr) < 1e-3:
+                is_diverse = False
+                break
+        if is_diverse:
+            pool.append((c, r))
+            pool.sort(key=lambda x: x[1].sum(), reverse=True)
+            if len(pool) > 5:
+                pool.pop()
+        
+        # Also keep track of the global best
+        current_best_val = pool[0][1].sum() if pool else -1
+        if r.sum() > current_best_val:
+            best = (c, r)
+            
+    return best
+>>>>>>> REPLACE
+-----

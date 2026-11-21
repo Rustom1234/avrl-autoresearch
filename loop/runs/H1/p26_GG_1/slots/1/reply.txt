@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+def _solve_once(n, rng):
+    c = np.zeros((n, 2))
+    r = np.zeros(n)
+    # Greedy placement: for each circle, find a position that allows the largest radius
+    # To keep it fast and simple for a starting point, we sample many points
+    for i in range(n):
+        samples = rng.uniform(0, 1, (200, 2))
+        max_r = -1.0
+        best_pos = samples[0]
+        for pos in samples:
+            # Distance to boundaries
+            dist_bound = np.minimum(np.minimum(pos[0], 1 - pos[0]), np.minimum(pos[1], 1 - pos[1]))
+            # Distance to existing circles
+            if i > 0:
+                dist_prev = np.linalg.norm(c[:i] - pos, axis=1) - r[:i]
+                dist_bound = np.minimum(dist_bound, np.min(dist_prev))
+            
+            if dist_bound > max_r:
+                max_r = dist_bound
+                best_pos = pos
+        c[i] = best_pos
+        r[i] = max_r
+    
+    x0 = np.concatenate([c.flatten(), r])
+    iu = np.triu_indices(n, 1)
+
+    def cons(v):
+        c_v, r_v = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c_v[iu[0]] - c_v[iu[1]]) ** 2).sum(1)) - r_v[iu[0]] - r_v[iu[1]]
+        return np.concatenate([d, c_v[:, 0] - r_v, c_v[:, 1] - r_v, 1 - c_v[:, 0] - r_v, 1 - c_v[:, 1] - r_v, r_v])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+>>>>>>> REPLACE
+-----

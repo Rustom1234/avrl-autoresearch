@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+            ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+            c[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+            r[m] = 0
+=======
+            def score(q_all):
+                if k == 0:
+                    return 0.0
+                q = q_all[m]
+                wall = np.minimum(q, 1 - q).min(1)
+                dk = np.sqrt(((q[:, None] - q[None]) ** 2).sum(-1))
+                np.fill_diagonal(dk, np.inf)
+                pair = dk.min(1) / 2
+                o = q_all[~m]
+                if len(o):
+                    clear = (np.sqrt(((q[:, None] - o[None]) ** 2).sum(-1)) - r[~m][None]).min(1)
+                else:
+                    clear = np.full(k, np.inf)
+                return np.minimum(np.minimum(wall, pair), clear).sum()
+
+            cands = []
+            for _ in range(3):
+                cc = c.copy()
+                ang, rad = rng.uniform(0, 2 * np.pi, k), R * np.sqrt(rng.uniform(0, 1, k))
+                cc[m] = np.clip(p + np.c_[rad * np.cos(ang), rad * np.sin(ang)], 0, 1)
+                cands.append(cc)
+            c = max(cands, key=score)
+            r[m] = 0
+>>>>>>> REPLACE
+-----

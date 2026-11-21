@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _darts(n, rng):
+    """Sequential dart throwing, largest first, of a bimodal set of target discs."""
+    k = round(0.375 * n)
+    rt = np.array([0.11] * k + [0.06] * (n - k))
+    c, i, fails = np.zeros((n, 2)), 0, 0
+    while i < n:
+        p = rng.uniform(rt[i], 1 - rt[i], 2)
+        if i == 0 or (np.hypot(*(c[:i] - p).T) >= rt[:i] + rt[i]).all():
+            c[i], i, fails = p, i + 1, 0
+        else:
+            fails += 1
+            if fails >= 200:
+                rt, fails = rt * 0.9, 0
+    return c, rt
+
+
+def _solve_once(n, rng, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        y0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), [INIT_RADIUS]])
+=======
+        c_d, rt = _darts(n, rng)
+        y0 = np.concatenate([c_d.ravel(), [INIT_RADIUS]])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = np.concatenate([np.clip(y[:2 * n], 0.01, 0.99), np.full(n, max(y[-1], 0.01))])
+=======
+        x0 = np.concatenate([np.clip(y[:2 * n], 0.01, 0.99), rt])
+>>>>>>> REPLACE
+-----

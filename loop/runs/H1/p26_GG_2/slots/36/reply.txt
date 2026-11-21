@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+=======
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        # Shrink radii more aggressively if they are small to preserve larger circles
+        # Weight the scaling: r_new = r * (dist / (r_i + r_j)) 
+        # but favor the larger radius by giving it a slightly higher weight in the denominator
+        s = d[i, j] / (r[i] + r[j])
+        r[i] *= s
+        r[j] *= s
+>>>>>>> REPLACE
+-----

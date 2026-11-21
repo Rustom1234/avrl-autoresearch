@@ -1,0 +1,2 @@
+def equation(eps, T, params):
+    return (params[0]+params[1]*T+params[2]*T**2)*eps**0.5 + (params[3]+params[4]*T+params[5]*T**2)*eps + (params[6]+params[7]*T)*eps**1.5 + params[8]*eps**2 + params[9]*T**0*eps**0

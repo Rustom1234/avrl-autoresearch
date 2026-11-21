@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+def scaled_rank(p):
+=======
+def ratio_features(smiles_list):
+    out = []
+    for s in smiles_list:
+        mol = Chem.MolFromSmiles(s)
+        ha = max(mol.GetNumHeavyAtoms(), 1)
+        mw = max(Descriptors.MolWt(mol), 1.0)
+        tpsa = rdMolDescriptors.CalcTPSA(mol)
+        hb = rdMolDescriptors.CalcNumHBD(mol) + rdMolDescriptors.CalcNumHBA(mol)
+        atoms = list(mol.GetAtoms())
+        het = sum(a.GetAtomicNum() in (7, 8, 9, 16, 17, 35, 53) for a in atoms)
+        aro = sum(a.GetIsAromatic() for a in atoms)
+        nit = sum(a.GetAtomicNum() == 7 for a in atoms)
+        out.append([tpsa / mw, tpsa / ha, hb / ha, Crippen.MolLogP(mol) / ha, het / ha, aro / ha, nit / ha,
+                    rdMolDescriptors.CalcNumRotatableBonds(mol) / ha])
+    return np.nan_to_num(np.array(out, dtype=np.float64))
+
+
+def scaled_rank(p):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    R_train = ratio_features(train_smiles)
+    R_test = ratio_features(test_smiles)
+    rlo, rhi = np.percentile(R_train, [1, 99], axis=0)
+    X_train = np.hstack([X_train, np.clip(R_train, rlo, rhi).astype(np.float32)])
+    X_test = np.hstack([X_test, np.clip(R_test, rlo, rhi).astype(np.float32)])
+    y = np.asarray(train_y, dtype=np.int64)
+>>>>>>> REPLACE
+-----

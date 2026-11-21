@@ -1,0 +1,138 @@
+<<<<<<< SEARCH
+def construct_packing():
+=======
+from scipy.optimize import minimize, linprog
+
+_N = 26
+_I, _J = np.triu_indices(_N, 1)
+
+
+def _cons_fun(z):
+    n = _N
+    x = z[:n]
+    y = z[n:2 * n]
+    r = z[2 * n:]
+    I, J = _I, _J
+    dx = x[I] - x[J]
+    dy = y[I] - y[J]
+    rs = r[I] + r[J]
+    pair = dx * dx + dy * dy - rs * rs
+    border = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+    return np.concatenate([border, pair])
+
+
+def _cons_jac(z):
+    n = _N
+    I, J = _I, _J
+    m = len(I)
+    x = z[:n]
+    y = z[n:2 * n]
+    r = z[2 * n:]
+    Jm = np.zeros((4 * n + m, 3 * n))
+    k = np.arange(n)
+    Jm[k, k] = 1.0
+    Jm[k, 2 * n + k] = -1.0
+    Jm[n + k, k] = -1.0
+    Jm[n + k, 2 * n + k] = -1.0
+    Jm[2 * n + k, n + k] = 1.0
+    Jm[2 * n + k, 2 * n + k] = -1.0
+    Jm[3 * n + k, n + k] = -1.0
+    Jm[3 * n + k, 2 * n + k] = -1.0
+    rows = 4 * n + np.arange(m)
+    dx = x[I] - x[J]
+    dy = y[I] - y[J]
+    rs = r[I] + r[J]
+    Jm[rows, I] = 2 * dx
+    Jm[rows, J] = -2 * dx
+    Jm[rows, n + I] = 2 * dy
+    Jm[rows, n + J] = -2 * dy
+    Jm[rows, 2 * n + I] = -2 * rs
+    Jm[rows, 2 * n + J] = -2 * rs
+    return Jm
+
+
+def _obj(z):
+    return -np.sum(z[2 * _N:])
+
+
+def _obj_grad(z):
+    g = np.zeros(3 * _N)
+    g[2 * _N:] = -1.0
+    return g
+
+
+def _lp_radii(x, y):
+    """Exact max-sum radii for fixed centers (LP), shrunk by a tiny margin."""
+    n = _N
+    I, J = _I, _J
+    x = np.clip(x, 0.0, 1.0)
+    y = np.clip(y, 0.0, 1.0)
+    d = np.sqrt((x[I] - x[J]) ** 2 + (y[I] - y[J]) ** 2)
+    A = np.zeros((len(I), n))
+    rows = np.arange(len(I))
+    A[rows, I] = 1.0
+    A[rows, J] = 1.0
+    bmax = np.minimum(np.minimum(x, 1 - x), np.minimum(y, 1 - y))
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d,
+                  bounds=[(0.0, float(b)) for b in bmax], method="highs")
+    if res.status != 0:
+        return None
+    r = np.minimum(np.maximum(res.x - 1e-7, 0.0), bmax)
+    for _ in range(20):
+        viol = np.max(r[I] + r[J] - d)
+        if viol <= 0:
+            break
+        r = np.maximum(r - viol, 0.0)
+    return r
+
+
+def _optimize(x0, y0, r0):
+    z0 = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+    try:
+        res = minimize(_obj, z0, jac=_obj_grad, constraints=cons,
+                       method="SLSQP",
+                       options={"maxiter": 300, "ftol": 1e-12})
+        z = res.x
+    except Exception:
+        z = z0
+    if not np.all(np.isfinite(z)):
+        z = z0
+    return z[:_N], z[_N:2 * _N]
+
+
+def _seed(rng):
+    # 4 corners, 8 edge circles (2 per side), rest random in the interior
+    pts = [(0.05, 0.05), (0.95, 0.05), (0.05, 0.95), (0.95, 0.95)]
+    for t in (0.3, 0.7):
+        pts += [(t, 0.03), (t, 0.97), (0.03, t), (0.97, t)]
+    pts = np.array(pts)
+    interior = rng.uniform(0.15, 0.85, size=(_N - len(pts), 2))
+    P = np.vstack([pts, interior])
+    return P[:, 0].copy(), P[:, 1].copy()
+
+
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    for _ in range(5):
+        x0, y0 = _seed(rng)
+        r0 = np.full(_N, 0.03)
+        x, y = _optimize(x0, y0, r0)
+        r = _lp_radii(x, y)
+        if r is None:
+            continue
+        s = float(np.sum(r))
+        if best is None or s > best[0]:
+            centers = np.column_stack([np.clip(x, 0.0, 1.0), np.clip(y, 0.0, 1.0)])
+            best = (s, centers, r)
+    if best is None:
+        centers = np.column_stack(_seed(rng))
+        radii = np.zeros(_N)
+        return centers, radii
+    return best[1], best[2]
+
+
+def _legacy_construct_packing():
+>>>>>>> REPLACE
+-----

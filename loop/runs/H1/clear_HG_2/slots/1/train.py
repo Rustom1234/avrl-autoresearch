@@ -1,0 +1,76 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (regression).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from lightgbm import LGBMRegressor
+from rdkit import Chem
+from rdkit.Chem import Descriptors
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array([Descriptors.MolWt(mol), Descriptors.MolLogP(mol), 
+                          Descriptors.NumHDonors(mol), Descriptors.NumHAcceptors(mol), 
+                          Descriptors.NumRotatableBonds(mol), Descriptors.TPSA(mol)])
+        feats.append(np.concatenate([fp, desc]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X_train_all = featurize(train_smiles)
+    y_train_all = np.asarray(train_y, dtype=np.float64)
+    
+    # Inner validation split
+    indices = np.arange(len(train_y_all)) 
+    np.random.SeedState.reset()
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(len(train_y_all))
+    
+    train_idx = perm[:-int(0.15 * len(train_y_all))]
+    val_idx = perm[-int(0.15 * len(train_y_all)):]
+    
+    X_train = X_train_all[train_idx]
+    y_train = y_train_all[train_idx]
+    X_val = X_train_all[val_idx]
+    y_val = y_train_all[val_idx]
+    
+    model = LGBMRegressor(
+        n_estimators=2000, max_depth=7, learning_rate=0.03, 
+        subsample=0.8, colsample_bytree=0.8, 
+        min_child_weight=5, random_state=seed,
+        importance_type='gain', 
+        verbosity=-1
+    )
+    
+    model.fit(
+        X_train, y_train, 
+        eval_set=[(X_val, y_val)], 
+        eval_metric='l2', 
+        early_stopping_rounds=50, 
+        callback=None
+    )
+    
+    best_iter = model.best_iteration_
+    
+    # Retrain on all data
+    final_model = LGBMRegressor(
+        n_estimators=best_iter, max_depth=7, learning_rate=0.03, 
+        subsample=0.8, colsample_bytree=0.8, 
+        min_child_weight=5, random_state=seed, 
+        importance_type='gain', 
+        verbosity=-1
+    )
+    final_model.fit(X_train_all, y_train_all)
+    
+    return final_model.predict(featurize(test_smiles))

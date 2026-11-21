@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+def gp_mean(K_tr, y, K_te, sigma2):
+    mu = y.mean()
+    alpha = np.linalg.solve(K_tr + sigma2 * np.eye(len(y)), y - mu)
+    return mu + K_te @ alpha
+=======
+def knn_mean(K, y, k=10):
+    idx = np.argsort(-K, axis=1)[:, :k]
+    return y[idx].mean(axis=1)
+
+
+def gp_mean(K_tr, y, K_te, sigma2, k=10):
+    K_loo = K_tr.copy()
+    np.fill_diagonal(K_loo, -np.inf)  # leave-self-out kNN prior for the training set
+    prior_tr = knn_mean(K_loo, y, k)
+    prior_te = knn_mean(K_te, y, k)
+    alpha = np.linalg.solve(K_tr + sigma2 * np.eye(len(y)), y - prior_tr)
+    return prior_te + K_te @ alpha
+>>>>>>> REPLACE
+-----

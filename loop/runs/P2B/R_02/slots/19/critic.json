@@ -1,0 +1,16 @@
+{
+ "ok": false,
+ "issues": [
+  "The z-loss term is added inside GPT.forward whenever targets is not None, with no check for training mode or reduction. The evaluation path calls the same forward (typically with reduction='none') to get per-token losses for val_bpb, so the change reaches the metric itself. Every per-token loss gets the scalar 1e-4*z_loss added (broadcast) before the bits-per-byte conversion. This changes how val_bpb is measured, which is the most likely cause of the harness integrity flag.",
+  "The added term makes val_bpb worse rather than better, so this looks like an oversight, not gaming. Either way, the reported val_bpb would mix cross-entropy with a regularizer, so the result does not mean what it claims to.",
+  "Bug: z_loss ignores ignore_index=-1. It is averaged over every position, including masked ones, so the regularizer does not match the cross-entropy it is added to.",
+  "Bug: with reduction='none', the result is a per-token tensor plus a batch-level scalar, so each token's loss is offset by a statistic computed over the whole batch. That is not a valid per-token loss.",
+  "Cost: logits.float() plus a logsumexp over the full vocabulary materialises a second fp32 copy of the logits. This adds a lot of VRAM and time at DEVICE_BATCH_SIZE 64.",
+  "Fix: compute z_loss and add it only during training (for example, under `if self.training and reduction == 'mean':`), use only the positions where targets != -1, and return plain cross-entropy otherwise. Then rerun.",
+  "The harness gave no numbers because the run was rejected, so z cannot be recomputed."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

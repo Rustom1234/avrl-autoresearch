@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 4 == 0:
+            c0 = c0.copy()
+            c0[:4] = [[0.1, 0.1], [0.9, 0.1], [0.1, 0.9], [0.9, 0.9]]
+            r0[:4] = 0.1
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        if it % 4 == 0:
+            try:
+                free = np.array([k for k in range(N3)
+                                 if not (k < 4 or n <= k < n + 4)])
+                P = np.zeros((N3, len(free)))
+                P[free, np.arange(len(free))] = 1.0
+                bb = np.zeros(N3)
+                sx = [1, -1, 1, -1]
+                sy = [1, 1, -1, -1]
+                for k in range(4):
+                    rc = int(np.where(free == 2 * n + k)[0][0])
+                    P[k, rc] = 1.0 if sx[k] > 0 else -1.0
+                    bb[k] = 0.0 if sx[k] > 0 else 1.0
+                    P[n + k, rc] = 1.0 if sy[k] > 0 else -1.0
+                    bb[n + k] = 0.0 if sy[k] > 0 else 1.0
+                z0[0:4] = [0.1, 0.9, 0.1, 0.9]
+                z0[n:n + 4] = [0.1, 0.1, 0.9, 0.9]
+                w0 = z0[free]
+                wb = [bounds[k] for k in free]
+                resp = minimize(lambda w: -np.sum((P @ w + bb)[2 * n:]),
+                                w0, jac=lambda w: -(P.T @ np.concatenate(
+                                    [np.zeros(2 * n), np.ones(n)])),
+                                method="SLSQP", bounds=wb,
+                                constraints=[{"type": "ineq",
+                                              "fun": lambda w: cons(P @ w + bb),
+                                              "jac": lambda w: jac(P @ w + bb) @ P}],
+                                options={"maxiter": 150, "ftol": 1e-10})
+                zp = P @ resp.x + bb
+                if np.all(np.isfinite(zp)):
+                    z0 = np.clip(zp, 0.0, 1.0)
+                    z0[2 * n:] = np.minimum(z0[2 * n:], 0.5) * 0.99
+            except Exception:
+                pass
+>>>>>>> REPLACE
+-----

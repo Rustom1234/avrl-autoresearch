@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    for tr, va in GroupKFold(n_splits=5).split(Xtr, y, groups):
+=======
+    for tr, va in GroupKFold(n_splits=3).split(Xtr, y, groups):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    base_te = base_predict(Xtr, Ftr, y, Xte, Fte, groups, seed)
+    return meta.predict(base_te)
+=======
+    uniq = np.unique(groups)
+    preds = []
+    for rep in range(5):
+        rng = np.random.default_rng(seed + rep)
+        picked = rng.choice(uniq, size=len(uniq), replace=True)
+        idx = np.concatenate([np.where(groups == g)[0] for g in picked])
+        base_b = base_predict(Xtr[idx], Ftr[idx], y[idx], Xte, Fte, groups[idx], seed + rep)
+        preds.append(meta.predict(base_b))
+    return np.median(np.vstack(preds), axis=0)
+>>>>>>> REPLACE
+-----

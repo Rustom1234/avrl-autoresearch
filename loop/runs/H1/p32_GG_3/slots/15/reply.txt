@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw{"type": "ineq", "fun": cons},
+                   options shaw{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw{"type": "ineq", "fun": cons},
+                   options shaw{"maxiter": MAX_ITER})
+    c_raw, r_raw = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+    
+    c, r = np.clip(c_raw, 0, 1), r_raw
+    c = _repair(c, r)
+    
+    # Shake and polish
+    for _ in range(2):
+        if c is None: break
+        noise = rng.normal(0, 0.005, (n, 3))
+        c += noise[:, :2]
+        r += noise[:, 2]
+        c = np.clip(c, 0, 1)
+        r = np.maximum(r, 0)
+        c, r = _repair(c, r)
+        
+        res_p = minimize(lambda v: -v[2 * n:].sum(), np.concatenate([c.flatten(), r]), 
+                           method="SLSQP", constraints shaw{"type": "ineq", "fun": cons},
+                           options shaw{"maxiter": 50})\n        if res_p.success:
+            c, r = res_p.x[:2 * n].reshape(n, 2), res_p.x[2 * n:]
+            c = np.clip(c, 0, 1)
+            c = _repair(c, r)
+    
+    return c, r
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw{"type": "ineq", "fun": cons},
+                   options shaw{"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw{"type": "ineq", "fun": cons},
+                   options shaw{"maxiter": MAX_ITER})
+    c_raw, r_raw = res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+    c = np.clip(c_raw, 0, 1)
+    r = _repair(c, r_raw)
+
+    for _ in range(2):
+        noise = rng.normal(0, 0.005, (n, 3))
+        c += noise[:, :2]
+        r += noise[:, 2]
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        res_p = minimize(lambda v: -v[2 * n:].sum(), np.concatenate([c.flatten(), r]),
+                           method="SLSQP", constraints shaw{"type": "ineq", "fun": cons},
+                           options shaw{"maxiter": 30})
+        if res_p.success:
+            c_p = res_p.x[:2 * n].reshape(n, 2)
+            r_p = res_p.x[2 * n:]
+            c = np.clip(c_p, 0, 1)
+            r = _repair(c, r_p)
+    
+    return c, r
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

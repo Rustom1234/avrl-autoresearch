@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+    torch.cuda.synchronize()
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    torch.cuda.synchronize()
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        # Clip gradients by global norm to stabilize high early learning rates
+        gnorm, _ = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        x, y, epoch = next(train_loader)
+>>>>>>> REPLACE >><<<< SEARCH
+    # Fast fail: abort if loss is exploding or NaN
+    if math.isnan(train_loss_f) or train_loss_f > 100:
+        print("FAIL")
+        exit(1)
+=======
+    # Fast fail: abort if loss is exploding or NaN
+    if math.isnan(train_loss_f) or train_loss_f > 100:
+        print("FAIL")
+        exit(1)
+>>>>>>> REPLACE }, 
+-----
+<<<<<<< SEARCH
+    torch.cuda.synchronize()
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        x, y, epoch = next(train_loader)
+=======
+    torch.cuda.synchronize()
+    t0 = time.time()
+    for micro_step in range(grad_accum_steps):
+        with autocast_ctx:
+            loss = model(x, y)
+        train_loss = loss.detach()
+        loss = loss / grad_accum_steps
+        loss.backward()
+        # Clip gradients by global norm to stabilize early learning rates
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        x, y, epoch = next(train_loader)
+>>>>>>> REPLACE
+-----

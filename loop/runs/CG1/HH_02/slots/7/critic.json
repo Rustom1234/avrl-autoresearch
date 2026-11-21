@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "No sign of getting around the measurement. Nothing is carried from one run to the next or done in the untimed first call. There is no seeding, no use of test images and no file access. The diff only moves the head weight from Nesterov SGD to a third Muon optimizer.",
+  "No bug that makes the result meaningless. The run is a valid measurement of a worse variant. Its adjusted value of 4.676 is a large rise in cost, which roughly matches an accuracy loss of about 6 points.",
+  "Likely cause of the regression: head_lr is tuned for SGD on an unnormalised head. Muon orthogonalises and normalises the update, so reusing head_lr with Muon gives a step of a very different size. The candidate also changes weight decay: it passes wd instead of wd/head_lr. The head now follows the bias schedule (lr_factor2) rather than Muon's schedule.",
+  "Changing `len(p.shape) == 4` to `in (2, 4)` also applies to optimizer2. This is harmless only because optimizer2 holds just the 4D conv filters.",
+  "No claims accompany the diff, so there is nothing to check against the numbers. Reject is the right decision.",
+  "z cannot be recomputed exactly because the harness's sd is not given. Assuming a job sd of 0.026 and 15 incumbent runs, the standard error is 0.026*sqrt(1+1/15) \u2248 0.0269, so z \u2248 -4.676/0.0269 \u2248 -174. That matches the reported -175.5 in size and sign."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "z_approx_assuming_sd_0.026": -174.1
+ }
+}

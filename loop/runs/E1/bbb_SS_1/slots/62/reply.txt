@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+=======
+    preds.append(rankdata(mlp.predict_proba(Dtq)[:, 1]) / len(Xt))
+
+    # MLP on descriptors plus 256 most frequent Morgan bits
+    top = np.argsort(-A.sum(0))[:256]
+    Z = np.hstack([Dq, 0.5 * A[:, top]])
+    Zt = np.hstack([Dtq, 0.5 * B[:, top]])
+    mlp2 = MLPClassifier(hidden_layer_sizes=(256, 64), alpha=0.05, early_stopping=True, max_iter=300,
+                         random_state=seed)
+    mlp2.fit(Z, y)
+    preds.append(rankdata(mlp2.predict_proba(Zt)[:, 1]) / len(Xt))
+    return np.mean(preds, axis=0)
+>>>>>>> REPLACE
+-----

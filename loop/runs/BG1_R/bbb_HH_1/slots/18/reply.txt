@@ -1,0 +1,42 @@
+<<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestClassifier
+=======
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def scaled_rank(p):
+    return (rankdata(p) - 1) / max(len(p) - 1, 1)
+=======
+def scaled_rank(p):
+    return (rankdata(p) - 1) / max(len(p) - 1, 1)
+
+
+def physchem_stack(Xb_train, T_train, Xb_test, seed, alpha=10.0):
+    # Out-of-fold Ridge predictions of physchem targets from Morgan bits (training rows),
+    # and full-fold Ridge predictions for the test rows.
+    oof = np.zeros((len(Xb_train), T_train.shape[1]))
+    test = np.zeros((len(Xb_test), T_train.shape[1]))
+    kf = KFold(n_splits=5, shuffle=True, random_state=seed)
+    for j in range(T_train.shape[1]):
+        t = T_train[:, j]
+        for tr, va in kf.split(Xb_train):
+            oof[va, j] = Ridge(alpha=alpha).fit(Xb_train[tr], t[tr]).predict(Xb_train[va])
+        test[:, j] = Ridge(alpha=alpha).fit(Xb_train, t).predict(Xb_test)
+    return oof, test
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+    y = np.asarray(train_y, dtype=np.int64)
+=======
+    X_test = np.hstack([X_test, np.clip(D_test, lo, hi).astype(np.float32)])
+    # Targets: MolWt, Crippen LogP, TPSA, HBD+HBA (columns 2048..2052 of X_train)
+    T_train = np.column_stack([X_train[:, 2048], X_train[:, 2049], X_train[:, 2050],
+                               X_train[:, 2051] + X_train[:, 2052]]).astype(np.float64)
+    oof, stack_test = physchem_stack(X_train[:, :N_BITS], T_train, X_test[:, :N_BITS], seed)
+    X_train = np.hstack([X_train, oof.astype(np.float32)])
+    X_test = np.hstack([X_test, stack_test.astype(np.float32)])
+    y = np.asarray(train_y, dtype=np.int64)
+>>>>>>> REPLACE
+-----

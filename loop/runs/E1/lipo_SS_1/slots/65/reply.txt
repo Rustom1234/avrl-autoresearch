@@ -1,0 +1,16 @@
+<<<<<<< SEARCH
+    return 0.4 * p_tree + 0.3 * p_mlp + 0.3 * p_fp
+=======
+    cor = np.abs([np.corrcoef(Dtr[:, j], y)[0, 1] if Dtr[:, j].std() > 0 else 0.0 for j in range(Dtr.shape[1])])
+    top = np.argsort(-np.nan_to_num(cor))[:30]
+    iu = np.triu_indices(len(top))
+    def sq(D):
+        T = D[:, top]
+        return (T[:, iu[0]] * T[:, iu[1]]) / 3.0
+    Rtr = np.hstack([Mtr, sq(Dtr)])
+    Rte = np.hstack([Mte, sq(Dte)])
+    from sklearn.linear_model import RidgeCV
+    p_ridge = RidgeCV(alphas=[1, 10, 100, 1000]).fit(Rtr, y).predict(Rte)
+    return 0.9 * (0.4 * p_tree + 0.3 * p_mlp + 0.3 * p_fp) + 0.1 * p_ridge
+>>>>>>> REPLACE
+-----

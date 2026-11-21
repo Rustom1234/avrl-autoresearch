@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity check passed: the diff only changes get_lr_multiplier. It does not touch the evaluation call, the val_bpb measurement, the data, the prepare.py import line or the seed lines. There is no reason to veto.",
+  "No bug that makes the result meaningless: the new schedule is valid code. It assumes progress = elapsed training time / TIME_BUDGET, which matches the time-based loop, and that TIME_BUDGET (300 s) is at least 100 s, which it is. The run measures what it is meant to measure.",
+  "This is a poor schedule rather than a broken one. It drops warmup and starts at the full LR. It then decays linearly to 0.1x over the first 60 s, holds 0.1x for about 200 s, and decays to 0.01x over the last 40 s. Running most of training at 10% LR fits the clear regression: 1.2471 against the incumbent's 1.1145, about 0.13 bpb worse.",
+  "Leftover code: WARMUP_RATIO, WARMDOWN_RATIO and FINAL_LR_FRAC are no longer used by the schedule, and the 60/40/0.1/0.01 constants are hardcoded. This would matter only if the candidate were kept.",
+  "On the numbers: z cannot be fully recomputed because the incumbent's standard deviation is not given. With n=1 for the candidate, z = (1.1145 - 1.2471)/s = -23.494 implies s \u2248 0.00564, a plausible run-to-run spread. The sign (candidate worse) matches the reject decision.",
+  "There are no claims that contradict the harness numbers. The provisional reject is correct."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

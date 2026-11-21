@@ -1,0 +1,73 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < RESTART_FRACTION * budget or best is None:   # short random-restart phase
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+=======
+def _cut_child(cA, rA, cB, rB, n, rng):
+    """Cut-line exchange: circles of A on one side of a random line, circles of B on the other, count fixed to n."""
+    theta = rng.uniform(0, np.pi)
+    nv = np.array([np.cos(theta), np.sin(theta)])
+    p = rng.uniform(0.25, 0.75, 2)
+    sA, sB = (cA - p) @ nv, (cB - p) @ nv
+    c, r = np.vstack([cA, cB]), np.concatenate([rA, rB])
+    side = np.concatenate([sA, sB])
+    keep = np.concatenate([sA < 0, sB >= 0])
+    kept = np.where(keep)[0]
+    kept = kept[np.argsort(-np.abs(side[kept]))][:n]          # drop the ones nearest the line
+    rest = np.where(~keep)[0]
+    rest = rest[np.argsort(np.abs(side[rest]))][:n - len(kept)]   # add the ones nearest the line
+    sel = np.concatenate([kept, rest])
+    return c[sel], r[sel]
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best, second = np.random.default_rng(seed), time.process_time(), None, None
+    budget = TIME_FRACTION * time_limit
+    while time.process_time() - t0 < RESTART_FRACTION * budget or best is None:   # short random-restart phase
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            second, best = best, (c, r)
+        elif second is None or r.sum() > second[1].sum():
+            second = (c, r)
+    c, r = best
+    step = 0
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        step += 1
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+        if second is not None and step % 5 == 0:   # one cut-line child per 5 reinsertion steps
+            c3, r3 = _cut_child(c, r, second[0], second[1], n, rng)
+            c3, r3 = _optimise(n, np.concatenate([c3.ravel(), r3]))
+            c3 = np.clip(c3, 0, 1)
+            r3 = _repair(c3, r3)
+            second, (c, r) = sorted([(c, r), second, (c3, r3)], key=lambda p: p[1].sum())[1:]
+    return c, r
+>>>>>>> REPLACE
+-----

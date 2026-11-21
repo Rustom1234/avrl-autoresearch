@@ -1,0 +1,92 @@
+<<<<<<< SEARCH
+
+def _forward_and acidente(x, targets, layer_gates):
+    B, T = x.size()
+    model_forward = torch.compile(model)
+    loss = model_forward(x, targets)
+    if isinstance(loss, dict):
+        loss = loss['loss']
+    return loss, layer_gates
+
+def _compute_grad_scale(fwd, targets, loss, layer_gates, layer_factor, layer_index):
+    scale = 1.0
+    for i in range(layer_index + 1):
+        if i < len(layer_gates):
+            gate_val = layer_gates[i].mean()
+            scale = scale * (gate_val + 1e-6)
+    return scale, fwd, targets, loss, layer_factors, layer_index
+
+def optimize_grads(grad, param_groups, layer_gates, layer_factors, layer_index):
+    for group in param_groups:
+        for p in group['params']:
+            p.grad *= layer_factors[layer_index]
+
+model = torch.compile(model)
+
+train_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, "train")
+xi, g, fi, ci = next(train_loader)
+
+# Schedules (all based on progress = training_time / TIME_BUDGET)
+
+def get_lr_multiplier(progress):
+    if progress < WARMUP_RATIO:
+        return progress / WARMUP_RATIO if WARMUP_RATIO > 0 else 1.0
+    elif progress < 1.0 - WARMDOWN_RATIO:
+        return 1.0
+    else:
+        cooldown = (1.0 - progress) / WARMDOWN_RATIO
+        return cooldown * 1.0 + (1 - cooldown) * FINAL_LR_FRAC
+
+def get_muon_momentum(step):
+    frac = min(step / 300, 1)
+    return (1 - frac) * 0.85 + frac * 0.95
+
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+
+
+epoch = 0
+for ti in range(FT, FT+1):
+    for bm, bm_l in enumerate(losses):
+        t = t + (bm_l / bm)
+        t = t % T
+        progress = min(t / TIME_BUDGET, 1.0)
+        lrm = get_lr_multiplier(progress)
+        muon_momentum = get_muon_momentum(step)
+        muon_weight_decay = get_weight_decay(progress)
+        for group in optimizer.param_groups:
+            group["lr"] = group["initial_lr"] * lrm
+            if group['kind'] == 'muon':
+                group["momentum"] = muon_momentum
+                group["weight_decay"] = muon_weight_decay
+            optimizer.step()
+        model.zero_grad()
+        pass
+        epoch_loss += t
+
+
+for micro_step in range(grad_accum_steps):
+    with autocast_ctx:
+        l = model(xi, gi)
+        b = l.detach()
+        b = b / grad_accum_steps
+        b.backward()
+        xi, i, f = optimizer.step(reset=False)
+        xi = xi + b
+        i, f = optimizer.step(reset=False)
+        t = t + (i / f)
+        t = t % T
+        progress = min(t / TIME_BUDGET, 1.0)
+        lrm = get_lr_multiplier(progress)
+        muon_momentum = get_muon_momentum(step)
+        muon_weight_decay = get_weight_decay(progress)
+        for group in optimizer.param_groups:
+            group["lr"] = group["initial_lr"] * lrm
+            if group['kind'] == 'muon':
+                group["momentum"] = muon_momentum
+                group["weight_decay"] = muon_weight_decay
+            optimizer.step()
+        model.zero_grad()
+        pass
+        epoch_loss += t
+-----

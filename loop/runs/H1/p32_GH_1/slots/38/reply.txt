@@ -1,0 +1,25 @@
+<<<<<<< SEARCH
+    x = x0
+    for cap in RADIUS_CAPS:   # gradually raise the allowed radius, warm-starting each stage
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": cons, "args": (cap,)}, options={"maxiter": MAX_ITER})
+        x = res.x
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+=======
+    x = x0
+    caps = list(RADIUS_CAPS)
+    k = extra = 0
+    while k < len(caps):   # gradually raise the allowed radius, warm-starting each stage
+        cap = caps[k]
+        res = minimize(lambda v: -v[2 * n:].sum(), x, method="SLSQP",
+                       constraints={"type": "ineq", "fun": cons, "args": (cap,)}, options={"maxiter": MAX_ITER})
+        x = res.x
+        k += 1
+        if k < len(caps) - 1 and res.success and res.nit < MAX_ITER // 2:
+            k += 1   # fast convergence: skip one intermediate cap
+        elif k < len(caps) and not res.success and extra < 3:
+            caps.insert(k, (cap + caps[k]) / 2)   # iteration limit hit: add an intermediate cap
+            extra += 1
+    return x[:2 * n].reshape(n, 2), x[2 * n:]
+>>>>>>> REPLACE
+-----

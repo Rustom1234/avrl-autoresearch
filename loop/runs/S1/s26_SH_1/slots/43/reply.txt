@@ -1,0 +1,105 @@
+<<<<<<< SEARCH
+def _cons_fun(z):
+    n = _N
+    x = z[:n]
+    y = z[n:2 * n]
+    r = z[2 * n:]
+    I, J = _I, _J
+    dx = x[I] - x[J]
+    dy = y[I] - y[J]
+    rs = r[I] + r[J]
+    pair = dx * dx + dy * dy - rs * rs
+    border = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+    return np.concatenate([border, pair])
+
+
+def _cons_jac(z):
+    n = _N
+    I, J = _I, _J
+    m = len(I)
+    x = z[:n]
+    y = z[n:2 * n]
+    r = z[2 * n:]
+    Jm = np.zeros((4 * n + m, 3 * n))
+    k = np.arange(n)
+    Jm[k, k] = 1.0
+    Jm[k, 2 * n + k] = -1.0
+    Jm[n + k, k] = -1.0
+    Jm[n + k, 2 * n + k] = -1.0
+    Jm[2 * n + k, n + k] = 1.0
+    Jm[2 * n + k, 2 * n + k] = -1.0
+    Jm[3 * n + k, n + k] = -1.0
+    Jm[3 * n + k, 2 * n + k] = -1.0
+    rows = 4 * n + np.arange(m)
+    dx = x[I] - x[J]
+    dy = y[I] - y[J]
+    rs = r[I] + r[J]
+    Jm[rows, I] = 2 * dx
+    Jm[rows, J] = -2 * dx
+    Jm[rows, n + I] = 2 * dy
+    Jm[rows, n + J] = -2 * dy
+    Jm[rows, 2 * n + I] = -2 * rs
+    Jm[rows, 2 * n + J] = -2 * rs
+    return Jm
+=======
+_RS = 10.0  # scale of the radius variable inside _optimize
+
+
+def _cons_fun(z):
+    n = _N
+    x = z[:n]
+    y = z[n:2 * n]
+    r = z[2 * n:] / _RS
+    I, J = _I, _J
+    dx = x[I] - x[J]
+    dy = y[I] - y[J]
+    d = np.sqrt(dx * dx + dy * dy + 1e-30)
+    pair = d - r[I] - r[J]
+    border = np.concatenate([x - r, 1 - x - r, y - r, 1 - y - r])
+    return np.concatenate([border, pair])
+
+
+def _cons_jac(z):
+    n = _N
+    I, J = _I, _J
+    m = len(I)
+    x = z[:n]
+    y = z[n:2 * n]
+    Jm = np.zeros((4 * n + m, 3 * n))
+    k = np.arange(n)
+    c = 1.0 / _RS
+    Jm[k, k] = 1.0
+    Jm[k, 2 * n + k] = -c
+    Jm[n + k, k] = -1.0
+    Jm[n + k, 2 * n + k] = -c
+    Jm[2 * n + k, n + k] = 1.0
+    Jm[2 * n + k, 2 * n + k] = -c
+    Jm[3 * n + k, n + k] = -1.0
+    Jm[3 * n + k, 2 * n + k] = -c
+    rows = 4 * n + np.arange(m)
+    dx = x[I] - x[J]
+    dy = y[I] - y[J]
+    d = np.sqrt(dx * dx + dy * dy + 1e-30)
+    ux = dx / d
+    uy = dy / d
+    Jm[rows, I] = ux
+    Jm[rows, J] = -ux
+    Jm[rows, n + I] = uy
+    Jm[rows, n + J] = -uy
+    Jm[rows, 2 * n + I] = -c
+    Jm[rows, 2 * n + J] = -c
+    return Jm
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    z = np.concatenate([x0, y0, r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+=======
+    z = np.concatenate([x0, y0, _RS * r0])
+    cons = [{"type": "ineq", "fun": _cons_fun, "jac": _cons_jac}]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        hi = None if cap is None else cap
+=======
+        hi = None if cap is None else _RS * cap
+>>>>>>> REPLACE
+-----

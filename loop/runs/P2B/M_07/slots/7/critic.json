@@ -1,0 +1,14 @@
+{
+ "ok": false,
+ "issues": [
+  "Veto for reasons (1) and (2): the z-loss is added inside the model's forward pass, in the branch that returns the loss whenever targets are given. The evaluation path also uses this forward pass: it calls the model with targets, typically reduction='none', to get the per-token cross-entropy that val_bpb is computed from. So the change alters what val_bpb measures. The harness rightly flagged it as an altered evaluation path.",
+  "With reduction='none', z_loss_term is a scalar averaged over all positions, including ignore_index=-1 targets. It is broadcast-added to every token's loss. The eval loss is no longer pure cross-entropy, and the reported val_bpb would no longer be bits per byte. The result is invalid in either direction, even though this particular change would probably make the number worse rather than better.",
+  "Smaller problem: the z-loss is not masked for ignore_index=-1 positions, and the logits.float() logsumexp makes a second full-vocab float32 pass, which costs memory and throughput.",
+  "How to fix it: leave the forward pass's return value as pure cross-entropy. Add the z-loss only in the training loop, for example by returning the logits or the z-term separately, or by gating it on `self.training and reduction == 'mean'`. That keeps the evaluation path unchanged.",
+  "No claim to check against numbers: the harness rejected the run and reports no val_bpb, so z cannot be recomputed."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

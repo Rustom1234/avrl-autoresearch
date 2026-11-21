@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+-----
+<<<<SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+=======
+        if targets is not None:
+            # Light label smoothing to reduce overconfidence during training
+            eps = 0.01
+            smooth_counts = F.one_hot(logits, config.vocab_size).float()[:logits.shape[0], :logits.shape[1]]
+            vocab_eps = torch.full((config.vocab_size,), eps, device=logits.device)
+            smooth_counts.add_(vocab_eps.to(logits.dtype))
+            smoothed_logits = logits + eps - (vocab_eps.to(logits.dtype) * logits).sum(dim=-1, keepdim=True)
+            loss = F.cross_entropy(smoothed_logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+>>>>>>> REPLACE
+-----
+<<<<<<<< SEARCH
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+=======
+        if targets is not None:
+            # Light label smoothing to reduce overconfidence during training
+            eps = 0.01
+            # Create a soft target distribution by mixing hard targets with uniform distribution
+            one_hot_targets = F.one_hot(targets.view(-1), logits.size(-1), fill_value=0)
+            uniform_targets = torch.full((one_hot_targets.size(0), logits.size(-1)), eps, device=logits.device)
+            # Mix: soft_target = (1 - eps) * one_hot + eps * uniform
+            soft_targets = (1 - eps) * one_hot_targets + eps * uniform_targets
+            loss = cross_entropy_loss(logits.view(-1, logits.size(-1)), soft_targets, ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+-----

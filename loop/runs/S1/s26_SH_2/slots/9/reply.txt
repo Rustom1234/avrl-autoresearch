@@ -1,0 +1,83 @@
+<<<<<<< SEARCH
+        if seed > 0 and time.time() - t0 > 200.0:
+=======
+        if seed > 0 and time.time() - t0 > 180.0:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return best
+
+
+def _old_construct_packing():
+=======
+    try:
+        from scipy.optimize import Bounds, NonlinearConstraint
+        n = 26
+        c0, r0 = best
+        iu, ju = np.triu_indices(n, 1)
+        m = iu.size
+        k = np.arange(n)
+        rows = np.arange(m)
+
+        def tf(z):
+            return -np.sum(z[2 * n:])
+
+        def tfg(z):
+            g = np.zeros_like(z)
+            g[2 * n:] = -1.0
+            return g
+
+        def tcons(z):
+            x = z[:n]
+            y = z[n:2 * n]
+            rr = z[2 * n:]
+            dx = x[iu] - x[ju]
+            dy = y[iu] - y[ju]
+            rs = rr[iu] + rr[ju]
+            bnd = np.concatenate([x - rr, 1 - x - rr, y - rr, 1 - y - rr])
+            return np.concatenate([dx * dx + dy * dy - rs * rs, bnd])
+
+        def tjac(z):
+            x = z[:n]
+            y = z[n:2 * n]
+            rr = z[2 * n:]
+            J = np.zeros((m + 4 * n, 3 * n))
+            dx = x[iu] - x[ju]
+            dy = y[iu] - y[ju]
+            rs = rr[iu] + rr[ju]
+            J[rows, iu] = 2 * dx
+            J[rows, ju] = -2 * dx
+            J[rows, n + iu] = 2 * dy
+            J[rows, n + ju] = -2 * dy
+            J[rows, 2 * n + iu] = -2 * rs
+            J[rows, 2 * n + ju] = -2 * rs
+            b = m
+            J[b + k, k] = 1.0
+            J[b + k, 2 * n + k] = -1.0
+            J[b + n + k, k] = -1.0
+            J[b + n + k, 2 * n + k] = -1.0
+            J[b + 2 * n + k, n + k] = 1.0
+            J[b + 2 * n + k, 2 * n + k] = -1.0
+            J[b + 3 * n + k, n + k] = -1.0
+            J[b + 3 * n + k, 2 * n + k] = -1.0
+            return J
+
+        z0 = np.concatenate([c0[:, 0], c0[:, 1], r0])
+        nlc = NonlinearConstraint(tcons, 0.0, np.inf, jac=tjac)
+        bnds = Bounds(np.concatenate([np.zeros(2 * n), np.zeros(n)]),
+                      np.concatenate([np.ones(2 * n), np.full(n, 0.5)]))
+        res = minimize(tf, z0, jac=tfg, method="trust-constr",
+                       constraints=[nlc], bounds=bnds,
+                       options={"maxiter": 300, "gtol": 1e-10, "xtol": 1e-12})
+        z = res.x
+        c2 = np.column_stack([np.clip(z[:n], 0.0, 1.0), np.clip(z[n:2 * n], 0.0, 1.0)])
+        r2 = _repair(c2, np.maximum(z[2 * n:], 0.0))
+        if float(np.sum(r2)) > float(np.sum(r0)):
+            best = (c2, r2)
+    except Exception:
+        pass
+    return best
+
+
+def _old_construct_packing():
+>>>>>>> REPLACE
+-----

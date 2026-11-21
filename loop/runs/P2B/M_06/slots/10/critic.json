@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problem: the diff changes only TOTAL_BATCH_SIZE, from 2**19 to 2**18. It does not touch the evaluation call, the data, the seed lines or the prepare.py import line.",
+  "No bug that makes the result meaningless. 2**18 still divides evenly by DEVICE_BATCH_SIZE*seq_len (64*2048 = 2**17, assuming the usual 2048 sequence length), so grad accumulation drops from 4 to 2 and any divisibility assert still passes. In a fixed 300 s budget this gives about twice as many optimizer steps, which plausibly explains the gain.",
+  "The learning rates were not rescaled for the smaller batch. That is a tuning point, not a validity issue.",
+  "The claim matches the numbers: the candidate mean is 1.0812 against an incumbent mean of 1.1042, an improvement of about 0.023. That direction and size are consistent with the reported z = 4.201 and the accept decision.",
+  "I can't recompute z exactly because the per-run incumbent values and the z formula weren't provided. Using only the candidate spread (sd \u2248 0.0014), z would be much larger, so the harness's 4.201 probably includes incumbent variance. With n = 2 per arm the evidence is thin, but it's not contradictory."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

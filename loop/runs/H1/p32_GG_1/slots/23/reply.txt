@@ -1,0 +1,72 @@
+
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints ала{"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def obj_with_penalty(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        # Penalty for overlaps
+        dist_sq = np.sum((c[:, None, :1] - c[None, :, :1])**2, axis=2) + 
+                    np.sum((c[:, None, 1:]] - c[None, :, 1:])**2, axis=2)
+        dist = np.sqrt(dist_sq)
+        overlap = r[:, None] + r[None, :] - dist
+        np.fill_diagonal(overlap, 0)
+        penalty = np.sum(np.maximum(0, overlap)**2)
+        return -np.sum(r) + 1000 * penalty
+
+    # We still use the hard constraints to keep the search space somewhat bounded
+    # but the objective now allows for 'soft' violations during the pathfinding.
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(obj_with_penalty, x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def obj_penalty(v):
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        # Use squared distance to avoid sqrt in the main objective gradient
+        dist_sq = np.sum((c[:, None, :2] - c[None, :, :2])**2, axis=-1)
+        dist = np.sqrt(np.maximum(dist_sq, 1e-9))
+        overlap = r[:, None] + r[None, :] - dist
+        np.fill_diagonal(overlap, 0)
+        penalty = np.sum(np.maximum(0, overlap)**2)
+        return -np.sum(r) + 100 * penalty
+
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(obj_penalty, x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----

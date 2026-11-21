@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+def descriptors(mol):
+    charge = sum(abs(a.GetFormalCharge()) for a in mol.GetAtoms())
+    return [Descriptors.MolWt(mol), Crippen.MolLogP(mol), rdMolDescriptors.CalcTPSA(mol),
+=======
+_SMARTS = [Chem.MolFromSmarts(s) for s in [
+    "[CX3](=O)[OX2H1,OX1-]", "c1nnn[nH]1", "c1nn[nH]n1", "S(=O)(=O)[OX2H1,OX1-]", "P(=O)[OX2H1,OX1-]",
+    "[NX3;H2;!$(N-C=[O,N,S]);!$(N-a)]", "[NX3;H1,H0;!$(N-C=[O,N,S]);!$(N-a);!$(N-S=O)]",
+    "[N+;!$(N=*);!$(N-[O-])]", "C(=O)N", "[OX2H]", "[F,Cl,Br,I]", "[N+](=O)[O-]", "S(=O)(=O)N"]]
+
+
+def descriptors(mol):
+    charge = sum(abs(a.GetFormalCharge()) for a in mol.GetAtoms())
+    tpsa = rdMolDescriptors.CalcTPSA(mol)
+    hb = rdMolDescriptors.CalcNumHBD(mol) + rdMolDescriptors.CalcNumHBA(mol)
+    extra = [len(mol.GetSubstructMatches(p)) for p in _SMARTS]
+    extra += [tpsa / Descriptors.MolWt(mol), hb / max(mol.GetNumHeavyAtoms(), 1)]
+    return extra + [Descriptors.MolWt(mol), Crippen.MolLogP(mol), rdMolDescriptors.CalcTPSA(mol),
+>>>>>>> REPLACE
+-----

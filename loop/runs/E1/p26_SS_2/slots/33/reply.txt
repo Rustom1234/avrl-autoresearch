@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and time.process_time() - t0 > 0.3 * time_limit:
+            c, r = _solve_once(n, rng, best, rng.choice([0.005, 0.01, 0.02, 0.05]))
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _crossover(n, rng, a, b):
+    t = rng.uniform(0.3, 0.7)
+    ma, mb = a[0][:, 0] < t, b[0][:, 0] >= t
+    c = np.concatenate([a[0][ma], b[0][mb]])
+    r = np.concatenate([a[1][ma], b[1][mb]])
+    if len(r) > n:
+        keep = np.argsort(-r)[:n]
+        c, r = c[keep], r[keep]
+    elif len(r) < n:
+        k = n - len(r)
+        c = np.concatenate([c, rng.uniform(0.05, 0.95, (k, 2))])
+        r = np.concatenate([r, np.full(k, 0.02)])
+    return c, r
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    pool = []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if len(pool) >= 2 and time.process_time() - t0 > 0.3 * time_limit:
+            i, j = rng.choice(len(pool), 2, replace=False)
+            child = _crossover(n, rng, pool[i], pool[j])
+            c, r = _solve_once(n, rng, child, 0.0)
+        else:
+            c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if all(abs(r.sum() - p[1].sum()) > 1e-6 for p in pool):
+            pool = sorted(pool + [(c, r)], key=lambda p: -p[1].sum())[:4]
+        best = pool[0]
+    return best
+>>>>>>> REPLACE
+-----

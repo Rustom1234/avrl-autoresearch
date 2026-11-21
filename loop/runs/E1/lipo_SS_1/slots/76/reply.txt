@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def graph_feats(m):
+    n = m.GetNumAtoms()
+    try:
+        Chem.rdPartialCharges.ComputeGasteigerCharges(m)
+        q = [a.GetDoubleProp("_GasteigerCharge") for a in m.GetAtoms()]
+    except Exception:
+        q = [0.0] * n
+    cr = rdMolDescriptors._CalcCrippenContribs(m)
+    tp = rdMolDescriptors._CalcTPSAContribs(m)
+    A = np.array([[cr[i][0], cr[i][1], tp[i], q[i], m.GetAtomWithIdx(i).GetDegree(),
+                   float(m.GetAtomWithIdx(i).GetIsAromatic())] for i in range(n)], dtype=np.float64)
+    A = np.nan_to_num(A, nan=0.0, posinf=0.0, neginf=0.0)
+    adj = Chem.GetAdjacencyMatrix(m).astype(np.float64)
+    deg = np.maximum(adj.sum(axis=1, keepdims=True), 1.0)
+    out = []
+    for _ in range(3):
+        out += [A.sum(axis=0), A.max(axis=0), A.min(axis=0)]
+        A = adj @ A / deg
+    return np.concatenate(out)
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.hstack([morgan, desc, ion])
+=======
+    gf = np.array([graph_feats(m) for m in mols], dtype=np.float64)
+    gf = np.nan_to_num(gf, nan=0.0, posinf=1e6, neginf=-1e6).clip(-1e6, 1e6).astype(np.float32)
+    return np.hstack([morgan, desc, ion, gf])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors, rdMolDescriptors, rdPartialCharges
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+    c, r = best
+    r = np.maximum(r - 1e-10, 0)
+    return c, r
+=======
+    c, r = best
+    r = _repair(c, r)
+    return c, r
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def optimized_packing():
+=======
+def _viol(c, r):
+    i, j = _IU
+    dx = c[i, 0] - c[j, 0]
+    dy = c[i, 1] - c[j, 1]
+    d = np.minimum(np.hypot(dx, dy), np.sqrt(dx * dx + dy * dy))
+    v = d - (r[i] + r[j])
+    w = np.minimum(np.minimum(c[:, 0] - r, 1 - c[:, 0] - r),
+                   np.minimum(c[:, 1] - r, 1 - c[:, 1] - r))
+    return v, w
+
+
+def _repair(c, r):
+    r = np.maximum(r, 0).copy()
+    i, j = _IU
+    for _ in range(20):
+        v, w = _viol(c, r)
+        bad = np.where(v < 0)[0]
+        wb = np.where(w < 0)[0]
+        if len(bad) == 0 and len(wb) == 0:
+            break
+        for k in bad:
+            dec = -v[k] / 2 + 1e-16
+            r[i[k]] -= dec
+            r[j[k]] -= dec
+        for k in wb:
+            r[k] += w[k] - 1e-16
+        r = np.maximum(r, 0)
+    for _ in range(10):
+        v, w = _viol(c, r)
+        if (v >= 0).all() and (w >= 0).all():
+            return r
+        r = np.maximum(r - 1e-14, 0)
+    return np.maximum(r - 1e-10, 0)
+
+
+def optimized_packing():
+>>>>>>> REPLACE
+-----

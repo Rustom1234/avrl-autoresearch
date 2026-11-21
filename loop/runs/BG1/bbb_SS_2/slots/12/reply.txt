@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+import lightgbm as lgb
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem.MolStandardize import rdMolStandardize
+import lightgbm as lgb
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def clean_mol(s):
+    mol = Chem.MolFromSmiles(s)
+    try:
+        frags = Chem.rdmolops.GetMolFrags(mol, asMols=True)
+        mol = max(frags, key=lambda m: m.GetNumHeavyAtoms())
+        mol = rdMolStandardize.Uncharger().uncharge(mol)
+        Chem.SanitizeMol(mol)
+    except Exception:
+        mol = Chem.MolFromSmiles(s)
+    return mol
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(clean_mol(s)) for s in smiles], dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    X = np.array([[f(Chem.MolFromSmiles(s)) for _, f in Descriptors._descList] for s in smiles], dtype=np.float64)
+=======
+    X = np.array([[f(m) for _, f in Descriptors._descList] for m in map(clean_mol, smiles)], dtype=np.float64)
+>>>>>>> REPLACE
+-----

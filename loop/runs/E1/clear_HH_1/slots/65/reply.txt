@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors
+from rdkit.Chem import BRICS
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from sklearn.linear_model import ARDRegression
+=======
+from sklearn.linear_model import ARDRegression
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def fragment_sets(smiles):
+    return [set(BRICS.BRICSDecompose(Chem.MolFromSmiles(s))) for s in smiles]
+
+
+def binary_matrix(frag_sets, X_bits, vocab):
+    M = np.zeros((len(frag_sets), len(vocab)))
+    for i, fs in enumerate(frag_sets):
+        for f in fs:
+            if f in vocab:
+                M[i, vocab[f]] = 1.0
+    return np.hstack([X_bits > 0, M])
+
+
+def te_encode(B, y, m=5.0):
+    prior = y.mean()
+    return (B.T @ y + m * prior) / (B.sum(axis=0) + m), prior
+
+
+def te_summary(B, enc, prior):
+    act = B > 0
+    n_act = act.sum(axis=1)
+    has = n_act > 0
+    mean = (B @ enc) / np.maximum(n_act, 1)
+    mx = np.where(act, enc, -np.inf).max(axis=1)
+    mn = np.where(act, enc, np.inf).min(axis=1)
+    return np.column_stack([np.where(has, mean, prior), np.where(has, mx, prior), np.where(has, mn, prior)])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    ard = ARDRegression(max_iter=300)
+    ard.fit(D, y)
+    ard_pred = ard.predict(Dt)
+=======
+    frag_tr = fragment_sets(train_smiles)
+    frag_te = fragment_sets(test_smiles)
+    vocab = {f: i for i, f in enumerate(sorted(set().union(*frag_tr)))}
+    B = binary_matrix(frag_tr, X, vocab)
+    Bt = binary_matrix(frag_te, Xt, vocab)
+    TE = np.zeros((len(y), 3))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(B):
+        TE[va] = te_summary(B[va], *te_encode(B[tr], y[tr]))
+    TEt = te_summary(Bt, *te_encode(B, y))
+    ard = ARDRegression(max_iter=300)
+    ard.fit(np.hstack([D, TE]), y)
+    ard_pred = ard.predict(np.hstack([Dt, TEt]))
+>>>>>>> REPLACE
+-----

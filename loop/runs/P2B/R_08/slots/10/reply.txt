@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+model = torch.compile(model, dynamic=False)
+=======
+raw_model = model
+model = torch.compile(model, dynamic=False)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+=======
+def get_weight_decay(progress):
+    return WEIGHT_DECAY * (1 - progress)
+
+def get_short_window(progress):
+    # Curriculum: short-window span grows in stages; final stage equals baseline (MAX_SEQ_LEN // 2)
+    if progress < 1.0 / 3:
+        return MAX_SEQ_LEN // 8
+    elif progress < 2.0 / 3:
+        return MAX_SEQ_LEN // 4
+    return MAX_SEQ_LEN // 2
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lrm = get_lr_multiplier(progress)
+=======
+    lrm = get_lr_multiplier(progress)
+    short_w = get_short_window(progress)
+    if raw_model.window_sizes[0][0] != short_w:
+        # window size is a compile-time constant; the compiled graph is rebuilt on change
+        raw_model.window_sizes = [(short_w, 0) if w[0] < MAX_SEQ_LEN else w for w in raw_model.window_sizes]
+>>>>>>> REPLACE
+-----

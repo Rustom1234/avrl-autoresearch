@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+def _pack_once(seed):
+=======
+def _rsa_centers(rng, rad, tries=200):
+    """Random sequential placement: each disk goes where it overlaps earlier disks least."""
+    placed = []
+    for r in rad:
+        best_c = None
+        best_gap = -np.inf
+        for _ in range(tries):
+            c = rng.uniform(r, 1.0 - r, size=2)
+            gap = np.inf
+            for q, qr in placed:
+                gap = min(gap, np.hypot(c[0] - q[0], c[1] - q[1]) - (r + qr))
+            if gap > 0:
+                best_c = c
+                break
+            if gap > best_gap:
+                best_gap = gap
+                best_c = c
+        placed.append((best_c, r))
+    return np.array([c for c, _ in placed])
+
+
+def _pack_once(seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pts = np.vstack([base, np.array(interior)])
+    pts = pts + rng.normal(0.0, 0.02, size=pts.shape)
+    pts = np.clip(pts, 0.05, 0.95)
+    iu, ju = np.triu_indices(n, 1)
+    m = iu.size
+    pts = _relax(pts, rng)
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], np.full(n, 0.05)])
+=======
+    rad0 = np.array([0.12] * 4 + [0.10] * 12 + [0.07] * 10)
+    rng.shuffle(rad0)
+    pts = _rsa_centers(rng, rad0)
+    iu, ju = np.triu_indices(n, 1)
+    m = iu.size
+    pts = _relax(pts, rng)
+    z0 = np.concatenate([pts[:, 0], pts[:, 1], rad0.copy()])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,94 @@
+<<<<<<< SEARCH
+def optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+=======
+def _polish_sym(zc):
+    n = _N
+    h = n // 2
+    i, j = _IU
+    m = len(i)
+    A = np.zeros((3 * n, 3 * h))
+    b = np.zeros(3 * n)
+    for k in range(h):
+        A[k, k] = 1
+        A[h + k, k] = -1
+        b[h + k] = 1
+        A[n + k, h + k] = 1
+        A[n + h + k, h + k] = -1
+        b[n + h + k] = 1
+        A[2 * n + k, 2 * h + k] = 1
+        A[2 * n + h + k, 2 * h + k] = 1
+    g0 = np.zeros(3 * h)
+    g0[2 * h:] = -2
+
+    def cons(z):
+        v = A @ z + b
+        X, Y, R = v[:n], v[n:2 * n], v[2 * n:]
+        dx = X[i] - X[j]
+        dy = Y[i] - Y[j]
+        pair = dx * dx + dy * dy - (R[i] + R[j]) ** 2
+        return np.concatenate([pair, X - R, 1 - X - R, Y - R, 1 - Y - R])
+
+    I = np.eye(n)
+    Zn = np.zeros((n, n))
+    wj = np.vstack([
+        np.hstack([I, Zn, -I]),
+        np.hstack([-I, Zn, -I]),
+        np.hstack([Zn, I, -I]),
+        np.hstack([Zn, -I, -I]),
+    ])
+
+    def consj(z):
+        v = A @ z + b
+        X, Y, R = v[:n], v[n:2 * n], v[2 * n:]
+        dx = X[i] - X[j]
+        dy = Y[i] - Y[j]
+        s = R[i] + R[j]
+        J = np.zeros((m, 3 * n))
+        k = np.arange(m)
+        J[k, i] = 2 * dx
+        J[k, j] = -2 * dx
+        J[k, n + i] = 2 * dy
+        J[k, n + j] = -2 * dy
+        J[k, 2 * n + i] = -2 * s
+        J[k, 2 * n + j] = -2 * s
+        return np.vstack([J, wj]) @ A
+
+    z0 = np.concatenate([zc[:, 0], zc[:, 1], np.full(h, 0.05)])
+    res = minimize(lambda z: -2 * z[2 * h:].sum(), z0, jac=lambda z: g0,
+                   method="SLSQP",
+                   constraints=[{"type": "ineq", "fun": cons, "jac": consj}],
+                   bounds=[(0, 1)] * (2 * h) + [(0, 0.5)] * h,
+                   options={"maxiter": 300, "ftol": 1e-12})
+    v = A @ res.x + b
+    return np.stack([v[:n], v[n:2 * n]], 1)
+
+
+def optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    sym = []
+    while time.time() - t0 < 60:
+        try:
+            zc = rng.uniform(0.05, 0.95, (_N // 2, 2))
+            c = np.clip(_polish_sym(zc), 0, 1)
+            r = _lp_radii(c)
+            sym.append((r.sum(), c))
+        except Exception:
+            continue
+    sym.sort(key=lambda t: -t[0])
+    for s0, c in sym[:5]:
+        try:
+            c2 = np.clip(_polish(c, _lp_radii(c)), 0, 1)
+            r2 = _lp_radii(c2)
+            if r2.sum() > best_s:
+                best_s, best = r2.sum(), (c2, r2)
+            if s0 > best_s:
+                best_s, best = s0, (c, _lp_radii(c))
+        except Exception:
+            continue
+>>>>>>> REPLACE
+-----

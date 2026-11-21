@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+EPOCHS = 7.65
+=======
+EPOCHS = 7.25
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+=======
+    ema_tensors = list(model.parameters()) + [b for b in model.buffers() if b.is_floating_point()]
+    ema = None
+    ema_start = int(0.75 * total_train_steps)
+
+    for epoch in range(ceil(total_train_steps / len(train_loader))):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            step += 1
+            if step >= total_train_steps:
+                break
+        if step >= total_train_steps:
+            break
+=======
+            step += 1
+            if step >= ema_start:
+                with torch.no_grad():
+                    if ema is None:
+                        ema = [t.detach().clone() for t in ema_tensors]
+                    else:
+                        torch._foreach_lerp_(ema, [t.detach() for t in ema_tensors], 0.1)
+            if step >= total_train_steps:
+                break
+        if step >= total_train_steps:
+            break
+    if ema is not None:
+        with torch.no_grad():
+            torch._foreach_copy_(ema_tensors, ema)
+>>>>>>> REPLACE
+-----

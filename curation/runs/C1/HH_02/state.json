@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/HH_02/cand/s05_0.py",
+ "inc_scores": {
+  "11": 1.903243391088485
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "In select(), (1) drop exact duplicates by hashing the whitespace-normalized, lowercased text, and drop junk documents whose share of non-ASCII characters exceeds 5% or that contain spam phrases such as \"Click here\" or \"Order ... online\". (2) Fit a sklearn TfidfVectorizer (word unigrams and bigrams, sublinear_tf=True) on target_sample, score each remaining doc by cosine similarity to the mean target vector, and sort by score descending. (3) Walk that sorted list, counting tokens with tiktoken \"gpt2\", and keep docs until the running total reaches T; return those indices in that order, so the trainer never needs to cycle.",
+   "outcome": "dev 1.9675 against 1.9636 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "In select(), split the pool into two groups by a format test and keep the random seeded shuffle within each group. Group A (\"wiki-format\") is every doc that starts with a \"= Title =\" heading line (regex ^= .+ =\\s*\\n) and contains the token \" @-@ \" or at least 5 occurrences of \" , \" ; everything else is group B. Drop any doc that matches the junk rules (contains \"Click here\", \"discount code\", \"coupon\", or has more than 5% non-ASCII characters) and drop exact duplicates by whitespace-normalized lowercased hash. Return all of group A (shuffled with random.Random(CURATE_SEED)) followed by all of group B (shuffled the same way). Do not use TF-IDF or any similarity ranking, and do not truncate: the trainer's own cycling handles the length. Ordering by format is a yes/no split, so it can't reorder documents by their similarity to the target the way the rejected cosine ranking did.",
+   "outcome": "dev 2.1001 against 1.9636 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "In select(), keep the original seeded random shuffle of the whole pool, but first remove junk and duplicates without reordering anything. Drop a doc if its whitespace-normalized, lowercased text hash was already seen (keep the first occurrence). Drop a doc if more than 5% of its characters are non-ASCII, or if it contains \"Click here\", \"discount code\", or \"coupon\". Then shuffle the surviving indices with random.Random(int(os.environ.get(\"CURATE_SEED\", 0))) and return them. Do not use TF-IDF, similarity to target_sample, format grouping, or truncation, so the trainer still reads the list front to back and cycles if needed.",
+   "outcome": "dev 2.0258 against 1.9636 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "In select(), keep the original seeded random shuffle of the whole pool, and drop only obvious SEO spam: remove a doc if it contains \"Click here\" AND (\"save 70%\" or \"Limited offer\"), using plain substring checks on the raw text. Do not apply the non-ASCII share rule, the \"coupon\" or \"discount code\" rules, duplicate hashing, TF-IDF, format grouping, or truncation. Shuffle the surviving indices with random.Random(int(os.environ.get(\"CURATE_SEED\", 0))) and return them, so the trainer still cycles if needed.",
+   "outcome": "dev 2.0104 against 1.9636 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "In select(), keep the seeded random shuffle within two groups, but reverse the group order from experiment 2 and fix the length. Group A is every doc that starts with a \"= Title =\" heading line (regex ^= .+ =\\s*\\n) or contains \" @-@ \", as in experiment 2. Group B is everything else. Do no junk filtering, deduplication, TF-IDF, or similarity ranking. Shuffle each group with random.Random(int(os.environ.get(\"CURATE_SEED\", 0))). Build the output as a prefix of shuffled B followed by all of shuffled A, so the final segment the trainer reads is wiki-format. Choose the B prefix so the total is exactly T tokens, counting with tiktoken \"gpt2\". If A alone exceeds T, keep only the last T tokens of A. Return the indices in that order so the trainer does not need to cycle.",
+   "outcome": "dev 1.9032 against 1.9636 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 6,
+   "idea": "Keep the experiment-5 structure exactly (seeded shuffle of group B as a token-counted prefix, then all of group A last, total exactly T tokens), but reorder group A before concatenation: fit a sklearn TfidfVectorizer (word unigrams and bigrams, sublinear_tf=True) on target_sample, compute each group-A doc's cosine similarity to the mean target vector, and sort group A ascending by that score so the most target-like wiki-format docs come last. Leave group B's seeded shuffle, the B-prefix token budget, and the no-junk-filtering and no-dedup rules unchanged. Only the order inside the final segment changes.",
+   "outcome": "dev 1.9121 against 1.9032 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Keep the experiment-5 structure exactly (seeded shuffle of group B as a token-counted prefix, then all of group A last, total exactly T tokens, no junk filtering, no dedup, no TF-IDF). Change only the group A membership test. A doc goes to group A if it matches the heading regex ^= .+ =\\s*\\n, OR contains \" @-@ \", OR contains \" @,@ \" or \" @.@ \", OR has at least 5 occurrences of \" , \" together with at least 5 occurrences of \" . \". Everything else goes to group B. Shuffle each group with random.Random(int(os.environ.get(\"CURATE_SEED\", 0))) as before, and keep the B-prefix token budget and the A-alone-exceeds-T fallback unchanged.",
+   "outcome": "dev 1.9029 against 1.9032 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Keep the experiment-5 structure (seeded shuffle of group B as a token-counted prefix, then group A last, total exactly T tokens, no junk filtering, no dedup, no TF-IDF), but upsample group A by repeating it. Build A1 = shuffled group A and A2 = a second, independently reseeded shuffle of group A (random.Random(seed + 1)). Form the tail as A1 + A2 and count its tokens with tiktoken \"gpt2\". Choose the B prefix so that B-prefix tokens + len(A1 + A2) = T exactly, which means the B prefix shrinks as the A tail grows. If A1 + A2 alone exceeds T, keep the last T tokens of A1 + A2 (whole documents, as in the existing fallback). Return the indices in that order so the trainer does not need to cycle.",
+   "outcome": "dev 1.9374 against 1.9032 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Keep experiment 5 exactly, including the seeded shuffle of group B, the token-counted B prefix, and group A last. Change only the order of the B prefix: after choosing the prefix as the first N shuffled group-B docs that fill the token budget, sort those prefix docs ascending by cosine similarity to the mean target TF-IDF vector (sklearn TfidfVectorizer, word unigrams and bigrams, sublinear_tf=True, fit on target_sample), so the most target-like B docs sit immediately before group A. Do not filter junk, dedupe, or change which docs are in the prefix or the total token count.",
+   "outcome": "dev 2.0220 against 1.9032 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Keep experiment 5 exactly (seeded shuffle of group B as a token-counted prefix, then all of group A last, total exactly T tokens, no junk filtering, no TF-IDF), and add one change: drop exact duplicates before anything else. Hash each doc by its whitespace-normalized, lowercased text and keep only the first occurrence, preserving pool order. Then run the existing group split, seeded shuffles (random.Random(int(os.environ.get(\"CURATE_SEED\", 0)))), B-prefix token budget, and A-alone-exceeds-T fallback on the deduplicated list. No other filter is applied.",
+   "outcome": "dev 1.9056 against 1.9032 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Keep experiment 5 exactly (group A = heading or \" @-@ \" docs placed last, group B seeded-shuffled and filled as a token-counted prefix to total exactly T), but apply junk filtering to group B only, before the shuffle. Drop any group-B doc that contains \"Click here\", \"discount code\", \"coupon\", or matches the pattern \"Order .* online\" (case-insensitive), or whose share of non-ASCII characters exceeds 5%. Leave group A completely unfiltered and undeduplicated, and keep the same random.Random(int(os.environ.get(\"CURATE_SEED\", 0))) shuffle and the same token-counted B-prefix budget, so the prefix simply draws from the cleaned B list.",
+   "outcome": "dev 2.0486 against 1.9032 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Keep experiment 5 exactly (group A = heading or \" @-@ \" docs placed last, group B seeded-shuffled and filled as a token-counted prefix to total exactly T), but drop source-code documents from group B before the shuffle. A group-B doc counts as code if at least 3 of its lines match the regex ^\\s*(from \\S+ import |import \\S+|def |class |#include|return |if __name__) (multiline). Do not apply the non-ASCII, \"Click here\", coupon, or dedup rules, and leave group A untouched.",
+   "outcome": "dev 1.9163 against 1.9032 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.03732508,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0033143,
+   "dev": 1.96750994849403,
+   "inc": 1.96359839545193,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.00240938,
+   "dev": 2.100113519208394,
+   "inc": 1.96359839545193,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0024465800000000003,
+   "dev": 2.025761892520124,
+   "inc": 1.96359839545193,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0017859799999999995,
+   "dev": 2.010399427154094,
+   "inc": 1.96359839545193,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "accept",
+   "usd": 0.0051243799999999996,
+   "dev": 1.903243391088485,
+   "inc": 1.96359839545193,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.306496609337339,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0039025800000000027,
+   "dev": 1.9120699824850897,
+   "inc": 1.903243391088485,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.306496609337339,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0026939799999999986,
+   "dev": 1.9029460032736984,
+   "inc": 1.903243391088485,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.306496609337339,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.0033841800000000005,
+   "dev": 1.9373814188948633,
+   "inc": 1.903243391088485,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.306496609337339,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.003384080000000001,
+   "dev": 2.021988589196197,
+   "inc": 1.903243391088485,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.306496609337339,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.002922479999999998,
+   "dev": 1.90562857536798,
+   "inc": 1.903243391088485,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.306496609337339,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.002827579999999996,
+   "dev": 2.0486292882147303,
+   "inc": 1.903243391088485,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 8.306496609337339,
+   "planner": "haiku",
+   "coder": "haiku",
+   "decision": "reject",
+   "usd": 0.00312958,
+   "dev": 1.9162957783577061,
+   "inc": 1.903243391088485,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.96359839545193,
+ "inc_slot": 5
+}

@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors, Crippen, rdMolDescriptors
+=======
+from rdkit.Chem import AllChem, Descriptors, Crippen, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+_DESC_CACHE = {}
+=======
+_DESC_CACHE = {}
+_SHAPE_CACHE = {}
+
+
+def shape_features(smiles):
+    rows = []
+    for s in smiles:
+        if s not in _SHAPE_CACHE:
+            mol = Chem.MolFromSmiles(s)
+            amide = rdMolDescriptors.CalcNumAmideBonds(mol)
+            shape = [0.0] * 8
+            try:
+                m = Chem.AddHs(mol)
+                params = AllChem.ETKDGv3()
+                params.randomSeed = 42
+                if AllChem.EmbedMolecule(m, params) == 0:
+                    shape = [rdMolDescriptors.CalcNPR1(m), rdMolDescriptors.CalcNPR2(m),
+                             rdMolDescriptors.CalcPMI1(m), rdMolDescriptors.CalcPMI2(m),
+                             rdMolDescriptors.CalcPMI3(m), rdMolDescriptors.CalcRadiusOfGyration(m),
+                             rdMolDescriptors.CalcAsphericity(m), rdMolDescriptors.CalcSpherocityIndex(m)]
+            except Exception:
+                shape = [0.0] * 8
+            _SHAPE_CACHE[s] = shape + [float(amide)]
+        rows.append(_SHAPE_CACHE[s])
+    return np.array(rows, dtype=np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.clip(X, -1e6, 1e6)
+=======
+    X = np.clip(X, -1e6, 1e6)
+    return np.hstack([X, shape_features(smiles)])
+>>>>>>> REPLACE
+-----

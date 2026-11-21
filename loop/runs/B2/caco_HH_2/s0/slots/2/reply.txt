@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from catboost import CatBoostRegressor
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import GroupKFold
+from rdkit.Chem.Scaffolds import MurckoScaffold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+LR = 0.05
+=======
+LR = 0.05
+ALPHAS = [1, 10, 100, 1000]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    A_tr = np.c_[np.ones(len(y)), base_features(train_smiles)]
+    A_te = np.c_[np.ones(len(test_smiles)), base_features(test_smiles)]
+    coef = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+def desc_matrix(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([f(m) for _, f in Descriptors.descList])
+    return np.nan_to_num(np.array(rows, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0)
+
+
+def scaffold_groups(smiles):
+    keys = [MurckoScaffold.MurckoScaffoldSmiles(smiles=s) for s in smiles]
+    codes = {k: i for i, k in enumerate(sorted(set(keys)))}
+    return np.array([codes[k] for k in keys])
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    Dtr = desc_matrix(train_smiles)
+    Dte = desc_matrix(test_smiles)
+    keep = Dtr.std(axis=0) > 0
+    Dtr, Dte = Dtr[:, keep], Dte[:, keep]
+    mu, sd = Dtr.mean(axis=0), Dtr.std(axis=0)
+    Ztr = (Dtr - mu) / sd
+    Zte = (Dte - mu) / sd
+    groups = scaffold_groups(train_smiles)
+    best_a, best_err = ALPHAS[0], np.inf
+    for a in ALPHAS:
+        err = 0.0
+        for tr, va in GroupKFold(n_splits=3).split(Ztr, y, groups):
+            r = Ridge(alpha=a).fit(Ztr[tr], y[tr])
+            err += np.abs(r.predict(Ztr[va]) - y[va]).sum()
+        if err < best_err:
+            best_a, best_err = a, err
+    ridge = Ridge(alpha=best_a).fit(Ztr, y)
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - ridge.predict(Ztr))
+    return model.predict(featurize(test_smiles)) + ridge.predict(Zte)
+>>>>>>> REPLACE
+-----

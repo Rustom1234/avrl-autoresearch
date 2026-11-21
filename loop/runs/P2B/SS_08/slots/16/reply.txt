@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+WARMDOWN_RATIO = 0.5    # fraction of time budget for LR warmdown
+=======
+WARMDOWN_RATIO = 0.3    # fraction of time budget for LR warmdown
+EMA_DECAY = 0.998       # parameter EMA decay used for evaluation
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+=======
+    optimizer.step()
+    model.zero_grad(set_to_none=True)
+
+    # Parameter EMA (fp32)
+    if step == 100:
+        ema_params = [p.detach().float().clone() for p in model.parameters()]
+    elif step > 100:
+        with torch.no_grad():
+            torch._foreach_lerp_(ema_params, [p.detach().float() for p in model.parameters()], 1 - EMA_DECAY)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+# Final eval
+model.eval()
+=======
+# Swap EMA weights into the model
+with torch.no_grad():
+    for p, e in zip(model.parameters(), ema_params):
+        p.copy_(e)
+
+# Final eval
+model.eval()
+>>>>>>> REPLACE
+-----

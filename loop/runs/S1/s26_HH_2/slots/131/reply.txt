@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+_N = 26
+_MARGIN = 1e-9
+=======
+_N = 26
+_MARGIN = 1e-9
+
+
+def _halton(n, base):
+    out = np.zeros(n)
+    for i in range(n):
+        f, r, k = 1.0, 0.0, i + 1
+        while k > 0:
+            f /= base
+            r += f * (k % base)
+            k //= base
+        out[i] = r
+    return out
+
+
+_HAL = np.column_stack([_halton(4096, 2), _halton(4096, 3)])
+_HPOS = [0]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        else:
+            k = rng.randint(2, 5)
+            idx = rng.choice(_N, k, replace=False)
+            scale = rng.uniform(0.05, 0.15)
+            c[idx] += rng.normal(0.0, scale, size=(k, 2))
+            c = np.clip(c, 0.0, 1.0)
+=======
+        else:
+            h = _HAL[_HPOS[0] % _HAL.shape[0]]
+            h2 = _HAL[(_HPOS[0] + 1) % _HAL.shape[0]]
+            _HPOS[0] += 2
+            i1 = min(int(h[0] * _N), _N - 1)
+            i2 = min(int(h[1] * (_N - 1)), _N - 2)
+            if i2 >= i1:
+                i2 += 1
+            idx = np.array([i1, i2])
+            scale = 0.01 + 0.04 * h2[0]
+            disp = (2.0 * np.array([h2, h2[::-1]]) - 1.0) * scale
+            c[idx] += disp
+            c = np.clip(c, 0.0, 1.0)
+>>>>>>> REPLACE
+-----

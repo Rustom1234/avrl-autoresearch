@@ -1,0 +1,13 @@
+{
+ "ok": false,
+ "issues": [
+  "Integrity check: the diff only changes the learning-rate warmdown formula. The seed lines, the evaluation call, the data and the prepare.py import line are untouched, and the harness raised no integrity flags.",
+  "Bug that makes the result meaningless: the cosine warmdown runs backwards. In this code, cooldown = (1 - progress) / WARMDOWN_RATIO is 1 when warmdown starts and 0 at the end of training. The new multiplier is FINAL_LR_FRAC + 0.5*(1-FINAL_LR_FRAC)*(1+cos(pi*cooldown)). At cooldown=1 that gives FINAL_LR_FRAC, and at cooldown=0 it gives 1.0. So the learning rate drops suddenly from 1.0 to FINAL_LR_FRAC as warmdown begins, then climbs back to the full rate by the last step. The intended formula is cos(pi*(1-cooldown)), or equivalently FINAL_LR_FRAC + (1-FINAL_LR_FRAC)*0.5*(1-cos(pi*cooldown)). The run therefore says nothing about cosine warmdown, and the much worse score (1.1627 against 1.1044) fits a schedule that ends training at peak learning rate.",
+  "Numbers: the difference is 1.1044 - 1.1627 = -0.0583. The reported z = -8.697 implies a standard deviation of about 0.0067, which can't be checked because the incumbent's per-run values or spread are not given. The sign matches the convention where negative means worse. The provisional reject is consistent with the numbers.",
+  "Recommendation: keep the reject. If the cosine warmdown idea is worth testing, rerun it with the fixed formula."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

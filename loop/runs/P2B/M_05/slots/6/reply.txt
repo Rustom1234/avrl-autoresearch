@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+            dict(kind='adamw', params=resid_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+=======
+            # Layer-wise LR decay: scale by 0.85^(depth-1-l) so later layers get higher LR
+            decay_factors = [(0.85 ** (DEPTH - 1 - i) if i < DEPTH else 1.0) for i in range(config.n_layer)]
+            dict(kind='adamw', 
+                params=resid_params, 
+                lr=scalar_lr * 0.01 * decay_factors[config.n_layer - 1], 
+                betas=adam_betas, 
+                eps=1e-10, 
+                weight_decay=0.0),
+            dict(kind='adamw', 
+                params=x0_params, 
+                lr=scalar_lr * decay_factors[config.n_layer - 1], 
+                betas=(0.96, 0.95), 
+                eps=1e-10, 
+                weight_decay=0.0),
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+            dict(kind='adamw', params=resid_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+=======
+            # Layer-wise LR decay: Resid lambdas at 0.85^(DEPTH-1) and x0_lambdas at full rate
+            resid_lange: float = scalar_lr * 0.01
+            x0_lange: float = scalar_lr
+            lr_resid = resid_lange * 0.85 ** (DEPTH - 1)
+            lr_x0 = x0_lange
+-----
+<<<<<<< SEARCH
+        dict(kind='adamw', params=resid_params, lr=scalar_lr * 0.01, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+        dict(kind='adamw', params=x0_params, lr=scalar_lr, betas=(0.96, 0.95), eps=1e-10, weight_decay=0.0),
+=======
+        # Layer-wise LR decay for matrix params (Muons) by depth: last layer full LR, first layer scaled down
+        num_layers = config.n_layer
+        lrs_muon = []
+        for i, param_group in enumerate(matrix_params):
+            lr = MATRIX_LR * (0.85 ** (num_layers - 1 - i))
+            lrs_muon.append(dict(
+                kind='muon', params=[param_group], lr=lr,
+                momentum=0.95, ns_steps=5, beta2=0.95, weight_decay=weight_decay,
+            ))
+
+        # Map each matrix param group by depth
+        params = []
+        for p in lrs_muon:
+            params.append({"params": p["params"]})
+>>>>>>> REPLACE
+-----

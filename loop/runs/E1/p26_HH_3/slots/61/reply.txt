@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+=======
+    c, r = best
+    s, hist = 1.0, []
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle, adaptive kick size
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = np.clip(c2[i] + s * (rng.uniform(0, 1, 2) - c2[i]), 0, 1)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        acc = r2.sum() > r.sum()
+        if acc:
+            c, r = c2, r2
+        hist = (hist + [acc])[-20:]
+        if len(hist) == 20:
+            rate = np.mean(hist)
+            if rate > 0.2:
+                s = min(3.0, s * 1.1)
+            elif rate < 0.05:
+                s = max(0.2, s * 0.9)
+    return c, r
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,38 @@
+<<<<<<< SEARCH
+def _two_phase():
+=======
+def _hungarian_seed(rng):
+    """Prescribed decreasing radius profile matched to jittered-grid sites by Hungarian assignment."""
+    from scipy.optimize import linear_sum_assignment
+    g = np.linspace(0.04, 0.96, 14)
+    G = np.array(np.meshgrid(g, g)).reshape(2, -1).T
+    sites = np.clip(G + rng.normal(0.0, 0.02, size=G.shape), 0.02, 0.98)
+    sites = np.vstack([sites, rng.uniform(0.02, 0.98, size=(4, 2))])
+    r_t = np.sort(np.exp(rng.uniform(np.log(0.05), np.log(0.12), size=_N)))[::-1]
+    r_t[0] = 0.12
+    wall = np.minimum(np.minimum(sites[:, 0], sites[:, 1]), np.minimum(1 - sites[:, 0], 1 - sites[:, 1]))
+    cost = r_t[:, None] - wall[None, :]
+    ri, ci = linear_sum_assignment(cost)
+    c = sites[ci].copy()
+    return c, r_t[ri]
+
+
+def _two_phase():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    pool = []
+    while len(pool) < 12 and _time.time() - t0 < 60:
+=======
+    pool = []
+    try:
+        hc, hr0 = _hungarian_seed(rng)
+        hc, _hr = _relax(hc, hr0.copy(), 300, 0.2, 0.02)
+        hc, hr = _slsqp_refine(hc, _hr, 80)
+        hrv, hs = _score(hc)
+        if hrv is not None:
+            pool.append((hs, hc.copy()))
+    except Exception:
+        pass
+    while len(pool) < 12 and _time.time() - t0 < 60:
+>>>>>>> REPLACE
+-----

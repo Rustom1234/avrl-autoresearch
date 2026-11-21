@@ -1,0 +1,66 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+ =======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+    
+    # Simple split for early stopping
+    indices = np.arange(len(y))
+    np.random.RandomState(seed).shuffle(indices)
+    train_idx = indices[:int(0.9 * len(y))]
+    val_idx = indices[int(0.9 * len(y)):]
+    
+    X_train, y_train = X[train_idx], y[train_idx]
+    X_val, y_val = X[val_idx], y[val_idx]
+    
+    model = lgb.LGBMClassifier(
+        n_estimators=N_TREES, 
+        learning_rate=LEARNING_RATE, 
+        num_leaves=NUM_LEAVES, 
+        n_jobs=-1, 
+        random_state=seed, 
+        importance_type='gain'
+    )
+    
+    model.fit(
+        X_train, y_train, 
+        eval_set=[(X_val, y_val)], 
+        eval_metric='binary_logloss', 
+        callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)]
+    )
+    
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+-----
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+============
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    X = featurize(train_smiles)
+    y = np.asarray(train_y, dtype=np.int64)
+
+    # Split data for early stopping
+    indices = np.arange(len(y))
+    np.random.RandomState(seed).shuffle(indices)
+    train_size = int(0.9 * len(y))
+    
+    X_train, y_train = X[indices[:train_size]], y[indices[:train_size]]
+    X_val, y_val = X[indices[train_size:]], y[indices[train_size:]]
+
+    model = lgb.LGBMClassifier(n_estimators=N_TREES, learning_rate=LEARNING_RATE, num_leaves=NUM_LEAVES,
+                                n_jobs=-1, random_state=seed)
+    
+    model.fit(X_train, y_train, eval_set=[(X_val, y_val)],
+                eval_metric='binary_logloss', 
+                callbacks=[lgb.early_stopping(stopping_rounds=50, verbose=False)])
+
+    return model.predict_proba(featurize(test_smiles))[:, 1]
+-----

@@ -1,0 +1,111 @@
+<<<<<<< SEARCH
+    def setup_optimizer(self, unembedding_lr=0.004, embedding_lr=0.2, matrix_lr=0.02,
+                        weight_decay=0.0, adam_betas=(0.8, 0.95), scalar_lr=0.5):
+=======
+    def _norm_penalty_group(params, target_norm, param_count):
+        """Regularize parameters to have norms below target to avoid dominance."""
+        current_norm = torch.nn.functional.normalize(params).mean()
+        if current_norm > target_norm:
+            scale = target_norm / current_norm
+            for p in params:
+                p.data = (p.data / p.norm(p dim=-1, keepdim=True)).reshape(-1, p.shape[-1])[..., p.shape[-1]//2:] * scale # simplified placeholder logic for architecture
+                # More robust: update all elements proportionally to reduce norm
+                p.data = p.data / p.norm(p dim=-1, keepdim=True) * p.norm(p dim=-1, keepdim=True) # No change here, need better norm calculation
+        return current_norm
+
+    def setup_optimizer(self, unembedding_lr=0.004, embedding_lr=0.2, matrix_lr=0.02,
+                        weight_decay=0.0, adam_betas=(0.8, 0.95), scalar_lr=0.5, embedding_norm_th=20.0):
+<<<<<<< SEARCH
+        h = self.config.n_head
+        q = self.config.n_embd // self.config.n_head
+        t = self.config.sequence_len
+        attn_flops = 0
+        for window_size in self.window_sizes:
+            window = window_size[0]
+            effective_seq = t if window < 0 else min(window, t)
+            attn_flops += 12 * h * q * effective_seq
+        return 6 * (nparams - nparams_exclude) + attn_flops
+=======
+        h = self.config.n_head
+        q = self.config.n_embd // self.config.n_head
+        t = self.config.sequence_len
+        attn_flops = 0
+        for window_size in self.window_sizes:
+            window = window_size[0]
+            effective_seq = t if window < 0 else min(window, t)
+            attn_flops += 12 * h * q * effective_seq
+        return 6 * (nparams - nparams_exclude) + attn_flops
+>>>>>>> REPLACE
+    def compute_grad_norm_params(self):
+        # Animate the momentum buffers to track the norm.
+        momentum_buffer = self.create_momentum_buffer()
+        second_momentum_buffer = self.create_second_momentum_buffer()
+        
+        for group in self.param_groups:
+            if group['kind'] == 'muon':
+                for p in group['params']:
+                    if p.grad is None:
+                        continue
+                    g = p.grad
+                    if g is None:
+                        continue
+                    norm = g.norm().item()\n                    if norm > self.embedding_norm_th:
+                        print(f"Warning: Embedding/LM Head norm {norm:.2f} exceeds threshold {self.embedding_norm_th}")
+                        # Penalize
+                        p.data = p.data * (1 - 0.01 * (norm - self.embedding_norm_th))
+        return self.embedding_norm_th
+=======
+        for torch.no_grad():
+            self.lm_head.weight.nn.init.uniform_(mean=0.0, std=0.001)
+            self.weight_decay.register_buffer(
+                (
+                self.lm_head.weight.data, (1 - 0.01 * (norm - self.embedding_norm_th)))
+            
+    def forward(self, idx, targets=None, reduction='mean'):
+        B, T = idx.size()
+        assert T <= self.cos.size(1)
+        cos_sin = self.cos[:, :T], self.sin[:, :T]
+
+        x = self.transformer.wte(idx)
+        x = norm(x)
+        x0 = x
+        for i, block in enumerate(self.transformer.h):
+            x = self.resid_lambdas[i] * x + self.x0_lambdas[i] * x0
+            ve = self.value_embeds[str(i)](idx) if str(i) in self.value_embeds else None
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+        x = norm(x)
+
+        softcap = 15
+        logits = self.lm_head(x)
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+
+        if targets is not None:
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                                   ignore_index=-1, reduction=reduction)
+            return loss
+        return logits
+-----
+<<<<<<< SEARCH
+        return logits
+=======
+        logits = self.lm_head(x)
+        logits = logits.float()
+        logits = softcap * torch.tanh(logits / softcap)
+
+        # Soft regularization on log probabilities (exploded embeddings/LM head)
+        log_probs = logits - x # Log probabilities
+        log_probs_reg = torch.log(torch.clamp(log_probs.exp(), min=1e-6)) # Stable log(p)
+        reg_loss = log_probs_reg.sum(dim=-1).mean().abs() # Mean absolute log prob
+        
+        if targets is None:
+            return reg_loss
+        
+        loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+                               ignore_index=-1, reduction="mean")
+        reg_loss = loss.mean()
+        
+        if targets is not None:
+            loss = loss
+>>>>>>> REPLACE
+-----

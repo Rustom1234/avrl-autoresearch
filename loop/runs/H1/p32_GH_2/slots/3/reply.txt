@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+PENALTY = 100.0
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    def obj(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1) + 1e-18)
+        pair = np.maximum(0, r[iu[0]] + r[iu[1]] - d)
+        wall = np.maximum(0, np.stack([r - c[:, 0], r - c[:, 1], c[:, 0] + r - 1, c[:, 1] + r - 1], 1))
+        return -r.sum() + PENALTY * (pair.sum() + wall.sum())
+
+    bounds = [(0, 1)] * (2 * n) + [(0, 0.5)] * n
+    res = minimize(obj, x0, method="SLSQP", bounds=bounds, options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+-----

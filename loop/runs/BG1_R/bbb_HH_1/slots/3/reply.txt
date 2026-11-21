@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+=======
+IONIZATION_PATTERNS = [
+    Chem.MolFromSmarts("[CX3](=O)[OX2H1,OX1-]"),                                          # carboxylic acid
+    Chem.MolFromSmarts("[#7]1~[#7]~[#7]~[#7]~[#6]~1"),                                    # tetrazole
+    Chem.MolFromSmarts("[NX3;H2;!a;!$(NC=[O,S,N]);!$(NS=O)][CX4]"),                       # primary amine
+    Chem.MolFromSmarts("[NX3;H1;!a;!$(NC=[O,S,N]);!$(NS=O)]([CX4])[CX4]"),                # secondary amine
+    Chem.MolFromSmarts("[NX3;H0;!a;!$(NC=[O,S,N]);!$(NS=O)]([CX4])([CX4])[CX4]"),         # tertiary amine
+    Chem.MolFromSmarts("[NX4+]"),                                                         # quaternary ammonium
+    Chem.MolFromSmarts("[SX4](=O)(=O)[NX3]"),                                             # sulfonamide
+]
+
+
+def ionization(mol):
+    return [len(mol.GetSubstructMatches(p)) for p in IONIZATION_PATTERNS]
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([gen.GetFingerprintAsNumPy(mol), np.array(descriptors(mol), dtype=np.float32)]))
+=======
+        rows.append(np.concatenate([gen.GetFingerprintAsNumPy(mol),
+                                    np.array(descriptors(mol) + ionization(mol), dtype=np.float32)]))
+>>>>>>> REPLACE
+-----

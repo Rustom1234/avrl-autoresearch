@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def tanimoto(A, B):
+=======
+def descriptors(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([f(m) for _, f in Descriptors.descList])
+    X = np.array(rows, dtype=np.float64)
+    X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
+    return np.clip(X, -1e6, 1e6).astype(np.float32)
+
+
+def tanimoto(A, B):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gb = lgb.LGBMRegressor(n_estimators=300, learning_rate=0.03, num_leaves=15, subsample=0.8, subsample_freq=1,
+                           colsample_bytree=0.3, min_child_samples=5, random_state=seed, n_jobs=8,
+                           verbose=-1).fit(Xtr, y)
+=======
+    Dtr = np.hstack([descriptors(train_smiles), Xtr])
+    Dte = np.hstack([descriptors(test_smiles), Xte])
+    gb_preds = []
+    for k in range(5):
+        gbk = lgb.LGBMRegressor(objective="huber", n_estimators=400, learning_rate=0.03, num_leaves=8,
+                                subsample=0.8, subsample_freq=1, colsample_bytree=0.3, min_child_samples=5,
+                                random_state=seed * 10 + k, n_jobs=8, verbose=-1).fit(Dtr, y)
+        gb_preds.append(gbk.predict(Dte))
+    gb_pred = np.mean(gb_preds, axis=0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    preds = [rf.predict(Xte), gb.predict(Xte), svr.predict(tanimoto(Xte, Xtr))]
+=======
+    preds = [rf.predict(Xte), gb_pred, svr.predict(tanimoto(Xte, Xtr))]
+>>>>>>> REPLACE
+-----

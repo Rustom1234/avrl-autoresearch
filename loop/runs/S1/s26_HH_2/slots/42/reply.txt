@@ -1,0 +1,52 @@
+<<<<<<< SEARCH
+def _two_phase():
+=======
+def _power_refine(c, r, stages=(0.5, 0.75, 1.0), maxiter=60):
+    """Staged power-mean surrogate: maximise sum r^p with p rising to 1, same pair and wall constraints."""
+    n = c.shape[0]
+    iu, ju = np.triu_indices(n, 1)
+
+    def cons(z):
+        cc = z[:2 * n].reshape(n, 2)
+        rr = z[2 * n:]
+        d = np.sqrt(np.sum((cc[iu] - cc[ju]) ** 2, axis=1) + 1e-18)
+        pair = d - rr[iu] - rr[ju]
+        x, y = cc[:, 0], cc[:, 1]
+        wall = np.concatenate([x - rr, y - rr, 1.0 - x - rr, 1.0 - y - rr])
+        return np.concatenate([pair, wall])
+
+    bounds = [(0.0, 1.0)] * (2 * n) + [(0.0, 0.5)] * n
+    cur_c = np.asarray(c, dtype=float).copy()
+    cur_r = np.maximum(np.asarray(r, dtype=float), 0.0)
+    for p in stages:
+        def obj(z, p=p):
+            rr = np.maximum(z[2 * n:], 1e-6)
+            return -np.sum(rr ** p)
+
+        def obj_grad(z, p=p):
+            g = np.zeros_like(z)
+            rr = np.maximum(z[2 * n:], 1e-6)
+            g[2 * n:] = -p * rr ** (p - 1.0)
+            return g
+
+        z0 = np.concatenate([cur_c.ravel(), cur_r])
+        try:
+            res = _minimize(obj, z0, jac=obj_grad, method="SLSQP", bounds=bounds,
+                            constraints=[{"type": "ineq", "fun": cons}],
+                            options={"maxiter": maxiter, "ftol": 1e-12})
+            z = res.x
+        except Exception:
+            z = z0
+        cur_c = np.clip(z[:2 * n].reshape(n, 2), 0.0, 1.0)
+        cur_r = np.maximum(z[2 * n:], 0.0)
+    return cur_c, cur_r
+
+
+def _two_phase():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _slsqp_refine(c, r)
+=======
+        c, r = _power_refine(c, r)
+>>>>>>> REPLACE
+-----

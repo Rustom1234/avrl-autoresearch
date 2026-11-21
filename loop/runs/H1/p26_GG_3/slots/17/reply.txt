@@ -1,0 +1,129 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Apply force-based repulsion and containment to find a valid packing."""
+    n = len(r)
+    c = c.copy()
+    r = r.copy()
+    for _ in range(100):
+        # Overlap forces
+        d_mat = np.sqrt(((c[:, None] - c[None])**2).sum(-1))
+        # Avoid division by zero, but we only care about overlaps
+        dist = np.where(d_mat < 1e-9, 1e-9, d_mat)
+        overlap = (r[:, None] + r[None]) - dist
+        np.fill_diagonal(overlap, -1)
+        
+        # Forces: push apart if overlapping, pull into [0, 1] if out
+        forces = np.zeros_like(c)
+        # Pairwise repulsion
+        idx = np.where(overlap > 0)
+        for i, j in zip(idx[0], idx[1]):
+            diff = c[i] - c[j]
+            forces[i] += (diff / (dist[i, j] + 1e-9)) * overlap[i, j]
+            forces[j] -= (diff / (dist[i, j] + 1e-9)) * overlap[i, j]
+        
+        # Boundary forces
+        boundary_forces = np.zeros_like(c)
+        for i in range(n):
+            if c[i, 0] < r[i]: boundary_forces[i, 0] += (r[i] - c[i, 0]) * 0.5
+            if c[i, 0] > 1 - r[i]: boundary_forces[i, 0] -= (1 - r[i] - c[i, 0]) * 0.5
+            if c[i, 1] < r[i]: boundary_forces[i, 1] += (r[i] - c[i, 1]) * 0.5
+            if c[i, 1] > 1 - r[i]: boundary_forces[i, 1] -= (1 - r[i] - c[i, 1]) * 0.5
+        
+        total_f = forces + boundary_forces
+        c += total_f * 0.1
+        
+        # Shrink radii slightly if still overlapping
+        if np.any(overlap > 0): 
+            r *= 0.999
+        else: 
+            break
+
+    # Final clamp to ensure validity
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    return np.maximum(r - SHRINK, 0)
+-----
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Apply repulsion forces to push overlapping circles apart and into the box."""
+    c = c.copy()
+    r = r.copy()
+    n = len(r)
+    for _ in range(100):
+        forces = np.zeros_like(c)
+        # Repulsion for overlaps
+        dist_mat = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over_mat = (r[:, None] + r[None]) - dist_mat
+        np.fill_diagonal(over_mat, -1)
+        
+        idx = np.where(over_mat > 0)
+        for i, j in zip(idx[0], idx[1]):
+            diff = c[i] - c[j]
+            d = dist_mat[i, j]
+            if d > 1e-9:
+                forces[i] += (diff / d) * over_mat[i, j]
+                forces[j] -= (diff / d) * over_mat[i, j]
+        
+        # Boundary containment
+        for i in range(n):
+            if c[i, 0] < r[i]: forces[i, 0] += (r[i] - c[i, 0])
+            if c[i, 0] > 1 - r[i]: forces[i, 0] -= (1 - r[i] - c[i, 0])
+            if c[i, 1] < r[i]: forces[i, 1] += (r[i] - c[i, 1])
+            if c[i, 1] > 1 - r[i]: forces[i, 1] -= (1 - r[i] - c[i, 1])
+        
+        c += forces * 0.01
+        if not np.any(over_mat > 0) and np.all(c >= r[:, None].T) and np.all(c <= 1 - r[:, None].T):
+            break
+            
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    return np.maximum(r - SHRINK, 0)
+-----
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+图
+-----

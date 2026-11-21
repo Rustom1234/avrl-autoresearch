@@ -1,0 +1,36 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import ARDRegression
+=======
+from sklearn.linear_model import ARDRegression
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def svr_model(K_tr, K_te, target):
+    mu, sd = target.mean(), target.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_tr, (target - mu) / sd)
+    return model.predict(K_te) * sd + mu
+
+
+def oof_predict(K_train, target, seed):
+    oof = np.zeros(len(target))
+    for tr, te in KFold(5, shuffle=True, random_state=seed).split(target):
+        oof[te] = svr_model(K_train[np.ix_(tr, tr)], K_train[np.ix_(te, tr)], target[tr])
+    return oof
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    svr_pred = model.predict(K_test)
+=======
+    y1 = 0.5 * y + 0.5 * oof_predict(K_train, y, seed)
+    y2 = 0.3 * y + 0.7 * oof_predict(K_train, y1, seed)
+    svr_pred = svr_model(K_train, K_test, y2)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,626 @@
+[
+ {
+  "id": "b001",
+  "title": "Stagnation restart with independent walkers",
+  "spec": "In solve, keep the 30% random-restart phase as is, but in the refinement phase track a separate 'current' packing in addition to the global 'best'. Perturb 'current' (pass it as start), and accept into 'current' only if the sum of radii improves, as now. Count consecutive non-improving hops; when the count reaches 25, reset 'current' by running fresh random restarts (start=None) 4 times and taking the best of those 4 as the new 'current', then reset the counter. Always update the global 'best' whenever any repaired packing beats it, and return the global best. No other change.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8141813278198242,
+  "sim_tried_bge": 0.8141813278198242,
+  "sim_hist_mini": 0.6192363500595093,
+  "sources": [
+   [
+    "fable",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Explore fraction 20 percent with refinement restarts from a top-2 pool",
+  "spec": "Use a 20% explore phase. During refinement, alternate the hop base between the best and the second-best distinct packing (sum differs by more than 1e-4). Update both when a hop result beats the second best. Return the best.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8084858655929565,
+  "sim_tried_bge": 0.8078557848930359,
+  "sim_hist_mini": 0.6072777509689331,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Greedy largest-clearance sequential initialization",
+  "spec": "Add a start generator that places circles one at a time. For each new circle, sample about 2000 candidate points uniformly in [0,1]^2 with the seed rng, and pick the candidate maximising its clearance, defined as the minimum of the distance to every placed centre minus that centre's radius and the distance to the walls. Set the new circle's radius to that clearance, capped at 0.2. Use the resulting centres and radii as x0 for SLSQP in place of the uniform random start, for about 50% of explore restarts. This produces a feasible, well-spread start and replaces the purely random draw.",
+  "family": "data",
+  "sim_hist_bge": 0.8614922165870667,
+  "sim_tried_bge": 0.8573623895645142,
+  "sim_hist_mini": 0.7764163017272949,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Margin-aware constraints",
+  "spec": "In cons, require the pair distance to be at least r_i + r_j + 1e-9. The wall constraints should be c - r >= 1e-9 and the same for the other walls. SLSQP then returns packings that are already valid, and _repair loses almost nothing. Reduce SHRINK to 1e-11 accordingly. Check validity at the end and fall back to the full repair if needed.",
+  "family": "regularization",
+  "sim_hist_bge": 0.928347110748291,
+  "sim_tried_bge": 0.849658727645874,
+  "sim_hist_mini": 0.8944311141967773,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Variable scaling for SLSQP conditioning",
+  "spec": "Rescale the decision vector before calling SLSQP. Scale the centre coordinates and radii by a fixed factor of 10 (or divide by 1/n-based scale), so that the variables and constraint values have comparable magnitudes. Pass the objective as minus the scaled radius sum. Unscale the result before repair. Keep every constraint and the iteration limit unchanged, so only the conditioning of the QP subproblems changes. Check that the final repaired packings are valid under the 1e-10 harness tolerance.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8142102360725403,
+  "sim_tried_bge": 0.8022063970565796,
+  "sim_hist_mini": 0.7307676672935486,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Grow-radius continuation from best",
+  "spec": "In the refinement phase, build the perturbed start from the best packing as follows. Shrink all radii to 0.7 times their values and add centre noise of sd 0.01. Run SLSQP for 60 iterations and then for the full MAX_ITER iterations from the result. Compared with the 0.9 shrink, the circles have more room to rearrange before they re-expand.",
+  "family": "other",
+  "sim_hist_bge": 0.9536860585212708,
+  "sim_tried_bge": 0.9276713728904724,
+  "sim_hist_mini": 0.8221480846405029,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Explore phase at 40% instead of 30%",
+  "spec": "In solve, change the explore condition from 0.3 * TIME_FRACTION * time_limit to 0.4 * TIME_FRACTION * time_limit, so more fresh random restarts are made before refinement starts. A 15% phase scored worse (slot 33), so this tests the other direction. Change nothing else.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8769032955169678,
+  "sim_tried_bge": 0.8769032955169678,
+  "sim_hist_mini": 0.622785210609436,
+  "sources": [
+   [
+    "opus",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Greedy radius inflation after repair",
+  "spec": "After _repair produces a valid (c, r), run one pass in a random order (drawn from the seed rng). For each circle i, set r_i to the largest value allowed by the walls and by every other circle j, which is min(c_i to walls, d_ij - r_j for all j). Do not decrease any radius. Accept the inflated radii only if the packing stays valid under the harness tolerance, and compare by r.sum() before storing best. This recovers slack that the shrink-based repair leaves behind, at O(n^2) cost per pass.",
+  "family": "other",
+  "sim_hist_bge": 0.8099809885025024,
+  "sim_tried_bge": 0.8099809885025024,
+  "sim_hist_mini": 0.6865321397781372,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Over-populate and prune starts",
+  "spec": "For a fraction of explore restarts (say 40%), solve _solve_once for n+1 circles from the same rng, then delete the circle with the smallest final radius, and pass the remaining n centres and radii through the repair step. Keep the normal n-circle path for the rest. The extra circle gives SLSQP room to rearrange, and dropping the weakest one tends to leave a different, feasible basin. No other logic changes.",
+  "family": "other",
+  "sim_hist_bge": 0.8746042847633362,
+  "sim_tried_bge": 0.8746042847633362,
+  "sim_hist_mini": 0.7440184950828552,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Compress-toward-a-point perturbation",
+  "spec": "Add a third perturbation move in _solve_once when start is given: with probability 0.3 (leave relocate and jitter sharing the remaining 0.7 equally), draw a random point p uniform in the unit square and a factor s = rng.uniform(0.90, 0.98), then set c0 = p + s * (c0 - p) for all centres whose distance to p is below 0.4 (others unchanged), and add tiny noise rng.normal(0, 0.003) to those moved centres. This opens slack on one side of a region so SLSQP can rearrange it. Radii start at r0 * 0.9 as now. Nothing else changes.",
+  "family": "other",
+  "sim_hist_bge": 0.8182889819145203,
+  "sim_tried_bge": 0.8182889819145203,
+  "sim_hist_mini": 0.7253627777099609,
+  "sources": [
+   [
+    "fable",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Adaptive time guard based on the longest observed run",
+  "spec": "In solve, replace the fixed stop condition 'elapsed < TIME_FRACTION * time_limit' by an adaptive guard: record the CPU time of each _solve_once + _repair call, keep the maximum seen (longest), and continue looping while elapsed + 1.5 * longest < 0.95 * time_limit (use longest = 2.0 s before the first call finishes). Keep the explore/refine switch at 0.3 * 0.8 * time_limit CPU seconds exactly as now. This uses the idle 20% tail for extra refinement hops while staying far below the 45 s void limit.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7557929158210754,
+  "sim_tried_bge": 0.7557929158210754,
+  "sim_hist_mini": 0.5898768901824951,
+  "sources": [
+   [
+    "fable",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Metropolis acceptance in basin hopping",
+  "spec": "In the refinement phase, keep a current packing cur and a best packing best. Perturb cur, not best. Accept the new result if its sum is greater than cur_sum - T*(-log(u)), with T = 0.003 and u uniform in (0,1). Always track the global best separately and return it. This gives a slightly looser acceptance than strict improvement, and it is meant to escape local optima.",
+  "family": "schedule",
+  "sim_hist_bge": 0.9678940773010254,
+  "sim_tried_bge": 0.8184852600097656,
+  "sim_hist_mini": 0.8739928007125854,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Relocate the smallest circles instead of random ones",
+  "spec": "In _solve_once, in the relocate branch (rng.random() < 0.5), choose the circles to move from the smallest ones instead of uniformly: let k = rng.integers(2, 5), take the 2*k indices with the smallest r0 (via np.argsort) and pick k of them at random with rng.choice(..., k, replace=False). Give them uniform random centres and radius INIT_RADIUS*0.5 as now. Small circles are usually the badly placed ones, and moving them barely changes the main structure.",
+  "family": "other",
+  "sim_hist_bge": 0.7961704134941101,
+  "sim_tried_bge": 0.7961704134941101,
+  "sim_hist_mini": 0.6395493745803833,
+  "sources": [
+   [
+    "opus",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Rattler relocation into the largest hole",
+  "spec": "In the refinement phase, after each SLSQP run, identify rattlers as circles with no contact within 1e-4 of any wall or other circle. Pick one rattler at random, and move its centre to the grid point (on a 60 by 60 grid) with the largest clearance to the other circles and walls. Set its radius to that clearance, then run SLSQP warm-started from this configuration with the reduced maxiter of 100. Keep the result only if sum r improves. This targets slack that removal-and-reinsert moves hit only at random.",
+  "family": "other",
+  "sim_hist_bge": 0.8115487098693848,
+  "sim_tried_bge": 0.8115487098693848,
+  "sim_hist_mini": 0.7209963202476501,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "Bandit allocation between explore and refine",
+  "spec": "Replace the fixed 30% explore split with a simple epsilon-greedy bandit over two arms, fresh random restart and perturbation of the current best. Each arm keeps a running mean of the improvement it gives to best.sum(). At each iteration pick the arm with probability 0.8 by highest mean and 0.2 uniformly at random, and update the chosen arm's mean after the call. Keep TIME_FRACTION unchanged. This lets the budget shift towards whichever move is paying off on the given seed.",
+  "family": "schedule",
+  "sim_hist_bge": 0.797747015953064,
+  "sim_tried_bge": 0.797747015953064,
+  "sim_hist_mini": 0.5783646106719971,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Bias relocation towards small circles",
+  "spec": "In the relocate branch of _solve_once, the 2 to 4 relocated circles are chosen uniformly. Choose them instead with probability proportional to 1 / (r0 + 0.02) ** 2 (normalised to sum to 1, passed as p= to rng.choice with replace=False), so that small, poorly placed circles are moved far more often than the large ones that form the backbone of the packing. Keep the number relocated, their new uniform positions, the 0.5 * INIT_RADIUS starting radius, the jitter branch and the acceptance rule unchanged.",
+  "family": "regularization",
+  "sim_hist_bge": 0.7932636737823486,
+  "sim_tried_bge": 0.7932636737823486,
+  "sim_hist_mini": 0.6119780540466309,
+  "sources": [
+   [
+    "fable",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Walls as variable bounds",
+  "spec": "In _solve_once, remove the four wall-constraint blocks from cons. Pass bounds to SLSQP instead: centres in [0,1], radii in [0,0.5]. The wall constraints c-r>=0 and 1-c-r>=0 are then not enforced by bounds alone, so keep only the radius bound r>=0 as a bound. Keep the repair step as it is. This shrinks the constraint vector and speeds up each SLSQP run, so more refinement steps fit in the time budget.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9364620447158813,
+  "sim_tried_bge": 0.8209105730056763,
+  "sim_hist_mini": 0.8789656162261963,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Size-class start in explore phase for half of restarts",
+  "spec": "For 50% of the explore-phase fresh restarts, set the initial radii by size class. The 4 circles nearest the corners get 0.14, 12 get 0.10 and the rest get 0.06. The random centres stay as they are. The other 50% keep the standard INIT_RADIUS. Keep the 30% explore and refinement structure of slot 9.",
+  "family": "data",
+  "sim_hist_bge": 0.8176831007003784,
+  "sim_tried_bge": 0.8176831007003784,
+  "sim_hist_mini": 0.6739321351051331,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Fewer relocated circles, more often",
+  "spec": "In _solve_once, in the warm-start branch, change the move probability from rng.random() < 0.5 to rng.random() < 0.7 for the relocate move, and relocate rng.integers(1, 3) circles (1 or 2) instead of rng.integers(2, 5). Keep the shake branch and everything else as it is. Smaller relocations disturb the incumbent less and so are more often accepted.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8086123466491699,
+  "sim_tried_bge": 0.8086123466491699,
+  "sim_hist_mini": 0.5984339714050293,
+  "sources": [
+   [
+    "opus",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Radius-reset warm start from best centres",
+  "spec": "In the refinement phase, for about 30% of starts, keep the centres of the best packing exactly as they are. Reset every radius to 0.5 times the minimum radius of the best packing, then run SLSQP in full from this start. The centres are unchanged, so the search explores how radii can regrow around the same arrangement, which differs from jittering the centres. Compare results as usual by r.sum() after repair.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8616081476211548,
+  "sim_tried_bge": 0.8552966117858887,
+  "sim_hist_mini": 0.7428679466247559,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b021",
+  "title": "Final tight polish of best packing",
+  "spec": "After the main loop ends, spend about 1 s of CPU, which means reducing TIME_FRACTION slightly to 0.77. Run SLSQP from the best packing (centres and radii, with radii scaled by 0.999) with maxiter 1000 and ftol 1e-12. Repair it and keep it only if the radius sum is larger than the best sum.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9262522459030151,
+  "sim_tried_bge": 0.8661078214645386,
+  "sim_hist_mini": 0.8673832416534424,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b022",
+  "title": "Local-neighbourhood jitter instead of global jitter",
+  "spec": "In _solve_once, change the jitter branch (the else branch that adds normal noise of sd 0.02 to all centres) so that it perturbs only a local cluster. Pick one circle i at random with rng.integers(n), find its k nearest circles by centre distance with k = rng.integers(3, 7) (the set includes i itself), and add rng.normal(0, 0.05, (k, 2)) to those centres only; all other centres stay exactly as in the best packing. Keep r0 * 0.9 for all radii, keep the relocate branch and everything else unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.8200305700302124,
+  "sim_tried_bge": 0.8200305700302124,
+  "sim_hist_mini": 0.6454544067382812,
+  "sources": [
+   [
+    "fable",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b023",
+  "title": "Stall-triggered switch to refinement",
+  "spec": "Track the best sum of radii over explore restarts. If the last K=8 fresh random starts have not improved best by more than 1e-4, switch from the explore phase to the perturbation phase at once, instead of waiting for the fixed 30% of TIME_FRACTION. Otherwise continue exploring until the time cutoff. Keep the existing perturbation and acceptance code unchanged. The point is to spend time where restarts have stopped paying off.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7928627729415894,
+  "sim_tried_bge": 0.7928627729415894,
+  "sim_hist_mini": 0.6755380630493164,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b024",
+  "title": "Shorter SLSQP runs in refinement for more hops",
+  "spec": "Add an optional maxiter argument to _solve_once (default MAX_ITER) and pass it to the SLSQP options. In solve, call it with maxiter=80 when refining from the best packing (not explore), and keep 200 for fresh random restarts. Since refinement starts near a good local optimum, fewer iterations should suffice and the number of hops in the remaining time roughly doubles. Keep the greedy acceptance, repair and everything else the same.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9019046425819397,
+  "sim_tried_bge": 0.8919492959976196,
+  "sim_hist_mini": 0.7444968223571777,
+  "sources": [
+   [
+    "fable",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b025",
+  "title": "Perturbation size tuning",
+  "spec": "Take the incumbent slot 9 perturbation and change the centre-noise sd choice to be drawn per hop from a log-uniform distribution over [0.003, 0.03]. For the relocation move, relocate 1 to 2 circles instead of 2 to 4. Keep everything else unchanged.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8445167541503906,
+  "sim_tried_bge": 0.8445167541503906,
+  "sim_hist_mini": 0.6822634935379028,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b026",
+  "title": "Replicate slot 9 unchanged with a different seed offset",
+  "spec": "Make no change to the refinement logic of the incumbent. Only add a constant SEED_OFFSET = 1000 to the seed used in np.random.default_rng(seed + SEED_OFFSET) so the run is an independent replicate. This estimates whether the -2.6360 result was luck, so later tuning has a real baseline.",
+  "family": "schedule",
+  "sim_hist_bge": 0.796332597732544,
+  "sim_tried_bge": 0.796332597732544,
+  "sim_hist_mini": 0.6019418239593506,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b027",
+  "title": "Log-uniform noise scale in the jitter move",
+  "spec": "In _solve_once, the jitter branch of the perturbation uses a fixed centre-noise sd of 0.02. Replace the fixed sd with one drawn per call from a log-uniform distribution on [0.004, 0.06]: sd = 0.004 * (15 ** rng.random()), then c0 = c0 + rng.normal(0, sd, c0.shape). Leave the relocate branch, the 50/50 branch split, the greedy acceptance in solve and all other settings unchanged. This is not the adaptive feedback scheme of slot 17: the sd is sampled independently each call, with no state.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8050452470779419,
+  "sim_tried_bge": 0.8050452470779419,
+  "sim_hist_mini": 0.6042201519012451,
+  "sources": [
+   [
+    "fable",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b028",
+  "title": "Frozen-window sub-problem hops",
+  "spec": "Add a cheap local hop used in the refinement phase with probability 0.5 (otherwise use the current perturbation unchanged). Pick a random circle and its m = 8 nearest circles (9 in total, the 'window'). Randomise the window: jitter its centres by normal noise sd 0.04 and set its radii to 0.6 of their values. Then run SLSQP (maxiter 150) over only the 27 window variables, with constraints: window-window non-overlap, window versus each fixed circle non-overlap (fixed centres and radii are constants), wall constraints and r >= 0 for window circles; the objective is minus the sum of the window radii. Write the result back into a copy of the best packing, clip, run _repair on the full packing and accept if the total sum improves. The sub-problem is far smaller, so many more hops fit in the time.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8223832845687866,
+  "sim_tried_bge": 0.8223832845687866,
+  "sim_hist_mini": 0.7263268232345581,
+  "sources": [
+   [
+    "fable",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b029",
+  "title": "Occasional fresh restart during refinement",
+  "spec": "In solve, during the refinement phase (after the explore phase), with probability 0.15 per iteration pass start=None to _solve_once (a fresh random restart) instead of the best packing. Use rng.random() < 0.15 to decide. Keep the acceptance rule as it is: the result is kept only if its repaired sum beats best. This keeps some diversity in case the refinement is stuck in a poor basin.",
+  "family": "schedule",
+  "sim_hist_bge": 0.839248776435852,
+  "sim_tried_bge": 0.839248776435852,
+  "sim_hist_mini": 0.6721816658973694,
+  "sources": [
+   [
+    "opus",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b030",
+  "title": "Low-discrepancy initial centres",
+  "spec": "Replace the uniform draw of initial centres in _solve_once with a scrambled Halton or Sobol-style sequence in [INIT_LOW, 1-INIT_LOW]^2. Use a random digit scramble or random offset drawn from the seed rng so each restart differs, and keep the rest of the pipeline unchanged. Low-discrepancy points cover the square more evenly, so restarts explore a wider set of initial layouts for the same number of SLSQP calls.",
+  "family": "data",
+  "sim_hist_bge": 0.8076416254043579,
+  "sim_tried_bge": 0.8076416254043579,
+  "sim_hist_mini": 0.6744383573532104,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b031",
+  "title": "Smaller centre noise in the shake move",
+  "spec": "In _solve_once, in the branch where a start is given and the shake move is chosen (the else branch), change the centre noise from rng.normal(0, 0.02, c0.shape) to rng.normal(0, 0.01, c0.shape). Change nothing else. The aim is to see whether smaller kicks stay in good basins more often, which tunes the slot 9 incumbent's perturbation size.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7898789048194885,
+  "sim_tried_bge": 0.7898789048194885,
+  "sim_hist_mini": 0.5321534276008606,
+  "sources": [
+   [
+    "opus",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b032",
+  "title": "Local neighbourhood shake",
+  "spec": "In _solve_once, in the shake branch (else), apply noise only around one spot instead of to all circles: pick a random centre p = c0[rng.integers(n)], find the circles whose centres lie within 0.3 of p, and add rng.normal(0, 0.03, (m, 2)) to those centres only. All other circles stay exactly as they were. Keep the clip and the r0*0.9 radii as now. A local kick rearranges one region without breaking the rest of the packing.",
+  "family": "other",
+  "sim_hist_bge": 0.8235999941825867,
+  "sim_tried_bge": 0.8235999941825867,
+  "sim_hist_mini": 0.5858193635940552,
+  "sources": [
+   [
+    "opus",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b033",
+  "title": "Size-class radii for fresh starts on top of the refinement incumbent",
+  "spec": "In _solve_once, when start is None, build the initial radii instead of using np.full(n, INIT_RADIUS): draw a random permutation of the n circles and give 4 of them radius 0.12, 12 of them 0.09 and the rest 0.06. Keep the uniform random centres. Leave the warm-start branch and solve() unchanged. This combines the weakly positive slot 4 start with the slot 9 explore-then-refine schedule.",
+  "family": "data",
+  "sim_hist_bge": 0.8262133002281189,
+  "sim_tried_bge": 0.8214292526245117,
+  "sim_hist_mini": 0.633341908454895,
+  "sources": [
+   [
+    "opus",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b034",
+  "title": "Milder radius shrink on warm starts",
+  "spec": "In _solve_once, when a start is given, the initial radii are now r0 * 0.9. Change this to r0 * 0.97 so warm starts begin closer to the incumbent and SLSQP needs fewer iterations to get back to a tight packing. Keep the fresh-start radius INIT_RADIUS and all other logic unchanged.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8805407881736755,
+  "sim_tried_bge": 0.8041654825210571,
+  "sim_hist_mini": 0.833432674407959,
+  "sources": [
+   [
+    "opus",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b035",
+  "title": "Size-class radii for explore-phase starts",
+  "spec": "Only for fresh random starts in _solve_once (start is None), replace the uniform initial radius INIT_RADIUS with size classes: after drawing the random centres, sort circles by distance of their centre to the nearest corner of the square, give the 4 closest r=0.13, the next 12 r=0.10 and the remaining n-16 r=0.07, then multiply all initial radii by 0.6 so the start is not badly overlapping. Leave the refinement phase (start from best, relocate/jitter) completely unchanged. This combines the weakly positive slot 4 start with the slot 9 incumbent.",
+  "family": "data",
+  "sim_hist_bge": 0.8511795997619629,
+  "sim_tried_bge": 0.796881377696991,
+  "sim_hist_mini": 0.6752910614013672,
+  "sources": [
+   [
+    "fable",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b036",
+  "title": "Hole-targeted relocation",
+  "spec": "In _solve_once, in the relocate branch, place each moved circle in a hole instead of at a random point. Sample 2000 candidate points uniformly in [0.02, 0.98]^2 with rng. For each candidate, compute its clearance: the minimum over the non-moved circles of (distance - radius), and also the distance to the nearest wall. Assign the moved circles one by one to the candidates with the largest clearance, and after each assignment treat the placed circle (radius = clearance*0.9) as an obstacle. Set its initial radius to 0.9 * clearance, with a minimum of 0.005. All other code stays unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.7542493939399719,
+  "sim_tried_bge": 0.7493103742599487,
+  "sim_hist_mini": 0.6227011680603027,
+  "sources": [
+   [
+    "opus",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b037",
+  "title": "Refinement restricted to active-neighbour shake",
+  "spec": "In the refinement phase, choose a random circle and its 4 nearest neighbours. Add centre noise of sd 0.03 only to those 5 circles and shrink their radii by 0.5. Then run the full SLSQP. This perturbs one local cluster while the rest of the packing keeps its structure.",
+  "family": "other",
+  "sim_hist_bge": 0.867611825466156,
+  "sim_tried_bge": 0.8591399192810059,
+  "sim_hist_mini": 0.7517256140708923,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b038",
+  "title": "Radius-noise move",
+  "spec": "In _solve_once, add a third warm-start move. With the start given, draw u = rng.random(): if u < 0.4 do the existing relocate move; if u < 0.8 do the existing centre shake; otherwise keep the centres but multiply the radii by np.exp(rng.normal(0, 0.25, n)) and then scale all radii by 0.85. This changes which circles are big or small and lets SLSQP find a different size arrangement on almost the same geometry. Use rng for all randomness.",
+  "family": "other",
+  "sim_hist_bge": 0.8565148115158081,
+  "sim_tried_bge": 0.8333423137664795,
+  "sim_hist_mini": 0.7256773114204407,
+  "sources": [
+   [
+    "opus",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b039",
+  "title": "Cluster rotation move",
+  "spec": "In _solve_once, replace the global jitter branch with a cluster rotation with probability 0.5 of the times that branch is taken (the other times keep the sd 0.02 jitter). Pick a random circle i, take all circles whose centre lies within 0.28 of centre i, compute the centroid g of that cluster, and rotate the cluster centres about g by an angle drawn uniformly from [-pi/3, pi/3] (excluding nothing; small angles are fine). Clip centres to [0, 1] and start those cluster radii at 0.7 * r0 and the other radii at 0.9 * r0. Everything else unchanged.",
+  "family": "other",
+  "sim_hist_bge": 0.7507226467132568,
+  "sim_tried_bge": 0.7377309203147888,
+  "sim_hist_mini": 0.5875074863433838,
+  "sources": [
+   [
+    "fable",
+    "c",
+    8
+   ]
+  ]
+ }
+]

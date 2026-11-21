@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+# This part remains fixed (not evolved)
+def _valid_packing(centers, radii):
+=======
+def _hex_start(rng):
+    # Hexagonal lattice clipped to the unit square: random spacing, orientation and offset.
+    # If more than 26 points fall inside, repeatedly drop the point with most close neighbours.
+    for _ in range(6):
+        s = rng.uniform(0.17, 0.24)
+        th = rng.uniform(0.0, np.pi / 3)
+        off = rng.uniform(0.0, 1.0, 2)
+        ii, jj = np.meshgrid(np.arange(-12, 13), np.arange(-12, 13))
+        u = s * (ii + 0.5 * jj).ravel()
+        v = s * (jj * np.sqrt(3) / 2).ravel()
+        ct, st = np.cos(th), np.sin(th)
+        x = ct * u - st * v + 0.5 + (off[0] - 0.5) * s
+        y = st * u + ct * v + 0.5 + (off[1] - 0.5) * s
+        keep = (x >= 0.0) & (x <= 1.0) & (y >= 0.0) & (y <= 1.0)
+        p = np.stack([x[keep], y[keep]], axis=1)
+        if len(p) < 26:
+            continue
+        while len(p) > 26:
+            D = np.sqrt(((p[:, None, :] - p[None, :, :]) ** 2).sum(-1))
+            close = (D < 1.2 * s).sum(1) - 1 + 1e-6 * rng.random(len(p))
+            p = np.delete(p, int(np.argmax(close)), axis=0)
+        return np.clip(p, 0.0, 1.0)
+    return None
+
+
+# This part remains fixed (not evolved)
+def _valid_packing(centers, radii):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if k > 0:
+            amp = 0.01 + 0.09 * ((k - 1) % 4) / 3.0
+            start = _lattice_start(np.random.default_rng(999 + k), amp)
+=======
+        if k > 0:
+            amp = 0.01 + 0.09 * ((k - 1) % 4) / 3.0
+            start = _lattice_start(np.random.default_rng(999 + k), amp)
+            if k == 1:
+                hs = _hex_start(np.random.default_rng(4242 + k))
+                if hs is not None:
+                    start = hs
+>>>>>>> REPLACE
+-----

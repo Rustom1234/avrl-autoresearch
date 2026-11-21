@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, x0=None):
+    if x0 is None:
+        x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _reinsert(c, r, rng):
+    """Move the smallest circle to the most open of 2000 random points and reset all radii."""
+    n = len(r)
+    i = np.argmin(r)
+    others = np.delete(np.arange(n), i)
+    S = rng.uniform(0, 1, (2000, 2))
+    d = np.sqrt(((S[:, None] - c[None, others]) ** 2).sum(-1)).min(1)
+    b = np.minimum(np.minimum(S[:, 0], S[:, 1]), np.minimum(1 - S[:, 0], 1 - S[:, 1]))
+    c = c.copy()
+    c[i] = S[np.argmax(np.minimum(d, b))]
+    return np.concatenate([c.ravel(), np.full(n, INIT_RADIUS)])
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+=======
+    rng, t0, best, k = np.random.default_rng(seed), time.process_time(), None, 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        if best is not None and k % 2 == 1:   # every other start: move the smallest circle of the best packing
+            c, r = _solve_once(n, rng, _reinsert(best[0], best[1], rng))
+        else:
+            c, r = _solve_once(n, rng)
+        k += 1
+>>>>>>> REPLACE
+-----

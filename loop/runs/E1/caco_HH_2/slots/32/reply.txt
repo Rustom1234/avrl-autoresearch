@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+N_BITS = 2048
+RADIUS = 2
+=======
+N_BITS = 1024
+RADII = (1, 2, 3)
+MIN_COUNT = 3
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        fp = np.zeros(N_BITS, dtype=np.float32)
+        for k, v in AllChem.GetHashedMorganFingerprint(m, RADIUS, nBits=N_BITS).GetNonzeroElements().items():
+            fp[k] = v
+=======
+        fp = np.zeros(len(RADII) * N_BITS, dtype=np.float32)
+        for i, r in enumerate(RADII):
+            for k, v in AllChem.GetHashedMorganFingerprint(m, r, nBits=N_BITS).GetNonzeroElements().items():
+                fp[i * N_BITS + k] = v
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    X_tr = featurize(train_smiles)
+    X_te = featurize(test_smiles)
+    nfp = len(RADII) * N_BITS
+    keep = np.concatenate([(X_tr[:, :nfp] != 0).sum(axis=0) >= MIN_COUNT,
+                           np.ones(X_tr.shape[1] - nfp, dtype=bool)])
+    X_tr, X_te = X_tr[:, keep], X_te[:, keep]
+    model.fit(X_tr, y - A_tr @ coef)
+    return model.predict(X_te) + A_te @ coef
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,26 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import ARDRegression
+=======
+from sklearn.linear_model import ARDRegression
+from sklearn.cross_decomposition import PLSRegression
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    gamma = 1.0 / D.shape[1]
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+=======
+    gamma = 1.0 / D.shape[1]
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    pls = PLSRegression(n_components=8, scale=False).fit(X, y)
+    P = pls.transform(X)
+    Pt = pls.transform(Xt)
+    pmu, psd = P.mean(axis=0), P.std(axis=0) + 1e-9
+    P = (P - pmu) / psd
+    Pt = (Pt - pmu) / psd
+    K_train = (tanimoto(X, X) + rbf(D, D, gamma) + rbf(P, P, 1.0 / 8)) / 3.0
+    K_test = (tanimoto(Xt, X) + rbf(Dt, D, gamma) + rbf(Pt, P, 1.0 / 8)) / 3.0
+>>>>>>> REPLACE
+-----

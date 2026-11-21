@@ -1,0 +1,58 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    r = np.minimum(r, np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    r = np.maximum(r, 0)
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+    return np.maximum(r - SHRINK, 0)
+=======
+def _repair(c, r):
+    """Shrink radii until the packing is valid, so that the harness never sees an overlap."""
+    n = len(r)
+    # Initial boundary clipping
+    r = np.minimum(r, np.minimum(c[:, 0], c[:, 1]))
+    r = np.minimum(r, np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    r = np.maximum(r, 0)
+    
+    # Iterative pairwise repair
+    for _ in range(200):
+        max_over = -1.0
+        best_pair = (-1, -1)
+        
+        # Vectorized overlap calculation
+        diff = c[:, None, :] - c[None, :, :]
+        dist = np.sqrt(np.sum(diff**2, axis=2))
+        overlap = (r[:, None] + r[None, :]) - dist
+        np.fill_diagonal(overlap, -1)
+        
+        if np.max(overlap) <= 1e-12:
+            break
+            
+        i, j = np.unravel_index(np.argmax(overlap), overlap.shape)
+        if i == j: continue
+        
+        over_val = overlap[i, j]
+        if over_val > 1e-12:
+            d = dist[i, j]
+            # Shrink only the smaller radius to resolve the overlap
+            if r[i] < r[j]:
+                r[i] -= over_val / 2.0
+            else:
+                r[j] -= over_val / 2.0
+            
+            # Ensure we don't go negative
+            r[i] = max(r[i], 0)
+            r[j] = max(r[j], 0)
+            
+    return r - SHRINK
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "Integrity: no problems found. There is no file or network access and no pasted answers. Kernel weights and sigma2 are chosen by an inner GroupKFold over Murcko scaffolds on the training fold only. Test molecules only enter through K_te = tanimoto(test, train), which uses fingerprints, not labels.",
+  "Bugs: none that would make the result meaningless. A weighted sum of Tanimoto kernels with non-negative weights is still a valid kernel. The default best_cfg has length 4, which matches the 4 fingerprint sets, and the all-zero weight vector is skipped.",
+  "z: I could not reproduce the harness value exactly. Using a gain of 0.4968 - 0.4957 = 0.0011 and noise sd 0.0070 with 1 run vs 2, the standard error is 0.0070*sqrt(1 + 1/2) = 0.00857, so z \u2248 0.13. The harness reports 0.137, probably because it used a slightly different noise estimate. Either way the gain is far below noise.",
+  "No claims in the diff contradict the numbers. Rejecting is right: the gain is about 0.15 noise sd.",
+  "Not a veto issue: the inner grid of 80 weight vectors \u00d7 3 sigma2 values \u00d7 5 inner folds means about 1200 GP solves per outer fit. That costs a lot of runtime and adds code complexity, and choosing from that many options on ~780 training molecules risks overfitting the inner CV. The program card prefers simpler code when the gain is this small, which also supports rejecting."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": 0.128
+ }
+}

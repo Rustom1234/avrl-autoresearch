@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+import numpy as np
+=======
+import numpy as np
+from scipy.optimize import linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def compute_max_radii(centers):
+=======
+def lp_radii(centers):
+    """Exact max radii for fixed centers via LP: maximize sum r subject to
+    r_i + r_j <= d_ij and r_i <= distance to each wall."""
+    n = centers.shape[0]
+    rows = []
+    b = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = np.sqrt(np.sum((centers[i] - centers[j]) ** 2))
+            row = np.zeros(n)
+            row[i] = 1.0
+            row[j] = 1.0
+            rows.append(row)
+            b.append(d)
+    for i in range(n):
+        x, y = centers[i]
+        for bound in (x, y, 1.0 - x, 1.0 - y):
+            row = np.zeros(n)
+            row[i] = 1.0
+            rows.append(row)
+            b.append(max(bound, 0.0))
+    res = linprog(-np.ones(n), A_ub=np.array(rows), b_ub=np.array(b),
+                  bounds=[(0, None)] * n, method="highs")
+    if res.status != 0:
+        return np.zeros(n)
+    # tiny safety margin for floating point feasibility
+    return np.maximum(res.x - 1e-9, 0.0)
+
+
+def compute_max_radii(centers):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    # Compute maximum valid radii for this configuration
+    radii = compute_max_radii(centers)
+    return centers, radii
+=======
+    # Annealed coordinate-noise search: noise sigma decays geometrically
+    # from 0.05 to 1e-4; accept a perturbed packing only if its LP sum is higher.
+    radii = lp_radii(centers)
+    best_c = centers.copy()
+    best_r = radii.copy()
+    best_s = best_r.sum()
+    rng = np.random.default_rng(12345)
+    steps = 2000
+    for k in range(steps):
+        sigma = 0.05 * (1e-4 / 0.05) ** (k / (steps - 1))
+        cand = np.clip(best_c + rng.normal(0.0, sigma, best_c.shape), 0.0, 1.0)
+        r = lp_radii(cand)
+        s = r.sum()
+        if s > best_s:
+            best_c, best_r, best_s = cand, r, s
+    return best_c, best_r
+>>>>>>> REPLACE
+-----

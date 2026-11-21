@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    from rdkit.Chem import rdFingerprintGenerator
+=======
+def shape_feats(m, seed):
+    from rdkit.Chem import AllChem
+    zeros = [0.0] * 7
+    try:
+        mh = Chem.AddHs(m)
+        ps = AllChem.ETKDGv3()
+        ps.randomSeed = int(seed)
+        if AllChem.EmbedMolecule(mh, ps) < 0:
+            return zeros
+        try:
+            AllChem.MMFFOptimizeMolecule(mh, maxIters=200)
+        except Exception:
+            pass
+        f = [rdMolDescriptors.CalcPMI1(mh), rdMolDescriptors.CalcPMI2(mh), rdMolDescriptors.CalcPMI3(mh),
+             rdMolDescriptors.CalcNPR1(mh), rdMolDescriptors.CalcNPR2(mh),
+             rdMolDescriptors.CalcRadiusOfGyration(mh), rdMolDescriptors.CalcAsphericity(mh)]
+        return [float(v) for v in f]
+    except Exception:
+        return zeros
+
+
+def featurize(smiles, seed=0):
+    from rdkit.Chem import rdFingerprintGenerator
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        d += [len(m.GetSubstructMatches(ACID)), len(m.GetSubstructMatches(AMINE))]
+=======
+        d += [len(m.GetSubstructMatches(ACID)), len(m.GetSubstructMatches(AMINE))]
+        d += shape_feats(m, seed)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    nd = len(Descriptors.descList) + 2
+=======
+    nd = len(Descriptors.descList) + 2 + 7
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles)[:, :nd], y)
+    et = model.predict(featurize(test_smiles)[:, :nd])
+=======
+    model.fit(featurize(train_smiles, seed)[:, :nd], y)
+    et = model.predict(featurize(test_smiles, seed)[:, :nd])
+>>>>>>> REPLACE
+-----

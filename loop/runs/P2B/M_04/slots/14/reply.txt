@@ -1,0 +1,68 @@
+<<<<<<< SEARCH
+        self.rotary_seq_len = config.sequence_len * 10
+=======
+        self.inject_embed = nn.Embedding(config.vocab_size, config.n_embd)
+        self.inject_lambdas = nn.Parameter(torch.zeros(config.n_layer))
+        self.rotary_seq_len = config.sequence_len * 10
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        self.resid_lambdas.fill_(1.0)
+        self.x0_lambdas.fill_(0.1)
+=======
+        self.resid_lambdas.fill_(1.0)
+        self.x0_lambdas.fill_(0.1)
+        self.inject_lambdas.fill_(0.5)
+        torch.nn.init.zeros_(self.inject_embed.weight)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            ve.to(dtype=torch.bfloat16)
+=======
+            ve.to(dtype=torch.bfloat16)
+        self.inject_embed.to(dtype=torch.bfloat16)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        resid_params = [self.resid_lambdas]
+        x0_params = [self.x0_lambdas]
+        assert len(list(self.parameters())) == (len(matrix_params) + len(embedding_params) +
+            len(lm_head_params) + len(value_embeds_params) + len(resid_params) + len(x0_params))
+=======
+        inject_params = list(self.inject_embed.parameters())
+        resid_params = [self.resid_lambdas, self.inject_lambdas]
+        x0_params = [self.x0_lambdas]
+        assert len(list(self.parameters())) == (len(matrix_params) + len(embedding_params) +
+            len(lm_head_params) + len(value_embeds_params) + len(inject_params) + len(resid_params) + len(x0_params))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            dict(kind='adamw', params=embedding_params, lr=embedding_lr * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+=======
+            dict(kind='adamw', params=embedding_params, lr=embedding_lr * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+            dict(kind='adamw', params=inject_params, lr=embedding_lr * dmodel_lr_scale, betas=adam_betas, eps=1e-10, weight_decay=0.0),
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        B, T, C = x.size()
+=======
+    def forward(self, x, ve, vadd, cos_sin, window_size):
+        B, T, C = x.size()
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            v = v + gate.unsqueeze(-1) * ve
+=======
+            v = v + gate.unsqueeze(-1) * ve
+        if vadd is not None:
+            v = v + vadd.view(B, T, self.n_kv_head, self.head_dim)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    def forward(self, x, ve, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, cos_sin, window_size)
+=======
+    def forward(self, x, ve, vadd, cos_sin, window_size):
+        x = x + self.attn(norm(x), ve, vadd, cos_sin, window_size)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            x = block(x, ve, cos_sin, self.window_sizes[i])
+=======
+            vadd = self.inject_lambdas[i] * self.inject_embed(idx) if i >= self.config.n_layer // 2 else None
+            x = block(x, ve, vadd, cos_sin, self.window_sizes[i])
+>>>>>>> REPLACE
+-----

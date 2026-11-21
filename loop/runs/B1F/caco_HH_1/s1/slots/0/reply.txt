@@ -1,0 +1,51 @@
+<<<<<<< SEARCH
+from xgboost import XGBRegressor
+=======
+from xgboost import XGBRegressor
+from rdkit.Chem.Scaffolds import MurckoScaffold
+from sklearn.model_selection import GroupKFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def _base_fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    return base_te + stage2.predict(Xte)
+
+
+def _binary_fp(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+
+def _scaffold(smi):
+    return MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(smi))
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    train_smiles = list(train_smiles)
+    test_smiles = list(test_smiles)
+    groups = np.array([_scaffold(s) for s in train_smiles])
+    oof = np.zeros(len(y))
+    for tr, va in GroupKFold(n_splits=5).split(train_smiles, y, groups):
+        oof[va] = _base_fit_predict([train_smiles[i] for i in tr], y[tr],
+                                    [train_smiles[i] for i in va], seed)
+    resid = y - oof
+    base = _base_fit_predict(train_smiles, y, test_smiles, seed)
+    Btr = _binary_fp(train_smiles)
+    Bte = _binary_fp(test_smiles)
+    inter = Bte @ Btr.T
+    union = Bte.sum(1)[:, None] + Btr.sum(1)[None, :] - inter
+    sim = inter / np.maximum(union, 1.0)
+    idx = np.argsort(-sim, axis=1)[:, :5]
+    s5 = np.take_along_axis(sim, idx, axis=1)
+    w = s5 ** 4
+    wmean = (w * resid[idx]).sum(1) / np.maximum(w.sum(1), 1e-12)
+    corr = np.where(s5[:, 0] >= 0.5, 0.5 * wmean, 0.0)
+    return base + corr
+>>>>>>> REPLACE
+-----

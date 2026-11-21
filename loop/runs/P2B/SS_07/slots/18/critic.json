@@ -1,0 +1,13 @@
+{
+ "ok": true,
+ "issues": [
+  "The diff changes only TOTAL_BATCH_SIZE (2**17 to 96*2048 = 196608) and DEVICE_BATCH_SIZE (64 to 96). It does not touch the evaluation call, the val_bpb computation, the data, the prepare.py import line or the seed lines, so nothing in the diff explains the integrity flag. The flag may come from outside this diff (for example the file the harness checked differs from the diff shown, or a rule such as the 450 s limit was reported as an integrity flag). Please check the harness log to see which check fired.",
+  "No bug that makes the result meaningless: 196608 divides exactly by 96*2048, so gradient accumulation is 1. This assumes the sequence length is 2048, which matches the comment in the candidate.",
+  "Not an integrity issue: batch 96 uses more memory than batch 64, which already sits close to the 40 GB limit, so this run could run out of memory. The learning rates were not rescaled for the 1.5x larger batch, and the step count in 300 s will fall. Those are tuning choices, not invalidity.",
+  "The harness gave no val_bpb numbers, so z cannot be recomputed and no claims can be checked."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null
+ }
+}

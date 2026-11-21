@@ -1,0 +1,20 @@
+<<<<<<< SEARCH
+    lgbm.fit(desc_features(train_smiles), r)
+    p_desc = lgbm.predict(desc_features(test_smiles)) + base_te
+=======
+    D_tr, D_te = desc_features(train_smiles), desc_features(test_smiles)
+    X_all = bit_fingerprints(list(train_smiles) + list(test_smiles))
+    K_all = tanimoto(X_all, X_all)
+    n_all = len(K_all)
+    H = np.eye(n_all) - 1.0 / n_all
+    Kc = H @ K_all @ H
+    evals, evecs = np.linalg.eigh(Kc)
+    top = np.argsort(evals)[::-1][:20]
+    coords = evecs[:, top] * np.sqrt(np.maximum(evals[top], 0.0))
+    ntr = len(train_smiles)
+    D_tr = np.hstack([D_tr, coords[:ntr]])
+    D_te = np.hstack([D_te, coords[ntr:]])
+    lgbm.fit(D_tr, r)
+    p_desc = lgbm.predict(D_te) + base_te
+>>>>>>> REPLACE
+-----

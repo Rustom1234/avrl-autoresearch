@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+from sklearn.preprocessing import StandardScaler
+=======
+from sklearn.model_selection import KFold
+from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    scaler = StandardScaler().fit(ptr)
+    lin = Ridge(alpha=1.0).fit(scaler.transform(ptr), y)
+    base_tr = lin.predict(scaler.transform(ptr))
+    base_te = lin.predict(scaler.transform(pte))
+=======
+    scaler = StandardScaler().fit(ptr)
+    poly = PolynomialFeatures(degree=2, include_bias=False)
+    Ptr = poly.fit_transform(scaler.transform(ptr))
+    Pte = poly.transform(scaler.transform(pte))
+    scaler2 = StandardScaler().fit(Ptr)
+    Xtr = scaler2.transform(Ptr)
+    Xte = scaler2.transform(Pte)
+    best_a, best_err = 1.0, np.inf
+    for a in (1.0, 10.0, 100.0):
+        errs = []
+        for tr_i, va_i in KFold(3, shuffle=True, random_state=seed).split(Xtr):
+            m = Ridge(alpha=a).fit(Xtr[tr_i], y[tr_i])
+            errs.append(np.mean(np.abs(m.predict(Xtr[va_i]) - y[va_i])))
+        if np.mean(errs) < best_err:
+            best_a, best_err = a, np.mean(errs)
+    lin = Ridge(alpha=best_a).fit(Xtr, y)
+    base_tr = lin.predict(Xtr)
+    base_te = lin.predict(Xte)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        late = best is not None and time.process_time() - t0 > 0.4 * time_limit
+        c, r = _solve_once(n, rng, best if late else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    t_best, switched, fails = 0.0, False, 0
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        el = time.process_time() - t0
+        if not switched and best is not None and (el > 0.55 * time_limit or el - t_best > 0.3 * el):
+            switched = True
+        fresh = not switched or fails >= 8
+        if fresh:
+            fails = 0
+        c, r = _solve_once(n, rng, None if fresh else best)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            t_best = time.process_time() - t0
+            fails = 0
+        elif switched:
+            fails += 1
+    return best
+>>>>>>> REPLACE
+-----

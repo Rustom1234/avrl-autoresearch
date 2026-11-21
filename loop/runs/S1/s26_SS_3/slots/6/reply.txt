@@ -1,0 +1,63 @@
+<<<<<<< SEARCH
+def solve_packing(time_budget=200.0):
+=======
+def solve_packing(time_budget=210.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.time() - t0 < time_budget:
+        it += 1
+=======
+    top = []
+    while time.time() - t0 < time_budget - 35.0:
+        it += 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                           options={"maxiter": 300, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+        if -res.fun < best_val - 0.02:
+            continue
+        out = finalize(z)
+        if out is None:
+            continue
+        c, r = out
+        v = r.sum()
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+=======
+                           options={"maxiter": 150, "ftol": 1e-11})
+        except Exception:
+            continue
+        z = res.x
+        out = finalize(z)
+        if out is None:
+            continue
+        c, r = out
+        v = r.sum()
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+        top.append((v, z))
+        top.sort(key=lambda t: -t[0])
+        top = top[:5]
+    for v0, z0 in top:
+        if time.time() - t0 > time_budget - 3.0:
+            break
+        try:
+            res = minimize(obj, z0, jac=grad, method="SLSQP", bounds=bounds,
+                           constraints=[{"type": "ineq", "fun": cons, "jac": jac}],
+                           options={"maxiter": 1000, "ftol": 1e-13})
+        except Exception:
+            continue
+        out = finalize(res.x)
+        if out is None:
+            continue
+        c, r = out
+        v = r.sum()
+        if v > best_val:
+            best_val = v
+            best = (c, r)
+>>>>>>> REPLACE
+-----

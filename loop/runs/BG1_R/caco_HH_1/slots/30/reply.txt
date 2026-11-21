@@ -1,0 +1,34 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import QuantileRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    ptr = phys(train_smiles)
+    pte = phys(test_smiles)
+    scaler = StandardScaler().fit(ptr)
+    lin = Ridge(alpha=1.0).fit(scaler.transform(ptr), y)
+    base_tr = lin.predict(scaler.transform(ptr))
+    base_te = lin.predict(scaler.transform(pte))
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y = np.asarray(train_y, dtype=np.float64)
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    dtr = Xtr[:, N_BITS:].astype(np.float64)
+    dte = Xte[:, N_BITS:].astype(np.float64)
+    scaler = StandardScaler().fit(dtr)
+    lin = QuantileRegressor(quantile=0.5, alpha=0.01, solver='highs').fit(scaler.transform(dtr), y)
+    base_tr = lin.predict(scaler.transform(dtr))
+    base_te = lin.predict(scaler.transform(dte))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - base_tr)
+    return base_te + model.predict(featurize(test_smiles))
+=======
+    model.fit(Xtr, y - base_tr)
+    return base_te + model.predict(Xte)
+>>>>>>> REPLACE
+-----

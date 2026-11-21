@@ -1,0 +1,60 @@
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.ensemble import RandomForestRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        desc = np.array(Descriptors.GetMorganFingerprintAsNumPy(mol, 2, nBits=2048), dtype=np.float32)
+        # Using Descriptors.CalcMolDescriptors to get basic properties
+        # We'll stick to the fingerprint and manually grab a few key descriptors to avoid complexity
+        # and keep it robust against missing values.
+        # Actually, the prompt suggests 
+-----
+<<<<<<< SEARCH
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.ensemble import RandomForestRegressor
+=======
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+from sklearn.ensemble import RandomForestRegressor
+>>>>>>> REPLACE
+<<<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    features = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: continue
+        fp = gen.GetFingerprintAsNumPy(mol)
+        # Calculate 206 descriptors
+        desc_list = []
+        for name, func in Descriptors._desc_mol_functions.items():
+            try:
+                val = func(mol)
+                desc_list.append(float(val))
+            except: 
+                desc_list.append(0.0)
+        features.append(np.concatenate([fp, np.array(desc_list, dtype=np.float32)]))
+    return np.array(features, dtype=np.float32)
+>>>>>>> REPLACE
+-----

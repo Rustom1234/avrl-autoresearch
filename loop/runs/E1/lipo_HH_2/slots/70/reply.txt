@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Crippen
+=======
+from rdkit.Chem import Crippen
+from rdkit.Chem.Pharm2D import Gobbi_Pharm2D, Generate
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+GOBBI_BINS = 1024
+_GOBBI_CACHE = {}
+
+
+def gobbi_matrix(smiles):
+    # Gobbi 2D pharmacophore signature, on-bits folded into GOBBI_BINS bins by modulo hash; cached per SMILES
+    missing = [s for s in set(smiles) if s not in _GOBBI_CACHE]
+    for s in missing:
+        v = np.zeros(GOBBI_BINS, dtype=np.float32)
+        bv = Generate.Gen2DFingerprint(Chem.MolFromSmiles(s), Gobbi_Pharm2D.factory)
+        for idx in bv.GetOnBits():
+            v[idx % GOBBI_BINS] += 1
+        _GOBBI_CACHE[s] = v
+    return np.array([_GOBBI_CACHE[s] for s in smiles])
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.hstack([fp, smarts_counts(smiles), ap, tt])
+=======
+    return np.hstack([fp, smarts_counts(smiles), ap, tt, gobbi_matrix(smiles)])
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,45 @@
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    def objective(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        # Penalty for overlaps
+        dist = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+        overlap = np.maximum(0, r[iu[0]] + r[iu[1]] - dist)
+        # Penalty for boundary violations
+        out_bound = np.maximum(0, r - c[:, 0]), np.maximum(0, r - (1 - c[:, 0]))
+        out_bound = np.maximum(0, r - c[:, 1]), np.maximum(0, r - (1 - c[:, 1]))
+        # Actually use a simple set of penalties
+        p_overlap = np.sum(overlap**2) 
+        p_bound = np.sum(np.maximum(0, r - c[:, 0])**2) + 
+                    np.sum(np.maximum(0, r - (1 - c[:, 0]))**2) + 
+                    np.sum(np.maximum(0, r - c[:, 1])**2) + 
+                    np.sum(np.maximum(0, r - (1 - c[:, 1]))**2)
+        return -r.sum() + 1e3 * (p_overlap + p_bound)
+
+    res = minimize(objective, x0, method="SLSQP", options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+-----
+<<<<<<< SEARCH
+    def cons(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        d = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1)) - r[iu[0]] - r[iu[1]]
+        return np.concatenate([d, c[:, 0] - r, c[:, 1] - r, 1 - c[:, 0] - r, 1 - c[:, 1] - r, r])
+
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method=
+-----

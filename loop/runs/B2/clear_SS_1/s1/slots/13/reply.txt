@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.model_selection import KFold
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(xgb_features(train_smiles), y)
+    p_rf = model.predict(xgb_features(test_smiles))
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(tanimoto(Xtr, Xtr), (y - y.mean()) / (y.std() + 1e-9))
+    p_svr = svr.predict(tanimoto(Xte, Xtr))
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    Xtr, Xte = featurize(train_smiles), featurize(test_smiles)
+    y = rankdata(np.asarray(train_y, dtype=np.float64)) / len(train_y)
+    ym, ys = y.mean(), y.std() + 1e-9
+    z = (y - ym) / ys
+    K = tanimoto(Xtr, Xtr)
+    Kte = tanimoto(Xte, Xtr)
+    svr = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+    svr.fit(K, z)
+    p_svr = svr.predict(Kte)
+    # out-of-fold SVR predictions on the training set (in y scale)
+    oof = np.zeros(len(y))
+    for tr, va in KFold(5, shuffle=True, random_state=seed).split(y):
+        s = SVR(kernel="precomputed", C=5.0, epsilon=0.1)
+        s.fit(K[np.ix_(tr, tr)], z[tr])
+        oof[va] = s.predict(K[np.ix_(va, tr)]) * ys + ym
+    resid = y - oof
+    model = XGBRegressor(max_depth=4, n_estimators=600, learning_rate=0.03, subsample=0.7, colsample_bytree=0.3,
+                         min_child_weight=3, reg_lambda=5, n_jobs=8, random_state=seed)
+    model.fit(xgb_features(train_smiles), resid)
+    p_res = model.predict(xgb_features(test_smiles)) + p_svr * ys + ym
+    return rankdata(p_res) / len(p_res) + rankdata(p_svr) / len(p_svr)
+>>>>>>> REPLACE
+-----

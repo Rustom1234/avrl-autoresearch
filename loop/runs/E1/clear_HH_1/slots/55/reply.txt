@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+from rdkit.Chem import Descriptors
+=======
+from rdkit.Chem import Descriptors, AllChem, rdMolDescriptors
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def rbf(A, B, gamma):
+=======
+def atom_hist_features(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        AllChem.ComputeGasteigerCharges(m)
+        q = np.array([float(a.GetProp("_GasteigerCharge")) for a in m.GetAtoms()])
+        q = np.nan_to_num(q, nan=0.0, posinf=0.0, neginf=0.0)
+        h_q = np.histogram(np.clip(q, -1.0, 1.0), bins=10, range=(-1.0, 1.0))[0]
+        crip = np.array([c[0] for c in rdMolDescriptors._CalcCrippenContribs(m)])
+        crip = np.nan_to_num(crip, nan=0.0, posinf=0.0, neginf=0.0)
+        h_c = np.histogram(np.clip(crip, -1.0, 1.0), bins=10, range=(-1.0, 1.0))[0]
+        rows.append(np.concatenate([h_q, h_c]))
+    return np.array(rows, dtype=np.float64)
+
+
+def rbf(A, B, gamma):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    D = descriptors(train_smiles)
+    Dt = descriptors(test_smiles)
+=======
+    D = np.hstack([descriptors(train_smiles), atom_hist_features(train_smiles)])
+    Dt = np.hstack([descriptors(test_smiles), atom_hist_features(test_smiles)])
+>>>>>>> REPLACE
+-----

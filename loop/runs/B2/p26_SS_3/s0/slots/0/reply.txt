@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        explore = time.process_time() - t0 < 0.3 * TIME_FRACTION * time_limit or best is None
+        c, r = _solve_once(n, rng, None if explore else best)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    current, stall = None, 0
+
+    def run(start):
+        c, r = _solve_once(n, rng, start)
+        c = np.clip(c, 0, 1)
+        return c, _repair(c, r)
+
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:
+        explore = time.process_time() - t0 < 0.3 * TIME_FRACTION * time_limit or current is None
+        if not explore and stall >= 25:
+            fresh = [run(None) for _ in range(4)]
+            for c, r in fresh:
+                if best is None or r.sum() > best[1].sum():
+                    best = (c, r)
+            current, stall = max(fresh, key=lambda p: p[1].sum()), 0
+            continue
+        c, r = run(None if explore else current)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+        if current is None or r.sum() > current[1].sum():
+            current, stall = (c, r), 0
+        elif not explore:
+            stall += 1
+    return best
+>>>>>>> REPLACE
+-----

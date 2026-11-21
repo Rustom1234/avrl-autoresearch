@@ -1,0 +1,65 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, start=None, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+=======
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+    if start is not None:
+        x0 = start
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+                   options={"maxiter": maxiter})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _kick(c, r, rng):
+    """Move 3 centres, solve the radii exactly by LP, then polish with SLSQP."""
+    n = len(r)
+    c2 = c.copy()
+    idx = rng.choice(n, 3, replace=False)
+    c2[idx] = np.clip(c2[idx] + rng.normal(0, 0.05, (3, 2)), 0.01, 0.99)
+    iu = np.triu_indices(n, 1)
+    d = np.sqrt(((c2[iu[0]] - c2[iu[1]]) ** 2).sum(1))
+    A = np.zeros((len(d), n))
+    A[np.arange(len(d)), iu[0]] = 1
+    A[np.arange(len(d)), iu[1]] = 1
+    wall = np.maximum(np.minimum(np.minimum(c2[:, 0], c2[:, 1]), np.minimum(1 - c2[:, 0], 1 - c2[:, 1])), 0)
+    res = linprog(-np.ones(n), A_ub=A, b_ub=d, bounds=list(zip(np.zeros(n), wall)), method="highs")
+    r2 = res.x if res.success else r
+    return _solve_once(n, rng, np.concatenate([c2.ravel(), r2]), 100)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    while time.process_time() - t0 < 0.7 * time_limit:   # random restarts
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # LP kicks on the best
+        c, r = _kick(best[0], best[1], rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,53 @@
+<<<<<<< SEARCH
+    centers = np.column_stack([np.clip(z[:n], 0.0, 1.0), np.clip(z[n:2 * n], 0.0, 1.0)])
+    radii = _repair(centers, np.maximum(z[2 * n:], 0.0))
+    return centers, radii
+=======
+    centers = np.column_stack([np.clip(z[:n], 0.0, 1.0), np.clip(z[n:2 * n], 0.0, 1.0)])
+    radii = _repair(centers, np.maximum(z[2 * n:], 0.0))
+    try:
+        def cons_lin(zz):
+            xx = zz[:n]
+            yy = zz[n:2 * n]
+            rr = zz[2 * n:]
+            ddx = xx[iu] - xx[ju]
+            ddy = yy[iu] - yy[ju]
+            dd = np.sqrt(ddx * ddx + ddy * ddy + 1e-18)
+            pair = dd - rr[iu] - rr[ju]
+            bnd = np.concatenate([xx - rr, 1 - xx - rr, yy - rr, 1 - yy - rr])
+            return np.concatenate([pair, bnd])
+
+        def cons_lin_jac(zz):
+            xx = zz[:n]
+            yy = zz[n:2 * n]
+            ddx = xx[iu] - xx[ju]
+            ddy = yy[iu] - yy[ju]
+            dd = np.sqrt(ddx * ddx + ddy * ddy + 1e-18)
+            ux = ddx / dd
+            uy = ddy / dd
+            J = cons_jac(zz)
+            J[:m, :] = 0.0
+            rows = np.arange(m)
+            J[rows, iu] = ux
+            J[rows, ju] = -ux
+            J[rows, n + iu] = uy
+            J[rows, n + ju] = -uy
+            J[rows, 2 * n + iu] = -1.0
+            J[rows, 2 * n + ju] = -1.0
+            return J
+
+        zs = z.copy()
+        zs[2 * n:] *= 0.97
+        res2 = minimize(obj, zs, jac=obj_jac, method="SLSQP", bounds=bounds,
+                        constraints=[{"type": "ineq", "fun": cons_lin, "jac": cons_lin_jac}],
+                        options={"maxiter": 500, "ftol": 1e-12})
+        z2 = res2.x
+        c2 = np.column_stack([np.clip(z2[:n], 0.0, 1.0), np.clip(z2[n:2 * n], 0.0, 1.0)])
+        r2 = _repair(c2, np.maximum(z2[2 * n:], 0.0))
+        if np.sum(r2) > np.sum(radii):
+            centers, radii = c2, r2
+    except Exception:
+        pass
+    return centers, radii
+>>>>>>> REPLACE
+-----

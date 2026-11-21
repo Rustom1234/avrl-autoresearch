@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    for _ in range(50):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        i, j = np.unravel_index(np.argmax(over), over.shape)
+        if over[i, j] <= 0:
+            break
+        s = d[i, j] / (r[i] + r[j])
+        r[i], r[j] = r[i] * s, r[j] * s
+=======
+    for _ in range(200):
+        d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+        over = r[:, None] + r[None] - d
+        np.fill_diagonal(over, -1)
+        if over.max() <= 0:
+            break
+        i = np.argmax(np.maximum(over, 0).sum(1))   # circle involved in the most overlap
+        j = np.argmax(over[i])                       # its worst partner
+        r[i] = max(d[i, j] - r[j], 0)                # shrink it alone so it just clears that partner
+>>>>>>> REPLACE
+-----

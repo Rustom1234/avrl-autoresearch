@@ -1,0 +1,5 @@
+Helped: only a data/resolution change. Slot 1 (24x24 area-downscaled batches for the first 30% of steps, then 32x32) is the sole accept, with runs at -0.1496 and -0.0840 and mean adjusted -0.1141. It carries a tripwire flag, so replicate or audit it before building on it.
+
+Did not help: extra TTA views (+0.0134 vs incumbent), label smoothing annealed to 0 (+0.0098), Muon LR warmup (+0.0610), alternating jitter (+0.0178), Nesterov off for SGD (+0.0081) or Muon (+0.1991), batch-size ramp (+0.3290), gradient accumulation in low-res phase (+0.2084), three-stage resolution (+0.0773), AdamW (+0.8563), whitening kernel 3 (+0.2957), identity skip (+0.1130). Class-stratified shuffle was roughly neutral (-0.0040). Slots 3 and 4 crashed from torch.compile on per-shape Newton-Schulz changes.
+
+Next: replicate slot 1 first. Then try small variations of the low-res fraction or size (for example a different fraction than 30%, or a size other than 24). Avoid compile-fragile Muon edits. Single-number tuning, TTA and optimizer-flag tweaks look low-yield.

@@ -1,0 +1,14 @@
+{
+ "ok": true,
+ "issues": [
+  "No attempt to get around the measurement. The new np.clip only touches train_y inside fit_predict, using percentiles taken from the training fold. The harness still scores against the true test labels, so this is an allowed target transform.",
+  "Small side effect: the inner GroupKFold error and the out-of-fold (OOF) stacking targets are now computed on the clipped y, so inner model selection is judged against slightly distorted labels. This could explain some of the loss but does not make the result meaningless.",
+  "The candidate makes several changes at once: fewer and faster LightGBM rounds (600 at lr 0.03 \u2192 250 at lr 0.07), a smaller random forest (200 trees at max_features 0.3 \u2192 80 trees at 0.2 with min_samples_leaf 2), the 3x3 kernel grid cut to a single (0.5, 1.0) config, and the target clipping. Because they are bundled, we can't tell which change caused the regression. It looks like a speed-for-accuracy trade.",
+  "The numbers support the reported decision. The candidate scored 0.5084 against the incumbent's 0.4895, a difference of 0.0189 (worse). Using a difference sd of sqrt(2)*0.0042 \u2248 0.00594, z \u2248 -3.18, which matches the reported -3.178. Rejecting is correct.",
+  "Both sides have only one run each, which is enough here because the gap is large."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": -3.18
+ }
+}

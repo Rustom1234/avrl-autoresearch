@@ -1,0 +1,78 @@
+<<<<<<< SEARCH
+def optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+=======
+def _pen_fg(x, mu):
+    n = _N
+    i, j = _IU
+    X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+    dx = X[i] - X[j]
+    dy = Y[i] - Y[j]
+    d = np.sqrt(dx * dx + dy * dy + 1e-18)
+    o = np.maximum(0, R[i] + R[j] - d)
+    f = -R.sum() + mu * (o * o).sum()
+    gX = np.zeros(n)
+    gY = np.zeros(n)
+    gR = -np.ones(n)
+    t = 2 * mu * o
+    np.add.at(gR, i, t)
+    np.add.at(gR, j, t)
+    np.add.at(gX, i, -t * dx / d)
+    np.add.at(gX, j, t * dx / d)
+    np.add.at(gY, i, -t * dy / d)
+    np.add.at(gY, j, t * dy / d)
+    for P, G, sgn in ((X, gX, 1), (Y, gY, 1)):
+        v1 = np.maximum(0, R - P)
+        v2 = np.maximum(0, R + P - 1)
+        f += mu * ((v1 * v1).sum() + (v2 * v2).sum())
+        gR += 2 * mu * (v1 + v2)
+        G += 2 * mu * (-v1 + v2)
+    return f, np.concatenate([gX, gY, gR])
+
+
+def _penalty_start(rng):
+    n = _N
+    c = rng.uniform(0.05, 0.95, (n, 2))
+    r = 0.1 * np.exp(rng.normal(0, 0.3, n))
+    x = np.concatenate([c[:, 0], c[:, 1], r])
+    mu = 10.0
+    f = 0
+    for _ in range(5):
+        res = minimize(_pen_fg, x, args=(mu,), jac=True, method="L-BFGS-B",
+                       bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n,
+                       options={"maxiter": 300})
+        x = res.x
+        f = res.fun
+        mu *= 10 ** 1.0
+    return f, np.stack([x[:n], x[n:2 * n]], 1)
+
+
+def optimized_packing():
+    t0 = time.time()
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    starts = []
+    while time.time() - t0 < 50:
+        try:
+            starts.append(_penalty_start(rng))
+        except Exception:
+            continue
+    starts.sort(key=lambda a: a[0])
+    for f, c in starts[:max(1, len(starts) // 5)]:
+        if time.time() - t0 > 120:
+            break
+        try:
+            c = np.clip(c, 0.02, 0.98)
+            r = _lp_radii(c)
+            c2 = np.clip(_polish(c, r), 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        if r2.sum() > best_s:
+            best_s, best = r2.sum(), (c2, r2)
+    while time.time() - t0 < 150 or best is None:
+>>>>>>> REPLACE
+-----

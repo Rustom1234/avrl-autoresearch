@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _solve_once(n, rng, start=None, polish=False):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c0 = np.clip(start[0] + rng.normal(0, 0.02, start[0].shape), 0.01, 0.99)
+=======
+        c0 = np.clip(start[0] + rng.normal(0, 0.0 if polish else 0.02, start[0].shape), 0.01, 0.99)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": 500 if polish else MAX_ITER, "ftol": 1e-12 if polish else 1e-6})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+    rng, t0, best, pool = np.random.default_rng(seed), time.process_time(), None, []
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        pool.append((c, r))
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    pool.sort(key=lambda p: -p[1].sum())
+    for p in pool[:3]:
+        if time.process_time() - t0 > 0.93 * time_limit:
+            break
+        c, r = _solve_once(n, rng, p, polish=True)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

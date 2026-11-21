@@ -1,0 +1,40 @@
+<<<<<<< SEARCH
+RESTART_FRACTION = 0.3
+=======
+RESTART_FRACTION = 0.3
+TAU0 = 0.004
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = best
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > r.sum():
+            c, r = c2, r2
+    return c, r
+=======
+    c, r = best
+    bc, br = c.copy(), r.copy()
+    t_loop = time.process_time()
+    loop_len = max(budget - (t_loop - t0), 1e-9)
+    while time.process_time() - t0 < budget:   # remove-and-reinsert the smallest circle, threshold accepting
+        tau = TAU0 * max(0.0, 1 - (time.process_time() - t_loop) / loop_len)
+        c2, r2 = c.copy(), r.copy()
+        i = np.argmin(r2)
+        c2[i] = rng.uniform(0, 1, 2)
+        r2[i] = 0
+        c2, r2 = _optimise(n, np.concatenate([c2.ravel(), r2]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() >= r.sum() - tau:
+            c, r = c2, r2
+        if r.sum() > br.sum():
+            bc, br = c.copy(), r.copy()
+    return bc, br
+>>>>>>> REPLACE
+-----

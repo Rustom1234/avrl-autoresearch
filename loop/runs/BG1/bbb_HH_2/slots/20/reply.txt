@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+from xgboost import XGBClassifier
+=======
+from xgboost import XGBClassifier
+from xgboost.callback import LearningRateScheduler
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+MIN_SAMPLES_LEAF = 1
+=======
+MIN_SAMPLES_LEAF = 1
+N_ROUNDS = 600
+SNAPSHOTS = (300, 450, 600)
+LR_MAX = 0.1
+LR_MIN = 0.005
+
+
+def cosine_lr(epoch):
+    return LR_MIN + 0.5 * (LR_MAX - LR_MIN) * (1 + np.cos(np.pi * epoch / N_ROUNDS))
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        model = XGBClassifier(n_estimators=500, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.3,
+=======
+        model = XGBClassifier(n_estimators=N_ROUNDS, max_depth=5, learning_rate=LR_MAX, subsample=0.8, colsample_bytree=0.3,
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        model.fit(x_tr, y)
+        total += rankdata(model.predict_proba(x_te)[:, 1])
+=======
+        model.fit(x_tr, y, callbacks=[LearningRateScheduler(cosine_lr)])
+        for k in SNAPSHOTS:
+            total += rankdata(model.predict_proba(x_te, iteration_range=(0, k))[:, 1])
+>>>>>>> REPLACE
+-----

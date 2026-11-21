@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/S6/P0_02/cand/s03_0.py",
+ "inc_scores": {
+  "11": 1.9314166182439256,
+  "12": 1.9284303026459781
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace purely random shuffling with unweighted stratified sampling: compute a reverse dictionary mapping from each known target_sample (and all others in docs) to its indices, then deterministically rotate the target_sample indices interspersed throughout the docs list",
+   "outcome": "dev 1.9401 against 1.9409 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Perform stratified sampling (replacing random shuffle) to increase the proportion of target domain documents where every 1,000 pool tokens are hard-capped to include exactly 3 target samples, while rotating the pool indices deterministically to avoid rehearsal bias.",
+   "outcome": "dev 1.9411 against 1.9409 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Pre-filter the docs list to completely remove all documents containing the specific word 'DSO' and all documents starting with '<' as a deterministic baseline improvement before applying stratified sampling.",
+   "outcome": "dev 1.9314 against 1.9409 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 4,
+   "idea": "Introduce a smart pre-filter: exclude documents where the first 1000 characters contain high entropy or obvious structural noise patterns (like 'Click here', repeated text, or specific junk headers) detected via simple character-level statistics, in addition to the existing DS/ < filters.",
+   "outcome": "dev 1.9683 against 1.9314 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the shuffled filtered list with a deterministic interleaving strategy that prepends a count-like header for each target document, building a long suffix in every pool document so the upstream GPT training subsample automatically picks up distinct markers for every target sample.",
+   "outcome": "dev 2.1971 against 1.9314 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Perform a hard pre-filter to remove any pool document that shares >30% character overlap with any document in target_sample, to strictly enforce disjoint training data and eliminate potential leakage or neighborhood effects.",
+   "outcome": "dev 4.5764 against 1.9314 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Add a keyword-based confidence filter: exclude any pool document where the first 500 characters contain multiple repetitive sentence structures or specific spam patterns (e.g., multiple 'Click here' phrases, repeated coupon codes, or obvious catalog/grocery lists) alongside existing filters, and shuffle the remaining filtered list.",
+   "outcome": "dev 2.2078 against 1.9314 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Select document indices with replacement only from the filtered list, but introduce a deterministic long-range dependency cycle (e.g., start at `start_idx = int(CURATE_SEED * 12345) % filtered_indices_last` and begin cycling forward rather than random shuffling) to improve distribution mixing across the training context.",
+   "outcome": "dev 1.9223 against 1.9314 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Add a post-filter that pre-emptively reduces the average document length by truncating each input at the first occurrence of a common artifact pattern (like '@-@', excessive whitespace, or the specific noise token found in the pool examples) before shuffling, ensuring we get high-quality, focused training snippets without filtering out valid documents.",
+   "outcome": "dev 1.9313 against 1.9314 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "In addition to removing 'DSO' and '<' prefixed documents, split short/noisy pool documents (< 50 chars) into their first 300 words and weigh them higher in the sampler, while downsampling long, redundant pool documents to under-represent their share of tokens.",
+   "outcome": "dev 1.9392 against 1.9314 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Add a frequency-aware sampling step: count token occurrences in the filtered docs, identify the most frequent toxic/junk tokens (e.g., specific numbers, repeated words like 'did', 'didn't' if they appear as noise), and enforce a budget allowing at most K per-token instances of these high-frequency noise tokens while up-weighting rare tokens and target samples relative to their document presence.",
+   "outcome": "dev 1.9365 against 1.9314 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Add a pre-filter that truncates any document ending with a trash-raccy verbosity pattern (e.g., multiple consecutive '...' or '...') and appending whitespace to ensure garbage sentences are removed rather than shuffled.",
+   "outcome": "dev 1.9516 against 1.9314 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.009538800000000002,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00058915,
+   "dev": 1.940119991554226,
+   "inc": 1.9409482463082337,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0025913999999999998,
+   "dev": 1.9410534899785987,
+   "inc": 1.9409482463082337,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.00037075,
+   "dev": 1.9314166182439256,
+   "inc": 1.9409482463082337,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3118122852061758,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0005921500000000001,
+   "dev": 1.968327390419306,
+   "inc": 1.9314166182439256,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3118122852061758,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0006015000000000005,
+   "dev": 2.1970852178107663,
+   "inc": 1.9314166182439256,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3118122852061758,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0005002500000000007,
+   "dev": 4.576439483453956,
+   "inc": 1.9314166182439256,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3118122852061758,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0006311999999999993,
+   "dev": 2.207787740162078,
+   "inc": 1.9314166182439256,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3118122852061758,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0007168000000000001,
+   "dev": 1.9223141549791511,
+   "inc": 1.9314166182439256,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3118122852061758,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0006205000000000004,
+   "dev": 1.931278830936928,
+   "inc": 1.9314166182439256,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3118122852061758,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0010282500000000005,
+   "dev": 1.939200057114873,
+   "inc": 1.9314166182439256,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3118122852061758,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0008339000000000003,
+   "dev": 1.9364645263285605,
+   "inc": 1.9314166182439256,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.3118122852061758,
+   "planner": "qwen35-4b-fp",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00046295000000000017,
+   "dev": 1.9515585142290723,
+   "inc": 1.9314166182439256,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9409482463082337,
+ "inc_slot": 3
+}

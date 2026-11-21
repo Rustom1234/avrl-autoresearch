@@ -1,0 +1,94 @@
+<<<<<<< SEARCH
+            if rng.random() < 0.5:
+                c_new = c_curr.copy()
+                num_to_move = rng.integers(1, 4)
+                indices = rng.choice(n, num_to_move, replace=False)
+                
+                if rng.random() < 0.5:
+                    c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+                else:
+                    c_new += rng.normal(0, 0.02, (n, 2))
+                    c_new = np.clip(c_new, 0, 1)
+                
+                x0 = np.concatenate([c_new.ravel(), r_curr])
+                c, r = _solve_once(n, rng, x0=x0)
+                c = np.clip(c, 0, 1)
+                r = _repair(c, r)
+                
+                if r.sum() > best[1].sum():
+                    best = (c, r)
+                    hops_since_improvement = 0
+                else:
+                    hops_since_improvement += 1
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            num_to_move = rng.integers(1, 4)
+            indices = rng.choice(n, num_to_move, replace=False)
+            
+            if rng.random() < 0.5:
+                c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+            else:
+                c_new += rng.normal(0, 0.02, (n, 2))
+                c_new = np.clip(c_new, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+=======
+        else:
+            # Perturb the best packing
+            c_curr, r_curr = best
+            c_new = c_curr.copy()
+            
+            if rng.random() < 0.5:
+                num_to_move = rng.integers(1, 4)
+                indices = rng.choice(n, num_to_move, replace=False)
+                if rng.random() < 0.5:
+                    c_new[indices] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (num_to_move, 2))
+                else:
+                    c_new += rng.normal(0, 0.02, (n, 2))
+                    c_new = np.clip(c_new, 0, 1)
+            else:
+                p = rng.uniform(0, 1, size=2)
+                R = rng.uniform(0.2, 0.5)
+                dist_sq = np.sum((c_curr - p)**2, axis=1)
+                mask = dist_sq < R**2
+                angles = rng.uniform(-0.5, 0.5)
+                cos_a, sin_a = np.cos(angles), np.sin(angles)
+                rel_c = c_curr[mask] - p
+                rot_c = np.zeros_like(rel_c)
+                rot_c[:, 0] = rel_c[:, 0] * cos_a - rel_c[:, 1] * sin_a
+                rot_c[:, 1] = rel_c[:, 0] * sin_a + rel_c[:, 1] * cos_a
+                c_new[mask] = np.clip(rot_c + p, 0, 1)
+            
+            x0 = np.concatenate([c_new.ravel(), r_curr])
+            c, r = _solve_once(n, rng, x0=x0)
+            c = np.clip(c, 0, 1)
+            r = _repair(c, r)
+            
+            if r.sum() > best[1].sum():
+                best = (c, r)
+                hops_since_improvement = 0
+            else:
+                hops_since_improvement += 1
+        
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+            
+    return best
+>>>>>>> REPLACE
+-----

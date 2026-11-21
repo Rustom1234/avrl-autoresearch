@@ -1,0 +1,31 @@
+<<<<<<< SEARCH
+from sklearn.ensemble import RandomForestRegressor
+=======
+from rdkit.Chem import Descriptors
+from sklearn.ensemble import ExtraTreesRegressor
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+N_TREES = 300
+=======
+N_TREES = 500
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.array([gen.GetFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+=======
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        fp = gen.GetFingerprintAsNumPy(m).astype(np.float32)
+        desc = np.array([f(m) for _, f in Descriptors.descList], dtype=np.float64)
+        desc = np.clip(np.nan_to_num(desc, nan=0.0, posinf=0.0, neginf=0.0), -1e5, 1e5).astype(np.float32)
+        rows.append(np.concatenate([fp, desc]))
+    return np.array(rows, dtype=np.float32)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model = RandomForestRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                  n_jobs=-1, random_state=seed)
+=======
+    model = ExtraTreesRegressor(n_estimators=N_TREES, max_features=MAX_FEATURES, min_samples_leaf=MIN_SAMPLES_LEAF,
+                                n_jobs=-1, random_state=seed)
+>>>>>>> REPLACE
+-----

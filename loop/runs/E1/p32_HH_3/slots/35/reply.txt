@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _wall_slide(c, r, rng):
+    """Pick a random circle touching a wall and slide its centre along that wall to a uniform random position."""
+    c, r = c.copy(), r.copy()
+    gap = np.stack([c[:, 0] - r, 1 - c[:, 0] - r, c[:, 1] - r, 1 - c[:, 1] - r], 1)
+    touch = np.argwhere(np.abs(gap) < 1e-6)
+    if len(touch) == 0:
+        return c, r
+    i, side = touch[rng.integers(len(touch))]
+    if side < 2:
+        c[i, 0] = r[i] if side == 0 else 1 - r[i]
+        c[i, 1] = rng.uniform(r[i], 1 - r[i])
+    else:
+        c[i, 1] = r[i] if side == 2 else 1 - r[i]
+        c[i, 0] = rng.uniform(r[i], 1 - r[i])
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+=======
+        bc, br = best
+        if rng.random() < 0.3:
+            c0, r0 = _wall_slide(bc, br, rng)
+        else:
+            c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+            r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+            c0, r0 = _relocate(c0, r0, rng)
+>>>>>>> REPLACE
+-----

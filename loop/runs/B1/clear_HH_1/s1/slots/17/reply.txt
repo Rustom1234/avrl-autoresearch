@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+import numpy as np
+from scipy.stats import rankdata
+=======
+import numpy as np
+import pandas as pd
+from scipy.stats import rankdata
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    D = descriptors(train_smiles)
+    Dt = descriptors(test_smiles)
+    keep = D.std(axis=0) > 1e-9
+    D, Dt = D[:, keep], Dt[:, keep]
+=======
+    D = descriptors(train_smiles)
+    Dt = descriptors(test_smiles)
+    D, Dt = np.sign(D) * np.log1p(np.abs(D)), np.sign(Dt) * np.log1p(np.abs(Dt))
+    keep = D.std(axis=0) > 1e-9
+    D, Dt = D[:, keep], Dt[:, keep]
+    rho = pd.DataFrame(D).corrwith(pd.Series(np.asarray(train_y, dtype=np.float64)), method="spearman").abs().fillna(0.0).values
+    sel = rho >= 0.05
+    D, Dt = D[:, sel], Dt[:, sel]
+>>>>>>> REPLACE
+-----

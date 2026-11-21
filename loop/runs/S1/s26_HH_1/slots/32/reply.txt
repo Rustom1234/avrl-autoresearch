@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def jitter_anneal_search(seed=12345, budget=150.0, start=None):
+=======
+def _pinwheel_start(rng, amp):
+    # Four quadrant blocks (7, 6, 7, 6 = 26 circles). Each block is a triangular-lattice
+    # patch nearest its own centre, rotated by 90 degrees per quadrant (pinwheel), jittered, clipped.
+    counts = [7, 6, 7, 6]
+    qc = [(0.25, 0.25), (0.75, 0.25), (0.75, 0.75), (0.25, 0.75)]
+    a = []
+    for i in range(-3, 4):
+        for j in range(-3, 4):
+            a.append((i + 0.5 * j, j * np.sqrt(3.0) / 2.0))
+    a = np.array(a)
+    base = np.sum(a * a, axis=1)
+    pts = []
+    for q in range(4):
+        m = counts[q]
+        order = np.argsort(base + 1e-6 * rng.uniform(size=base.shape[0]))
+        sel = a[order[:m]] * 0.17
+        ang = q * np.pi / 2.0
+        R = np.array([[np.cos(ang), -np.sin(ang)], [np.sin(ang), np.cos(ang)]])
+        sel = sel @ R.T
+        pts.append(sel + np.array(qc[q]) + rng.uniform(-amp, amp, (m, 2)))
+    return np.clip(np.vstack(pts), 0.0, 1.0)
+
+
+def jitter_anneal_search(seed=12345, budget=150.0, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            start = _lattice_start(np.random.default_rng(999 + k), amp)
+=======
+            if k == 2:
+                start = _pinwheel_start(np.random.default_rng(777), 0.02)
+            else:
+                start = _lattice_start(np.random.default_rng(999 + k), amp)
+>>>>>>> REPLACE
+-----

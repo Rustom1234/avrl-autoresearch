@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def _repair(c, r):
+=======
+def _md_start(n, rng, steps=400, dt=0.05):
+    """Damped dynamics of n disks: soft overlap and wall repulsion, radii grow linearly, friction ramps up."""
+    c = rng.uniform(0.1, 0.9, (n, 2))
+    v = rng.normal(0, 0.5, (n, 2))
+    rt = np.sqrt(0.8 / (np.pi * n))
+    for s in range(steps):
+        r = rt * min(1.0, (s + 1) / (0.5 * steps))
+        gamma = 2.0 * s / steps
+        d = c[:, None] - c[None]
+        dist = np.sqrt((d ** 2).sum(-1)) + np.eye(n)
+        ov = np.maximum(2 * r - dist, 0)
+        np.fill_diagonal(ov, 0)
+        f = ((ov / dist)[:, :, None] * d).sum(1)
+        f += np.clip(r - c, 0, None) - np.clip(c - (1 - r), 0, None)
+        v += dt * (f - gamma * v)
+        c = np.clip(c + dt * v, 0, 1)
+    r = np.full(n, rt)
+    return _optimise(n, np.concatenate([c.ravel(), r]))
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+        c, r = _grow(n, rng) if rng.random() < 0.5 else _solve_once(n, rng)
+=======
+        c, r = _grow(n, rng) if rng.random() < 0.5 else _md_start(n, rng)
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,46 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+=======
+def _relax(n, x0, iu):
+    """Penalty stages with L-BFGS-B: negative radius sum plus growing quadratic penalty on overlaps and boundary violations."""
+    i, j = iu
+
+    def pen(v, w):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        dc = c[i] - c[j]
+        d = np.sqrt((dc ** 2).sum(1)) + 1e-12
+        ov = np.maximum(r[i] + r[j] - d, 0)
+        v1, v2 = np.maximum(r - c[:, 0], 0), np.maximum(r - (1 - c[:, 0]), 0)
+        v3, v4 = np.maximum(r - c[:, 1], 0), np.maximum(r - (1 - c[:, 1]), 0)
+        v5 = np.maximum(-r, 0)
+        f = -r.sum() + w * ((ov ** 2).sum() + (v1 ** 2 + v2 ** 2 + v3 ** 2 + v4 ** 2 + v5 ** 2).sum())
+        gd = 2 * w * ov
+        gr = np.zeros(n)
+        np.add.at(gr, i, gd)
+        np.add.at(gr, j, gd)
+        gr += 2 * w * (v1 + v2 + v3 + v4 - v5) - 1
+        gc = np.zeros((n, 2))
+        u = dc / d[:, None]
+        np.add.at(gc, i, -gd[:, None] * u)
+        np.add.at(gc, j, gd[:, None] * u)
+        gc[:, 0] += 2 * w * (-v1 + v2)
+        gc[:, 1] += 2 * w * (-v3 + v4)
+        return f, np.concatenate([gc.ravel(), gr])
+
+    bounds = [(None, None)] * (2 * n) + [(0, None)] * n
+    v = x0
+    for w in (10.0, 100.0, 1000.0):
+        v = minimize(pen, v, args=(w,), jac=True, method="L-BFGS-B", bounds=bounds, options={"maxiter": 100}).x
+    return v
+
+
+def _solve_once(n, rng, start=None):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    iu = np.triu_indices(n, 1)
+=======
+    iu = np.triu_indices(n, 1)
+    if start is None:
+        x0 = _relax(n, x0, iu)
+>>>>>>> REPLACE
+-----

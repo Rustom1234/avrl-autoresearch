@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def ring_feats(m):
+    rings = m.GetRingInfo().AtomRings()
+    f = [0] * 10
+    for r in rings:
+        if 3 <= len(r) <= 8:
+            f[len(r) - 3] += 1
+        atoms = [m.GetAtomWithIdx(i) for i in r]
+        if all(a.GetIsAromatic() for a in atoms):
+            f[6 + min(sum(a.GetSymbol() != "C" for a in atoms), 3)] += 1
+    return f
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return np.hstack([morgan, desc, ion])
+=======
+    extra = np.array([ring_feats(m) + list(rdMolDescriptors.MQNs_(m)) for m in mols], dtype=np.float32)
+    return np.hstack([morgan, desc, ion, extra])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+from rdkit.Chem import rdFingerprintGenerator, Descriptors
+=======
+from rdkit.Chem import rdFingerprintGenerator, Descriptors, rdMolDescriptors
+>>>>>>> REPLACE
+-----

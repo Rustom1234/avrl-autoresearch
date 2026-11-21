@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    from rdkit.Chem import rdFingerprintGenerator
+=======
+N_EXTRA = 14
+
+
+def extra_feats(m):
+    from rdkit.Chem.EState import EStateIndices
+    from rdkit.Chem import Lipinski
+    cc = np.array(rdMolDescriptors._CalcCrippenContribs(m), dtype=np.float64).reshape(-1, 2)
+    out = []
+    for j in range(2):
+        v = cc[:, j]
+        out += [v.max(), v.min(), v[v > 0].sum(), v[v < 0].sum()]
+    es = EStateIndices(m)
+    out += [es.max(), es.min(), es.sum()]
+    viol = (Descriptors.MolWt(m) > 500) + (Crippen.MolLogP(m) > 5) + \
+           (Lipinski.NumHDonors(m) > 5) + (Lipinski.NumHAcceptors(m) > 10)
+    veber = float(rdMolDescriptors.CalcTPSA(m) <= 140 and rdMolDescriptors.CalcNumRotatableBonds(m) <= 10)
+    out += [float(viol), veber, float(Chem.GetFormalCharge(m))]
+    return out
+
+
+def featurize(smiles):
+    from rdkit.Chem import rdFingerprintGenerator
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        d += [len(m.GetSubstructMatches(ACID)), len(m.GetSubstructMatches(AMINE))]
+=======
+        d += [len(m.GetSubstructMatches(ACID)), len(m.GetSubstructMatches(AMINE))]
+        d += extra_feats(m)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    nd = len(Descriptors.descList) + 2
+=======
+    nd = len(Descriptors.descList) + 2 + N_EXTRA
+>>>>>>> REPLACE
+-----

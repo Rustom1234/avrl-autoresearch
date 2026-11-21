@@ -1,0 +1,118 @@
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None, sd=0.0):
+=======
+def _solve_once(n, rng, start=None, sd=0.0, scale=0.5, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+start[1] * 0.5])
+=======
+start[1] * scale])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _lp_radii(c, r):
+    """Optimal radii for fixed centres (LP)."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+    m = len(iu[0])
+    A = np.zeros((m, n))
+    A[np.arange(m), iu[0]] = 1
+    A[np.arange(m), iu[1]] = 1
+    b = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    res = linprog(-np.ones(n), A_ub=A, b_ub=b, bounds=np.column_stack([np.zeros(n), np.maximum(wall, 0)]),
+                  method="highs")
+    return res.x if res.status == 0 else r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            best = (c, r)
+    return best
+=======
+            best = (c, r)
+    for _ in range(3):   # polish: LP radii, then a short SLSQP step on centres and radii
+        c, r = best
+        r2 = _repair(c, _lp_radii(c, r))
+        if r2.sum() > best[1].sum():
+            best = (c, r2)
+        c, r = best
+        c2, r2 = _solve_once(n, rng, (c, r), 0.0, 1.0, 50)
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > best[1].sum():
+            best = (c2, r2)
+    return best
+>>>>>>> REPLACE
+-----
+<<<<<<< SEARCH
+from scipy.optimize import minimize
+=======
+from scipy.optimize import minimize, linprog
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None, sd=0.0):
+=======
+def _solve_once(n, rng, start=None, sd=0.0, scale=0.5, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        x0 = np.concatenate([(start[0] + rng.normal(0, sd, start[0].shape)).ravel(), start[1] * 0.5])
+=======
+        x0 = np.concatenate([(start[0] + rng.normal(0, sd, start[0].shape)).ravel(), start[1] * scale])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _lp_radii(c, r):
+    """Optimal radii for fixed centres (LP)."""
+    n = len(r)
+    iu = np.triu_indices(n, 1)
+    m = len(iu[0])
+    A = np.zeros((m, n))
+    A[np.arange(m), iu[0]] = 1
+    A[np.arange(m), iu[1]] = 1
+    b = np.sqrt(((c[iu[0]] - c[iu[1]]) ** 2).sum(1))
+    wall = np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1]))
+    res = linprog(-np.ones(n), A_ub=A, b_ub=b, bounds=np.column_stack([np.zeros(n), np.maximum(wall, 0)]),
+                  method="highs")
+    return res.x if res.status == 0 else r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            best = (c, r)
+    return best
+=======
+            best = (c, r)
+    for _ in range(3):   # polish: LP radii, then a short SLSQP step on centres and radii
+        c, r = best
+        r2 = _repair(c, _lp_radii(c, r))
+        if r2.sum() > best[1].sum():
+            best = (c, r2)
+        c, r = best
+        c2, r2 = _solve_once(n, rng, (c, r), 0.0, 1.0, 50)
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > best[1].sum():
+            best = (c2, r2)
+    return best
+>>>>>>> REPLACE
+-----

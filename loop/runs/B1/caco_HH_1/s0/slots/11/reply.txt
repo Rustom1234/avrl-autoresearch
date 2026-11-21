@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+from sklearn.linear_model import Ridge
+=======
+from sklearn.linear_model import Ridge, RidgeCV
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def phys_one(smi):
+    m = Chem.MolFromSmiles(smi)
+    n = max(m.GetNumHeavyAtoms(), 1)
+    arom = sum(a.GetIsAromatic() for a in m.GetAtoms()) / n
+    vals = [f(m) for f in (Descriptors.TPSA, Descriptors.MolLogP, Descriptors.NumHDonors,
+                           Descriptors.NumHAcceptors, Descriptors.MolWt, Descriptors.NumRotatableBonds)]
+    return vals + [arom]
+=======
+_ACID = Chem.MolFromSmarts('[CX3](=O)[OX2H1,OX1-]')
+_BASIC_AMINE = Chem.MolFromSmarts('[NX3;!$(N-C=[O,S,N]);!$(N-a);!$(N-S);!$(N-[#7,#8])]')
+
+
+def phys_one(smi):
+    m = Chem.MolFromSmiles(smi)
+    n = max(m.GetNumHeavyAtoms(), 1)
+    arom = sum(a.GetIsAromatic() for a in m.GetAtoms()) / n
+    vals = [f(m) for f in (Descriptors.TPSA, Descriptors.MolLogP, Descriptors.NumHDonors,
+                           Descriptors.NumHAcceptors, Descriptors.MolWt, Descriptors.NumRotatableBonds,
+                           Descriptors.NumAromaticRings, Descriptors.FractionCSP3,
+                           Descriptors.HeavyAtomCount, Descriptors.RingCount,
+                           Descriptors.MolMR, Descriptors.LabuteASA)]
+    n_acid = len(m.GetSubstructMatches(_ACID))
+    n_base = len(m.GetSubstructMatches(_BASIC_AMINE))
+    return vals + [arom, n_acid, n_base]
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    lin = Ridge(alpha=1.0).fit(scaler.transform(ptr), y)
+=======
+    lin = RidgeCV(alphas=np.logspace(-1, 2, 20)).fit(scaler.transform(ptr), y)
+>>>>>>> REPLACE
+-----

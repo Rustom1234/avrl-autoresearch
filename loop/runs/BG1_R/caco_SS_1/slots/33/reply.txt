@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def count_fp(smiles):
+    from rdkit.Chem import rdFingerprintGenerator
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=2, fpSize=2048)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float64)
+
+
+def minmax_kernel(A, B):
+    sa, sb = A.sum(1), B.sum(1)
+    K = np.zeros((len(A), len(B)))
+    for i in range(len(A)):
+        ad = np.abs(A[i] - B).sum(1)
+        mn = (sa[i] + sb - ad) / 2
+        mx = (sa[i] + sb + ad) / 2
+        K[i] = mn / np.maximum(mx, 1e-9)
+    return K
+
+
+def krr_predict(train_smiles, y, test_smiles, alpha=0.3):
+    B = count_fp(train_smiles)
+    A = count_fp(test_smiles)
+    mu = y.mean()
+    c = np.linalg.solve(minmax_kernel(B, B) + alpha * np.eye(len(B)), y - mu)
+    return minmax_kernel(A, B) @ c + mu
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return 0.75 * et + 0.25 * knn
+=======
+    krr = krr_predict(train_smiles, y, test_smiles)
+    return 0.70 * et + 0.15 * knn + 0.15 * krr
+>>>>>>> REPLACE
+-----

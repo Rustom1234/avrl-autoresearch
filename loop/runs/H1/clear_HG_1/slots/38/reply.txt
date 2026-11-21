@@ -1,0 +1,262 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_test, X_train)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+=======
+import numpy as np
+from rdkit import Chem
+from rdkit import Descriptors
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+def featurize_morgan(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def featurize_descriptors(smiles):
+    res = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: 
+            res.append([0]*7)
+            continue
+        res.append([Descriptors.MolLogP(mol), Descriptors.TPSA(mol), 
+                     Descriptors.MolWt(mol), Descriptors.NumHDonors(mol), 
+                     Descriptors.NumHAcceptors(mol), Descriptors.NumRotBonds(mol), 
+                     Descriptors.NumAromatic(mol)])
+    return np.array(res, dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    if np.all(y_train >= 0):
+        y_train = np.log1p(y_train)
+
+    X_train_m = featurize_morgan(train_smiles)
+    K_train = tanimoto_kernel(X_train_m, X_train_m)
+    
+    # SVR for base prediction
+    svr = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+    svr.fit(K_train, y_train)
+
+    # OOF residuals for GBM training using a simple split to save slots
+    # (Strictly, 5-fold grouped by scaffold is ideal, but we must keep it simple)
+    mid = len(train_smiles) // 2
+    X_train_m_sub = X_train_m[:mid]
+    K_sub = tanimoto_kernel(X_train_m_sub, X_train_m_sub)
+    
+    y_sub = y_train[:mid]
+    svr.fit(K_sub, y_sub)
+    
+    # Predict on the rest to get residuals
+    X_train_m_res = X_train_m[mid:]
+    K_res = tanimoto_kernel(X_train_m_res, X_train_m_res)
+    oof_preds = svr.predict(K_res)
+    residuals = y_train[mid:] - oof_preds
+    
+    # GBM on descriptors
+    X_train_desc = featurize_descriptors(train_smiles)
+    X_test_desc = featurize_descriptors(test_smiles)
+    
+    gbm = lgb.LGBMRegressor(n_estimators=200, learning_rate=0.03, 
+                               num_leaves=8, random_state=seed, verbose=-1)
+    gbm.fit(X_train_desc, residuals)
+    
+    # Final Prediction
+    X_test_m = featurize_morgan(test_smiles)
+    K_test = tanimoto_kernel(X_test_m, X_train_m)
+    
+    base_preds = svr.predict(K_test)
+    res_preds = gbm.predict(X_test_desc)
+    final_preds = base_preds + res_preds
+    
+    if np.all(y_train >= 0):
+        return np.expm1(final_preds)
+    return final_preds
+-----
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train = featurize(train_smiles)
+    X_test = featurize(test_smiles)
+
+    K_train = tanimoto_kernel(X_train, X_train)
+    K_test = tanimoto_kernel(X_test, X_train)
+
+    model = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+
+    if np.all(y_train >= 0):
+        y_train_transformed = np.log1p(y_train)
+        model.fit(K_train, y_train_transformed)
+        preds = model.predict(K_test)
+        return np.expm1(preds)
+    else:
+        model.fit(K_train, y_train)
+        return model.predict(K_test)
+Dos
+>>>>>>> REPLACE
+import numpy as np
+from rdkit import Chem
+from rdkit import Descriptors
+from rdkit.Chem import rdFingerprintGenerator
+from sklearn.svm import SVR
+import lightgbm as lgb
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+C = 5.0
+EPSILON = 0.05
+
+def featurize_morgan(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    return np.array([gen.GetCountFingerprintAsNumPy(Chem.MolFromSmiles(s)) for s in smiles], dtype=np.float32)
+
+def featurize_descriptors(smiles):
+    res = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol is None: 
+            res.append([0.0] * 7)
+            continue
+        res.append([Descriptors.MolLogP(mol), Descriptors.TPSA(mol), 
+                     Descriptors.MolWt(mol), Descriptors.NumHDonors(mol), 
+                     Descriptors.NumHAcceptors(mol), Descriptors.NumRotBonds(mol), 
+                     Descriptors.NumAromatic(mol)])
+    return np.array(res, dtype=np.float32)
+
+def tanimoto_kernel(X1, X2):
+    dot = np.dot(X1, X2.T)
+    sum_sq1 = np.sum(X1**2, axis=1).reshape(-1, 1)
+    sum_sq2 = np.sum(X2**2, axis=1).reshape(1, -1)
+    return dot / (sum_sq1 + sum_sq2 - dot + 1e-9)
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    y_train = np.asarray(train_y, dtype=np.float64)
+    X_train_m = featurize_morgan(train_smiles)
+    X_test_m = featurize_morgan(test_smiles)
+    
+    if np.all(y_train >= 0):
+        y_train_trans = np.log1p(y_train)
+    else:
+        y_train_trans = y_train
+
+    K_train = tanimoto_kernel(X_train_m, X_train_m)
+    K_test = tanimoto_kernel(X_test_m, X_train_m)
+
+    # Stage 1: SVR
+    svr = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+    svr.fit(K_train, y_train_trans)
+    
+    # Create OOF for residuals using a simple 5-fold split
+    n = len(train_smiles)
+    indices = np.arange(n)
+    np.random.seed(seed)
+    np.random.shuffle(indices)
+    
+    oof_res = np.zeros(n)
+    # To keep it simple and avoid complex scaffold grouping, we use a simple 5-fold
+    for i in range(5):
+        fold_idx = indices[i*n//5 : (i+1)*n//5]
+        train_idx = np.setdiff1p(indices, fold_idx)
+        
+        K_fold_train = tanimoto_kernel(X_train_m[train_idx], X_train_m[train_idx])
+        svr_fold = SVR(kernel='precomputed', C=C, epsilon=EPSILON)
+        svr_fold.fit(K_fold_train, y_train_trans[train_idx])
+        
+        K_fold_test = tanimoto_kernel(X_train_m[fold_idx], X_train_m[train_idx])
+        oof_res[fold_idx] = svr_fold.predict(K_fold_test)
+    
+    residuals = y_train_trans - oof_res
+    
+    # Stage 2: LightGBM on descriptors
+    X_train_d = featurize_descriptors(train_smiles)
+    X_test_d = featurize_descriptors(test_smiles)
+    
+    params = {'objective': 'regression', 'metric': 'rmse', 'learning_rate':                 0.03, 'num_leaves': 8, 'verbose': -1}
+    gbm = lgb.train({'params': params, 'num_boost_round': 200}, 
+                      lgb.Dataset(X_train_d, label=residuals), 
+                      free_running=False)
+    
+    svr_preds = svr.predict(K_test)
+    gbm_preds = gbm.predict(X_test_d)
+    
+    final_preds = svr_preds + gbm_preds
+    
+    if np.all(y_train >= 0):
+        return np.expm1(final_preds)
+    return final_preds
+-----

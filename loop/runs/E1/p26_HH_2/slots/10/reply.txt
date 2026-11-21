@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+POOL = 8
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)])
+=======
+def _solve_once(n, rng, init=None):
+    x0 = np.concatenate([rng.uniform(INIT_LOW, 1 - INIT_LOW, 2 * n), np.full(n, INIT_RADIUS)]) if init is None else init
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0, best, pool = np.random.default_rng(seed), time.process_time(), None, []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        init = None
+        if len(pool) >= 2:   # crossover: left part of one elite parent, right part of another
+            i, j = rng.choice(len(pool), 2, replace=False)
+            split = rng.uniform(0.2, 0.8)
+            pts = np.vstack([pool[i][1][pool[i][1][:, 0] < split], pool[j][1][pool[j][1][:, 0] >= split]])[:n]
+            if len(pts) < n:
+                pts = np.vstack([pts, rng.uniform(INIT_LOW, 1 - INIT_LOW, (n - len(pts), 2))])
+            init = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+        c, r = _solve_once(n, rng, init)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        s = r.sum()
+        if best is None or s > best[1].sum():
+            best = (c, r)
+        if not any(np.allclose(np.sort(r), np.sort(p[2])) for p in pool):   # keep top POOL distinct packings
+            pool.append((s, c, r))
+            pool.sort(key=lambda p: -p[0])
+            del pool[POOL:]
+    return best
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    centers = np.clip(best_c, 0.0, 1.0)
+    radii = safe_radii(centers, np.maximum(best_r, 0.0))
+=======
+    # Best-state SA reheating: low-temperature SA on the best centers (40 s cap), then SLSQP
+    try:
+        t_re = time.time() - 80.0  # sa_centers stops at 120 s elapsed from its t0, so this caps it at 40 s
+        c_re = sa_centers(best_c.copy(), rng, t_re, steps=1500, T0=0.004, T1=0.0002)
+        z_re = np.concatenate([c_re[:, 0], c_re[:, 1], lp_radii(c_re)])
+        zr = optimize(z_re)
+        v_re = float(np.sum(zr[2 * n:]))
+        if np.isfinite(v_re) and v_re > best_val:
+            best_val = v_re
+            best_c = np.stack([zr[:n], zr[n:2 * n]], axis=1)
+            best_r = zr[2 * n:].copy()
+    except Exception:
+        pass
+
+    centers = np.clip(best_c, 0.0, 1.0)
+    radii = safe_radii(centers, np.maximum(best_r, 0.0))
+>>>>>>> REPLACE
+-----

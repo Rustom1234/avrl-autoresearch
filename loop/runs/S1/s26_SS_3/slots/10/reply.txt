@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+=======
+        r0 = np.full(n, 0.05) + rng.random(n) * 0.03
+        if it % 4 == 0:
+            G = rng.random((1500, 2)) * 0.96 + 0.02
+            gc = []
+            gr = []
+            wall = np.minimum(G.min(1), (1 - G).min(1))
+            for _ in range(n):
+                clear = wall.copy()
+                if gc:
+                    dg = np.sqrt(((G[:, None, :] - np.array(gc)[None]) ** 2).sum(2)) - np.array(gr)[None]
+                    clear = np.minimum(clear, dg.min(1))
+                top = np.argsort(-clear)[:5]
+                kk = rng.choice(top)
+                gc.append(G[kk].copy())
+                gr.append(max(clear[kk], 0.02))
+            c0 = np.array(gc)
+            r0 = np.array(gr)
+>>>>>>> REPLACE
+-----

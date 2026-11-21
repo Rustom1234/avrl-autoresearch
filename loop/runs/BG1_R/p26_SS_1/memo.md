@@ -1,0 +1,5 @@
+Helped: only slot 7 (30% of time on random restarts, then perturbing the best packing by moving 2-3 circles): -2.6310/-2.6316, incumbent -2.6313 over 2 runs. Slot 6 (50% share) was +0.0005 vs incumbent. Slot 29 (15% share) scored -2.6322, one run, within noise (sd 0.0023).
+Not helpful: init tweaks (0, 2), analytic gradients (3), screening/looser tolerances (1, 10), LP refit (5), pair-restricted continuation (4), TIME_FRACTION 0.9 (9), MAX_ITER 500 (12), final polish (13), wall-hugging starts (20), elite pool (19), later perturbation variants (22, 25, 26, 28).
+Replicated: slot 34 (maximin starts) scored -2.6342/-2.6337 and slot 31 (shake all centres) scored -2.6337/-2.6327. Both beat the incumbent's -2.6313 on two runs, yet were marked reject. Recheck that decision.
+Singles that looked slightly better: 17 (-2.6330), 24 (-2.6327), 15 (-2.6324), 23 (-2.6324), 30 (-2.6323). Slot 27's -2.6300 suggests the symmetric-start gain is noise.
+Next: make slot 34 the base. Combine it with the slot 31 shake and the slot 24 ring. Then tune the restart share (15-30%). Avoid more perturbation variants.

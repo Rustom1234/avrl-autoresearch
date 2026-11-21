@@ -1,0 +1,16 @@
+{
+ "ok": true,
+ "issues": [
+  "No integrity problems. The diff changes only two architecture hyperparameters: DEPTH goes from 6 to 5 and ASPECT_RATIO from 64 to 102. It does not touch the seed lines, the prepare.py import, the data, the evaluation call or the summary printing.",
+  "Not a bug: model_dim goes from 384 to 5*102 = 510. The comment says this rounds up to 512, which is a multiple of HEAD_DIM 128, so 4 heads. I could not check the rounding code from this diff. If it does not round up, 510 is not divisible by 128 and the run would have crashed instead of producing valid numbers. Since all three candidate runs finished normally, the rounding must work.",
+  "Cannot recompute z exactly: the harness gives only the incumbent mean (1.0615 over 2 runs), not the two individual values or their spread. Candidate mean = 1.05047 and candidate SD = 0.00230, so the improvement is 0.01103. A test using only the candidate's spread would give a much larger z (about 8.3). So the harness's z = 2.203 must use a different variance, probably pooled or the incumbent's. Either way it is consistent with a real improvement, and the provisional accept matches the numbers.",
+  "No claims in the diff contradict the numbers above."
+ ],
+ "veto": false,
+ "recomputed": {
+  "z": null,
+  "candidate_mean": 1.05047,
+  "candidate_sd": 0.0023,
+  "delta_vs_incumbent": 0.01103
+ }
+}

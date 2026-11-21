@@ -1,0 +1,4 @@
+import numpy as np
+def equation(t, x, v, params):
+    return (params[0]+params[1]*x+params[2]*x**2+params[3]*x**3+params[4]*v+params[5]*x*v
+            +params[6]*np.cos(params[7]*t)+params[8]*np.sin(params[7]*t)+params[9]*t)

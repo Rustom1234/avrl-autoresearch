@@ -1,0 +1,17 @@
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    Xtr = featurize(train_smiles)
+    Xte = featurize(test_smiles)
+    lo = np.percentile(Xtr[:, N_BITS:], 1, axis=0)
+    hi = np.percentile(Xtr[:, N_BITS:], 99, axis=0)
+    Dtr = np.clip(Xtr[:, N_BITS:], lo, hi)
+    Dte = np.clip(Xte[:, N_BITS:], lo, hi)
+    mu, sd = Dtr.mean(axis=0), Dtr.std(axis=0) + 1e-6
+    Xtr[:, N_BITS:] = (Dtr - mu) / sd
+    Xte[:, N_BITS:] = (Dte - mu) / sd
+    model.fit(Xtr, y - A_tr @ coef)
+    return model.predict(Xte) + A_te @ coef
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,33 @@
+<<<<<<< SEARCH
+        rows.append([Descriptors.TPSA(m), Descriptors.MolWt(m), Descriptors.NumHDonors(m), Descriptors.MolLogP(m)])
+=======
+        rows.append([Descriptors.TPSA(m), Descriptors.MolWt(m), Descriptors.NumHDonors(m), Descriptors.MolLogP(m),
+                     Descriptors.NumHAcceptors(m), Descriptors.NumRotatableBonds(m), Descriptors.FractionCSP3(m)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    A_tr = np.c_[np.ones(len(y)), base_features(train_smiles)]
+    A_te = np.c_[np.ones(len(test_smiles)), base_features(test_smiles)]
+    coef = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+=======
+    X_tr = base_features(train_smiles)
+    X_te = base_features(test_smiles)
+    prior_tr = np.zeros(len(y))
+    prior_te = np.zeros(len(test_smiles))
+    for cols in [[0, 3], [1, 5], [2, 4], [3, 0, 6]]:
+        A_tr = np.c_[np.ones(len(y)), X_tr[:, cols]]
+        A_te = np.c_[np.ones(len(test_smiles)), X_te[:, cols]]
+        coef = np.linalg.lstsq(A_tr, y, rcond=None)[0]
+        prior_tr += A_tr @ coef / 4
+        prior_te += A_te @ coef / 4
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+=======
+    model.fit(featurize(train_smiles), y - prior_tr)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    return model.predict(featurize(test_smiles)) + prior_te
+>>>>>>> REPLACE
+-----

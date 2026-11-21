@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, x0=None):
+=======
+def _solve_once(n, rng, x0=None, maxiter=MAX_ITER):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # restarts until the time is used
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+        c, r = _solve_once(n, rng, x0)
+=======
+    while time.process_time() - t0 < 0.5 * time_limit:   # short restarts
+        x0 = _cross(pool, n, rng) if len(pool) >= 2 and rng.random() < 0.7 else None
+        c, r = _solve_once(n, rng, x0, 60)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    for c0, r0 in pool[:3]:   # polish the top candidates
+        if time.process_time() - t0 > TIME_FRACTION * time_limit:
+            break
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]), 400)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+>>>>>>> REPLACE
+-----

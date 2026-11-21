@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    x0 = np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+def _solve_once(n, rng, init=None):
+    base = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2)) if init is None else np.clip(init + rng.normal(0, 0.03, (n, 2)), 0, 1)
+    return _slsqp(n, np.concatenate([base.ravel(), np.full(n, INIT_RADIUS)]))
+
+
+def _slsqp(n, x0):
+    iu = np.triu_indices(n, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    while time.process_time() - t0 < 0.95 * time_limit:   # ruin and recreate on the incumbent
+        c, r = best[0].copy(), best[1].copy()
+        k = int(rng.integers(2, 6))
+        idx = np.argsort(r)[:k]
+        keep = np.ones(n, bool)
+        keep[idx] = False
+        for i in idx:
+            cand = rng.uniform(0, 1, (3000, 2))
+            free = (np.sqrt(((cand[:, None] - c[keep][None]) ** 2).sum(-1)) - r[keep][None]).min(1)
+            c[i] = cand[np.argmax(free)]
+            r[i] = 0.01
+            keep[i] = True
+        c2, r2 = _slsqp(n, np.concatenate([c.ravel(), r]))
+        c2 = np.clip(c2, 0, 1)
+        r2 = _repair(c2, r2)
+        if r2.sum() > best[1].sum():
+            best = (c2, r2)
+    return best
+>>>>>>> REPLACE
+-----

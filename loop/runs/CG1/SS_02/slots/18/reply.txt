@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+class CifarLoader:
+=======
+@torch.compile()
+def batch_crop_jitter(images, crop_size, brightness_range: float, contrast_range: float):
+    return batch_color_jitter(batch_crop(images, crop_size), brightness_range, contrast_range)
+
+class CifarLoader:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        if self.aug.get("translate", 0) > 0:
+            images = batch_crop(self.proc_images["pad"], self.images.shape[-2])
+        elif self.aug.get("flip", False):
+            images = self.proc_images["flip"]
+        else:
+            images = self.proc_images["norm"]
+        # Flip all images together every other epoch. This increases diversity relative to random flipping
+        if self.aug.get("flip", False):
+            if self.epoch % 2 == 1:
+                images = images.flip(-1)
+
+        color_jitter_config = self.aug.get("color_jitter", {"enabled": False})
+        if color_jitter_config.get("enabled", False):
+            brightness = color_jitter_config.get("brightness_range", 0.1)
+            contrast = color_jitter_config.get("contrast_range", 0.1)
+            images = batch_color_jitter(images, brightness, contrast)
+=======
+        color_jitter_config = self.aug.get("color_jitter", {"enabled": False})
+        jitter = color_jitter_config.get("enabled", False)
+        brightness = color_jitter_config.get("brightness_range", 0.1)
+        contrast = color_jitter_config.get("contrast_range", 0.1)
+        if self.aug.get("translate", 0) > 0 and jitter:
+            images = batch_crop_jitter(self.proc_images["pad"], self.images.shape[-2], brightness, contrast)
+            jitter = False
+        elif self.aug.get("translate", 0) > 0:
+            images = batch_crop(self.proc_images["pad"], self.images.shape[-2])
+        elif self.aug.get("flip", False):
+            images = self.proc_images["flip"]
+        else:
+            images = self.proc_images["norm"]
+        if jitter:
+            images = batch_color_jitter(images, brightness, contrast)
+        # Flip all images together every other epoch. This increases diversity relative to random flipping
+        if self.aug.get("flip", False):
+            if self.epoch % 2 == 1:
+                images = images.flip(-1)
+>>>>>>> REPLACE
+-----

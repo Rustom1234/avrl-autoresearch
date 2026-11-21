@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+def construct_packing():
+    rng = np.random.default_rng(12345)
+    best = None
+    t0 = time.time()
+    for _k in range(100000):
+        if time.time() - t0 > 200.0 and best is not None:
+            break
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+=======
+def construct_packing():
+    seeds = [1, 7, 99, 2024]
+    rngs = [np.random.default_rng(s) for s in seeds]
+    rng = rngs[0]
+    spent = [0.0] * len(seeds)
+    best = None
+    tprev = time.time()
+    prev = 0
+    for _k in range(100000):
+        now = time.time()
+        spent[prev] += now - tprev
+        tprev = now
+        q = _k % len(seeds)
+        prev = q
+        if all(v >= 50.0 for v in spent):
+            break
+        if spent[q] >= 50.0:
+            continue
+        rng = rngs[q]
+        P = rng.uniform(0.05, 0.95, size=(_N, 2))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,37 @@
+<<<<<<< SEARCH
+SHRINK = 1e-9
+=======
+SHRINK = 1e-9
+JITTER = 0.005
+JITTER_ITER = 20
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None):
+    if start is None:
+        centers = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    else:
+        centers = np.clip(start + rng.normal(0, 0.02, (n, 2)), 0, 1)
+=======
+def _solve_once(n, rng, start=None, sigma=0.02, maxiter=MAX_ITER):
+    if start is None:
+        centers = rng.uniform(INIT_LOW, 1 - INIT_LOW, (n, 2))
+    else:
+        centers = np.clip(start + rng.normal(0, sigma, (n, 2)), 0, 1)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+                   options={"maxiter": MAX_ITER})
+=======
+                   options={"maxiter": maxiter})
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _solve_once(n, rng, start)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+=======
+        c, r = _solve_once(n, rng, start)
+        c = np.clip(c, 0, 1)
+        c, r = _solve_once(n, rng, c, JITTER, JITTER_ITER)   # jitter centres and re-optimise briefly
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+>>>>>>> REPLACE
+-----

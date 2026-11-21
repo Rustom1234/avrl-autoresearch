@@ -1,0 +1,35 @@
+<<<<<<< SEARCH
+    best = (c, _repair(c, r))
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    best = (c, _repair(c, r))
+    scales = np.array([0.005, 0.01, 0.02, 0.05])
+    wins, losses = np.zeros(4), np.zeros(4)
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        k = int(np.argmax(rng.beta(wins + 1, losses + 1)))   # Thompson sample over kick scales
+        s = scales[k]
+        c0 = np.clip(bc + rng.normal(0, s, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, s, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+            wins[k] += 1
+        else:
+            losses[k] += 1
+    return best
+>>>>>>> REPLACE
+-----

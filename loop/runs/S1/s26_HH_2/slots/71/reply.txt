@@ -1,0 +1,85 @@
+<<<<<<< SEARCH
+def _template():
+=======
+def _trust_polish(c, r, maxiter=300):
+    """Joint trust-constr polish: maximise sum r subject to pair and wall constraints, analytic Jacobian."""
+    from scipy.optimize import NonlinearConstraint, Bounds
+    n = c.shape[0]
+    iu, ju = np.triu_indices(n, 1)
+    m = iu.shape[0]
+    k = np.arange(n)
+
+    def fobj(z):
+        return -np.sum(z[2 * n:])
+
+    def fgrad(z):
+        g = np.zeros_like(z)
+        g[2 * n:] = -1.0
+        return g
+
+    def fcons(z):
+        cc = z[:2 * n].reshape(n, 2)
+        rr = z[2 * n:]
+        d = np.sqrt(np.sum((cc[iu] - cc[ju]) ** 2, axis=1) + 1e-18)
+        x, y = cc[:, 0], cc[:, 1]
+        return np.concatenate([d - rr[iu] - rr[ju], x - rr, y - rr, 1.0 - x - rr, 1.0 - y - rr])
+
+    def fjac(z):
+        cc = z[:2 * n].reshape(n, 2)
+        diff = cc[iu] - cc[ju]
+        d = np.sqrt(np.sum(diff ** 2, axis=1) + 1e-18)
+        u = diff / d[:, None]
+        J = np.zeros((m + 4 * n, 3 * n))
+        rows = np.arange(m)
+        J[rows, 2 * iu] = u[:, 0]
+        J[rows, 2 * iu + 1] = u[:, 1]
+        J[rows, 2 * ju] = -u[:, 0]
+        J[rows, 2 * ju + 1] = -u[:, 1]
+        J[rows, 2 * n + iu] = -1.0
+        J[rows, 2 * n + ju] = -1.0
+        b = m
+        J[b + k, 2 * k] = 1.0
+        J[b + k, 2 * n + k] = -1.0
+        b = m + n
+        J[b + k, 2 * k + 1] = 1.0
+        J[b + k, 2 * n + k] = -1.0
+        b = m + 2 * n
+        J[b + k, 2 * k] = -1.0
+        J[b + k, 2 * n + k] = -1.0
+        b = m + 3 * n
+        J[b + k, 2 * k + 1] = -1.0
+        J[b + k, 2 * n + k] = -1.0
+        return J
+
+    z0 = np.concatenate([c.ravel(), np.maximum(r, 0.0)])
+    lb = np.zeros(3 * n)
+    ub = np.concatenate([np.ones(2 * n), np.full(n, 0.5)])
+    try:
+        res = _minimize(fobj, z0, jac=fgrad, method="trust-constr",
+                        bounds=Bounds(lb, ub),
+                        constraints=[NonlinearConstraint(fcons, 0.0, np.inf, jac=fjac)],
+                        options={"maxiter": maxiter, "gtol": 1e-10, "xtol": 1e-12})
+        z = res.x
+    except Exception:
+        return c, r
+    cc = np.clip(z[:2 * n].reshape(n, 2), 0.0, 1.0)
+    rr = np.maximum(z[2 * n:], 0.0)
+    return cc, rr
+
+
+def _template():
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        c, r = _slsqp_refine(c, r)
+=======
+        c, r = _slsqp_refine(c, r)
+        try:
+            c2, r2 = _trust_polish(c, r)
+            rv1, s1 = _score(c)
+            rv2, s2 = _score(c2)
+            if rv2 is not None and (rv1 is None or s2 > s1):
+                c, r = c2, r2
+        except Exception:
+            pass
+>>>>>>> REPLACE
+-----

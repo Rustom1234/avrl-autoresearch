@@ -1,0 +1,30 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+=======
+_CACHE = {}
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    apg = rdFingerprintGenerator.GetAtomPairGenerator(fpSize=1024)
+    ttg = rdFingerprintGenerator.GetTopologicalTorsionGenerator(fpSize=1024)
+    rows = []
+    for s in smiles:
+        if s in _CACHE:
+            rows.append(_CACHE[s])
+            continue
+        m = Chem.MolFromSmiles(s)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([fp, desc, grp]))
+=======
+        ap = np.log1p(apg.GetCountFingerprintAsNumPy(m).astype(np.float32))
+        tt = np.log1p(ttg.GetCountFingerprintAsNumPy(m).astype(np.float32))
+        _CACHE[s] = np.concatenate([fp, desc, grp, ap, tt]).astype(np.float32)
+        rows.append(_CACHE[s])
+>>>>>>> REPLACE
+-----

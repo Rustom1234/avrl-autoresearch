@@ -1,0 +1,44 @@
+<<<<<<< SEARCH
+    def pen(z, mu):
+=======
+    def pen(z, mu, W=1.0):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        br = np.maximum(r + x - 1.0, 0.0)
+=======
+        br = np.maximum(r + x - W, 0.0)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    try:
+        zp = z0.copy()
+        for lvl, mu in enumerate((10.0, 1e2, 1e3, 1e4, 1e5)):
+            sig = 0.004 / np.sqrt(lvl + 1)
+            zp[:2 * n] = np.clip(zp[:2 * n] + rng.normal(0.0, sig, size=2 * n), 0.0, 1.0)
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+            rp = minimize(pen, zp, args=(mu,), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+        z0 = zp
+    except Exception:
+        pass
+=======
+    W0 = rng.uniform(0.9, 1.1)
+    try:
+        zp = z0.copy()
+        for lvl, mu in enumerate((10.0, 1e2, 1e3, 1e4, 1e5)):
+            W = W0 + (1.0 - W0) * min(lvl / 3.0, 1.0)
+            sig = 0.004 / np.sqrt(lvl + 1)
+            zp[:2 * n] = np.clip(zp[:2 * n] + rng.normal(0.0, sig, size=2 * n), 0.0, 1.0)
+            rp = minimize(pen, zp, args=(mu, W), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+            rp = minimize(pen, zp, args=(mu, W), jac=True, method="L-BFGS-B",
+                          bounds=pbounds, options={"maxiter": 600})
+            zp = rp.x
+        z0 = zp
+    except Exception:
+        pass
+>>>>>>> REPLACE
+-----

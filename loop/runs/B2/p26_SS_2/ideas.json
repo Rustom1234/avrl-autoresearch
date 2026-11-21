@@ -1,0 +1,642 @@
+[
+ {
+  "id": "b001",
+  "title": "Target the loosest circles: jitter only low-contact circles",
+  "spec": "In half of the perturbation trials (rng.random() < 0.5), perturb only the circles that are loosely held in the best packing. Compute for each circle its number of contacts: pairs with centre distance minus the two radii below 1e-4, plus walls with clearance minus radius below 1e-4. Take the 5 circles with the fewest contacts, ties broken by smaller radius, and add centre noise with sd 0.08 to them only; the other centres stay unchanged. Start radii are 0.5 times the best radii for all circles as now. Run SLSQP, repair and accept as usual. The other half of the trials use the current uniform jitter.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8741452693939209,
+  "sim_tried_bge": 0.8741452693939209,
+  "sim_hist_mini": 0.8184874057769775,
+  "sources": [
+   [
+    "fable",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b002",
+  "title": "Fewer SLSQP iterations for perturbed starts",
+  "spec": "Add a `maxiter` argument to _solve_once and pass it into the SLSQP options. Fresh random starts keep MAX_ITER = 200. Perturbed starts in the perturbation phase use maxiter = 100, because they begin close to a good packing and need fewer iterations. This gives roughly twice as many perturbation trials in the same time. Change nothing else: same sd choices, same 0.5 radius shrink, same repair and acceptance rule.",
+  "family": "batch",
+  "sim_hist_bge": 0.8448812365531921,
+  "sim_tried_bge": 0.8339922428131104,
+  "sim_hist_mini": 0.7620211839675903,
+  "sources": [
+   [
+    "fable",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b003",
+  "title": "Tighter SLSQP ftol for perturbed starts",
+  "spec": "Add an `ftol` argument to _solve_once and pass it into the SLSQP options. Fresh random starts keep the scipy default, 1e-6. Perturbed starts use ftol = 1e-9, with MAX_ITER unchanged at 200. With the default tolerance SLSQP can stop about 1e-4 to 1e-3 short of the local optimum in sum of radii, which is the size of the gap between the current result and the best known value. This is not a separate final polish stage: only the tolerance of the existing perturbation solves changes, and no extra time is reserved.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8339933156967163,
+  "sim_tried_bge": 0.7951425313949585,
+  "sim_hist_mini": 0.6826661825180054,
+  "sources": [
+   [
+    "fable",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b004",
+  "title": "Two-radius-class starts",
+  "spec": "For half of the fresh random starts, set initial radii so that 10 random circles have radius 0.08 and the other 16 have radius 0.035, with uniform random centres in [0.1,0.9]. The other half stay as the current start. Tests heterogeneous starting radii that match the structure of good packings.",
+  "family": "data",
+  "sim_hist_bge": 0.8920712471008301,
+  "sim_tried_bge": 0.8916943073272705,
+  "sim_hist_mini": 0.8372350931167603,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b005",
+  "title": "Remove-3-smallest combined with row-hex starts",
+  "spec": "Combine slots 29 and 7. Fresh random restarts (the first 30% of the time) start from row-structured hex-like starts: 5 or 6 rows with a random number of circles per row adding up to 26, evenly spaced in each row, with uniform jitter of 0.02 and initial radius 0.05. In the perturbation phase, half the time remove the 3 smallest circles of the best packing and reinsert them at random uniform positions in [0.1, 0.9]^2 with radius 0.02, while the other circles keep their centres and get radii x0.5. The other half of the time, use the existing jitter perturbation.",
+  "family": "data",
+  "sim_hist_bge": 0.8896380662918091,
+  "sim_tried_bge": 0.8896380662918091,
+  "sim_hist_mini": 0.7833949327468872,
+  "sources": [
+   [
+    "opus",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b006",
+  "title": "Smaller perturbation sd pool",
+  "spec": "In solve, change the perturbation sd choices from [0.005, 0.01, 0.02, 0.05] to [0.002, 0.005, 0.01, 0.03]. This concentrates the search closer to the best basin. Keep the 30% restart phase, radii x0.5 and everything else unchanged.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8658273220062256,
+  "sim_tried_bge": 0.8130702972412109,
+  "sim_hist_mini": 0.6617918014526367,
+  "sources": [
+   [
+    "opus",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b007",
+  "title": "Relocate one random mid-size circle to the largest hole",
+  "spec": "In the perturbation phase, with probability 0.4, pick a random circle whose radius lies between the 30th and 70th percentile of the best packing. Move its centre to the point with the largest clearance: evaluate a 60x60 grid over [0.02, 0.98]^2 and take the point that maximises min(distance to wall, min_j(dist to c_j - r_j)), excluding the moved circle. Give all circles radii x0.5, add jitter with sd 0.003 and run SLSQP. Otherwise use the existing perturbation.",
+  "family": "data",
+  "sim_hist_bge": 0.9136788845062256,
+  "sim_tried_bge": 0.9136788845062256,
+  "sim_hist_mini": 0.8327285051345825,
+  "sources": [
+   [
+    "opus",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b008",
+  "title": "Adaptive jitter scale from the one-fifth success rule",
+  "spec": "In the perturbation phase, maintain a Gaussian centre-jitter sd starting at 0.02. After each child, if its radius sum beats the best, multiply sd by 1.5. If it does not, multiply sd by 0.97. Keep sd within [0.002, 0.1]. Build each child by jittering the best centres with the current sd and halving the radii, then run SLSQP and _repair. Keep the restart phase as in slot 2. This is the classical one-fifth success rule applied to the existing perturbation step, instead of a fixed choice of sd.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8282124996185303,
+  "sim_tried_bge": 0.8282124996185303,
+  "sim_hist_mini": 0.7623368501663208,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b009",
+  "title": "Halton low-discrepancy random-restart starts",
+  "spec": "For fresh random restarts, replace rng.uniform for the centres with a 2-D Halton sequence (bases 2 and 3) over [INIT_LOW, 1-INIT_LOW]. Use a per-call offset drawn from rng so that different seeds give different, but still well-spread, point sets. Keep the initial radii at INIT_RADIUS and everything else unchanged. The point is to cover the square more evenly than iid uniform draws, with no extra SLSQP cost.",
+  "family": "data",
+  "sim_hist_bge": 0.8205021619796753,
+  "sim_tried_bge": 0.8205021619796753,
+  "sim_hist_mini": 0.6638820171356201,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b010",
+  "title": "Final polish with tight-tolerance SLSQP",
+  "spec": "Reserve the last 8% of the time limit. Take the best packing and run SLSQP from its centres and radii (not scaled) with ftol=1e-15 and maxiter 300, using the same constraints. Repair, and keep the result only if its repaired sum is larger than the best's. Restart/perturbation loop ends at 0.72 of the time limit.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.9324960708618164,
+  "sim_tried_bge": 0.9324960708618164,
+  "sim_hist_mini": 0.8537808656692505,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b011",
+  "title": "Variable-bound SLSQP",
+  "spec": "Pass bounds to SLSQP: centres in [0,1] and radii in [0,0.25], and remove the redundant constraint r>=0 from cons. This shrinks the constraint vector and keeps the iterates sane. Leave the rest unchanged.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9407027959823608,
+  "sim_tried_bge": 0.7820478677749634,
+  "sim_hist_mini": 0.8950403332710266,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b012",
+  "title": "Feasible clearance-based initial radii for fresh starts",
+  "spec": "For fresh random starts in _solve_once, replace the constant INIT_RADIUS with radii that make the start feasible: after drawing centres c of shape (n, 2), compute the pairwise distance matrix with the diagonal set to inf, then r0 = 0.45 * minimum(nearest-neighbour distance, distance to the nearest wall) per circle, where the wall distance is min(x, y, 1 - x, 1 - y). Use x0 = concatenate([c.ravel(), r0]). Every constraint is then satisfied at the start, so SLSQP starts from a feasible point instead of resolving overlaps first. Perturbed starts are unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8368313312530518,
+  "sim_tried_bge": 0.8368313312530518,
+  "sim_hist_mini": 0.7512262463569641,
+  "sources": [
+   [
+    "fable",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b013",
+  "title": "Lloyd-relaxed random starts",
+  "spec": "For fresh random starts, draw 26 uniform points in the unit square and apply 5 Lloyd iterations using a 60x60 grid of sample points (assign each grid point to the nearest site, move each site to the centroid of its cells). Use the result as centres with initial radius 0.05. Gives evenly spread starts without extra libraries.",
+  "family": "data",
+  "sim_hist_bge": 0.926703929901123,
+  "sim_tried_bge": 0.8041490316390991,
+  "sim_hist_mini": 0.8212847709655762,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b014",
+  "title": "Chained perturb-and-accept from current packing",
+  "spec": "After 30% of the time limit, keep a current packing (initially best). Each iteration perturb the current packing (radii x0.5, centre noise sd chosen from [0.005,0.01,0.02]), re-optimise with SLSQP, repair. Accept as current if its sum is >= current sum minus 0.002; update best separately. This chains perturbations instead of always restarting from the best. Keep everything else unchanged.",
+  "family": "schedule",
+  "sim_hist_bge": 0.9417085647583008,
+  "sim_tried_bge": 0.8481252193450928,
+  "sim_hist_mini": 0.9178656339645386,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b015",
+  "title": "Concentric-ring random starts",
+  "spec": "For half of the fresh random restarts, place the n circle centres on 3 concentric rings around the square centre (0.5, 0.5). Assign each ring a count drawn from rng (roughly 1 central, 8 middle, 17 outer, with random jitter of plus or minus 2 per ring, summing to n). Put points evenly on each ring with a random phase in [0, 2*pi). Add Gaussian noise with sd 0.02 to each centre, clip to [INIT_LOW, 1-INIT_LOW], and set initial radii to INIT_RADIUS. The other half of the restarts stay uniform.",
+  "family": "data",
+  "sim_hist_bge": 0.8357728719711304,
+  "sim_tried_bge": 0.8174610137939453,
+  "sim_hist_mini": 0.7905135154724121,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    6
+   ]
+  ]
+ },
+ {
+  "id": "b016",
+  "title": "Global anisotropic stretch perturbation",
+  "spec": "In the perturbation phase, half the time (rng.random() < 0.5), transform the best centres before the usual jitter: c' = 0.5 + (c - 0.5) * [1 + e, 1 - e] with e ~ U(-0.06, 0.06). This stretches the packing along one axis and squeezes it along the other. Clip to [0.02, 0.98], add normal jitter with sd 0.005, use radii x0.5 and run SLSQP. The other half of the time, use the existing perturbation.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9054911732673645,
+  "sim_tried_bge": 0.8953325152397156,
+  "sim_hist_mini": 0.8100931644439697,
+  "sources": [
+   [
+    "opus",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b017",
+  "title": "Adaptive perturbation sd by success counts",
+  "spec": "In solve, replace rng.choice([0.005, 0.01, 0.02, 0.05]) with a weighted choice. Keep a weight array w = ones(4) for the four sd values. After each perturbation run, if the result beats the best, add 1 to the weight of the sd that was used. Choose sd with probability w / w.sum(). The restart phase and everything else stay unchanged.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8279489278793335,
+  "sim_tried_bge": 0.808998703956604,
+  "sim_hist_mini": 0.6748456954956055,
+  "sources": [
+   [
+    "opus",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b018",
+  "title": "Tighter SLSQP ftol on perturbation runs",
+  "spec": "Pass options={'maxiter': MAX_ITER, 'ftol': 1e-10} to minimize when _solve_once is called with a start (the perturbation phase). Fresh random restarts keep the default ftol. Local optima found near the best packing then converge fully instead of stopping about 1e-6 short. Nothing else changes.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8340399861335754,
+  "sim_tried_bge": 0.779808759689331,
+  "sim_hist_mini": 0.7699508666992188,
+  "sources": [
+   [
+    "opus",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b019",
+  "title": "Random radius shrink factor in perturbation",
+  "spec": "In _solve_once, when start is given, build the starting radii as start[1] * rng.uniform(0.3, 0.9, n), so each circle gets its own shrink factor, instead of the fixed start[1] * 0.5. Keep the centre jitter, the sd choices, the 30% switch point and everything else unchanged.",
+  "family": "schedule",
+  "sim_hist_bge": 0.834967315196991,
+  "sim_tried_bge": 0.834967315196991,
+  "sim_hist_mini": 0.7477928400039673,
+  "sources": [
+   [
+    "opus",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b020",
+  "title": "Three independent restart-then-perturb episodes",
+  "spec": "Split the usable time (TIME_FRACTION * time_limit) into 3 equal episodes. Each episode has its own local best, starting from None: for the first 30% of the episode run fresh random restarts, then perturb the episode best for the rest of the episode, exactly as the current loop does. Keep a global best over all episodes and return it. Implement it as an outer `for k in range(3)` loop with episode start and end times computed from t0; the inner loop is the current loop body with the episode clock. The aim is to reduce the variance that comes from a single perturbation chain being stuck in a poor basin.",
+  "family": "schedule",
+  "sim_hist_bge": 0.7874890565872192,
+  "sim_tried_bge": 0.7682111859321594,
+  "sim_hist_mini": 0.7100811004638672,
+  "sources": [
+   [
+    "fable",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b021",
+  "title": "Inflate-one-circle perturbation",
+  "spec": "In solve, during the perturbation phase (after 30% of the time), use this start half the time (rng.random() < 0.5): take the best packing, pick a random circle k, set its starting radius to 1.6 * r_k and every other radius to 0.9 * r, and add centre jitter with sd 0.005. Run SLSQP from that start; this pushes the packing into a nearby basin. Add an optional radius-factor argument to _solve_once, or build x0 in solve and pass it in. The other half of the time, use the existing perturbation. Repair and keep-best as now.",
+  "family": "other",
+  "sim_hist_bge": 0.8588706254959106,
+  "sim_tried_bge": 0.8588706254959106,
+  "sim_hist_mini": 0.7872098684310913,
+  "sources": [
+   [
+    "opus",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b022",
+  "title": "SLSQP variable rescaling for conditioning",
+  "spec": "Rescale the decision vector so that all variables are of similar magnitude. Optimise y = (centres, 10*radii) instead of (centres, radii), so the radius variables are O(1) like the coordinates. Inside _solve_once, convert x0 by multiplying the radii by 10, and convert the result back by dividing by 10 before returning. The objective is -sum(y[2n:])/10 and the constraints are unchanged in form, with the radius references multiplied by 10. This tests whether SLSQP's step and line-search behaviour improves with better-scaled variables, with no other change.",
+  "family": "optimizer",
+  "sim_hist_bge": 0.8036841154098511,
+  "sim_tried_bge": 0.8036841154098511,
+  "sim_hist_mini": 0.6626574397087097,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    3
+   ]
+  ]
+ },
+ {
+  "id": "b023",
+  "title": "Bandit choice of perturbation sd by success counts",
+  "spec": "In the perturbation phase, replace the uniform rng.choice over [0.005, 0.01, 0.02, 0.05] with an adaptive choice. Keep two arrays of length 4, tries and wins, initialised to 1 and 1. For each trial pick index k with probability proportional to wins / tries (normalise and pass as p to rng.choice), run the perturbed solve with that sd, then increment tries[k] and, if the result improved the best sum of radii by more than 1e-7, increment wins[k]. Everything else stays the same. This moves trials towards the noise scale that is producing improvements in this run.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8444418907165527,
+  "sim_tried_bge": 0.8271703124046326,
+  "sim_hist_mini": 0.6811623573303223,
+  "sources": [
+   [
+    "fable",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b024",
+  "title": "Greedy max-clearance sequential placement start",
+  "spec": "Build a fresh start by placing circles one at a time. For each new circle, sample 400 candidate points uniformly in the square with rng, and choose the one with the largest clearance, meaning the minimum of distance to existing centres minus existing radii and distance to the walls. Set that circle's initial radius to the clearance capped at 0.15. Use the resulting centres and radii as x0 for SLSQP. Use this start for about half of the fresh restarts and keep uniform starts for the rest.",
+  "family": "data",
+  "sim_hist_bge": 0.8311492204666138,
+  "sim_tried_bge": 0.8271803855895996,
+  "sim_hist_mini": 0.7706499695777893,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b025",
+  "title": "Escalate to larger moves only after stagnation",
+  "spec": "In the perturbation phase, keep a counter `fails` of consecutive trials that did not improve the best; reset it to 0 on improvement. While fails < 6, draw sd from [0.005, 0.01, 0.02] as a mild search. When fails >= 6, use an escalated move for that trial: sd = 0.05 on all centres, and in addition replace the centres of the 2 smallest circles with uniform random points in [0.1, 0.9]^2 before the solve. After one escalated trial set fails to 3, so that mild trials run again before the next escalation. Acceptance is unchanged: keep the result only if the sum of radii improves.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8051583766937256,
+  "sim_tried_bge": 0.7794514894485474,
+  "sim_hist_mini": 0.6454708576202393,
+  "sources": [
+   [
+    "fable",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b026",
+  "title": "Squeeze wall perturbation",
+  "spec": "In the perturbation phase, with probability 0.4 apply a squeeze move to the best packing: pick a random axis, scale the centres' coordinate on that axis about 0.5 by a factor 0.9, then add noise sd 0.01 and halve the radii and re-optimise. Other times use the existing jitter. This opens up gaps at the walls for rearrangement.",
+  "family": "architecture",
+  "sim_hist_bge": 0.9195439219474792,
+  "sim_tried_bge": 0.8404468894004822,
+  "sim_hist_mini": 0.7826344966888428,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    8
+   ]
+  ]
+ },
+ {
+  "id": "b027",
+  "title": "Radius-scaled centre jitter",
+  "spec": "In the perturbation branch of _solve_once, scale each circle's centre noise by its size: sd_i = sd * clip(sqrt(mean(r) / max(r_i, 1e-3)), 0.5, 3.0), where r is start[1]. Small circles move more and large circles move less. Draw the noise as rng.normal(0, 1, (n, 2)) * sd_i[:, None]. Keep the radii x0.5 and everything else unchanged.",
+  "family": "data",
+  "sim_hist_bge": 0.8443188667297363,
+  "sim_tried_bge": 0.8443188667297363,
+  "sim_hist_mini": 0.7547918558120728,
+  "sources": [
+   [
+    "opus",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b028",
+  "title": "Memetic differential-evolution over centre sets",
+  "spec": "Maintain a population of 8 packings from the restart phase, each stored as (centres, radii). For each generation, form a child for each member with a DE/rand/1 move on the centres: child = a + 0.6*(b - c), applied coordinate-wise with crossover rate 0.9 against the parent, clipped to [0.05, 0.95]. Run the existing SLSQP from the child centres with radii set to 0.5 times the parent radii, then _repair. Replace the parent if the child's radius sum is larger. Use this loop for the final 50% of the time, and return the best member. Keep the code to one generation function.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8031127452850342,
+  "sim_tried_bge": 0.7958861589431763,
+  "sim_hist_mini": 0.7149336934089661,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    4
+   ]
+  ]
+ },
+ {
+  "id": "b029",
+  "title": "Grow to 27 circles then drop the smallest",
+  "spec": "For a fraction (about 40%) of fresh random restarts, first solve the packing for n+1 circles with the same SLSQP and _repair, starting from uniform random centres. Then delete the circle with the smallest radius, and run SLSQP once more on the remaining n circles, starting from those centres and radii times 0.5. Compare the final result with the normal restart result and keep the better. The aim is to start from a packing that has room to spare, then remove the weakest circle to get a different basin.",
+  "family": "architecture",
+  "sim_hist_bge": 0.8792964816093445,
+  "sim_tried_bge": 0.8792964816093445,
+  "sim_hist_mini": 0.7918963432312012,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    5
+   ]
+  ]
+ },
+ {
+  "id": "b030",
+  "title": "Minimum radius floor during SLSQP",
+  "spec": "In _solve_once, change the bounds on the radius variables so that each radius is at least R_MIN = 0.01 during the SLSQP run. Implement this with the constraint r_i - R_MIN >= 0 instead of the existing r_i >= 0, which is already in cons, or by passing a bounds argument to minimize with method SLSQP. This keeps circles from collapsing to zero size and wasting degrees of freedom, so the optimiser has to find a packing in which every circle is usable. The repair step is unchanged, and the floor is only used inside SLSQP.",
+  "family": "regularization",
+  "sim_hist_bge": 0.8302245140075684,
+  "sim_tried_bge": 0.8302245140075684,
+  "sim_hist_mini": 0.7887890338897705,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b031",
+  "title": "Sparse heavy-tailed jitter: a few circles move far, the rest barely",
+  "spec": "In the perturbation phase, replace the single isotropic centre noise with a two-level noise. For each trial draw a random mask where each circle is selected with probability 0.2 (force at least 2 selected). Selected circles get centre noise with sd 0.06, the others get sd 0.003. Implement it by passing a per-circle sd array of shape (n, 1) to _solve_once, which numpy broadcasts in rng.normal(0, sd, start[0].shape). Use this sparse noise in half of the perturbation trials, chosen with rng.random() < 0.5, and the existing uniform sd choice in the other half. Radii start at 0.5 times the best radii as now. The selection is by random index, not by spatial region.",
+  "family": "data",
+  "sim_hist_bge": 0.8366701006889343,
+  "sim_tried_bge": 0.8349146842956543,
+  "sim_hist_mini": 0.7149298787117004,
+  "sources": [
+   [
+    "fable",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b032",
+  "title": "Tighter repair shrink",
+  "spec": "Change SHRINK from 1e-9 to 2e-11 and verify inside _repair after shrinking that the max pairwise overlap and wall violation are <= 0; if any violation remains, subtract a further 1e-11 from the offending radii in a loop up to 5 times. This keeps the packing valid under the 1e-10 tolerance while gaining a tiny amount of radius sum.",
+  "family": "other",
+  "sim_hist_bge": 0.8968902826309204,
+  "sim_tried_bge": 0.7849637866020203,
+  "sim_hist_mini": 0.7034010887145996,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    2
+   ]
+  ]
+ },
+ {
+  "id": "b033",
+  "title": "Randomise the radius shrink factor in the perturbation phase",
+  "spec": "In _solve_once, the perturbed start currently uses start[1] * 0.5 for the radii. Add a parameter `shrink` (default 0.5) and use start[1] * shrink. In solve, during the perturbation phase, draw shrink = rng.choice([0.5, 0.7, 0.85, 0.95]) independently of the centre sd and pass it in. Change nothing else. The aim is that milder shrinks keep the contact structure, so SLSQP converges faster and does finer local search, while 0.5 remains available for larger rearrangements.",
+  "family": "regularization",
+  "sim_hist_bge": 0.862735390663147,
+  "sim_tried_bge": 0.862735390663147,
+  "sim_hist_mini": 0.7452895641326904,
+  "sources": [
+   [
+    "fable",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b034",
+  "title": "Weighted-objective annealed warm start",
+  "spec": "For each fresh random start, run a first SLSQP stage (60 iterations) with objective -sum(w*r) where w is random per circle in [0.5,1.5], then run the normal unweighted objective for 200 iterations from that result. Fresh starts only. Weights break symmetry and give diverse size distributions.",
+  "family": "regularization",
+  "sim_hist_bge": 0.957341730594635,
+  "sim_tried_bge": 0.957341730594635,
+  "sim_hist_mini": 0.8708744049072266,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    9
+   ]
+  ]
+ },
+ {
+  "id": "b035",
+  "title": "Stagnation-triggered reseed in the perturbation phase",
+  "spec": "In the perturbation phase, keep a counter of consecutive children that fail to improve the best radius sum. When the counter reaches 15, discard the perturbation chain and start a fresh uniform random SLSQP restart, which becomes the new current packing, and reset the counter. Otherwise, perturb the best as in slot 2 (radii x0.5, centre sd drawn from [0.005, 0.01, 0.02, 0.05]). This avoids spending the rest of the time in one basin when the perturbations have stalled.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8453977108001709,
+  "sim_tried_bge": 0.8453977108001709,
+  "sim_hist_mini": 0.7331493496894836,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b036",
+  "title": "Perturb size schedule decaying over time",
+  "spec": "In the perturbation phase, choose the centre-noise sd by elapsed fraction: it starts at 0.04 right after the restart phase and decays linearly to 0.005 at the end of the time. Radii still x0.5 as now. Replaces the random choice of [0.005,0.01,0.02,0.05].",
+  "family": "schedule",
+  "sim_hist_bge": 0.8654106855392456,
+  "sim_tried_bge": 0.8261524438858032,
+  "sim_hist_mini": 0.65570467710495,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b037",
+  "title": "Restart phase 20% with remove-3-smallest reinsertion",
+  "spec": "Set the random-restart phase to 20% of the time limit (instead of 30%). In the perturbation phase, always use the slot-29 style move on the best packing with probability 0.5: remove the 3 smallest circles, place them at random positions with radius 0.02, and re-optimise; otherwise use the existing jitter with radii x0.5. Both start from the best packing.",
+  "family": "schedule",
+  "sim_hist_bge": 0.9089912176132202,
+  "sim_tried_bge": 0.9089912176132202,
+  "sim_hist_mini": 0.7965598702430725,
+  "sources": [
+   [
+    "sonnet",
+    "c",
+    1
+   ]
+  ]
+ },
+ {
+  "id": "b038",
+  "title": "Two-chain tournament before committing to one packing",
+  "spec": "During the fresh-restart phase (first 30% of the time) keep the two best packings instead of one. From 30% to 55% of the time, alternate perturbation trials between the two, each chain perturbing and updating its own best with the current sd choices and 0.5 radius shrink. At 55% of the time, drop the chain with the lower sum of radii and spend the remaining time perturbing only the winner as now. Return the overall best. If only one packing exists at 30%, run the single chain as now. There is no recombination between the chains.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8112671971321106,
+  "sim_tried_bge": 0.7861711978912354,
+  "sim_hist_mini": 0.6230616569519043,
+  "sources": [
+   [
+    "fable",
+    "c",
+    7
+   ]
+  ]
+ },
+ {
+  "id": "b039",
+  "title": "Global scale perturbation of the best packing",
+  "spec": "In the perturbation phase (after 30% of the time), build each child by scaling all centres about their common centroid by a factor s ~ U(0.97, 1.03), adding a small Gaussian jitter (sd 0.005) to the centres, and resetting radii to 0.5 times the best radii as in slot 2. Then run the same SLSQP and _repair. Leave the restart loop, the elite choice (keep the single best) and TIME_FRACTION unchanged. The scale move is a global, non-Gaussian change of spacing that the existing jitter does not produce.",
+  "family": "schedule",
+  "sim_hist_bge": 0.8550110459327698,
+  "sim_tried_bge": 0.848848819732666,
+  "sim_hist_mini": 0.7613281011581421,
+  "sources": [
+   [
+    "haiku",
+    "c",
+    0
+   ]
+  ]
+ },
+ {
+  "id": "b040",
+  "title": "Shorter SLSQP for perturbation runs",
+  "spec": "Add a maxiter argument to _solve_once with default MAX_ITER. Fresh random restarts keep 200 iterations. Perturbation runs, which start near a good optimum, use maxiter=100, so more perturbation trials fit in the time. Nothing else changes.",
+  "family": "batch",
+  "sim_hist_bge": 0.8618279099464417,
+  "sim_tried_bge": 0.8219675421714783,
+  "sim_hist_mini": 0.7344692349433899,
+  "sources": [
+   [
+    "opus",
+    "c",
+    4
+   ]
+  ]
+ }
+]

@@ -1,0 +1,29 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng):
+=======
+def _solve_once(n, rng, hist):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    x2 = np.concatenate([res1.x[:2 * n], np.full(n, max(res1.x[2 * n], 0.0))])
+=======
+    t1 = max(res1.x[2 * n], 0.0)
+    hist.append(t1)
+    if len(hist) > 10 and t1 < np.median(hist[:-1]):   # median stopping: skip the costly phase 2
+        return None
+    x2 = np.concatenate([res1.x[:2 * n], np.full(n, t1)])
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+=======
+    rng, t0, best, hist = np.random.default_rng(seed), time.process_time(), None, []
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        out = _solve_once(n, rng, hist)
+        if out is None:
+            continue
+        c, r = out
+        c = np.clip(c, 0, 1)
+>>>>>>> REPLACE
+-----

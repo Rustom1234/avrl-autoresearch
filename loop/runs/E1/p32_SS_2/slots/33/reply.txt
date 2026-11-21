@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+    x0 = np.concatenate([pts.ravel(), np.full(n, INIT_RADIUS)])
+    iu = np.triu_indices(n, 1)
+=======
+    iu = np.triu_indices(n, 1)
+    for s in np.linspace(0.04, 0.095, 5):
+        def pen(p, s=s):
+            c = p.reshape(n, 2)
+            d = c[iu[0]] - c[iu[1]]
+            dist = np.sqrt((d ** 2).sum(1)) + 1e-12
+            ov = np.maximum(2 * s - dist, 0)
+            lo = np.maximum(s - c, 0)
+            hi = np.maximum(c - (1 - s), 0)
+            g = np.zeros((n, 2))
+            gp = (-2 * ov / dist)[:, None] * d
+            np.add.at(g, iu[0], gp)
+            np.add.at(g, iu[1], -gp)
+            g += -2 * lo + 2 * hi
+            return (ov ** 2).sum() + (lo ** 2).sum() + (hi ** 2).sum(), g.ravel()
+        pts = minimize(pen, pts.ravel(), jac=True, method="L-BFGS-B", options={"maxiter": 20}).x.reshape(n, 2)
+    pts = np.clip(pts, 0.03, 0.97)
+    x0 = np.concatenate([pts.ravel(), np.full(n, 0.9 * 0.095)])
+>>>>>>> REPLACE
+-----

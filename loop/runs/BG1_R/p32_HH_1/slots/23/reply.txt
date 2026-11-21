@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        guided = best is not None and time.process_time() - t0 > 0.5 * TIME_FRACTION * time_limit and rng.random() < 0.5
+        c, r = _solve_once(n, rng, best[0] if guided else None)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def solve(n, seed, time_limit):
+    rng, t0 = np.random.default_rng(seed), time.process_time()
+    budget = TIME_FRACTION * time_limit
+    T_START, T_END = 0.01, 0.0001
+    c, r = _solve_once(n, rng)
+    c = np.clip(c, 0, 1)
+    r = _repair(c, r)
+    cur, cur_sum = (c, r), r.sum()
+    best, best_sum = (c, r), cur_sum
+    while True:
+        el = time.process_time() - t0
+        if el >= budget:
+            break
+        T = T_START * (T_END / T_START) ** (el / budget)   # geometric annealing of the temperature
+        pc = cur[0].copy()
+        k = rng.integers(3, 6)
+        idx = rng.choice(n, k, replace=False)
+        pc[idx] = rng.uniform(INIT_LOW, 1 - INIT_LOW, (k, 2))   # re-initialise 3 to 5 random circles
+        c, r = _solve_once(n, rng, pc)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        s = r.sum()
+        if s > cur_sum or rng.random() < np.exp((s - cur_sum) / T):   # Metropolis acceptance
+            cur, cur_sum = (c, r), s
+        if s > best_sum:
+            best, best_sum = (c, r), s
+    return best
+>>>>>>> REPLACE
+-----

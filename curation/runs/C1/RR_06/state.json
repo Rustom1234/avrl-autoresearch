@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/RR_06/cand/s07_0.py",
+ "inc_scores": {
+  "11": 1.939947882476362,
+  "12": 1.9415192499284457
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Calculate the token count for each document in the pool using tiktoken. Then, sort the documents by their 'relevance' score, where relevance is determined by calculating the Jaccard similarity between the set of words in each document and the set of words in the target_sample, then return the indices of the documents with the highest similarity scores first.",
+   "outcome": "dev 1.9495 against 1.9625 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace the Jaccard similarity of unique words with a 'weighted' similarity that favors documents with higher word overlap count (intersections) relative to their own length, while filtering out very short documents (e.g., < 50 tokens) to remove junk/headers.",
+   "outcome": "dev 1.9707 against 1.9495 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Replace Jaccard similarity with a simple overlap score (intersection size) weighted by a log-scaled document length penalty (to favor high-density relevance without favoring long, low-quality documents).",
+   "outcome": "dev 1.9353 against 1.9495 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Use a weighted overlap score: Score = (Number of shared words) / (log1p(Total unique words in document)). Filter out documents with fewer than 100 tokens before scoring.",
+   "outcome": "dev 1.9374 against 1.9495 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the Jaccard ranking with a word-order-aware domain classifier, plus dedup and a seeded shuffle of the final selection.\n\n1. Dedup: drop exact and near duplicates by hashing each doc's whitespace-normalised, lowercased first 300 characters; keep the first occurrence. Also drop docs under 50 tokens.\n\n2. Features: sklearn HashingVectorizer(analyzer='word', token_pattern=r'\\S+', lowercase=False, ngram_range=(1,2), n_features=2**20, norm='l2', alternate_sign=False), applied to only the first 3000 characters of each doc to stay within the time limit. Case-preserved word bigrams capture WikiText markers ('= Title =', ' @-@ ', ' , ', ' . ') and, unlike word sets, penalise word-shuffled and letter-scrambled articles.\n\n3. Classifier, round 1: positives are the 200 target docs cut into consecutive 3000-character chunks; negatives are 4000 seeded-random pool docs. Fit LogisticRegression(C=10, max_iter=200, class_weight='balanced') and score every pool doc with decision_function.\n\n4. Classifier, round 2 (self-training): refit with positives = target chunks plus the top 15% of pool docs by round-1 score, negatives = the bottom 50%. Rescore the whole pool.\n\n5. Selection: take deduplicated docs in descending round-2 score until the token total reaches T. Do not cycle; if clearly in-domain docs run out, the next-highest-scoring clean text fills the budget.\n\n6. Order: shuffle the selected indices with random.Random(CURATE_SEED) so the least relevant docs are not all read at the end of training.\n\nNote on the log: experiments 3 (1.9353) and 4 (1.9374) both scored lower than the 1.9495 best yet are marked rejected. That looks like a bookkeeping error worth checking, since the true baseline to beat may be 1.9353.",
+   "outcome": "dev 1.9845 against 1.9495 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Keep the structure of the current best (token counts, rank, take top docs until T tokens, descending order, no shuffle), but replace the Jaccard word-set score with a word-order-aware bigram coherence score, and add exact dedup.\n\n1. Dedup: hash each doc's whitespace-normalised full text; keep only the first occurrence. Drop docs under 50 tokens.\n\n2. Target bigram set: split every target_sample doc on whitespace (case preserved, no lowercasing, punctuation kept as its own token as in WikiText) and collect all adjacent word pairs into one Python set B.\n\n3. Coherence score per pool doc: split on whitespace, take the first 2000 words, and compute c = (number of adjacent word pairs that are in B) / (number of adjacent word pairs). Docs with fewer than 20 words get c = 0. This is low for word-shuffled articles, letter-scrambled text and template spam, and high for intact WikiText-style prose.\n\n4. Header bonus: add 0.05 to c if the doc's first line matches the WikiText title pattern ^= .+ =$ (starts with '= ' and ends with ' =').\n\n5. Rank deduplicated docs by this score descending (seeded random tie-break from CURATE_SEED), and take docs until the token total reaches T. Do not cycle while unselected docs remain; the next-highest-scoring docs fill the budget.\n\nBookkeeping note: experiments 3 (1.9353) and 4 (1.9374) scored below the 1.9495 best but are logged as rejected. If that is a logging error, the real number to beat is 1.9353, so this result should be compared against both.",
+   "outcome": "dev 2.1047 against 1.9495 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Use a TF-IDF-like weighting for target word importance: instead of Jaccard similarity, score pool documents based on the sum of the frequencies of shared words within the target_sample (where target_sample is treated as a corpus), normalized by the document's own unique word count.",
+   "outcome": "dev 1.9399 against 1.9495 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 8,
+   "idea": "Use a 'weighted' overlap score where the score for a pool document is the sum of the frequencies of its shared words (calculated from the target_sample corpus), divided by log1p(the number of unique words in that pool document), while explicitly filtering out any document that contains fewer than 100 tokens.",
+   "outcome": "dev 1.9687 against 1.9399 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Refine the current TF-IDF-like weighting (Experiment 7) by converting the 'shared words' calculation into a true TF-IDF framework: calculate the Inverse Document Frequency (IDF) for all words present in the target_sample based on their occurrence across the pool docs (treating the pool as the background corpus), and then score each pool doc by the sum of the TF-IDF scores of its shared words, normalized by the log1p(number of unique words) in that doc.",
+   "outcome": "dev 1.9701 against 1.9399 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Keep the current best score (sum of target word frequencies over a doc's unique lowercased words, divided by its unique word count), the descending order and the take-until-T logic unchanged. Add a two-tier ranking on top: tier 0 docs are read first, then tier 1 docs, each tier sorted by the current score with the seeded tie-break.\n\nA doc is demoted to tier 1 if either of the following holds.\n\n(a) Exact duplicate: its whitespace-normalised full text has the same hash as an earlier doc. The first occurrence stays in tier 0.\n\n(b) Fails a word-order check calibrated on the target sample:\n1. Split text on whitespace, case preserved. Build a Counter of adjacent word pairs over all 200 target docs.\n2. For each target doc, compute its leave-one-out hit rate: the fraction of its adjacent pairs (first 1500 words) that still appear in the Counter after subtracting that doc's own pair counts.\n3. Shuffle each target doc's words with random.Random(CURATE_SEED) and compute the same leave-one-out rate for the shuffled version.\n4. Set threshold = (median clean rate + median shuffled rate) / 2.\n5. For each pool doc, compute the fraction of adjacent pairs in its first 1500 words that are in the target pair Counter. Demote the doc if this is below the threshold or if it has fewer than 30 words.\n\nNothing is dropped. Demoted docs only fill whatever budget remains after tier 0, in the current score order. Do not shuffle the final list, and do not add a classifier or a header bonus.",
+   "outcome": "dev 2.0662 against 1.9399 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Refine the current best (Experiment 7) by improving the 'shared word' frequency weight: Instead of a simple count of target words, calculate the word frequency (TF) within the target_sample and use that as a weight for the shared words, then rank documents by the sum of these weighted frequencies divided by log1p(number of unique words in the pool doc).",
+   "outcome": "dev 1.9695 against 1.9399 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Refine the TF-like weighting (Experiment 7) by using a 'shared-density' score: for each document in the pool, calculate the sum of weights (target word frequencies) of its shared words, but instead of dividing by the document's unique word count, divide by the count of its unique words that actually appear in the target_sample. If a document shares no words, its score is 0. This focuses the ranking on the purity of the shared content rather than penalizing documents with many out-of-domain words.",
+   "outcome": "dev 1.9719 against 1.9399 for the best at the time, rejected"
+  }
+ ],
+ "usd": 1.4103142,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.07982020000000001,
+   "dev": 1.9495238150450975,
+   "inc": 1.9624591052840699,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.7802491383116337,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0010867499999999974,
+   "dev": 1.9707251464860542,
+   "inc": 1.9495238150450975,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.7802491383116337,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.001012350000000009,
+   "dev": 1.9353019243910152,
+   "inc": 1.9495238150450975,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.7802491383116337,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.0712948,
+   "dev": 1.9373504153925085,
+   "inc": 1.9495238150450975,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.7802491383116337,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.31868359999999996,
+   "dev": 1.9844911270698318,
+   "inc": 1.9495238150450975,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.7802491383116337,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.26105160000000005,
+   "dev": 2.1047130486899586,
+   "inc": 1.9495238150450975,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 1.7802491383116337,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.0012077999999999811,
+   "dev": 1.939947882476362,
+   "inc": 1.9495238150450975,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.0981589330729133,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.08375549999999998,
+   "dev": 1.9686625704322125,
+   "inc": 1.939947882476362,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.0981589330729133,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.12025699999999995,
+   "dev": 1.9701189632591953,
+   "inc": 1.939947882476362,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.0981589330729133,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.3212835999999999,
+   "dev": 2.0661765384102524,
+   "inc": 1.939947882476362,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.0981589330729133,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.0757762500000001,
+   "dev": 1.9695013486471975,
+   "inc": 1.939947882476362,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 3.0981589330729133,
+   "planner": "gemma4-12b",
+   "coder": "fable",
+   "decision": "reject",
+   "usd": 0.07508475000000003,
+   "dev": 1.9719072970796763,
+   "inc": 1.939947882476362,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9624591052840699,
+ "inc_slot": 7
+}

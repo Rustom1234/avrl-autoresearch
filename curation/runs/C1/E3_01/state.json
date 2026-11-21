@@ -1,0 +1,268 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/E3_01/cand/s12_0.py",
+ "inc_scores": {
+  "11": 1.8272874269832229,
+  "12": 1.8396350753055681
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Use the `tiktoken` encoder to count the tokens in each document in `docs` and calculate their 'quality' based on how many tokens they share in common with the `target_sample` documents (using a simple keyword/overlap or frequency approach, or simply prioritizing documents that have a higher ratio of unique tokens to total length).",
+   "outcome": "dev 1.9760 against 1.9611 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Calculate the token length of every document in `docs` and the `target_sample`. Prioritize documents that have a high ratio of shared 'content' tokens (non-stopword, non-punctuation) with the `target_sample` using a Jaccard similarity-like approach, while filtering out extremely short or purely junk (repetitive/low-entropy) strings.",
+   "outcome": "dev 1.9798 against 1.9611 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Use tiktoken to encode the documents and select documents that have the highest density of unique 'content' tokens (excluding common stop words) that also appear frequently in the target_sample, while discarding documents that are shorter than 100 tokens or have a high ratio of non-alphanumeric characters.",
+   "outcome": "dev 1.9669 against 1.9611 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Replace the vocabulary-overlap scoring with a word-order-sensitive classifier, plus deduplication.\n\n1. Dedupe: keep only the first occurrence of each document, keyed by a hash of the whitespace-normalised, lowercased text; also drop any document whose first 200 characters match one already kept.\n\n2. Features: HashingVectorizer(analyzer='word', ngram_range=(1,2), token_pattern=r'\\S+', lowercase=False, n_features=2**20, binary=True, norm='l2'), computed on the first 3000 characters of each document. Word bigrams over whitespace tokens capture the wikitext style (' @-@ ', ' , ', '= Title =') and penalise the word-shuffled and letter-scrambled documents, which unigram overlap cannot do.\n\n3. Round 1 (positive vs unlabeled): positives are the 200 target_sample documents split into ~3000-character chunks; negatives are 4000 pool documents drawn with the CURATE_SEED rng. Fit LogisticRegression(C=10, class_weight='balanced', max_iter=300) and score every pool document.\n\n4. Round 2 (self-training): refit with the top 15% of pool documents plus the target chunks as positives and the bottom 50% as negatives, then rescore.\n\n5. Word-order check: build the set of word bigrams in target_sample and compute, per document, the fraction of its bigrams (first 3000 characters) found in that set. Push any document whose fraction is below half the median fraction of the round-2 positives to the bottom of the ranking.\n\n6. Selection: count tokens with tiktoken gpt2. Take the deduped documents with round-2 probability > 0.5. If they hold fewer than T tokens, add further documents in descending score order until T is reached, so the fill is the next most similar clean prose and never spam, code or scrambled text. If they hold more than T, keep the highest-scoring T tokens.\n\n7. Order: shuffle the selected indices with random.Random(CURATE_SEED) and return them.",
+   "outcome": "dev 1.9455 against 1.9611 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the LogisticRegression classifier with a simple yet effective BM25-inspired scoring system. Use the target_sample to build a 'corpus' of terms (filtering out common stop words using a set), then score each pool document based on the frequency and recency of those terms within the first 3000 characters, combined with a penalty for very high 'garbage' character ratios (non-alphanumeric count > 20%).",
+   "outcome": "dev 1.9795 against 1.9455 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Replace the LogisticRegression classifier with a 'Mutual Information' style score: for each document, calculate the ratio of bigrams that appear in both the target_sample and the document itself, normalized by the document's total bigram count, and use this to rank documents while maintaining the existing deduplication and word-order flag.",
+   "outcome": "dev 1.9614 against 1.9455 for the best at the time, rejected"
+  },
+  {
+   "slot": 7,
+   "idea": "Replace the LogisticRegression classifier with a 'Pointwise' Cross-Encoder approach using a lightweight Cosine Similarity on the TF-IDF/Hashing vectors of the target_sample chunks vs. the pool documents, while incorporating a 'Density Score' that rewards documents with a high ratio of unique, high-frequency target tokens to total token count.",
+   "outcome": "dev 1.9733 against 1.9455 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Keep dedupe, features, both classifier rounds and the bigram word-order flag unchanged. Change only step 6 (selection) so the gap is no longer filled with out-of-domain text, and add a typo filter.\n\n1. Typo/damage rate. Over the deduped pool (first 3000 chars, lowercased alphabetic words of length >= 4), compute each word's document frequency. A word is 'rare' if it appears in fewer than 3 pool documents and is not in the target_sample vocabulary. Per document, rate = rare words / counted words. Call the confident set C0 = documents with p2 > 0.5 that are not flagged by the bigram check. Let med and MAD be the median and median absolute deviation of rate over C0. Mark a document 'damaged' if rate > med + 3*MAD. This targets character-corrupted wiki copies such as 'Ottawa Senatos' / 'ounded'.\n\n2. Confident set C = C0 minus damaged documents, sorted by p2 descending. Count gpt2 tokens with tiktoken; call the total S.\n\n3. Selection:\n- If S >= T: keep the highest-p2 documents of C up to T tokens (as now).\n- If 0.35*T <= S < T: return only C, shuffled once with random.Random(CURATE_SEED), and let the trainer cycle it. No filler.\n- If S < 0.35*T: extend C down the ranking (undamaged, unflagged first; then damaged) until it holds 0.35*T tokens, then return that and let it cycle.\n\n4. Order: seeded shuffle of the returned list, as now.",
+   "outcome": "dev 1.8394 against 1.9455 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 9,
+   "idea": "Instead of just a bigram set for the word-order check, compute a small dense representation of the target_sample (e.g., using a mean of TF-IDF weighted vectors or a simple frequency-weighted unigram vector) and score the pool documents by their cosine similarity to this centroid, then use the existing logic to filter and select from this ranked list.",
+   "outcome": "dev 1.8507 against 1.8394 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Replace the LogisticRegression-based scoring with a Cross-Encoder style approach where we compute the cosine similarity between each pool document's HashingVectorizer vector and the centroid of the target_sample chunks, while keeping the word-order bigram flag, typo filter, and selection logic (S >= T, 0.35T <= S < T, S < 0.35T) intact.",
+   "outcome": "dev 1.8418 against 1.8394 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Modify the word-order check to use a smaller sliding window of bigrams (instead of all bigrams in the first 3000 chars) and switch the bigram matching from a set-based inclusion to a weighted overlap, where the weight of a bigram is its frequency in the target_sample. Also, increase the rarity threshold for the typo filter to 5 to be less aggressive on niche but valid vocabulary.",
+   "outcome": "dev 1.8446 against 1.8394 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Keep everything up to and including the confident set C (step 6b) unchanged, then add one self-consistency purge over the FULL text of each document in C before selection. The current damage checks only see the first 3000 characters and only compare against the 200-document target sample.\n\n1. Tokenise the full text of every document in C with str.split(). Map words to integer ids and encode each word bigram as id1*V+id2.\n\n2. Compute the document frequency of each bigram over C (count once per document). A bigram is 'supported' if its document frequency is >= 2, i.e. it also occurs in at least one other C document (leave-one-out).\n\n3. Cut each document into consecutive windows of 400 words. Merge a final window shorter than 100 words into the previous one. For each window compute coverage = supported bigrams / bigrams.\n\n4. Let med and MAD be the median and median absolute deviation of coverage over all windows of C (if MAD is 0, use the mean absolute deviation). Remove a document from C if either:\n- any of its windows has coverage < med - 4*MAD, or\n- its whole-document coverage < med - 3*MAD.\nThis catches documents that are shuffled or character-corrupted only after the head, lightly corrupted or locally shuffled documents that pass the head-only checks, and stray non-wiki text glued into a document.\n\n5. Safety: if the purge would remove more than 30% of C's documents, loosen it to remove only the 30% with the lowest minimum-window coverage.\n\n6. Run the existing selection on the purged C exactly as now: top-p2 documents up to T; cycle if S >= 0.35*T; otherwise extend down the ranking to the 0.35*T floor, with purged documents going last, alongside the 'damaged' tier. Finish with the same seeded shuffle.\n\nUse plain dict/Counter on integer keys so the pass stays within a few tens of seconds.",
+   "outcome": "dev 1.8273 against 1.8394 for the best at the time, KEPT as the new best"
+  }
+ ],
+ "usd": 1.4144752499999997,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00070695,
+   "dev": 1.975991282985384,
+   "inc": 1.9610995554516546,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0009082499999999998,
+   "dev": 1.9798228691934052,
+   "inc": 1.9610995554516546,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0008660999999999999,
+   "dev": 1.96694954631272,
+   "inc": 1.9610995554516546,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.29116359999999997,
+   "dev": 1.9454625068930302,
+   "inc": 1.9610995554516546,
+   "harmed": null,
+   "escalated": true
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.1520848553020033,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0018514499999999767,
+   "dev": 1.9795014635758994,
+   "inc": 1.9454625068930302,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.1520848553020033,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0017431500000000266,
+   "dev": 1.9613770486916564,
+   "inc": 1.9454625068930302,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.1520848553020033,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002036099999999985,
+   "dev": 1.9732563591118064,
+   "inc": 1.9454625068930302,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 2.1520848553020033,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.44765160000000004,
+   "dev": 1.8394262338106782,
+   "inc": 1.9454625068930302,
+   "harmed": null,
+   "escalated": true
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 16.745571379159983,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.004806599999999994,
+   "dev": 1.8507082418025984,
+   "inc": 1.8394262338106782,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 16.745571379159983,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003033749999999946,
+   "dev": 1.841778329185998,
+   "inc": 1.8394262338106782,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 16.745571379159983,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.002936099999999997,
+   "dev": 1.8446245141364401,
+   "inc": 1.8394262338106782,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 16.745571379159983,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.6567715999999998,
+   "dev": 1.8272874269832229,
+   "inc": 1.8394262338106782,
+   "harmed": null,
+   "escalated": true
+  }
+ ],
+ "start_dev": 1.9610995554516546,
+ "inc_slot": 12
+}

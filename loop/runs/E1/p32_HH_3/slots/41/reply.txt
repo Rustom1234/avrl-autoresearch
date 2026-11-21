@@ -1,0 +1,43 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+GRID_1D = np.linspace(0.05, 0.95, 30)
+GRID_PTS = np.stack(np.meshgrid(GRID_1D, GRID_1D, indexing="ij"), -1).reshape(-1, 2)
+ANNEAL_MOVES = 3000
+ANNEAL_T0 = 0.01
+
+
+def _greedy_radii(sites):
+    p = GRID_PTS[sites]
+    d = np.sqrt(((p[:, None] - p[None]) ** 2).sum(-1))
+    np.fill_diagonal(d, np.inf)
+    wall = np.minimum(p, 1 - p).min(1)
+    return np.minimum(wall, d.min(1) / 2)
+
+
+def _grid_start(n, rng):
+    """Site-occupancy annealing on the candidate grid; returns a flat SLSQP start vector."""
+    occ = rng.choice(len(GRID_PTS), n, replace=False)
+    cur = _greedy_radii(occ).sum()
+    best_s, best_occ = cur, occ.copy()
+    for k in range(ANNEAL_MOVES):
+        T = max(ANNEAL_T0 * (1 - k / ANNEAL_MOVES), 1e-12)
+        free = np.setdiff1d(np.arange(len(GRID_PTS)), occ)
+        new = occ.copy()
+        new[rng.integers(n)] = rng.choice(free)
+        s = _greedy_radii(new).sum()
+        if s >= cur or rng.random() < np.exp((s - cur) / T):
+            occ, cur = new, s
+            if cur > best_s:
+                best_s, best_occ = cur, occ.copy()
+    return np.concatenate([GRID_PTS[best_occ].ravel(), _greedy_radii(best_occ)])
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    c, r = _solve_once(n, rng)
+=======
+    c, r = _solve_once(n, rng, _grid_start(n, rng))
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,8 @@
+"""Arm JC12D of G1B: a fixed list of documents (built by curation/skills/gate1b.py) in a seeded random order."""
+import json, os, random
+
+
+def select(docs, target_sample):
+    idx = json.load(open('/homes/rdubash/active-audit/curation/runs/G1B/arms/JC12D.json'))
+    random.Random(int(os.environ.get("CURATE_SEED", 0))).shuffle(idx)
+    return idx

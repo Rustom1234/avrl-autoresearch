@@ -1,0 +1,50 @@
+<<<<<<< SEARCH
+def _polish(c, r):
+=======
+def _penalty(c):
+    n = _N
+    i, j = _IU
+    x = np.concatenate([c[:, 0], c[:, 1], np.full(n, 0.05)])
+    for mu in (10, 100, 1e3, 1e4, 1e5):
+        def f(x, mu=mu):
+            X, Y, R = x[:n], x[n:2 * n], x[2 * n:]
+            dx = X[i] - X[j]
+            dy = Y[i] - Y[j]
+            d = np.sqrt(dx * dx + dy * dy + 1e-12)
+            ov = np.maximum(R[i] + R[j] - d, 0)
+            gX = np.zeros(n)
+            gY = np.zeros(n)
+            gR = -np.ones(n)
+            val = -R.sum() + mu * (ov ** 2).sum()
+            w = 2 * mu * ov
+            np.add.at(gR, i, w)
+            np.add.at(gR, j, w)
+            np.add.at(gX, i, -w * dx / d)
+            np.add.at(gX, j, w * dx / d)
+            np.add.at(gY, i, -w * dy / d)
+            np.add.at(gY, j, w * dy / d)
+            for P, g in ((X, gX), (Y, gY)):
+                a = np.maximum(R - P, 0)
+                b = np.maximum(P + R - 1, 0)
+                val += mu * ((a ** 2).sum() + (b ** 2).sum())
+                g += 2 * mu * (-a + b)
+                gR += 2 * mu * (a + b)
+            return val, np.concatenate([gX, gY, gR])
+        res = minimize(f, x, jac=True, method="L-BFGS-B",
+                       bounds=[(0, 1)] * (2 * n) + [(0, 0.5)] * n,
+                       options={"maxiter": 300})
+        x = res.x
+    return np.clip(np.stack([x[:n], x[n:2 * n]], 1), 0, 1)
+
+
+def _polish(c, r):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+=======
+            c = _penalty(c)
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+>>>>>>> REPLACE
+-----

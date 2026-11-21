@@ -1,0 +1,39 @@
+<<<<<<< SEARCH
+        if self.epoch == 0:
+            images = self.proc_images["norm"] = self.normalize(self.images)
+            # Pre-flip images in order to do every-other epoch flipping scheme
+            if self.aug.get("flip", False):
+                images = self.proc_images["flip"] = batch_flip_lr(images)
+            # Pre-pad images to save time when doing random translation
+            pad = self.aug.get("translate", 0)
+            if pad > 0:
+                self.proc_images["pad"] = F.pad(images, (pad,)*4, "reflect")
+
+        if self.aug.get("translate", 0) > 0:
+            images = batch_crop(self.proc_images["pad"], self.images.shape[-2])
+        elif self.aug.get("flip", False):
+            images = self.proc_images["flip"]
+        else:
+            images = self.proc_images["norm"]
+        # Flip all images together every other epoch. This increases diversity relative to random flipping
+        if self.aug.get("flip", False):
+            if self.epoch % 2 == 1:
+                images = images.flip(-1)
+=======
+        if self.epoch == 0:
+            images = self.proc_images["norm"] = self.normalize(self.images)
+            # Pre-pad images to save time when doing random translation
+            pad = self.aug.get("translate", 0)
+            if pad > 0:
+                self.proc_images["pad"] = F.pad(images, (pad,)*4, "reflect")
+
+        # Independent random flip per sample each epoch (reflect padding commutes with flipping)
+        src = self.proc_images["pad"] if self.aug.get("translate", 0) > 0 else self.proc_images["norm"]
+        if self.aug.get("flip", False):
+            src = batch_flip_lr(src)
+        if self.aug.get("translate", 0) > 0:
+            images = batch_crop(src, self.images.shape[-2])
+        else:
+            images = src
+>>>>>>> REPLACE
+-----

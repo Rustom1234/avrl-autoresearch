@@ -1,0 +1,28 @@
+<<<<<<< SEARCH
+from catboost import CatBoostRegressor
+=======
+from catboost import CatBoostRegressor
+from scipy.stats import rankdata
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    resid = y - A_tr @ coef
+    X_tr = featurize(train_smiles)
+    X_te = featurize(test_smiles)
+    fp_tr = X_tr[:, :N_BITS]
+    rr = rankdata(resid)
+    rr = rr - rr.mean()
+    R = rankdata(fp_tr, axis=0)
+    R = R - R.mean(axis=0)
+    sd = np.sqrt((R ** 2).sum(axis=0) * (rr ** 2).sum())
+    corr = np.abs(R.T @ rr) / np.where(sd > 0, sd, np.inf)
+    sel = np.argsort(-corr)[:256]
+    sel = sel[corr[sel] > 0]
+    Z_tr = np.hstack([X_tr[:, N_BITS:], fp_tr[:, sel]])
+    Z_te = np.hstack([X_te[:, N_BITS:], X_te[:, sel]])
+    model.fit(Z_tr, resid)
+    return model.predict(Z_te) + A_te @ coef
+>>>>>>> REPLACE
+-----

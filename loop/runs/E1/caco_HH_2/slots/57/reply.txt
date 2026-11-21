@@ -1,0 +1,18 @@
+<<<<<<< SEARCH
+    model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=LR, iterations=ITERS,
+                              random_seed=seed, verbose=0, thread_count=8)
+    model.fit(featurize(train_smiles), y - A_tr @ coef)
+    return model.predict(featurize(test_smiles)) + A_te @ coef
+=======
+    X_tr = featurize(train_smiles)
+    r = y - A_tr @ coef
+    init = None
+    for k in range(4):
+        lr_k = 0.01 + 0.5 * (0.08 - 0.01) * (1 + np.cos(np.pi * k / 3))
+        model = CatBoostRegressor(loss_function='MAE', depth=DEPTH, learning_rate=lr_k, iterations=300,
+                                  random_seed=seed, verbose=0, thread_count=8)
+        model.fit(X_tr, r, init_model=init)
+        init = model
+    return init.predict(featurize(test_smiles)) + A_te @ coef
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/C1/F1_01/cand/s01_0.py",
+ "inc_scores": {
+  "11": 1.8388420966377956
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random shuffle with a filter + rank pipeline. (1) Drop exact and near duplicates: normalise whitespace/lowercase, keep the first doc per hash of the full text and per hash of the first 200 characters. (2) Drop junk: docs shorter than 200 characters, docs where the most common line accounts for more than 30% of lines (repeated boilerplate), or where unique-word ratio is below 0.2. (3) Drop word-shuffled damaged docs: build a set of word bigrams from target_sample (lowercased whitespace tokens); for each doc compute the fraction of its bigrams (first 400 tokens after the title line) that appear in that set; shuffled docs score far lower than intact wiki text, so drop docs whose fraction falls below half of the median fraction among docs that start with '= ' (also require the doc's rate of ' , ' followed by sensible ordering proxy: fraction of ' . ' tokens followed by a capitalised token > 0.5). (4) Score domain similarity: fit a character 1-5-gram hashed TF-IDF (HashingVectorizer, 2**18 features, sublinear tf) logistic regression with target_sample as positives and a seeded random 3000 pool docs as negatives, score every surviving doc on its first 3000 characters; add a bonus for wikitext markers (starts with '= ', contains ' @-@ ', ' @,@ ', ' , '). (5) Sort survivors by score descending and take the top docs until the gpt2 token count (tiktoken encode_ordinary_batch; fall back to len(text)/4 estimate if time is short) reaches about 1.0 T; if the clean in-domain set holds fewer than T tokens, return just that set so it is cycled rather than padding with off-domain text, unless it is below 0.5 T, in which case append the next-highest-scored docs up to 0.5 T. (6) Shuffle the final selected list with random.Random(int(os.environ.get('CURATE_SEED', 0))) so training sees a mixed order.",
+   "outcome": "dev 1.8388 against 1.9602 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 2,
+   "idea": "Modify the selection logic in step (5) to prioritize 'high-quality' docs (those with the wikitext marker bonus) by using a two-pass selection: first, take all docs where ranked_scores[j] >= thr until the T limit is reached; if T is not reached, continue taking the next-highest ranked docs until T is reached.",
+   "outcome": "dev 1.8709 against 1.8388 for the best at the time, rejected"
+  },
+  {
+   "slot": 3,
+   "idea": "Refine the 'cap' (character limit) selection for the Logistic Regression: instead of a linear descent, use a heuristic that prioritizes higher caps if the elapsed time permits, and significantly increase the n_features (e.g., 2**20) if time/memory allows, to better capture 5-gram structure in wiki-style text.",
+   "outcome": "dev 1.8400 against 1.8388 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Modify the scoring logic in step (4) to use a weighted score: (LogisticRegression_score * 0.7) + (Wikitext_marker_bonus * 0.3), and implement a 'soft' threshold for the final selection where docs with high wikitext markers but slightly lower LR scores are still prioritized over docs with low wikitext markers and high LR scores.",
+   "outcome": "dev 1.8700 against 1.8388 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Replace the current LogisticRegression-based scoring with a simpler but more robust 'Maximum Likelihood' style score: calculate the overlap of 3-grams (3-character sequences) between the doc's first 1000 characters and a 'gold' set of 3-grams extracted from the target_sample. Specifically, use a set of 3-grams from target_sample and calculate the fraction of unique 3-grams in the candidate doc that exist in that gold set, then add a significant weighting for documents that contain the unique wikitext punctuation '@-@' or '@,@'.",
+   "outcome": "dev 1.8579 against 1.8388 for the best at the time, rejected"
+  },
+  {
+   "slot": 6,
+   "idea": "Introduce a 'Quality Diversity' sampling strategy: instead of taking the top-ranked docs until T is reached, first take the top 100% of docs that meet the in-domain threshold (ranked_scores >= thr); if this is less than T, fill the remaining capacity with the highest-ranked docs from the remaining pool, but with a 'diversity' penalty where we skip every 5th highest-ranked doc to ensure the model doesn't overfit to a narrow cluster of similar wiki pages.",
+   "outcome": "FAILED to run (SyntaxError: invalid syntax (line 1))"
+  },
+  {
+   "slot": 7,
+   "idea": "Replace the Logistic Regression with a K-Nearest Neighbors approach using MinHash: Extract 5-grams from the target sample and docs, use MinHash to estimate Jaccard similarity for each doc against the target_sample (using a subset of the pool for negatives to establish a baseline), and rank by (Similarity * 0.8) + (Wikitext_bonus * 0.2).",
+   "outcome": "dev 1.9826 against 1.8388 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Implement a 'Density-Aware' selection in step (5): instead of a hard cutoff at T, calculate the 'information density' of docs (ratio of unique words to total words) and weight the final ranking by this density factor (up to a maximum weight of 1.2) before the top-K selection. This helps prioritize documents with high linguistic variety over repetitive but 'in-domain' text.",
+   "outcome": "dev 1.8681 against 1.8388 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Replace the Logistic Regression scoring with a 'Priority Weighting' scheme: calculate the score as (LogisticRegression_score * 0.8) + (Wikitext_bonus * 2.0), and strictly prioritize the selection of docs that meet the wikitext markers ('=' or '@-@') regardless of their score, only filling the remaining T capacity with the highest-scoring docs from the general pool.",
+   "outcome": "dev 1.8933 against 1.8388 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Implement a 'Short-Circuit' Selection with High-Confidence Clustering: In step (5), identify the set of 'High Confidence' docs where the model is very certain (ranked_score > threshold * 1.5) and they contain the '= ' wiki marker. Take all such docs first. If T is not reached, fill the remainder with all docs satisfying ranked_score >= threshold. If T is still not reached, fill with the highest ranked docs until T is reached. This ensures the highest quality, most representative wiki-style text is prioritized before the model encounters broader or noisier domain-related content.",
+   "outcome": "dev 1.8680 against 1.8388 for the best at the time, rejected"
+  },
+  {
+   "slot": 11,
+   "idea": "Implement a 'Selective Compression' step in (5): instead of a hard stop at T, calculate the token count for all docs that pass the threshold. If the sum exceeds T, select the subset of docs that maximizes the total token count while maintaining a diversity constraint (no more than 5% of the total tokens can come from any single document's rank-neighbors). If the sum is less than 0.5T, fill with the highest-ranked docs regardless of threshold.",
+   "outcome": "FAILED to run (e \"/homes/rdubash/active-audit/curation/runs/C1/F1_01/cand/s11_1.py\", line 99, in select thr_bg = 0.5 * float(np.median(ref)) if ref else 0.0 ^^ NameError: name 'np' is not defined. Did you mean: 'n'?)"
+  },
+  {
+   "slot": 12,
+   "idea": "Refine the selection strategy in step (5) to use a 'Concentrated Quality' approach: instead of a simple threshold and take the rest, first select all documents with ranked_scores >= thr; if this exceeds T, use a greedy selection to take the highest-scoring documents until T is reached. If it is less than 0.5T, take all docs with ranked_scores >= thr first, then fill the remaining 0.5T with the highest-scoring docs from the entire pool (regardless of threshold) until T is reached.",
+   "outcome": "dev 1.8669 against 1.8388 for the best at the time, rejected"
+  }
+ ],
+ "usd": 0.6525782,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "fable",
+   "decision": "accept",
+   "usd": 0.6015235999999999,
+   "dev": 1.8388420966377956,
+   "inc": 1.960219806623711,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.70488714367127,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0037642499999999135,
+   "dev": 1.870911149457749,
+   "inc": 1.8388420966377956,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.70488714367127,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003677700000000006,
+   "dev": 1.839968105254136,
+   "inc": 1.8388420966377956,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.70488714367127,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0038187000000000637,
+   "dev": 1.8700459191497065,
+   "inc": 1.8388420966377956,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.70488714367127,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.004537799999999925,
+   "dev": 1.8579153429195514,
+   "inc": 1.8388420966377956,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.70488714367127,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.007034100000000043,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 5,
+   "fails": 1,
+   "n_accept": 1,
+   "gain_sd": 16.70488714367127,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.00439260000000008,
+   "dev": 1.9825792682124757,
+   "inc": 1.8388420966377956,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 6,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.70488714367127,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0038023499999999544,
+   "dev": 1.8681325854454351,
+   "inc": 1.8388420966377956,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 7,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.70488714367127,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.0059259000000000395,
+   "dev": 1.8933436503290433,
+   "inc": 1.8388420966377956,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 8,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.70488714367127,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003831899999999999,
+   "dev": 1.8680389141646634,
+   "inc": 1.8388420966377956,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 9,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 16.70488714367127,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.006301349999999983,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 10,
+   "fails": 1,
+   "n_accept": 1,
+   "gain_sd": 16.70488714367127,
+   "planner": "gemma4-12b",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.003967950000000053,
+   "dev": 1.8668916577089858,
+   "inc": 1.8388420966377956,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.960219806623711,
+ "inc_slot": 1
+}

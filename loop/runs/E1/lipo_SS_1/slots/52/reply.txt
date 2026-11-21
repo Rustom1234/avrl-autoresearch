@@ -1,0 +1,24 @@
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def multi_fp(smiles):
+    mols = [Chem.MolFromSmiles(s) for s in smiles]
+    g1 = rdFingerprintGenerator.GetMorganGenerator(radius=1, fpSize=1024)
+    g3 = rdFingerprintGenerator.GetMorganGenerator(radius=3, fpSize=2048)
+    return np.array([np.concatenate([g1.GetCountFingerprintAsNumPy(m), g3.GetCountFingerprintAsNumPy(m)])
+                     for m in mols], dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    keep = (Xtr[:, :N_BITS] > 0).sum(axis=0) >= 10
+    Mtr = np.hstack([np.log1p(Xtr[:, :N_BITS][:, keep]), Dtr])
+    Mte = np.hstack([np.log1p(Xte[:, :N_BITS][:, keep]), Dte])
+=======
+    Ftr, Fte = multi_fp(train_smiles), multi_fp(test_smiles)
+    keep = (Ftr > 0).sum(axis=0) >= 10
+    Mtr = np.hstack([np.log1p(Ftr[:, keep]), Dtr])
+    Mte = np.hstack([np.log1p(Fte[:, keep]), Dte])
+>>>>>>> REPLACE
+-----

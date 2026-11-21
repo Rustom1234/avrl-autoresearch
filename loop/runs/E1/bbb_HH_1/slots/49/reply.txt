@@ -1,0 +1,47 @@
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def ring_features(mol):
+    ri = mol.GetRingInfo()
+    rings = [set(r) for r in ri.AtomRings()]
+    parent = list(range(len(rings)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for i in range(len(rings)):
+        for j in range(i + 1, len(rings)):
+            if rings[i] & rings[j]:
+                parent[find(i)] = find(j)
+    systems = {}
+    for i in range(len(rings)):
+        systems.setdefault(find(i), []).append(i)
+    n_sys = len(systems)
+    max_rings = max((len(v) for v in systems.values()), default=0)
+    max_atoms = max((len(set().union(*[rings[i] for i in v])) for v in systems.values()), default=0)
+    fused_bonds = sum(1 for b in mol.GetBonds() if ri.NumBondRings(b.GetIdx()) >= 2)
+    bridgeheads = rdMolDescriptors.CalcNumBridgeheadAtoms(mol)
+    hist = [0] * 7
+    for r in rings:
+        if len(r) >= 3:
+            hist[min(len(r), 9) - 3] += 1
+    aromatic = [all(mol.GetAtomWithIdx(a).GetIsAromatic() for a in r) for r in rings]
+    het_arom = sum(1 for r, ar in zip(rings, aromatic)
+                   if ar and any(mol.GetAtomWithIdx(a).GetSymbol() != 'C' for a in r))
+    no_arom = sum(1 for r, ar in zip(rings, aromatic)
+                  if not ar and any(mol.GetAtomWithIdx(a).GetSymbol() in ('N', 'O') for a in r))
+    return [n_sys, max_rings, max_atoms, fused_bonds, bridgeheads] + hist + [het_arom, no_arom]
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+        rows.append(np.concatenate([gen.GetFingerprintAsNumPy(mol), np.array(descriptors(mol), dtype=np.float32)]))
+=======
+        rows.append(np.concatenate([gen.GetFingerprintAsNumPy(mol),
+                                    np.array(descriptors(mol) + ring_features(mol), dtype=np.float32)]))
+>>>>>>> REPLACE
+-----

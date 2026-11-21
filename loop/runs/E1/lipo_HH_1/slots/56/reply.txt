@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+N_CONFIGS = 1
+=======
+# Ionisable groups: SMARTS -> (pKa, sign); sign -1 for acids, +1 for bases.
+IONISABLE = {
+    "[CX3](=O)[OX2H1,OX1-]": (4.5, -1),
+    "c1nn[nH]n1": (4.9, -1),
+    "c1n[nH]nn1": (4.9, -1),
+    "C(=O)[NH]S(=O)(=O)": (4.5, -1),
+    "c[OH]": (10.0, -1),
+    "[NX3;!$(N-a);!$(N-C=[O,S,N]);!$(N-S);!$(N-[#7,#8]);$(N-[CX4])]": (9.5, 1),
+    "[CX3;!$(C-[OX2,SX2])](=[NX2;H1])[NX3;H2,H1]": (11.0, 1),
+    "[nX2;r6]": (5.2, 1),
+}
+
+
+def neutral_log10(smiles):
+    # log10 fraction of neutral species at pH 7.4 summed over matched ionisable groups, capped at -4.
+    mol = Chem.MolFromSmiles(smiles)
+    total = 0.0
+    for smarts, (pka, sign) in IONISABLE.items():
+        n = len(mol.GetSubstructMatches(Chem.MolFromSmarts(smarts)))
+        if sign < 0:
+            total += n * np.log10(1.0 / (1.0 + 10 ** (7.4 - pka)))
+        else:
+            total += n * np.log10(1.0 / (1.0 + 10 ** (pka - 7.4)))
+    return max(total, -4.0)
+
+
+N_CONFIGS = 1
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Za = Xa[:, 2 * N_BITS:].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:].astype(np.float64)
+=======
+    Za = Xa[:, 2 * N_BITS:-1].astype(np.float64)
+    Zb = Xb[:, 2 * N_BITS:-1].astype(np.float64)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32)])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32)])
+=======
+    Ntr = np.array([neutral_log10(s) for s in train_smiles], dtype=np.float32)[:, None]
+    Nte = np.array([neutral_log10(s) for s in test_smiles], dtype=np.float32)[:, None]
+    Xtr = np.hstack([Ftr, np.clip(Dtr, lo, hi).astype(np.float32), Ntr])
+    Xte = np.hstack([Fte, np.clip(Dte, lo, hi).astype(np.float32), Nte])
+>>>>>>> REPLACE
+-----

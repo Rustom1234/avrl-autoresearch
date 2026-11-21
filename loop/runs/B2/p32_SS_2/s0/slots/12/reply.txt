@@ -1,0 +1,48 @@
+<<<<<<< SEARCH
+MAX_ITER = 200
+=======
+MAX_ITER = 300
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+=======
+    P = len(iu[0])
+    ii, jj = iu
+
+    def cons_jac(v):
+        c, r = v[:2 * n].reshape(n, 2), v[2 * n:]
+        J = np.zeros((P + 5 * n, 3 * n))
+        diff = c[ii] - c[jj]
+        d = np.maximum(np.sqrt((diff ** 2).sum(1)), 1e-12)
+        u = diff / d[:, None]
+        rows = np.arange(P)
+        J[rows, 2 * ii] = u[:, 0]
+        J[rows, 2 * ii + 1] = u[:, 1]
+        J[rows, 2 * jj] = -u[:, 0]
+        J[rows, 2 * jj + 1] = -u[:, 1]
+        J[rows, 2 * n + ii] = -1
+        J[rows, 2 * n + jj] = -1
+        k = np.arange(n)
+        b = P
+        J[b + k, 2 * k] = 1
+        J[b + k, 2 * n + k] = -1
+        b += n
+        J[b + k, 2 * k + 1] = 1
+        J[b + k, 2 * n + k] = -1
+        b += n
+        J[b + k, 2 * k] = -1
+        J[b + k, 2 * n + k] = -1
+        b += n
+        J[b + k, 2 * k + 1] = -1
+        J[b + k, 2 * n + k] = -1
+        b += n
+        J[b + k, 2 * n + k] = 1
+        return J
+
+    g = np.zeros(3 * n)
+    g[2 * n:] = -1
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, jac=lambda v: g, method="SLSQP",
+                   constraints={"type": "ineq", "fun": cons, "jac": cons_jac}, options={"maxiter": MAX_ITER})
+>>>>>>> REPLACE
+-----

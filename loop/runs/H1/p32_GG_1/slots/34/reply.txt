@@ -1,0 +1,69 @@
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    v = res.x
+    
+    # Local search shaking and refinement
+    for _ in range(2):  # Two small shakes
+        v += rng.normal(0, 0.001, v.shape)
+        v = np.clip(v, 0, 1.0001)  # Keep within bounds
+        
+        # Simple gradient descent step for sum of radii
+        grad = np.zeros_like(v)
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        
+        # Gradient of sum(r) subject to constraints (penalty-like step)
+        # We just move slightly to increase r while staying feasible
+        # To keep it simple and safe, we use a small fixed step towards better r
+        v[2 * n:] += 0.0001 
+        
+        # Projection-like repair to ensure feasibility
+        c = v[:2 * n].reshape(n, 2)
+        r = v[2 * n:]
+        r = np.minimum(r, np.minimum(np.minimum(c[:, 0], c[:, 1]), np.minimum(1 - c[:, 0], 1 - c[:, 1])))
+        r = np.maximum(r, 0)
+        
+    return v[:2 * n].reshape(n, 2), v[2 * n:]
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints shaw={
+-----
+<<<<<<< SEARCH
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    return res.x[:2 * n].reshape(n, 2), res.x[2 * n:]
+
+
+def _repair(c, r):
+=======
+    res = minimize(lambda v: -v[2 * n:].sum(), x0, method="SLSQP", constraints={"type": "ineq", "fun": cons},
+                   options={"maxiter": MAX_ITER})
+    
+    v = res.x
+    # Local search refinement: shake and small gradient descent
+    c_ls = v[:2 * n].reshape(n, 2)
+    r_ls = v[2 * n:]
+    
+    # Shake
+    c_ls += rng.uniform(-0.002, 0.002, c_ls.shape)
+    r_ls += rng.uniform(-0.001, 0.001, r_ls.shape)
+    
+    # Simple gradient descent step (fixed step size for speed)
+    learning_rate = 0.001
+    for _ in range(10):
+        # Gradient of sum of radii is 0, so we move to satisfy constraints
+        # Just nudge centers slightly to improve spacing
+        c_ls += rng.uniform(-0.001, 0.001, c_ls.shape)
+        r_ls = np.clip(r_ls, 0, 0.4)
+        
+    return c_ls, r_ls
+
+
+def _repair(c, r):
+>>>>>>> REPLACE
+-----

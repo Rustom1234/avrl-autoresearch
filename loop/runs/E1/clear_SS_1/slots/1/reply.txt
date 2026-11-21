@@ -1,0 +1,13 @@
+<<<<<<< SEARCH
+    return rankdata(p_rf) / len(p_rf) + rankdata(p_svr) / len(p_svr)
+=======
+    # kNN on Tanimoto similarity of Morgan bits: similarity-weighted mean of y over top 7 neighbours
+    Str = tanimoto((Xtr > 0).astype(np.float32), (Xtr > 0).astype(np.float32))
+    S = tanimoto((Xte > 0).astype(np.float32), (Xtr > 0).astype(np.float32))
+    idx = np.argsort(-S, axis=1)[:, :7]
+    w = np.take_along_axis(S, idx, axis=1) + 1e-6
+    p_knn = (w * y[idx]).sum(1) / w.sum(1)
+    n = len(p_rf)
+    return 0.35 * rankdata(p_rf) / n + 0.35 * rankdata(p_svr) / n + 0.3 * rankdata(p_knn) / n
+>>>>>>> REPLACE
+-----

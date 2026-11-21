@@ -1,0 +1,22 @@
+<<<<<<< SEARCH
+    return 0.4 * p_tree + 0.3 * p_mlp + 0.3 * p_fp
+=======
+    from sklearn.model_selection import KFold
+    def small_xgb():
+        return XGBRegressor(tree_method="hist", n_estimators=300, learning_rate=0.08, max_depth=5,
+                            subsample=0.8, colsample_bytree=0.5, reg_lambda=2,
+                            objective="reg:pseudohubererror", huber_slope=1.0,
+                            n_jobs=8, random_state=seed)
+    Xd_tr, Xd_te = Xtr[:, N_BITS:], Xte[:, N_BITS:]
+    oof = np.zeros(len(y))
+    for a, b in KFold(5, shuffle=True, random_state=seed).split(Xd_tr):
+        oof[b] = small_xgb().fit(Xd_tr[a], y[a]).predict(Xd_tr[b])
+    base_te = small_xgb().fit(Xd_tr, y).predict(Xd_te)
+    p_res = base_te + np.mean([
+        MLPRegressor(hidden_layer_sizes=(512, 256), alpha=1e-2, early_stopping=True,
+                     max_iter=300, random_state=seed + 200 + k).fit(Dtr, y - oof).predict(Dte)
+        for k in range(3)], axis=0)
+    blend = 0.4 * p_tree + 0.3 * p_mlp + 0.3 * p_fp
+    return 0.5 * blend + 0.5 * p_res
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,61 @@
+<<<<<<< SEARCH
+TIME_FRACTION = 0.8
+=======
+TIME_FRACTION = 0.5
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts until the time is used
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+def _valid(c, r):
+    d = np.sqrt(((c[:, None] - c[None]) ** 2).sum(-1))
+    np.fill_diagonal(d, np.inf)
+    pair_ok = np.all(d >= r[:, None] + r[None] - 1e-12)
+    box_ok = np.all(r >= 0) and np.all(r <= c.min(1)) and np.all(r <= 1 - c.max(1))
+    return pair_ok and box_ok
+
+
+def _anneal(c, r, rng, t_end):
+    """Simulated annealing: move one centre or radius, repair, accept by Metropolis on sum(r)."""
+    t_start, cur_c, cur_r = time.process_time(), c, r
+    cur_s = best_s = r.sum()
+    best_c, best_r = c, r
+    span = max(t_end - t_start, 1e-9)
+    while True:
+        frac = (time.process_time() - t_start) / span
+        if frac >= 1:
+            break
+        T = 0.01 * (0.01) ** frac   # geometric cooling from 1e-2 to 1e-4
+        nc, nr = cur_c.copy(), cur_r.copy()
+        i = rng.integers(len(nr))
+        if rng.random() < 0.5:
+            nc[i] = np.clip(nc[i] + rng.normal(0, T, 2), 0, 1)
+        else:
+            nr[i] = max(nr[i] + rng.normal(0, T), 0)
+        nr = _repair(nc, nr)
+        s = nr.sum()
+        if (s >= cur_s or rng.random() < np.exp((s - cur_s) / T)) and _valid(nc, nr):
+            cur_c, cur_r, cur_s = nc, nr, s
+            if s > best_s:
+                best_c, best_r, best_s = nc, nr, s
+    return best_c, best_r
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # random restarts first
+        c, r = _solve_once(n, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+    return _anneal(best[0], best[1], rng, t0 + 0.9 * time_limit)   # anneal the best packing with the rest
+>>>>>>> REPLACE
+-----

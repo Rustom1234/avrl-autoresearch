@@ -1,0 +1,27 @@
+<<<<<<< SEARCH
+vocab_size = tokenizer.get_vocab_size()
+print(f"Vocab size: {vocab_size:,}")
+=======
+vocab_size = tokenizer.get_vocab_size()
+print(f"Vocab size: {vocab_size:,}")
+
+def build_byte_weights(tokenizer, vocab_size):
+    # UTF-8 byte length of each token's decoded string; fall back to uniform weights
+    w = torch.ones(vocab_size, dtype=torch.float32)
+    try:
+        for i in range(vocab_size):
+            w[i] = float(len(tokenizer.decode([i]).encode("utf-8")))
+    except Exception:
+        w.fill_(1.0)
+    return w.to(device)
+
+BYTE_W = build_byte_weights(tokenizer, vocab_size)
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+            loss = model(x, y)
+=======
+            ce = model(x, y, reduction='none')
+            w = BYTE_W[y.view(-1)]
+            loss = (ce * w).sum() / w.sum().clamp_min(1e-6)
+>>>>>>> REPLACE
+-----

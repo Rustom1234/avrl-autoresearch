@@ -1,0 +1,267 @@
+{
+ "slot": 12,
+ "incumbent": "/homes/rdubash/active-audit/curation/runs/R1/SC_02/cand/s10_0.py",
+ "inc_scores": {
+  "11": 1.8964135688345634
+ },
+ "history": [
+  {
+   "slot": 1,
+   "idea": "Replace the random order with filter + dedupe + rank, all based on target_sample.\n\n1. Dedupe: drop exact and near duplicates, keeping the first occurrence. Key = hash of the whitespace-normalised, lowercased first 300 characters plus the document length bucketed to 5%.\n\n2. Domain score: fit a TfidfVectorizer (word 1-2 grams, sublinear_tf, min_df=2, max_features about 200k) with LogisticRegression. Positives are the 200 target_sample docs split into roughly 2000-character chunks. Negatives are a seeded random 3000 pool docs, truncated to 2000 characters. Score each pool doc on its first 4000 characters. Add a cheap format prior: a bonus if the doc starts with '= ' and contains WikiText-style tokenisation (' , ', ' . ', ' @-@ ').\n\n3. Word-order damage score: many pool docs are WikiText articles with the words shuffled inside sentences (e.g. 'the magic Witchcraft is 1990s An ceremonial'). Unigram features cannot see this. Build the set of lowercased word bigrams from target_sample. For each doc, compute the fraction of its bigrams (first about 600 words after the title line) that are in that set. Calibrate the threshold on the target itself: compute the same fraction for each target doc leave-one-out, or against half of the target, and reject pool docs below about the 2nd percentile of target values. Clean articles should sit far above shuffled ones.\n\n4. Junk filter: drop docs under 200 characters, and docs with a high share of non-alphabetic characters or extreme repetition (unique-word ratio below 0.2).\n\n5. Selection: keep docs that pass 3 and 4 and have domain probability above 0.5. Count tokens with tiktoken gpt2. If the kept docs hold at least T tokens, take the top T by domain score. If they hold fewer, return only the kept set and let the trainer cycle it, rather than padding with off-domain or shuffled text. Shuffle the final order with CURATE_SEED.",
+   "outcome": "dev 3.5278 against 1.9398 for the best at the time, rejected"
+  },
+  {
+   "slot": 2,
+   "idea": "Replace hard filtering with a soft ranking that never cycles: always return at least T tokens of unique documents (about the best half of the pool), so the model never sees a small set repeated.\n\n1. Dedupe, exact only: key = hash of the whole whitespace-normalised text. Keep the first occurrence.\n\n2. Score every remaining doc with a continuous score. No thresholds, nothing is rejected outright.\n   - (a) Format: +2 if the doc starts with '= ' and the share of ' , ', ' . ' and ' @-@ ' tokens among its first 3000 characters is WikiText-like, else 0.\n   - (b) Domain: cosine similarity between the doc's TF-IDF vector (word unigrams, sublinear_tf, min_df=2, first 4000 characters) and the centroid of the target_sample TF-IDF vectors. Min-max scale to 0..1.\n   - (c) Word order: fraction of the doc's lowercased word bigrams (first 500 words) that occur in the bigram set of target_sample. Convert to a percentile rank over the pool, 0..1, and give it weight 1.5. Shuffled-sentence articles then sink below clean ones without any calibrated cutoff.\n   - (d) Junk: -3 if the doc is under 200 characters, or its unique-word ratio is below 0.2, or its alphabetic-plus-space character share is below 0.6. This covers spam templates and HTML/code.\n\n3. Selection: count tokens with tiktoken gpt2 (encode_ordinary_batch). Sort by total score, descending. Take docs from the top until the cumulative token count reaches 1.02*T. If the deduped pool holds fewer than that, take everything. Never repeat a document.\n\n4. Order: shuffle the selected indices with random.Random(CURATE_SEED).\n\n5. Sanity check inside select: assert the selected token count is at least T. If it is not, append the next-ranked docs until it is.",
+   "outcome": "FAILED to run (runs/R1/SC_02/cand/s02_1.py\", line 25, in select enc = tiktoken.encoding.get_encoding(\"gpt2\") ^^^^^^^^^^^^^^^^^ AttributeError: module 'tiktoken' has no attribute 'encoding'. Did you mean: 'Encoding'?)"
+  },
+  {
+   "slot": 3,
+   "idea": "Re-run the soft-ranking curator from experiment 2 (it crashed on a tiktoken call and was never evaluated), with the call fixed and a fallback.\n\nTokeniser fix: use `enc = tiktoken.get_encoding(\"gpt2\")` (not `tiktoken.encoding.get_encoding`). Count tokens with `enc.encode_ordinary_batch(docs, num_threads=8)`. Wrap this in try/except; on any error fall back to `len(doc) / 4` as the token estimate.\n\n1. Dedupe: keep the first occurrence per key, where the key is the hash of the whitespace-normalised, lowercased full text.\n\n2. Score every remaining doc with a continuous score. Nothing is rejected outright.\n   - (a) Format: +2 if the doc starts with '= ' and its first 3000 characters contain at least 5 occurrences of ' , ', ' . ' or ' @-@ '. Otherwise 0.\n   - (b) Domain: cosine similarity between the doc's TF-IDF vector (word unigrams, sublinear_tf, min_df=2, first 4000 characters, fitted on pool plus target) and the centroid of the target_sample vectors. Min-max scale to 0..1.\n   - (c) Word order: fraction of the doc's lowercased whitespace-split word bigrams (first 500 words) that occur in the bigram set built from all of target_sample. Convert to a percentile rank over the pool (0..1) and multiply by 1.5. This pushes sentence-shuffled articles below clean ones.\n   - (d) Junk: -3 if the doc is under 200 characters, or its unique-word ratio over the first 500 words is below 0.2, or its share of alphabetic-plus-space characters is below 0.6, or it contains spam markers ('discount code', 'coupon', 'Click here to order').\n\n3. Selection: sort by total score, descending. Take docs from the top until the cumulative token count reaches 1.03*T. Never repeat a document. If the deduped pool holds less than 1.03*T, append the remaining lowest-scored docs (and, only if still short, duplicates) so the list always holds at least T tokens and the trainer never cycles.\n\n4. Order: shuffle the selected indices with random.Random(int(os.environ.get('CURATE_SEED', 0))).",
+   "outcome": "dev 1.9436 against 1.9398 for the best at the time, rejected"
+  },
+  {
+   "slot": 4,
+   "idea": "Strict tiered selection with a self-supervised shuffle detector. Experiment 3 probably let word-shuffled WikiText articles (+2 format bonus) outrank clean non-wiki prose; this was not checked. Never cycle a small set.\n\n1. Exact dedupe: key = hash of the whitespace-normalised, lowercased full text. Keep the first occurrence.\n\n2. Token counts: `enc = tiktoken.get_encoding(\"gpt2\")`, then `enc.encode_ordinary_batch(docs, num_threads=8)`. On any error fall back to `len(doc) / 4`.\n\n3. Junk flag, true if any of:\n   - under 200 characters;\n   - unique-word ratio over the first 500 words below 0.25;\n   - any single line making up more than 30% of the doc's lines (for docs with at least 5 lines);\n   - alphabetic-plus-space character share below 0.6;\n   - spam markers ('discount code', 'coupon', 'free shipping', 'buy now', 'best price'), case-insensitive.\n\n4. Shuffle detector, trained without labels.\n   - Positives: target_sample split into chunks of about 150 words.\n   - Negatives: the same chunks with the whitespace tokens randomly permuted within each chunk (seeded by CURATE_SEED).\n   - Model: `HashingVectorizer(analyzer='word', token_pattern=r'\\S+', ngram_range=(2,2), lowercase=True, n_features=2**18, binary=True)` followed by `LogisticRegression(C=1)`.\n   - For each pool doc, compute p_clean on words 0-150 and on words 150-300 (skipping the title line) and average the two.\n   - Second signal: the fraction of ' . ' occurrences followed by an uppercase letter, a newline, a quote or the end of the text.\n   - A doc is shuffled if p_clean < 0.5. For docs that contain ' . ' tokenisation, it is also shuffled if that fraction is below 0.6.\n\n5. Wiki flag: the doc starts with '= ' and its first 3000 characters contain at least 5 occurrences of ' , ', ' . ' or ' @-@ '.\n\n6. Tiers:\n   - A = wiki, not shuffled, not junk.\n   - B = non-wiki, not shuffled, not junk. Sort B by TF-IDF cosine similarity to the target centroid (word unigrams, sublinear_tf, first 4000 characters), descending.\n   - C = shuffled wiki.\n   - D = junk and everything else.\n\n7. Build the list:\n   - Take all of A.\n   - If tokens(A) < 0.6*T, add a second copy of every A doc (at most 2 copies in total).\n   - Fill with B in similarity order until the total reaches 1.02*T.\n   - Only if still short, add C, then D.\n\n8. Order: shuffle the final list with `random.Random(int(os.environ.get('CURATE_SEED', 0)))`.",
+   "outcome": "dev 1.9381 against 1.9398 for the best at the time, rejected"
+  },
+  {
+   "slot": 5,
+   "idea": "Redo the tiered selection of experiment 4, but detect WikiText by its tokenisation instead of by a leading '= '. The target sample shows that documents are article chunks which often start mid-article, so the '= ' test probably missed most wiki chunks (not checked).\n\n1. Exact dedupe: key = hash of the whitespace-normalised, lowercased full text; keep the first occurrence. Count tokens with `tiktoken.get_encoding(\"gpt2\").encode_ordinary_batch(docs, num_threads=8)`, falling back to `len(doc)/4` on error.\n\n2. Wiki flag, no '= ' requirement. Let c = number of ',' characters in the doc and cs = number of ' , ' occurrences. wiki = (c >= 3 and cs/c >= 0.8) and (the number of ' . ' occurrences is at least 60% of the number of '.' characters that are followed by a space or newline). Sanity check: compute the same flag on target_sample. If fewer than 90% of target docs pass, lower the 0.8 threshold to the 5th percentile of the target's cs/c values.\n\n3. Shuffle detector, calibrated on the target and using only frequent bigrams so that it generalises.\n   - Build G = the 5000 most frequent lowercased whitespace-token bigrams in target_sample.\n   - For any text, r = the fraction of its bigrams (first 400 tokens) that are in G.\n   - Compute r for target chunks of 400 tokens (r_clean), and for the same chunks with tokens permuted within each sentence, split on ' . ' and seeded by CURATE_SEED (r_shuf).\n   - Threshold t = midpoint between the 5th percentile of r_clean and the 95th percentile of r_shuf.\n   - A wiki doc is shuffled if r < t.\n\n4. Junk flag, true if any of: under 200 characters; unique-word ratio over the first 500 words below 0.25; alphabetic-plus-space character share below 0.6; spam markers ('discount code', 'coupon', 'free shipping', 'buy now', 'best price', 'click here to order'), case-insensitive.\n\n5. Tiers:\n   - A = wiki, not shuffled, not junk.\n   - B = non-wiki, not junk, sorted by TF-IDF cosine similarity to the target centroid (word unigrams, sublinear_tf, first 4000 characters), descending.\n   - C = shuffled wiki, sorted by r descending.\n   - D = the rest.\n\n6. Build the list: take all of A. If tokens(A) < 0.5*T, add a second copy of each A doc (at most 2 copies). If tokens(A) > 1.02*T, keep the A docs with the highest r up to 1.02*T. Otherwise fill with B, then C, then D until the total reaches 1.02*T. Never return fewer than T tokens.\n\n7. Order: shuffle the final list with `random.Random(int(os.environ.get('CURATE_SEED', 0)))`.",
+   "outcome": "FAILED to run (ges/tiktoken/core.py\", line 123, in encode if match := _special_token_regex(disallowed_special).search(text): ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ TypeError: expected string or buffer)"
+  },
+  {
+   "slot": 6,
+   "idea": "Keep the selection pipeline of experiment 4 unchanged (it ran and scored 1.9381), and change only the order: a curriculum that ends on pure clean target-format text instead of a global shuffle.\n\nSteps 1-6 as in experiment 4: exact dedupe, junk flag, self-supervised shuffle detector (HashingVectorizer bigrams + LogisticRegression on target chunks against permuted chunks, plus the ' . '-followed-by-uppercase fraction), wiki flag (starts with '= ' and at least 5 of ' , ', ' . ', ' @-@ ' in the first 3000 characters), and tiers A (clean wiki), B (clean non-wiki, sorted by TF-IDF cosine to the target centroid), C (shuffled wiki), D (junk and the rest).\n\nToken counts, written to avoid the earlier crashes: `enc = tiktoken.get_encoding(\"gpt2\")`, then per doc `len(enc.encode_ordinary(str(d)))` inside try/except, falling back to `len(d) // 4`. Do not use the batch call.\n\nBuild the selected set S:\n- If tokens(A) >= 1.01*T, S = the A docs with the highest p_clean up to 1.01*T.\n- Otherwise S = all of A (one copy each, no duplication), plus B in similarity order, then C, then D, until the total reaches 1.01*T.\n\nOrder, with rng = random.Random(int(os.environ.get('CURATE_SEED', 0))):\n- Shuffle A with rng and split it by tokens into A_early (the first 50% of A's tokens) and A_late (the rest).\n- Phase 1 = A_early plus all selected non-A docs, shuffled together with rng.\n- Phase 2 = A_late, shuffled.\n- Return phase 1 followed by phase 2.\n\nThe last part of training (about half of A's tokens, during the low learning-rate steps) is then only clean WikiText articles, and the T-token cutoff falls at the very end of phase 2. The list always holds at least 1.01*T tokens, so it never cycles back to phase 1. If the estimate falls short, append more B, C or D docs to the front of phase 1, not to the end.",
+   "outcome": "dev 1.9117 against 1.9398 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 7,
+   "idea": "Keep the current best's two-phase order, but make its tiers real. The current code has no dedupe, no shuffle detector (p_clean is the constant 0.5) and almost no junk filter, so word-shuffled and duplicate wiki articles sit in tier A and in the final phase.\n\n1. Token counts: keep the current per-doc `len(enc.encode_ordinary(str(d)))` in try/except, falling back to `len(d)//4`. Do not use the batch call.\n\n2. Exact dedupe: key = hash of the whitespace-normalised, lowercased full text. Keep the first occurrence; later copies are never selected.\n\n3. Wiki flag: unchanged (starts with '= ' and at least 5 of the listed characters in the first 3000).\n\n4. Shuffle detector for wiki docs, calibrated on target_sample.\n   - Tokens = lowercased `text.split()`.\n   - G = the set of token bigrams that occur at least 2 times in target_sample.\n   - r(text) = the fraction of the bigrams in the text's first 400 tokens (after the title line) that are in G.\n   - Calibration: split each target doc into 400-token chunks. Compute r for each chunk (r_clean). Compute r for the same chunks after permuting tokens inside consecutive windows of 20 tokens, using the CURATE_SEED rng (r_shuf).\n   - Threshold t = (5th percentile of r_clean + 95th percentile of r_shuf) / 2.\n   - Second signal p = the fraction of ' . ' occurrences followed by an uppercase letter, a newline, a quote or '='.\n   - A wiki doc is shuffled if r < t, or if it has at least 5 ' . ' and p < 0.6.\n   - Failsafe: if more than 70% of wiki docs are flagged, use only the p rule.\n\n5. Junk flag, true if any of:\n   - under 200 characters;\n   - unique-word ratio over the first 500 words below 0.25;\n   - contains, case-insensitive, 'click here to order', 'best price guaranteed', 'discount code', 'coupon', 'free shipping', 'click here to subscribe' or 'posted by admin';\n   - alphabetic-plus-space character share below 0.6.\n\n6. Tiers:\n   - A = wiki, not shuffled, not junk, not a duplicate.\n   - B = non-wiki, not junk, not a duplicate, sorted by the existing hashing cosine similarity to the target centroid. Compute it in one batched sparse transform, not per doc.\n   - C = shuffled wiki, sorted by r descending.\n   - D = junk.\n   - Duplicates are excluded unless the list would otherwise be short.\n\n7. Selection:\n   - If tokens(A) >= 1.01*T, S = the A docs with the highest r up to 1.01*T.\n   - Otherwise S = all of A, then B in order, then C, then D, until the total reaches 1.02*T.\n   - Never return fewer than 1.01*T tokens.\n\n8. Order, as in the current best:\n   - Shuffle A with rng and split it by tokens into A_early (50%) and A_late (50%).\n   - Phase 1 = A_early plus all selected non-A docs, shuffled together.\n   - Phase 2 = A_late, shuffled.\n   - Return phase 1 followed by phase 2.\n\nPhase 2 then holds only clean, unique WikiText.",
+   "outcome": "dev 1.9513 against 1.9117 for the best at the time, rejected"
+  },
+  {
+   "slot": 8,
+   "idea": "Keep the current best's selection exactly as it is (same wiki flag, same junk flag, same tier A / B / D, same hashing-cosine fill to the same token budget, same per-doc token counting). Change only which tier-A docs go into phase 2, using a rank instead of a random split, with no thresholds and no doc removed.\n\n1. Build G = the set of lowercased whitespace-token bigrams (`text.lower().split()`) that occur at least 3 times in all of target_sample together.\n\n2. For each tier-A doc compute a cleanness score:\n   - r = the fraction of the bigrams in its tokens 0-600, after dropping the first line (the title), that are in G.\n   - p = the fraction of ' . ' occurrences that are followed by an uppercase letter, a newline, a quote, '=' or the end of the text. Use 0.5 if the doc has fewer than 3 such occurrences.\n   - Convert r and p each to a percentile rank over tier A (0..1). score = rank(r) + 0.5 * rank(p).\n   - If the doc is an exact duplicate of an earlier tier-A doc (same hash of the whitespace-normalised full text), set its score to -1. It is still selected.\n\n3. Order:\n   - Sort the selected tier-A docs by score, descending.\n   - A_late = docs from the top until they hold 50% of tier A's selected tokens. A_early = the rest.\n   - Phase 1 = A_early plus all selected non-A docs, shuffled together with rng.\n   - Phase 2 = A_late, shuffled with rng.\n   - Return phase 1 followed by phase 2.\n\nThe selected set and the total token count are identical to the current best. Only the membership of the two phases changes, so the final low-learning-rate half of the wiki tokens is the cleanest, least word-shuffled, non-duplicate articles, and shuffled or duplicate wiki articles move into phase 1.",
+   "outcome": "dev 1.9739 against 1.9117 for the best at the time, rejected"
+  },
+  {
+   "slot": 9,
+   "idea": "Keep the current best's two-phase order and code structure; change only which wiki docs are selected. Wiki docs probably hold more than 1.01*T tokens (not checked), in which case the current code takes the first 1.01*T of them in pool order, word-shuffled ones and duplicates included, and leaves later clean articles unused.\n\n1. Token counts, wiki flag, junk flag: unchanged (per-doc `len(enc.encode_ordinary(str(d)))` in try/except).\n\n2. Exact dedupe among wiki docs: key = hash of `' '.join(d.split())`. Later copies go to a last-resort tier.\n\n3. Shuffle detector, simple and calibrated on the target.\n   - FW = the 40 most frequent lowercased whitespace-token bigrams in all of target_sample (expected: 'of the', 'in the', ', and', '. the', 'to the' and similar).\n   - rate(text) = (number of bigrams of `text.lower().split()` that are in FW) / (number of bigrams), over the whole doc.\n   - m = the median rate over the target_sample docs.\n   - A wiki doc is clean if rate >= 0.5*m, otherwise shuffled.\n   - Failsafe: if fewer than 15% or more than 97% of wiki docs are flagged clean, treat all wiki docs as clean (the current behaviour).\n\n4. Selection to 1.01*T tokens, in this priority:\n   - (i) all unique clean wiki docs, in seeded-shuffled order; if they alone exceed the budget, stop at the budget;\n   - (ii) unique shuffled wiki docs, by rate descending;\n   - (iii) tier B non-wiki docs by the existing hashing cosine;\n   - (iv) duplicate wiki docs, then junk.\n   Never return fewer than 1.01*T tokens.\n\n5. Order: exactly as the current best. Treat ALL selected wiki docs, clean and shuffled, as tier A. Shuffle them with rng and split them 50/50 by tokens into A_early and A_late. Phase 1 = A_early plus the selected non-wiki docs, shuffled. Phase 2 = A_late, shuffled. Do NOT rank the clean docs into phase 2; that was experiment 8 and it was rejected.",
+   "outcome": "dev 1.9246 against 1.9117 for the best at the time, rejected"
+  },
+  {
+   "slot": 10,
+   "idea": "Keep the current best's flags, token counting, tier A / B / D definitions, hashing-cosine sort of B and the 1.01*T budget. Change only what fills the budget when tier A is short: use a second copy of the wiki docs in place of most of the non-wiki filler, and end on a full pass over A.\n\n1. If tokens(A) >= 1.01*T: do exactly what the current best does (no change).\n\n2. Otherwise, with rng = random.Random(CURATE_SEED):\n   - Phase 2 = every tier-A doc once, shuffled with rng. This is the end of the list.\n   - rem = 1.01*T - tokens(A). This is the token budget of phase 1.\n   - A_copy = a second copy of tier-A docs: shuffle A with rng and take docs until they hold min(tokens(A), 0.75*rem) tokens. No doc appears more than twice in the whole list.\n   - Filler = tier B in descending hashing-cosine order until phase 1 reaches rem tokens. Skip B docs that contain, case-insensitive, 'discount code', 'coupon', 'click here to order', 'best price guaranteed' or 'free shipping'; use those skipped docs and tier D only if B runs out.\n   - Phase 1 = A_copy + Filler, shuffled together with rng.\n   - Return phase 1 followed by phase 2.\n\n3. Check that the list holds at least 1.01*T tokens. If it is short, add more filler to the FRONT of phase 1, never to the end.\n\nDo not add a shuffle detector, dedupe or ranking of A docs (experiments 7, 8 and 9 were rejected).",
+   "outcome": "dev 1.8964 against 1.9117 for the best at the time, KEPT as the new best"
+  },
+  {
+   "slot": 11,
+   "idea": "Keep the current best exactly as it is (flags, per-doc token counting, tier A / B / D, hashing-cosine sort of B, forbidden-phrase skip, 1.01*T budget, phase 2 = every tier-A doc once, shuffled, at the end). Change only the composition of phase 1 in the branch where tokens(A) < 1.01*T: fill it with repeated wiki docs and use non-wiki filler only as a last resort.\n\n1. rem = 1.01*T - tokens(A), as now.\n\n2. Build A_copy to hold up to the full rem tokens, not 0.75*rem:\n   - Shuffle a copy of tier A with rng and take docs while the running total stays <= rem.\n   - If one full pass over A is used up and A_copy is still below rem, shuffle A again with rng and continue with a second extra pass.\n   - At most 2 extra passes, so no doc appears more than 3 times in the whole list.\n\n3. Only if A_copy still holds less than rem after that (or to fill the last small gap that no whole A doc fits into), add tier B docs in descending hashing-cosine order, skipping the forbidden-phrase docs, then tier D, until phase 1 reaches rem.\n\n4. Phase 1 = A_copy + any filler, shuffled together with rng. Return phase 1 followed by phase 2 (all of A once, shuffled).\n\n5. Keep the existing check: if the list holds fewer than 1.01*T tokens, add filler to the FRONT of phase 1, never to the end.\n\nDo not add dedupe, a shuffle detector or any ranking of A docs. Leave the tokens(A) >= 1.01*T branch untouched.",
+   "outcome": "dev 1.9098 against 1.8964 for the best at the time, rejected"
+  },
+  {
+   "slot": 12,
+   "idea": "Keep the current best exactly as it is (flags, per-doc token counting, tiers A / B / D, hashing-cosine sort of B, forbidden-phrase skip, 1.01*T budget, limit_a_copy = min(tokens(A), 0.75*rem), filler, front-padding check). Phase 2 stays every tier-A doc once, shuffled, at the end. Change only WHICH tier-A docs get the second copy (A_copy) in the tokens(A) < 1.01*T branch: prefer clean, unique articles over a random draw.\n\n1. For each tier-A doc compute p = the fraction of ' . ' occurrences that are followed by an uppercase letter, a digit, a newline, a quote character, '=' or '(' or the end of the text. Compute it as: for each index i where d[i:i+3] == ' . ', look at d[i+3:i+4]. If the doc has fewer than 5 such occurrences, set p = 1.0. Word-shuffled articles have the full stop in the middle of sentences, so their p is low.\n\n2. For each tier-A doc compute dup = True if an earlier tier-A doc has the same hash of ' '.join(d.split()). A duplicate already appears more than once in phase 2.\n\n3. preferred = tier-A docs with p >= 0.8 and not dup. others = the remaining tier-A docs. Shuffle each list with rng.\n   - Failsafe: if preferred holds fewer than 15% of tier A's tokens, set preferred = all of tier A, shuffled (the current behaviour).\n\n4. Build A_copy by going through preferred first and then others, adding a doc whenever running tokens + doc tokens <= limit_a_copy. This is the same greedy rule as now, with only the candidate order changed. Each doc is copied at most once.\n\n5. Everything else is unchanged: Phase 1 = A_copy + B filler, shuffled together with rng. Return phase 1 followed by phase 2.\n\nDo not remove any doc from phase 2. Do not rank phase 2. Do not change the tiers or the budget.",
+   "outcome": "dev 1.9200 against 1.8964 for the best at the time, rejected"
+  }
+ ],
+ "usd": 2.59181915,
+ "status": "done",
+ "route_log": [
+  {
+   "slot": 1,
+   "left": 12,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.08719864999999999,
+   "dev": 3.527809071212813,
+   "inc": 1.9398216073960841,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 2,
+   "left": 11,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.10721834999999999,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 3,
+   "left": 10,
+   "stall": 2,
+   "fails": 1,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.12180555000000001,
+   "dev": 1.9436182039004009,
+   "inc": 1.9398216073960841,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 4,
+   "left": 9,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.18159024999999995,
+   "dev": 1.938063770322007,
+   "inc": 1.9398216073960841,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 5,
+   "left": 8,
+   "stall": 4,
+   "fails": 0,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "fail",
+   "usd": 0.251062,
+   "dev": null,
+   "inc": null,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 6,
+   "left": 7,
+   "stall": 5,
+   "fails": 1,
+   "n_accept": 0,
+   "gain_sd": 0.0,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.21784765000000006,
+   "dev": 1.9116954383049314,
+   "inc": 1.9398216073960841,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 7,
+   "left": 6,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.870928859228287,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.2514468000000001,
+   "dev": 1.9513179259185038,
+   "inc": 1.9116954383049314,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 8,
+   "left": 5,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.870928859228287,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.23563495000000012,
+   "dev": 1.9739086306329636,
+   "inc": 1.9116954383049314,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 9,
+   "left": 4,
+   "stall": 2,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.870928859228287,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.3005439000000001,
+   "dev": 1.9245762394662977,
+   "inc": 1.9116954383049314,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 10,
+   "left": 3,
+   "stall": 3,
+   "fails": 0,
+   "n_accept": 1,
+   "gain_sd": 3.870928859228287,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "accept",
+   "usd": 0.28353315,
+   "dev": 1.8964135688345634,
+   "inc": 1.9116954383049314,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 11,
+   "left": 2,
+   "stall": 0,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 5.974131373729804,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.25370044999999974,
+   "dev": 1.909848677709646,
+   "inc": 1.8964135688345634,
+   "harmed": null,
+   "escalated": false
+  },
+  {
+   "slot": 12,
+   "left": 1,
+   "stall": 1,
+   "fails": 0,
+   "n_accept": 2,
+   "gain_sd": 5.974131373729804,
+   "planner": "fable",
+   "coder": "gemma4-12b",
+   "decision": "reject",
+   "usd": 0.30023745,
+   "dev": 1.919994065646203,
+   "inc": 1.8964135688345634,
+   "harmed": null,
+   "escalated": false
+  }
+ ],
+ "start_dev": 1.9398216073960841,
+ "inc_slot": 10
+}

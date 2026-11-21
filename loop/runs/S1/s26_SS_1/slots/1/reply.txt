@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+    rng = np.random.default_rng(12345)
+    best_s, best = -1, None
+    while time.time() - t0 < 150:
+        try:
+            c = _physics(rng)
+            r = _lp_radii(c)
+            c2 = _polish(c, r)
+            c2 = np.clip(c2, 0, 1)
+            r2 = _lp_radii(c2)
+        except Exception:
+            continue
+        s = r2.sum()
+        if s > best_s:
+            best_s, best = s, (c2, r2)
+    c, r = best
+=======
+    rng = np.random.default_rng(12345)
+    T = 170
+    P = 8
+
+    def refine(c):
+        c = np.clip(c, 0, 1)
+        r = _lp_radii(c)
+        c2 = np.clip(_polish(c, r), 0, 1)
+        r2 = _lp_radii(c2)
+        return c2, r2, r2.sum()
+
+    pop = []
+    while len(pop) < P and time.time() - t0 < T:
+        try:
+            pop.append(list(refine(_physics(rng))))
+        except Exception:
+            continue
+    sigmas = np.geomspace(0.003, 0.08, P)
+    while time.time() - t0 < T:
+        for k in range(len(pop)):
+            if time.time() - t0 > T:
+                break
+            try:
+                cn, rn, sn = refine(pop[k][0] + rng.normal(0, sigmas[k], (_N, 2)))
+            except Exception:
+                continue
+            if sn > pop[k][2]:
+                pop[k] = [cn, rn, sn]
+        order = sorted(range(len(pop)), key=lambda q: pop[q][2])
+        w, b = order[0], order[-1]
+        if time.time() - t0 < T:
+            try:
+                cn, rn, sn = refine(pop[b][0] + rng.normal(0, 0.03, (_N, 2)))
+                pop[w] = [cn, rn, sn]
+            except Exception:
+                pass
+    best = max(pop, key=lambda p: p[2])
+    c, r = best[0], best[1]
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,57 @@
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+=======
+def _perturb(bc, br, rng, move):
+    """Apply one of four basin-hopping moves to the incumbent (0 kick, 1 relocate, 2 cluster shake, 3 wall slide)."""
+    c, r = bc.copy(), br.copy()
+    if move == 0:
+        c = np.clip(c + rng.normal(0, 0.02, c.shape), 0, 1)
+        r = np.maximum(r + rng.normal(0, 0.02, r.shape), 0)
+    elif move == 1:
+        c, r = _relocate(c, r, rng)
+    elif move == 2:
+        k = rng.integers(len(r))
+        idx = np.argsort(((c - c[k]) ** 2).sum(1))[:5]
+        c[idx] = np.clip(c[idx] + rng.normal(0, 0.05, (5, 2)), 0, 1)
+    else:
+        gap = np.minimum(c, 1 - c).min(1) - r
+        idx = np.flatnonzero(gap < 1e-3)
+        if len(idx) == 0:
+            idx = np.arange(len(r))
+        k = rng.choice(idx)
+        ax = int(np.argmin(np.minimum(c[k], 1 - c[k])))
+        c[k, 1 - ax] = np.clip(c[k, 1 - ax] + rng.uniform(-0.1, 0.1), 0, 1)
+    return c, r
+
+
+def solve(n, seed, time_limit):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    best = (c, _repair(c, r))
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        bc, br = best
+        c0 = np.clip(bc + rng.normal(0, 0.02, bc.shape), 0, 1)
+        r0 = np.maximum(br + rng.normal(0, 0.02, br.shape), 0)
+        c0, r0 = _relocate(c0, r0, rng)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if r.sum() > best[1].sum():
+            best = (c, r)
+    return best
+=======
+    best = (c, _repair(c, r))
+    w = np.ones(4)   # success scores of the four moves
+    while time.process_time() - t0 < TIME_FRACTION * time_limit:   # basin hopping from the incumbent
+        move = rng.choice(4, p=(w + 0.2) / (w + 0.2).sum())
+        c0, r0 = _perturb(best[0], best[1], rng, move)
+        c, r = _solve_once(n, rng, np.concatenate([c0.ravel(), r0]))
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        w *= 0.99
+        if r.sum() > best[1].sum():
+            best = (c, r)
+            w[move] += 1
+    return best
+>>>>>>> REPLACE
+-----

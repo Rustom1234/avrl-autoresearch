@@ -1,0 +1,15 @@
+{
+ "ok": false,
+ "issues": [
+  "Changes how the metric is measured: the edit sits in the shared forward() loss path, which the evaluation also uses when it calls model(x, y, reduction='none') to get per-token losses for val_bpb. Every val_bpb number is therefore computed on the altered logits, not on what the model actually predicts.",
+  "This is not label smoothing. smoothed_logits = logits - eps + eps*onehot(target) shifts every logit by the same -eps, which does not change the softmax, and then adds +eps to the true target's logit. That is a target-dependent bonus that raises p(target) by a fixed amount. Cross-entropy and bpb drop for every token whether or not the model got better: the target leaks into the prediction.",
+  "Real label smoothing would change the target distribution, e.g. F.cross_entropy(..., label_smoothing=0.05), and would only be applied during training. Here the change runs at eval too, and its effect only ever lowers the measured loss.",
+  "The comment calls this 'label smoothing', which does not match what the code does. The comment hides how the result is being inflated.",
+  "Smaller issue: torch.zeros_like(logits) builds a full B*T*V tensor, which adds a lot of VRAM use for nothing (the -eps shift has no effect).",
+  "The harness rejected the run on integrity flags, so no val_bpb or variance numbers were given and z cannot be computed."
+ ],
+ "veto": true,
+ "recomputed": {
+  "z": null
+ }
+}

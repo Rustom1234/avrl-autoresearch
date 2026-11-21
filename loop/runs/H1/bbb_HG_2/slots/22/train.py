@@ -1,0 +1,53 @@
+"""train.py: predicts a measured property of small molecules from their SMILES strings (binary classification; return the probability of class 1).
+
+The harness calls fit_predict(train_smiles, train_y, test_smiles, seed) and scores the returned predictions.
+"""
+import numpy as np
+from rdkit import Chem
+from rdkit.Chem import rdFingerprintGenerator, MACCSkeys
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# Settings
+N_BITS = 2048
+RADIUS = 2
+
+
+def featurize(smiles):
+    gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+    macc_gen = MACCSkeys.GenMACCSKeys
+    feats = []
+    for s in smiles:
+        mol = Chem.MolFromSmiles(s)
+        if mol:
+            morgan = gen.GetCountFingerprintAsNumPy(mol)
+            maccs = macc_gen(mol)
+            feats.append(np.concatenate([morgan, np.array(maccs, dtype=np.float32)]))
+    return np.array(feats, dtype=np.float32)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+    # Random Forest Model
+    rf_model = RandomForestClassifier(n_estimators=1000, max_features='sqrt', min_samples_leaf=2, 
+                                      class_weight='balanced_subsample', n_jobs=-1, random_state=seed)
+    rf_model.fit(featurize(train_smiles), np.asarray(train_y, dtype=np.int64))
+    rf_probs = rf_model.predict_proba(featurize(test_smiles))[:, 1]
+
+    # SMILES Char n-gram Logistic Regression
+    tfidf = TfidfVectorizer(analyzer='char', ngram_range=(2, 5), sublinear_tf=True, min_df=2)
+    train_tfidf = tfidf.fit_transform(train_smiles)
+    lr_model = LogisticRegression(C=2.0, class_weight='balanced', max_iter=2000, random_state=seed)
+    lr_model.fit(train_tfidf, np.asarray(train_y, dtype=np.int64))
+    lr_probs = lr_model.predict_proba(tfidf.transform(test_smiles))[:, 1]
+
+    # Rank averaging
+    def get_ranks(probs):
+        return np.argsort(probs).argsort()
+
+    rank_rf = get_ranks(rf_probs)
+    rank_lr = get_ranks(lr_probs)
+    
+    # Average ranks and rescale to [0, 1]
+    mean_ranks = (rank_rf + rank_lr) / 2.0
+    return (mean_ranks - mean_ranks.min()) / (mean_ranks.max() - mean_ranks.min() + 1e-9)

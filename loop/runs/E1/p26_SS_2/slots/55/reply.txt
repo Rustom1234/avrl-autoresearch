@@ -1,0 +1,41 @@
+<<<<<<< SEARCH
+def _solve_once(n, rng, start=None, sd=0.0):
+    if start is None:
+=======
+def _solve_once(n, rng, start=None, sd=0.0, x0=None):
+    if x0 is not None:
+        pass
+    elif start is None:
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+=======
+def _grow(n, rng, c, r):
+    """Insert one circle at the largest empty hole of a (n-1)-circle packing and re-optimise."""
+    g = (np.arange(50) + 0.5) / 50
+    p = np.stack(np.meshgrid(g, g), -1).reshape(-1, 2)
+    d = np.sqrt(((p[:, None] - c[None]) ** 2).sum(-1)) - r[None]
+    d = np.minimum(d.min(1), np.minimum(np.minimum(p[:, 0], p[:, 1]), np.minimum(1 - p[:, 0], 1 - p[:, 1])))
+    q = p[np.argmax(d)]
+    x0 = np.concatenate([np.vstack([c, q]).ravel(), r * 0.9, [0.03]])
+    return _solve_once(n, rng, x0=x0)
+
+
+def solve(n, seed, time_limit):
+    rng, t0, best = np.random.default_rng(seed), time.process_time(), None
+    pool = []
+    while time.process_time() - t0 < 0.2 * time_limit:
+        c, r = _solve_once(n - 1, rng)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        pool.append((r.sum(), c, r))
+    pool.sort(key=lambda t: -t[0])
+    for _, c0, r0 in pool[:3]:
+        c, r = _grow(n, rng, c0, r0)
+        c = np.clip(c, 0, 1)
+        r = _repair(c, r)
+        if best is None or r.sum() > best[1].sum():
+            best = (c, r)
+>>>>>>> REPLACE
+-----

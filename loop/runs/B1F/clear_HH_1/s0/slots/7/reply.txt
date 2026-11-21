@@ -1,0 +1,64 @@
+<<<<<<< SEARCH
+from sklearn.svm import SVR
+=======
+from sklearn.svm import SVR
+from sklearn.linear_model import Ridge
+from rdkit.Chem.Pharm2D import Gobbi_Pharm2D, Generate
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+=======
+def gobbi(smiles):
+    rows = []
+    for s in smiles:
+        fp = Generate.Gen2DFingerprint(Chem.MolFromSmiles(s), Gobbi_Pharm2D.factory)
+        v = np.zeros(4096, dtype=np.float64)
+        for b in fp.GetOnBits():
+            v[b % 4096] = 1.0
+        rows.append(v)
+    return np.array(rows)
+
+
+def physchem(smiles):
+    rows = []
+    for s in smiles:
+        m = Chem.MolFromSmiles(s)
+        rows.append([Descriptors.MolLogP(m), Descriptors.MolWt(m), Descriptors.TPSA(m),
+                     Descriptors.NumHDonors(m), Descriptors.NumHAcceptors(m),
+                     Descriptors.NumRotatableBonds(m), Descriptors.FractionCSP3(m)])
+    return np.array(rows, dtype=np.float64)
+
+
+def fit_predict(train_smiles, train_y, test_smiles, seed):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    K_train = 0.5 * (tanimoto(X, X) + rbf(D, D, gamma))
+    K_test = 0.5 * (tanimoto(Xt, X) + rbf(Dt, D, gamma))
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    mu, sd = y.mean(), y.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (y - mu) / sd)
+    return model.predict(K_test)
+=======
+    G = gobbi(train_smiles)
+    Gt = gobbi(test_smiles)
+    K_train = (tanimoto(X, X) + rbf(D, D, gamma) + tanimoto(G, G)) / 3.0
+    K_test = (tanimoto(Xt, X) + rbf(Dt, D, gamma) + tanimoto(Gt, G)) / 3.0
+    y = np.asarray(train_y, dtype=np.float64)
+    y = (rankdata(y) - 0.5) / len(y)
+    P = physchem(train_smiles)
+    Pt = physchem(test_smiles)
+    pmu, psd = P.mean(axis=0), P.std(axis=0) + 1e-9
+    P = (P - pmu) / psd
+    Pt = (Pt - pmu) / psd
+    ridge = Ridge(alpha=10.0).fit(P, y)
+    r_train = ridge.predict(P)
+    r_test = ridge.predict(Pt)
+    resid = y - r_train
+    mu, sd = resid.mean(), resid.std() + 1e-9
+    model = SVR(kernel="precomputed", C=5.0, epsilon=0.05)
+    model.fit(K_train, (resid - mu) / sd)
+    return model.predict(K_test) * sd + mu + r_test
+>>>>>>> REPLACE
+-----

@@ -1,0 +1,32 @@
+<<<<<<< SEARCH
+import numpy as np
+from rdkit import Chem
+=======
+import numpy as np
+from rdkit import Chem, DataStructs
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+def featurize(smiles):
+=======
+def bitfp_one(smi):
+    key = ('bit', smi)
+    if key not in _CACHE:
+        gen = rdFingerprintGenerator.GetMorganGenerator(radius=RADIUS, fpSize=N_BITS)
+        _CACHE[key] = gen.GetFingerprint(Chem.MolFromSmiles(smi))
+    return _CACHE[key]
+
+
+def featurize(smiles):
+>>>>>>> REPLACE
+<<<<<<< SEARCH
+    return base_te + stage2.predict(Xte)
+=======
+    pred = base_te + stage2.predict(Xte)
+    trf = [bitfp_one(s) for s in train_smiles]
+    tef = [bitfp_one(s) for s in test_smiles]
+    smax = np.array([max(DataStructs.BulkTanimotoSimilarity(f, trf)) for f in tef])
+    w = np.clip((smax - 0.2) / 0.3, 0.0, 1.0)
+    m = np.median(y)
+    return w * pred + (1.0 - w) * m
+>>>>>>> REPLACE
+-----
